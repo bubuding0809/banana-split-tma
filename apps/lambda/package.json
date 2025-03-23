@@ -2,6 +2,7 @@
   "name": "lambda",
   "type": "module",
   "scripts": {
+    "check-types": "tsc --noEmit",
     "dev": "NODE_ENV=development PORT=8081 tsx watch index.dev.ts",
     "env:pull": "vercel env pull",
     "start": "vercel dev",
@@ -18,6 +19,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/express": "^5.0.1",
     "@types/node": "^20.11.17",
+    "eslint": "^9.21.0",
     "trpc-ui": "^1.0.15",
     "tsx": "^4.7.1",
     "typescript": "5.8.2",
