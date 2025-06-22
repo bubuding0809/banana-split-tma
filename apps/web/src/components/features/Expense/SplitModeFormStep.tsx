@@ -1,14 +1,24 @@
-import { type ReactFormExtendedApi } from "@tanstack/react-form";
-import { type z } from "zod";
+import { withForm } from "@/hooks";
+import { formOpts } from "./AddExpenseForm";
 
-import { type expenseFormSchema } from "./AddExpenseForm.type";
-
-interface SplitModeFormStepProps {
-  form: ReactFormExtendedApi<z.infer<typeof expenseFormSchema>>;
-}
-
-const SplitModeFormStep = ({ form }: SplitModeFormStepProps) => {
-  return <div>SplitModeFormStep</div>;
-};
+const SplitModeFormStep = withForm({
+  ...formOpts,
+  props: {
+    step: 2,
+    isLastStep: true,
+  },
+  render: ({ form }) => {
+    return (
+      <div>
+        <form.AppField
+          name="amount"
+          children={(field) => (
+            <input onChange={(e) => field.handleChange(e.target.value)} />
+          )}
+        />
+      </div>
+    );
+  },
+});
 
 export default SplitModeFormStep;

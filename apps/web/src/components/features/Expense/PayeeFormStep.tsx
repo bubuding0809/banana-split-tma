@@ -1,14 +1,23 @@
-import { type ReactFormExtendedApi } from '@tanstack/react-form'
-import { type z } from 'zod'
+import { withForm } from "@/hooks";
+import { formOpts } from "./AddExpenseForm";
 
-import { type expenseFormSchema } from './AddExpenseForm.type'
-
-interface PayeeformStepProps {
-   form: ReactFormExtendedApi<z.infer<typeof expenseFormSchema>>
-}
-
-const PayeeformStep = ({ form }: PayeeformStepProps) => {
-   return <div>Paid By</div>
-}
-
-export default PayeeformStep
+const PayeeFormStep = withForm({
+  ...formOpts,
+  props: {
+    step: 1,
+    isLastStep: false,
+  },
+  render: ({ form }) => {
+    return (
+      <div>
+        <form.AppField
+          name="amount"
+          children={(field) => (
+            <input onChange={(e) => field.handleChange(e.target.value)} />
+          )}
+        />
+      </div>
+    );
+  },
+});
+export default PayeeFormStep;
