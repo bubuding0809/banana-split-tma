@@ -8,11 +8,20 @@ const FieldInfo = () => {
     state.meta.errors,
     field.state.meta.isTouched,
   ]);
+
+  if (isTouched && !errors.length) {
+    return null;
+  }
+
   return (
-    <div>
-      {isTouched && errors.length ? (
-        <Caption className="text-red-500 text-sm">{errors.join(",")}</Caption>
-      ) : null}
+    <div className="flex flex-col gap-1">
+      {errors.map((error, index) =>
+        error.message && typeof error.message === "string" ? (
+          <Caption key={index} className="text-red-500 text-sm">
+            {error.message}
+          </Caption>
+        ) : null
+      )}
     </div>
   );
 };

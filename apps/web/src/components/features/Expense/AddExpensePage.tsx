@@ -169,11 +169,6 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
       {/* Form */}
       <section className="p-4">
-        <AmountFormStep
-          form={form}
-          isLastStep={currentFormStep === FORM_STEPS.length - 1}
-          step={currentFormStep}
-        />
         {CurrentFormComponent && (
           <CurrentFormComponent
             form={form}
