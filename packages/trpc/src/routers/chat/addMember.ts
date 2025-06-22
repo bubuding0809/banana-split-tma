@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc";
+import { Db, publicProcedure } from "../../trpc.js";
 
 
 export const inputSchema = z.object({
