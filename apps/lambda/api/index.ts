@@ -2,7 +2,7 @@ import express, { Router } from "express";
 import cors from "cors";
 
 import { appRouter, trpcExpress, withCreateTRPCContext } from "@dko/trpc";
-import { env } from "./env";
+import { env } from "./env.js";
 
 //* Create an express app
 const app = express();
