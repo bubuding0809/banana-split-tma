@@ -14,7 +14,7 @@
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --skip-generate",
-    "db:deploy": "prisma migrate deploy",
+    "db:deploy": "dotenv -e .env.production -- prisma migrate deploy",
     "dev": "tsc --watch --preserveWatchOutput",
     "postinstall": "prisma generate",
     "build": "prisma generate && tsc"
@@ -26,6 +26,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.13.10",
+    "dotenv-cli": "^8.0.0",
     "prisma": "^6.5.0"
   },
   "dependencies": {
