@@ -3,7 +3,7 @@ import * as trpcExpress from "@trpc/server/adapters/express";
 
 import type { AppRouter } from "./root.js";
 import { appRouter } from "./root.js";
-import { createTRPCContext } from "./trpc.js";
+import { withCreateTRPCContext } from "./trpc.js";
 
 /**
  * Inference helpers for input types
@@ -21,5 +21,5 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  **/
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export { createTRPCContext, appRouter, trpcExpress };
+export { appRouter, trpcExpress, withCreateTRPCContext };
 export type { AppRouter, RouterInputs, RouterOutputs };

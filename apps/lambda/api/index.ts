@@ -1,6 +1,12 @@
 import express, { Router } from "express";
 import cors from "cors";
-import { appRouter, createTRPCContext, trpcExpress } from "@dko/trpc";
+import dotenv from "dotenv";
+import path from "path";
+dotenv.config({
+  path: path.resolve(process.cwd(), "env/.env.development"),
+});
+
+import { appRouter, trpcExpress, withCreateTRPCContext } from "@dko/trpc";
 
 //* Create an express app
 const app = express();
@@ -14,7 +20,7 @@ router.use(
   "/trpc",
   trpcExpress.createExpressMiddleware({
     router: appRouter,
-    createContext: createTRPCContext,
+    createContext: withCreateTRPCContext(process.env),
   })
 );
 
@@ -42,6 +48,7 @@ router.use("/panel", async (_req, res) => {
         title: "DKO TRPC API",
         description: "🚀Test your TRPC APIs here 🚀",
       },
+      transformer: "superjson",
     })
   );
 });

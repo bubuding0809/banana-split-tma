@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": true
   },
-  "include": ["./api/**/*.ts"],
+  "include": ["./api/**/*.ts"]
 }

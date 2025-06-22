@@ -18,11 +18,14 @@
   "license": "ISC",
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*"
+    "@repo/typescript-config": "workspace:*",
+    "@types/node-telegram-bot-api": "^0.64.9"
   },
   "dependencies": {
     "@dko/database": "workspace:*",
     "@trpc/server": "^11.0.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "superjson": "^2.2.2",
     "zod": "^3.24.2"
   }
 }

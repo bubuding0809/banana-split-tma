@@ -1,0 +1,347 @@
+import { type FieldApi, type ReactFormExtendedApi } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
+import { hapticFeedback, mainButton } from '@telegram-apps/sdk-react'
+import { Input, Subheadline } from '@telegram-apps/telegram-ui'
+import { ChevronDown } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { cn } from '@utils/cn'
+import { z } from 'zod'
+
+import FieldInfo from '@components/ui/FieldInfo'
+
+import { expenseFormSchema } from './AddExpenseForm.type'
+
+const CURRENCIES = {
+    SGD: {
+        symbol: 'SGD',
+        name: 'Singapore Dollar',
+        rate: 1,
+    },
+    USD: {
+        symbol: 'USD',
+        name: 'US Dollar',
+        rate: 0.741488522,
+    },
+    EUR: {
+        symbol: 'EUR',
+        name: 'Euro',
+        rate: 0.68,
+    },
+    GBP: {
+        symbol: 'GBP',
+        name: 'British Pound',
+        rate: 0.58,
+    },
+    JPY: {
+        symbol: 'JPY',
+        name: 'Japanese Yen',
+        rate: 113.45,
+    },
+} as const
+
+const SELECT_STYLES = {
+    WebkitAppearance: 'none',
+    MozAppearance: 'none',
+    appearance: 'none',
+    background: 'transparent',
+    border: 'none',
+    color: '#3B82F6',
+    paddingRight: '1.5rem',
+    cursor: 'pointer',
+} as const
+
+const routeApi = getRouteApi('/_tma/chat/$chatId_/add-expense')
+
+interface AmountFormStepProps {
+    form: ReactFormExtendedApi<z.infer<typeof expenseFormSchema>>
+    step: number
+    isLastStep: boolean
+}
+
+const AmountFormStep = ({ form, isLastStep, step }: AmountFormStepProps) => {
+    const navigate = routeApi.useNavigate()
+    const [expenseCurrency, setExpenseCurrency] = useState<keyof typeof CURRENCIES>('SGD')
+    const [displayCurrency, setDisplayCurrency] = useState<keyof typeof CURRENCIES>('SGD')
+    const [containerWidth, setContainerWidth] = useState(0)
+    const measureRef = useRef(null)
+
+    // Configure main button click
+    useEffect(() => {
+        const offClick = mainButton.onClick.ifAvailable(() => {
+            form.validateSync('change')
+            form.setFieldMeta('amount', prev => ({ ...prev, isTouched: true }))
+            form.setFieldMeta('description', prev => ({ ...prev, isTouched: true }))
+
+            if (
+                form.state.fieldMeta.amount.errors.length ||
+                form.state.fieldMeta.description.errors.length
+            ) {
+                return hapticFeedback.notificationOccurred('warning')
+            }
+            hapticFeedback.notificationOccurred('success')
+
+            // Submit form if last step else navigate to next step
+            if (isLastStep) {
+                mainButton.setParams.ifAvailable({
+                    isLoaderVisible: true,
+                })
+                form.handleSubmit()
+            } else {
+                navigate({
+                    search: prev => ({
+                        ...prev,
+                        currentFormStep: step + 1,
+                    }),
+                })
+            }
+        })
+
+        return () => {
+            offClick?.()
+        }
+    }, [step, form, navigate, isLastStep])
+
+    useEffect(() => {
+        if (measureRef.current) {
+            const resizeObserver = new ResizeObserver(entries => {
+                setContainerWidth(entries[0].contentRect.width)
+            })
+
+            resizeObserver.observe(measureRef.current)
+            return () => resizeObserver.disconnect()
+        }
+    }, [])
+
+    const handleAmountChange = (
+        value: string,
+        handleChange: FieldApi<z.infer<typeof expenseFormSchema>, 'amount'>['handleChange']
+    ) => {
+        const cleanValue = value.replace(/[^\d.]/g, '')
+        const parts = cleanValue.split('.')
+        if (parts.length > 2) return
+
+        let [wholeNumber] = parts
+        if (wholeNumber.length > 10) {
+            wholeNumber = wholeNumber.slice(0, 10)
+        }
+
+        let decimal = ''
+        if (parts.length === 2) {
+            decimal = `.${parts[1].slice(0, 2)}`
+        }
+
+        const finalValue = wholeNumber + decimal
+        if (finalValue === '' || !isNaN(Number(finalValue))) {
+            handleChange(finalValue)
+        }
+    }
+
+    const getFontSize = (amount: z.infer<typeof expenseFormSchema>['amount']) => {
+        // Create measurement element
+        const testDiv = document.createElement('div')
+        testDiv.style.fontSize = '60px'
+        testDiv.style.fontWeight = '300'
+        testDiv.style.position = 'absolute'
+        testDiv.style.visibility = 'hidden'
+        testDiv.style.whiteSpace = 'nowrap'
+        testDiv.textContent = amount || '0'
+        document.body.appendChild(testDiv)
+
+        const textWidth = testDiv.offsetWidth
+        document.body.removeChild(testDiv)
+
+        // Account for the currency label and padding
+        const availableWidth = containerWidth - 100
+
+        if (textWidth <= availableWidth) return '60px'
+
+        // Calculate scale ratio needed
+        const ratio = availableWidth / textWidth
+        const fontSize = Math.max(28, Math.floor(60 * ratio))
+
+        // Return the closest size from our predefined steps
+        if (fontSize >= 55) return '60px'
+        if (fontSize >= 45) return '48px'
+        if (fontSize >= 35) return '40px'
+        if (fontSize >= 28) return '32px'
+        return '28px'
+    }
+
+    const getConvertedAmount = (amount: z.infer<typeof expenseFormSchema>['amount']) => {
+        const numAmount = parseFloat(amount || '0')
+        const amountInSGD =
+            expenseCurrency === 'SGD' ? numAmount : numAmount / CURRENCIES[expenseCurrency].rate
+        const convertedAmount = amountInSGD * CURRENCIES[displayCurrency].rate
+        return convertedAmount.toFixed(2)
+    }
+
+    const descriptionMaxLength = expenseFormSchema.shape.description._def.checks.find(
+        check => check.kind === 'max'
+    )?.value
+
+    return (
+        <div className="flex flex-col gap-4">
+            {/* Amount */}
+
+            <form.Field
+                name="amount"
+                validators={{
+                    onBlur: z.string().refine(value => !value.endsWith('.'), {
+                        message: 'Amount needs to be a valid number',
+                    }),
+                }}
+            >
+                {field => (
+                    <div className="flex flex-col gap-2">
+                        <div
+                            className={cn(
+                                'p-3 px-4 rounded-xl bg-black/[27%]',
+                                field.state.meta.isTouched &&
+                                    field.state.meta.errors.length &&
+                                    'ring-2 ring-red-600'
+                            )}
+                        >
+                            {/* Currency Selection */}
+                            <div className="flex items-center">
+                                <Subheadline>Expensed in</Subheadline>
+                                <div className="relative ml-2">
+                                    <select
+                                        style={SELECT_STYLES}
+                                        value={expenseCurrency}
+                                        onChange={e =>
+                                            setExpenseCurrency(
+                                                e.target.value as keyof typeof CURRENCIES
+                                            )
+                                        }
+                                        className="pr-6 focus:outline-none"
+                                    >
+                                        {Object.entries(CURRENCIES).map(([symbol]) => (
+                                            <option key={symbol} value={symbol}>
+                                                {symbol}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="w-4 h-4 text-blue-500 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div>
+                                {/* Amount Input */}
+                                <div
+                                    className="flex-1 flex items-baseline overflow-hidden mr-4"
+                                    ref={measureRef}
+                                >
+                                    <div className="w-full flex items-baseline ring-offset-1 ring-green-500">
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={e =>
+                                                handleAmountChange(
+                                                    e.target.value,
+                                                    field.handleChange
+                                                )
+                                            }
+                                            placeholder="0"
+                                            className={cn(
+                                                'bg-transparent focus:outline-none font-light max-w-full',
+                                                field.state.meta.errors.length && 'text-red-600'
+                                            )}
+                                            style={{
+                                                fontSize: getFontSize(field.state.value),
+                                                padding: '0',
+                                                margin: '0',
+                                                width: '100%',
+                                            }}
+                                        />
+                                        <span
+                                            className={cn(
+                                                'text-4xl text-gray-500 ml-2 flex-shrink-0'
+                                                // field.state.meta.errors.length && 'text-red-600'
+                                            )}
+                                        >
+                                            {expenseCurrency}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Converted */}
+                                {field.state.value && expenseCurrency !== displayCurrency && (
+                                    <div className="text-gray-500 text-lg flex items-center mt-2">
+                                        <span>≈</span>
+                                        <span className="mx-1">
+                                            {getConvertedAmount(field.state.value)}
+                                        </span>
+                                        <div className="relative">
+                                            <select
+                                                style={SELECT_STYLES}
+                                                value={displayCurrency}
+                                                onChange={e =>
+                                                    setDisplayCurrency(
+                                                        e.target.value as keyof typeof CURRENCIES
+                                                    )
+                                                }
+                                                className="pr-6 focus:outline-none"
+                                            >
+                                                {Object.entries(CURRENCIES).map(([symbol]) => (
+                                                    <option key={symbol} value={symbol}>
+                                                        {symbol}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="w-4 h-4 text-blue-500 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-2">
+                            <FieldInfo field={field} />
+                        </div>
+                    </div>
+                )}
+            </form.Field>
+
+            {/* Description */}
+            <div>
+                <form.Field name="description">
+                    {field => (
+                        <div className="flex flex-col gap-2">
+                            <label
+                                className={cn(
+                                    'flex justify-between transition-all duration-500 ease-in-out -top-7 w-full px-2'
+                                )}
+                            >
+                                <Subheadline>Description</Subheadline>
+                                <span className="text-gray-500 text-sm">
+                                    {field.state.value.length} / {descriptionMaxLength} characters
+                                </span>
+                            </label>
+                            <Input
+                                status={
+                                    field.state.meta.isTouched && field.state.meta.errors.length
+                                        ? 'error'
+                                        : 'default'
+                                }
+                                placeholder="What was this for?"
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={e => {
+                                    if (e.target.value.length > (descriptionMaxLength ?? 60)) return
+                                    field.handleChange(e.target.value)
+                                }}
+                            />
+                            <div className="px-2">
+                                <FieldInfo field={field} />
+                            </div>
+                        </div>
+                    )}
+                </form.Field>
+            </div>
+        </div>
+    )
+}
+
+export default AmountFormStep

@@ -7,20 +7,36 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "start": "vite preview"
+    "start": "vite preview",
+    "check-types": "tsc -b"
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
+    "@tailwindcss/vite": "^4.1.10",
+    "@tanstack/react-form": "^1.12.3",
     "@tanstack/react-query": "^5.69.0",
+    "@tanstack/react-router": "^1.121.24",
+    "@tanstack/react-router-devtools": "^1.121.24",
+    "@tanstack/zod-adapter": "^1.121.24",
+    "@telegram-apps/sdk-react": "^2.0.25",
+    "@telegram-apps/telegram-ui": "^2.1.8",
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "@trpc/tanstack-react-query": "^11.0.0",
+    "clsx": "^2.1.1",
+    "eruda": "^3.4.1",
+    "lucide-react": "^0.518.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "superjson": "^2.2.2",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.10",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@tanstack/router-plugin": "^1.121.25",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react-swc": "^3.8.0",

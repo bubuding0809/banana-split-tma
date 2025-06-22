@@ -1,7 +1,28 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import tailwindcss from '@tailwindcss/vite'
+
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  plugins: [
+    tanstackRouter({
+      target: "react",
+      autoCodeSplitting: true,
+    }),
+    react(),
+    tailwindcss()
+  ],
+  resolve: {
+    alias: {
+      "@": "/src",
+      "@components": "/src/components",
+      "@utils": "/src/utils",
+      "@hooks": "/src/hooks",
+    },
+  },
+  server: {
+    allowedHosts: ["8924-49-245-55-158.ngrok-free.app"],
+  },
+});

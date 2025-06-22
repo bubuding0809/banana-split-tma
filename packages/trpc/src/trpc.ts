@@ -1,5 +1,7 @@
 import { initTRPC } from "@trpc/server";
 import { prisma } from "@dko/database";
+import superjson from "superjson";
+import TelegramBot from "node-telegram-bot-api";
 
 /**
  * 1. CONTEXT
@@ -13,15 +15,23 @@ import { prisma } from "@dko/database";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = () => ({
+const createTRPCContext = ({ botToken }: { botToken: string }) => ({
   db: prisma as typeof prisma,
+  teleBot: new TelegramBot(botToken),
 });
+export const withCreateTRPCContext = (env: typeof process.env) => {
+  return () => createTRPCContext({ botToken: env.TELEGRAM_BOT_TOKEN || "" });
+};
+
+export type Db = ReturnType<typeof createTRPCContext>["db"];
 
 /**
  * Initialization of tRPC backend
  * Should be done only once per backend!
  */
-const t = initTRPC.context<typeof createTRPCContext>().create();
+const t = initTRPC.context<typeof createTRPCContext>().create({
+  transformer: superjson,
+});
 
 /**
  * Export reusable router and procedure helpers
