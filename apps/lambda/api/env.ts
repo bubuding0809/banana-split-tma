@@ -1,8 +1,9 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-
 import dotenv from "dotenv";
 import path from "path";
+
+// Explicitly load the .env file for development
 dotenv.config({
   path: path.resolve(process.cwd(), "env/.env.development"),
 });

@@ -1,10 +1,7 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "bundler",
-    "outDir": "dist"
+    "outDir": "dist" /* Specify an output folder for all emitted files. */,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
