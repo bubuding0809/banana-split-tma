@@ -19,7 +19,11 @@ const createTRPCContext = ({ botToken }: { botToken: string }) => ({
   db: prisma as typeof prisma,
   teleBot: new TelegramBot(botToken),
 });
-export const withCreateTRPCContext = (env: typeof process.env) => {
+export const withCreateTRPCContext = (
+  env: Readonly<{
+    [key: string]: string;
+  }>
+) => {
   return () => createTRPCContext({ botToken: env.TELEGRAM_BOT_TOKEN || "" });
 };
 

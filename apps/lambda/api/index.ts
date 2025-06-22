@@ -1,12 +1,8 @@
 import express, { Router } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import path from "path";
-dotenv.config({
-  path: path.resolve(process.cwd(), "env/.env.development"),
-});
 
 import { appRouter, trpcExpress, withCreateTRPCContext } from "@dko/trpc";
+import { env } from "./env";
 
 //* Create an express app
 const app = express();
@@ -20,7 +16,7 @@ router.use(
   "/trpc",
   trpcExpress.createExpressMiddleware({
     router: appRouter,
-    createContext: withCreateTRPCContext(process.env),
+    createContext: withCreateTRPCContext(env),
   })
 );
 
