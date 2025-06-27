@@ -1,9 +1,24 @@
 import { QueryClient } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
+import { TRPCClientError } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@dko/trpc";
-export const queryClient = new QueryClient();
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Don't retry on NOT_FOUND errors (404)
+        if (error instanceof TRPCClientError && error.data?.code === "NOT_FOUND") {
+          return false;
+        }
+        // Default retry logic: retry up to 3 times for other errors
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 export const trpc = createTRPCReact<AppRouter>({});
 export const trpcClient = trpc.createClient({

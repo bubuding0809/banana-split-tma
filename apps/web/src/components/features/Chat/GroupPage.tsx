@@ -1,193 +1,215 @@
-import { Link, getRouteApi } from '@tanstack/react-router'
-import { hapticFeedback, initData, openTelegramLink, useSignal } from '@telegram-apps/sdk-react'
+import { Link, getRouteApi } from "@tanstack/react-router";
 import {
-   Avatar,
-   Button,
-   Caption,
-   Cell,
-   Divider,
-   LargeTitle,
-   Navigation,
-   SegmentedControl,
-   Subheadline,
-} from '@telegram-apps/telegram-ui'
-import { SegmentedControlItem } from '@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem'
-import useEnsureChatMember from '@hooks/useEnsureChatMember'
-import useStartParams from '@hooks/useStartParams'
-import { Plus } from 'lucide-react'
-import { useEffect } from 'react'
+  hapticFeedback,
+  initData,
+  openTelegramLink,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import {
+  Avatar,
+  Button,
+  Caption,
+  Cell,
+  Divider,
+  LargeTitle,
+  Navigation,
+  SegmentedControl,
+  Subheadline,
+} from "@telegram-apps/telegram-ui";
+import { SegmentedControlItem } from "@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem";
+import useEnsureChatMember from "@hooks/useEnsureChatMember";
+import useStartParams from "@hooks/useStartParams";
+import { Plus } from "lucide-react";
+import { useEffect } from "react";
 
-import { trpc } from '@utils/trpc'
+import { trpc } from "@utils/trpc";
 
-import ChatBalanceSegment from './ChatBalanceSegment'
-import ChatExpenseSegment from './ChatExpenseSegment'
+import ChatBalanceSegment from "./ChatBalanceSegment";
+import ChatExpenseSegment from "./ChatExpenseSegment";
 
-const routeApi = getRouteApi('/_tma/chat/$chatId')
+const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 const GroupPage = () => {
-   // * Hooks ======================================================================================
-   const { selectedSegment } = routeApi.useSearch()
-   const navigate = routeApi.useNavigate()
-   const tStartParams = useStartParams()
-   const tUserData = useSignal(initData.user)
+  // * Hooks ======================================================================================
+  const { selectedSegment } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+  const tStartParams = useStartParams();
+  const tUserData = useSignal(initData.user);
 
-   // * Variables ==================================================================================
-   const userId = tUserData?.id ?? 0
-   const chatId = tStartParams?.chat_id ?? 0
+  // * Variables ==================================================================================
+  const userId = tUserData?.id ?? 0;
+  const chatId = tStartParams?.chat_id ?? 0;
 
-   // * Queries ====================================================================================
-   const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId })
-   const { data: dchatData } = trpc.chat.getChat.useQuery({ chatId })
-   const { data: duserData } = trpc.user.getUser.useQuery({ userId })
-   const { data: debtors } = trpc.chat.getDebtors.useQuery({ userId, chatId })
-   const { data: creditors } = trpc.chat.getCreditors.useQuery({ userId, chatId })
+  // * Queries ====================================================================================
+  const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId });
+  const { data: dchatData } = trpc.chat.getChat.useQuery({ chatId });
+  const { 
+    isError: isUserError, 
+    error: userError 
+  } = trpc.user.getUser.useQuery({ userId });
+  const { data: debtors } = trpc.chat.getDebtors.useQuery({ userId, chatId });
+  const { data: creditors } = trpc.chat.getCreditors.useQuery({
+    userId,
+    chatId,
+  });
 
-   // * State ======================================================================================
-   const amountLent = Math.abs(debtors?.reduce((acc, debtor) => acc + debtor.balance, 0) ?? 0)
-   const amountBorrowed = Math.abs(
-      creditors?.reduce((acc, creditor) => acc + creditor.balance, 0) ?? 0
-   )
+  // * State ======================================================================================
+  const amountLent = Math.abs(
+    debtors?.reduce((acc, debtor) => acc + debtor.balance, 0) ?? 0
+  );
+  const amountBorrowed = Math.abs(
+    creditors?.reduce((acc, creditor) => acc + creditor.balance, 0) ?? 0
+  );
 
-   const handleSegmentChange = (segment: 'expense' | 'balance') => {
-      hapticFeedback.selectionChanged()
-      navigate({
-         search: prev => ({
-            ...prev,
-            selectedSegment: segment,
-         }),
-      })
-   }
+  const handleSegmentChange = (segment: "expense" | "balance") => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        selectedSegment: segment,
+      }),
+    });
+  };
 
-   //* Effects =====================================================================================
-   // Initiate chat with bot if user is not registered
-   useEffect(() => {
-      if (duserData === null) {
-         alert('👋 First time here? Lets get you setup with the bot first!')
-         openTelegramLink(`${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register`)
-      }
-   }, [duserData])
+  //* Effects =====================================================================================
+  // Initiate chat with bot if user is not registered
+  useEffect(() => {
+    if (isUserError && userError?.data?.code === "NOT_FOUND") {
+      alert("👋 First time here? Lets get you setup with the bot first!");
+      openTelegramLink(
+        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register`
+      );
+    } else if (isUserError && userError?.data?.code !== "NOT_FOUND") {
+      alert("❌ Unable to load user data. Please try again later.");
+    }
+  }, [isUserError, userError]);
 
-   // Ensure user is a member of the chat
-   useEnsureChatMember(
-      {
-         chatId,
-         userId,
-      },
-      { enabled: userId !== 0 && chatId !== 0 }
-   )
+  // Ensure user is a member of the chat
+  useEnsureChatMember(
+    {
+      chatId,
+      userId,
+    },
+    { enabled: userId !== 0 && chatId !== 0 }
+  );
 
-   return (
-      <main className="flex flex-col gap-2.5 pb-4">
-         <section className="px-4">
-            <Cell
-               onClick={() => alert('Settings')}
-               className="px-0"
-               after={<Navigation className="text-gray-500">Settings</Navigation>}
-               before={<Avatar size={48} src={tChatData?.photoUrl ?? ''} />}
-               subtitle={tChatData?.type}
-            >
-               {dchatData?.title}
-            </Cell>
-         </section>
-         <section className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 py-2">
-            <div
-               className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
+  return (
+    <main className="flex flex-col gap-2.5 pb-4">
+      <section className="px-4">
+        <Cell
+          onClick={() => alert("Settings")}
+          className="px-0"
+          after={<Navigation className="text-gray-500">Settings</Navigation>}
+          before={<Avatar size={48} src={tChatData?.photoUrl ?? ""} />}
+          subtitle={tChatData?.type}
+        >
+          {dchatData?.title}
+        </Cell>
+      </section>
+      <section className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 py-2">
+        <div
+          className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
                            snap-center bg-gradient-to-r from-rose-500 to-red-500 aspect-video"
-            >
-               <div className="flex justify-between">
-                  <div>
-                     <Subheadline className="text-white">To pay</Subheadline>
-                     <LargeTitle weight="1" className="text-white">
-                        <span className="mr-0.5">$</span>
-                        {amountBorrowed ?? 0}
-                     </LargeTitle>
-                  </div>
-                  <Button
-                     size="s"
-                     onClick={() => alert('Settle')}
-                     mode="outline"
-                     className="bg-white/20 ring-1 ring-white/30"
-                  >
-                     Settle
-                  </Button>
-               </div>
-               <div className="mt-auto flex justify-between items-end">
-                  <Caption>Owes {creditors?.length ?? 0} person</Caption>
-                  <span className="text-xl">👎</span>
-               </div>
+        >
+          <div className="flex justify-between">
+            <div>
+              <Subheadline className="text-white">To pay</Subheadline>
+              <LargeTitle weight="1" className="text-white">
+                <span className="mr-0.5">$</span>
+                {amountBorrowed ?? 0}
+              </LargeTitle>
             </div>
-            <div
-               className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
-                           snap-center bg-gradient-to-r from-green-400 to-teal-600 aspect-video"
+            <Button
+              size="s"
+              onClick={() => alert("Settle")}
+              mode="outline"
+              className="bg-white/20 ring-1 ring-white/30"
             >
-               <div className="flex justify-between">
-                  <div>
-                     <Subheadline className="text-white">To receive</Subheadline>
-                     <LargeTitle weight="1" className="text-white">
-                        <span className="mr-0.5">$</span>
-                        {amountLent ?? 0}
-                     </LargeTitle>
-                  </div>
-                  <Button
-                     size="s"
-                     onClick={() => alert('Chase')}
-                     mode="outline"
-                     className="bg-white/20 ring-1 ring-white/30"
-                  >
-                     Chase
-                  </Button>
-               </div>
-               <div className="mt-auto flex justify-between items-end">
-                  <Caption>Lent to {debtors?.length ?? 0} person</Caption>
-                  <span className="text-xl">👍</span>
-               </div>
-            </div>
-         </section>
-
-         <Divider className="mx-4" />
-
-         <Link
-            className="px-4"
-            onClick={() => hapticFeedback.impactOccurred('light')}
-            to="/chat/$chatId/add-expense"
-            params={{
-               chatId: chatId.toString(),
-            }}
-            search={{
-               prevSegment: selectedSegment,
-               title: '➕ Add expense',
-            }}
-         >
-            <Button size="l" stretched before={<Plus size={24} />} className="rounded-xl">
-               Add expense
+              Settle
             </Button>
-         </Link>
+          </div>
+          <div className="mt-auto flex justify-between items-end">
+            <Caption>Owes {creditors?.length ?? 0} person</Caption>
+            <span className="text-xl">👎</span>
+          </div>
+        </div>
+        <div
+          className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
+                           snap-center bg-gradient-to-r from-green-400 to-teal-600 aspect-video"
+        >
+          <div className="flex justify-between">
+            <div>
+              <Subheadline className="text-white">To receive</Subheadline>
+              <LargeTitle weight="1" className="text-white">
+                <span className="mr-0.5">$</span>
+                {amountLent ?? 0}
+              </LargeTitle>
+            </div>
+            <Button
+              size="s"
+              onClick={() => alert("Chase")}
+              mode="outline"
+              className="bg-white/20 ring-1 ring-white/30"
+            >
+              Chase
+            </Button>
+          </div>
+          <div className="mt-auto flex justify-between items-end">
+            <Caption>Lent to {debtors?.length ?? 0} person</Caption>
+            <span className="text-xl">👍</span>
+          </div>
+        </div>
+      </section>
 
-         <Divider className="mx-4" />
+      <Divider className="mx-4" />
 
-         <section className="flex flex-col gap-2 px-4">
-            <SegmentedControl>
-               <SegmentedControlItem
-                  onClick={() => handleSegmentChange('balance')}
-                  selected={selectedSegment === 'balance'}
-               >
-                  ⚖️ Balances
-               </SegmentedControlItem>
-               <SegmentedControlItem
-                  onClick={() => handleSegmentChange('expense')}
-                  selected={selectedSegment === 'expense'}
-               >
-                  💸 Expenses
-               </SegmentedControlItem>
-            </SegmentedControl>
-            {selectedSegment === 'expense' ? (
-               <ChatExpenseSegment chatId={chatId} />
-            ) : (
-               <ChatBalanceSegment chatId={chatId} />
-            )}
-         </section>
-      </main>
-   )
-}
+      <Link
+        className="px-4"
+        onClick={() => hapticFeedback.impactOccurred("light")}
+        to="/chat/$chatId/add-expense"
+        params={{
+          chatId: chatId.toString(),
+        }}
+        search={{
+          prevSegment: selectedSegment,
+          title: "➕ Add expense",
+        }}
+      >
+        <Button
+          size="l"
+          stretched
+          before={<Plus size={24} />}
+          className="rounded-xl"
+        >
+          Add expense
+        </Button>
+      </Link>
 
-export default GroupPage
+      <Divider className="mx-4" />
+
+      <section className="flex flex-col gap-2 px-4">
+        <SegmentedControl>
+          <SegmentedControlItem
+            onClick={() => handleSegmentChange("balance")}
+            selected={selectedSegment === "balance"}
+          >
+            ⚖️ Balances
+          </SegmentedControlItem>
+          <SegmentedControlItem
+            onClick={() => handleSegmentChange("expense")}
+            selected={selectedSegment === "expense"}
+          >
+            💸 Expenses
+          </SegmentedControlItem>
+        </SegmentedControl>
+        {selectedSegment === "expense" ? (
+          <ChatExpenseSegment chatId={chatId} />
+        ) : (
+          <ChatBalanceSegment chatId={chatId} />
+        )}
+      </section>
+    </main>
+  );
+};
+
+export default GroupPage;
