@@ -14,6 +14,7 @@ import {
   LargeTitle,
   Navigation,
   SegmentedControl,
+  Spinner,
   Subheadline,
 } from "@telegram-apps/telegram-ui";
 import { SegmentedControlItem } from "@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem";
@@ -42,10 +43,14 @@ const GroupPage = () => {
 
   // * Queries ====================================================================================
   const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId });
-  const { data: dchatData } = trpc.chat.getChat.useQuery({ chatId });
-  const { 
-    isError: isUserError, 
-    error: userError 
+  const { data: dchatData, isLoading: isDChatDataLoading } =
+    trpc.chat.getChat.useQuery({
+      chatId,
+    });
+  const {
+    isError: isDUserError,
+    error: dUserError,
+    isLoading: isDUserLoading,
   } = trpc.user.getUser.useQuery({ userId });
   const { data: debtors } = trpc.chat.getDebtors.useQuery({ userId, chatId });
   const { data: creditors } = trpc.chat.getCreditors.useQuery({
@@ -74,15 +79,15 @@ const GroupPage = () => {
   //* Effects =====================================================================================
   // Initiate chat with bot if user is not registered
   useEffect(() => {
-    if (isUserError && userError?.data?.code === "NOT_FOUND") {
+    if (isDUserError && dUserError?.data?.code === "NOT_FOUND") {
       alert("👋 First time here? Lets get you setup with the bot first!");
       openTelegramLink(
         `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register`
       );
-    } else if (isUserError && userError?.data?.code !== "NOT_FOUND") {
+    } else if (isDUserError && dUserError?.data?.code !== "NOT_FOUND") {
       alert("❌ Unable to load user data. Please try again later.");
     }
-  }, [isUserError, userError]);
+  }, [dUserError, isDUserError]);
 
   // Ensure user is a member of the chat
   useEnsureChatMember(
@@ -92,6 +97,15 @@ const GroupPage = () => {
     },
     { enabled: userId !== 0 && chatId !== 0 }
   );
+
+  if (isDUserLoading || isDChatDataLoading) {
+    return (
+      <main className="flex flex-col gap-2.5 pb-4 justify-center items-center h-[80vh]">
+        <Spinner size="l" />
+        <Caption weight="1">Preparing bananas</Caption>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-col gap-2.5 pb-4">
