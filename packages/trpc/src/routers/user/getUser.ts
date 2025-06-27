@@ -20,7 +20,6 @@ export const getUserHandler = async (
   db: Db
 ) => {
   const user = await db.user.findUnique({ where: { id: input.userId } });
-  console.log("getUserHandler", input.userId, user);
   return user;
 };
 
