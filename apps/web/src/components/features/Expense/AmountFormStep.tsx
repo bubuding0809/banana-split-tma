@@ -202,7 +202,7 @@ const AmountFormStep = withForm({
             <div className="flex flex-col gap-2">
               <div
                 className={cn(
-                  "rounded-xl bg-black/[27%] p-3 px-4",
+                  "rounded-xl p-3 px-4 bg-[#212121]",
                   field.state.meta.isTouched &&
                     field.state.meta.errors.length &&
                     "ring-2 ring-red-600"
