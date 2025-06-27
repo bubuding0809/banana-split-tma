@@ -8,6 +8,7 @@ import {
   retrieveLaunchParams,
   secondaryButton,
   themeParams,
+  useLaunchParams,
   useSignal,
   viewport,
 } from "@telegram-apps/sdk-react";
@@ -32,9 +33,25 @@ try {
   console.error(err);
 }
 
+const NON_MOBILE_PLATFORMS = ["macos", "tdesktop", "weba", "web", "webk"];
+
 function LayoutComponent() {
   const { title } = Route.useSearch();
   const isFullScreen = useSignal(viewport.isFullscreen);
+  const isViewPortMounted = useSignal(viewport.isMounted);
+  const launchParams = useLaunchParams();
+
+  // Try to fullscreen the viewport when the component mounts
+  useEffect(() => {
+    if (
+      isViewPortMounted &&
+      !isFullScreen &&
+      !NON_MOBILE_PLATFORMS.includes(launchParams.platform)
+    ) {
+      console.log("Requesting fullscreen for viewport");
+      viewport.requestFullscreen();
+    }
+  }, [isFullScreen, isViewPortMounted, launchParams.platform]);
 
   // Mount Telegram Mini App components
   useEffect(() => {
@@ -63,7 +80,7 @@ function LayoutComponent() {
       const lp = retrieveLaunchParams();
 
       // Some versions of Telegram don't need the classes above.
-      if (["macos", "tdesktop", "weba", "web", "webk"].includes(lp.platform)) {
+      if (NON_MOBILE_PLATFORMS.includes(lp.platform)) {
         return;
       }
 
