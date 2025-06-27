@@ -15,6 +15,7 @@ import PayeeformStep from "./PayeeFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
 import { useAppForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
+import { trpc } from "@/utils/trpc";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -47,6 +48,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const userId = tUserData?.id ?? 0;
 
   // * From API ===================================================================================
+  const createExpenseMutation = trpc.expense.createExpense.useMutation();
+
   const form = useAppForm({
     ...formOpts,
     defaultValues: {
@@ -55,22 +58,43 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     },
 
     onSubmit: async ({ value }) => {
-      // TODO: Call mutation to create expense
-      await new Promise((r) => setTimeout(r, 1000));
-      alert(`Created: ${JSON.stringify(value, null, 2)} for user ${userId}`);
+      try {
+        // Convert form values to API format
+        const customSplits = value.splitMode !== "EQUAL" ? value.customSplits.map(split => ({
+          userId: Number(split.userId),
+          amount: Number(split.amount),
+        })) : undefined;
 
-      mainButton.setParams.ifAvailable({
-        isLoaderVisible: false,
-      });
+        await createExpenseMutation.mutateAsync({
+          chatId: chatId,
+          creatorId: userId,
+          description: value.description,
+          amount: Number(value.amount),
+          splitMode: value.splitMode,
+          participantIds: value.participants.map(id => Number(id)),
+          customSplits,
+        });
 
-      navigate({
-        to: "..",
-        search: (prev) => ({
-          ...prev,
-          selectedSegment: prevSegment,
-          title: "👥 Group",
-        }),
-      });
+        mainButton.setParams.ifAvailable({
+          isLoaderVisible: false,
+        });
+
+        navigate({
+          to: "..",
+          search: (prev) => ({
+            ...prev,
+            selectedSegment: prevSegment,
+            title: "👥 Group",
+          }),
+        });
+      } catch (error) {
+        mainButton.setParams.ifAvailable({
+          isLoaderVisible: false,
+        });
+        
+        const errorMessage = error instanceof Error ? error.message : "Failed to create expense";
+        alert(`❌ Error: ${errorMessage}`);
+      }
     },
   });
 
