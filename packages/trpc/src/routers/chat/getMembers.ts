@@ -1,17 +1,22 @@
-import { z } from 'zod'
-import { Db, publicProcedure } from '../../trpc.js'
+import { z } from "zod";
+import { Db, publicProcedure } from "../../trpc.js";
 
-const inputSchema = z.object({ chatId: z.number() })
+const inputSchema = z.object({ chatId: z.number() });
 
-export const getMembersHandler = async (input: z.infer<typeof inputSchema>, db: Db) => {
-   const chat = await db.chat.findUnique({
-      where: { id: input.chatId },
-      select: { members: true },
-   })
+export const getMembersHandler = async (
+  input: z.infer<typeof inputSchema>,
+  db: Db
+) => {
+  const chat = await db.chat.findUnique({
+    where: { id: input.chatId },
+    select: { members: true },
+  });
 
-   return chat?.members
-}
+  return chat?.members;
+};
 
-export default publicProcedure.input(inputSchema).query(async ({ input, ctx }) => {
-   return getMembersHandler(input, ctx.db)
-})
+export default publicProcedure
+  .input(inputSchema)
+  .query(async ({ input, ctx }) => {
+    return getMembersHandler(input, ctx.db);
+  });

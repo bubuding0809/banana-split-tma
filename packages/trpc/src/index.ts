@@ -22,10 +22,5 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  **/
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export { 
-  appRouter, 
-  trpcExpress, 
-  withCreateTRPCContext,
-  openApiDocument
-};
+export { appRouter, trpcExpress, withCreateTRPCContext, openApiDocument };
 export type { AppRouter, RouterInputs, RouterOutputs };

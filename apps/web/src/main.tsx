@@ -3,8 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import "./index.css";
-import '@telegram-apps/telegram-ui/dist/styles.css'
-
+import "@telegram-apps/telegram-ui/dist/styles.css";
 
 // Initialize eruda (mobile debugger) in development mode
 if (process.env.NODE_ENV === "development") {

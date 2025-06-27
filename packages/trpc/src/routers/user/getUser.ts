@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { Db, publicProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
-  userId: z.number().transform(val => BigInt(val)),
+  userId: z.number().transform((val) => BigInt(val)),
 });
 export const outputSchema = z.object({
   id: z.preprocess((arg) => String(arg), z.string()),
@@ -20,20 +20,20 @@ export const getUserHandler = async (
 ) => {
   try {
     const user = await db.user.findUnique({ where: { id: input.userId } });
-    
+
     if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: `User with ID ${input.userId} not found`,
       });
     }
-    
+
     return user;
   } catch (error) {
     if (error instanceof TRPCError) {
       throw error;
     }
-    
+
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to retrieve user",

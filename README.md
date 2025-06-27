@@ -91,6 +91,7 @@ turbo run dev
 ```
 
 This command leverages Turborepo to intelligently start all services in the correct order with dependency awareness:
+
 - The `lambda` TRPC API server on http://localhost:8081
 - The `web` React frontend on http://localhost:5173
 
@@ -163,12 +164,12 @@ The `workspace#task` syntax offers a concise way to target specific tasks in spe
 
 In a Turborepo monorepo, the same command can behave differently depending on the workspace:
 
-| Command | In `web` workspace | In `lambda` workspace | In `ui` workspace |
-|---------|-------------------|----------------------|-------------------|
-| `build` | Runs Vite build | Compiles TypeScript for Node.js | Creates component library bundle |
-| `dev` | Starts Vite dev server | Runs Express with nodemon | Starts Storybook |
-| `test` | Runs Vitest | Runs Jest | Runs component tests |
-| `lint` | Lints React code | Lints Node.js code | Lints UI components |
+| Command | In `web` workspace     | In `lambda` workspace           | In `ui` workspace                |
+| ------- | ---------------------- | ------------------------------- | -------------------------------- |
+| `build` | Runs Vite build        | Compiles TypeScript for Node.js | Creates component library bundle |
+| `dev`   | Starts Vite dev server | Runs Express with nodemon       | Starts Storybook                 |
+| `test`  | Runs Vitest            | Runs Jest                       | Runs component tests             |
+| `lint`  | Lints React code       | Lints Node.js code              | Lints UI components              |
 
 This variability is defined in each workspace's `package.json` scripts section, while the monorepo-wide orchestration is defined in `turbo.json`.
 
@@ -182,6 +183,7 @@ When you run a command like `turbo run build`:
 4. It caches the results for faster subsequent runs
 
 For example, running `turbo run build` might:
+
 - First build `packages/ui` since it has no dependencies
 - Then build `packages/trpc` which depends on `packages/database`
 - Finally build both apps simultaneously, since they can run in parallel
@@ -207,6 +209,7 @@ Tasks in Turborepo inherit configuration from the `turbo.json` file:
 ```
 
 In this configuration:
+
 - The `build` task depends on the `build` task of all dependencies (the `^` prefix)
 - The `dev` task runs in persistent mode and is never cached
 - Different workspaces can implement these tasks differently in their own `package.json` files
@@ -276,6 +279,7 @@ The `turbo.json` file in the project root defines the pipeline tasks that can be
 ```
 
 This configuration ensures:
+
 - Build tasks respect dependencies (libraries build before apps that use them)
 - Development servers run in persistent mode
 - Database operations are never cached

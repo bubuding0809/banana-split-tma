@@ -49,7 +49,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // * From API ===================================================================================
   const form = useAppForm({
     ...formOpts,
-    
+
     onSubmit: async ({ value }) => {
       // TODO: Call mutation to create expense
       await new Promise((r) => setTimeout(r, 1000));
@@ -144,20 +144,20 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   return (
     <div className="flex flex-col gap-2.5 pb-4">
       {/* Form steps */}
-      <section className="flex flex-col justify-center items-center w-full px-4">
+      <section className="flex w-full flex-col items-center justify-center px-4">
         <Steps
           count={FORM_STEPS.length}
           progress={currentFormStep + 1}
           className="w-full"
         />
-        <div className="flex justify-evenly w-full px-2">
+        <div className="flex w-full justify-evenly px-2">
           {FORM_STEPS.map((step, index) => (
             <Subheadline
               key={index}
               level="2"
               weight={index === currentFormStep ? "2" : "3"}
               className={cn(
-                "text-center w-1/3",
+                "w-1/3 text-center",
                 index !== currentFormStep && "text-gray-500/50"
               )}
             >

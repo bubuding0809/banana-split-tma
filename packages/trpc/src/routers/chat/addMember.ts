@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { TRPCError } from '@trpc/server'
+import { TRPCError } from "@trpc/server";
 import { Db, publicProcedure } from "../../trpc.js";
-import { ChatType } from '@dko/database'
-
+import { ChatType } from "@dko/database";
 
 export const inputSchema = z.object({
-  chatId: z.number().transform(val => BigInt(val)),
-  userId: z.number().transform(val => BigInt(val)),
+  chatId: z.number().transform((val) => BigInt(val)),
+  userId: z.number().transform((val) => BigInt(val)),
 });
 
 export const outputSchema = z.object({
@@ -27,46 +26,48 @@ export const addMemberHandler = async (
     const chat = await db.chat.findUnique({
       where: { id: input.chatId },
       include: { members: true },
-    })
+    });
     if (!chat) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
+        code: "NOT_FOUND",
         message: `Chat with ID ${input.chatId} not found`,
-      })
+      });
     }
 
     // Check if user exists
-    const user = await db.user.findUnique({ where: { id: input.userId } })
+    const user = await db.user.findUnique({ where: { id: input.userId } });
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
+        code: "NOT_FOUND",
         message: `User with ID ${input.userId} not found`,
-      })
+      });
     }
 
     // Check if user is already a member
-    const isAlreadyMember = chat.members.some(member => member.id === input.userId)
+    const isAlreadyMember = chat.members.some(
+      (member) => member.id === input.userId
+    );
     if (isAlreadyMember) {
       throw new TRPCError({
-        code: 'CONFLICT',
+        code: "CONFLICT",
         message: `User ${input.userId} is already a member of chat ${input.chatId}`,
-      })
+      });
     }
 
     // Add member to chat
     return db.chat.update({
       where: { id: input.chatId },
       data: { members: { connect: { id: input.userId } } },
-    })
+    });
   } catch (error) {
     if (error instanceof TRPCError) {
-      throw error
+      throw error;
     }
-    
+
     throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to add member to chat',
-    })
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to add member to chat",
+    });
   }
 };
 

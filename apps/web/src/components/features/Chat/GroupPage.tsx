@@ -100,7 +100,7 @@ const GroupPage = () => {
 
   if (isDUserLoading || isDChatDataLoading) {
     return (
-      <main className="flex flex-col gap-2.5 pb-4 justify-center items-center h-[80vh]">
+      <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
         <Spinner size="l" />
         <Caption weight="1">Preparing bananas</Caption>
       </main>
@@ -120,11 +120,8 @@ const GroupPage = () => {
           {dchatData?.title}
         </Cell>
       </section>
-      <section className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 py-2">
-        <div
-          className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
-                           snap-center bg-gradient-to-r from-rose-500 to-red-500 aspect-video"
-        >
+      <section className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-2">
+        <div className="flex aspect-video w-[97%] flex-none snap-center flex-col rounded-2xl bg-gradient-to-r from-rose-500 to-red-500 p-4 px-5 shadow">
           <div className="flex justify-between">
             <div>
               <Subheadline className="text-white">To pay</Subheadline>
@@ -142,15 +139,12 @@ const GroupPage = () => {
               Settle
             </Button>
           </div>
-          <div className="mt-auto flex justify-between items-end">
+          <div className="mt-auto flex items-end justify-between">
             <Caption>Owes {creditors?.length ?? 0} person</Caption>
             <span className="text-xl">👎</span>
           </div>
         </div>
-        <div
-          className="flex flex-col p-4 px-5 rounded-2xl shadow w-[97%] flex-none 
-                           snap-center bg-gradient-to-r from-green-400 to-teal-600 aspect-video"
-        >
+        <div className="flex aspect-video w-[97%] flex-none snap-center flex-col rounded-2xl bg-gradient-to-r from-green-400 to-teal-600 p-4 px-5 shadow">
           <div className="flex justify-between">
             <div>
               <Subheadline className="text-white">To receive</Subheadline>
@@ -168,7 +162,7 @@ const GroupPage = () => {
               Chase
             </Button>
           </div>
-          <div className="mt-auto flex justify-between items-end">
+          <div className="mt-auto flex items-end justify-between">
             <Caption>Lent to {debtors?.length ?? 0} person</Caption>
             <span className="text-xl">👍</span>
           </div>

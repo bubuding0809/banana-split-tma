@@ -9,10 +9,22 @@ export const helloRouter = {
   }),
   workItems: publicProcedure.query(() => {
     return [
-      { id: 1, title: "Work Item 1", description: "Description for Work Item 1" },
-      { id: 2, title: "Work Item 2", description: "Description for Work Item 2" },
-      { id: 3, title: "Work Item 3", description: "Description for Work Item 3" },
-    ]
+      {
+        id: 1,
+        title: "Work Item 1",
+        description: "Description for Work Item 1",
+      },
+      {
+        id: 2,
+        title: "Work Item 2",
+        description: "Description for Work Item 2",
+      },
+      {
+        id: 3,
+        title: "Work Item 3",
+        description: "Description for Work Item 3",
+      },
+    ];
   }),
   user: publicProcedure
     .input(z.object({ id: z.number() }))

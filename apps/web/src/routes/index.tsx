@@ -9,7 +9,7 @@ function Index() {
   console.log("User data:", user);
   console.log(typeof user?.id);
   return (
-    <div className="bg-gradient-to-br from-emerald-500 to-emerald-900 h-screen flex justify-center items-center">
+    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-900">
       <Title weight="2">Banana Splitz 🍌</Title>
     </div>
   );

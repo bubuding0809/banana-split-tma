@@ -34,10 +34,13 @@ export type Db = ReturnType<typeof createTRPCContext>["db"];
  * Initialization of tRPC backend
  * Should be done only once per backend!
  */
-const t = initTRPC.context<typeof createTRPCContext>().meta<OpenApiMeta>().create({
-  transformer: superjson,
-  isServer: true,
-});
+const t = initTRPC
+  .context<typeof createTRPCContext>()
+  .meta<OpenApiMeta>()
+  .create({
+    transformer: superjson,
+    isServer: true,
+  });
 
 /**
  * Export reusable router and procedure helpers

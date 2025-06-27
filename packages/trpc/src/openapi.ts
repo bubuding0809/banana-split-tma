@@ -1,6 +1,4 @@
-import {
-  generateOpenApiDocument,
-} from "trpc-to-openapi";
+import { generateOpenApiDocument } from "trpc-to-openapi";
 import { appRouter } from "./root.js";
 
 // Generate OpenAPI document

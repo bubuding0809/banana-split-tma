@@ -202,7 +202,7 @@ const AmountFormStep = withForm({
             <div className="flex flex-col gap-2">
               <div
                 className={cn(
-                  "p-3 px-4 rounded-xl bg-black/[27%]",
+                  "rounded-xl bg-black/[27%] p-3 px-4",
                   field.state.meta.isTouched &&
                     field.state.meta.errors.length &&
                     "ring-2 ring-red-600"
@@ -228,17 +228,17 @@ const AmountFormStep = withForm({
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-4 h-4 text-blue-500 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
                   </div>
                 </div>
 
                 <div>
                   {/* Amount Input */}
                   <div
-                    className="flex-1 flex items-baseline overflow-hidden mr-4"
+                    className="mr-4 flex flex-1 items-baseline overflow-hidden"
                     ref={measureRef}
                   >
-                    <div className="w-full flex items-baseline ring-offset-1 ring-green-500">
+                    <div className="flex w-full items-baseline ring-green-500 ring-offset-1">
                       <input
                         type="text"
                         inputMode="decimal"
@@ -253,7 +253,7 @@ const AmountFormStep = withForm({
                         }}
                         placeholder="0"
                         className={cn(
-                          "bg-transparent focus:outline-none font-light max-w-full",
+                          "max-w-full bg-transparent font-light focus:outline-none",
                           field.state.meta.errors.length && "text-red-600"
                         )}
                         style={{
@@ -265,7 +265,7 @@ const AmountFormStep = withForm({
                       />
                       <span
                         className={cn(
-                          "text-4xl text-gray-500 ml-2 flex-shrink-0"
+                          "ml-2 flex-shrink-0 text-4xl text-gray-500"
                           // field.state.meta.errors.length && 'text-red-600'
                         )}
                       >
@@ -276,7 +276,7 @@ const AmountFormStep = withForm({
 
                   {/* Converted */}
                   {field.state.value && expenseCurrency !== displayCurrency && (
-                    <div className="text-gray-500 text-lg flex items-center mt-2">
+                    <div className="mt-2 flex items-center text-lg text-gray-500">
                       <span>≈</span>
                       <span className="mx-1">
                         {getConvertedAmount(field.state.value)}
@@ -298,7 +298,7 @@ const AmountFormStep = withForm({
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="w-4 h-4 text-blue-500 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
                       </div>
                     </div>
                   )}
@@ -306,7 +306,7 @@ const AmountFormStep = withForm({
               </div>
 
               <div className="px-2">
-                <FieldInfo/>
+                <FieldInfo />
               </div>
             </div>
           )}
@@ -319,11 +319,11 @@ const AmountFormStep = withForm({
               <div className="flex flex-col gap-2">
                 <label
                   className={cn(
-                    "flex justify-between transition-all duration-500 ease-in-out -top-7 w-full px-2"
+                    "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
                   )}
                 >
                   <Subheadline>Description</Subheadline>
-                  <span className="text-gray-500 text-sm">
+                  <span className="text-sm text-gray-500">
                     {field.state.value.length} / {descriptionMaxLength}{" "}
                     characters
                   </span>
@@ -344,7 +344,7 @@ const AmountFormStep = withForm({
                   }}
                 />
                 <div className="px-2">
-                  <FieldInfo/>
+                  <FieldInfo />
                 </div>
               </div>
             )}

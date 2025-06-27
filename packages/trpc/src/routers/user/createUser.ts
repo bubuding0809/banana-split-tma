@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { Db, publicProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
-  userId: z.number().transform(val => BigInt(val)),
+  userId: z.number().transform((val) => BigInt(val)),
   firstName: z.string(),
   lastName: z.string().optional(),
   userName: z.string().optional(),

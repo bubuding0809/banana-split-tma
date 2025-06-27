@@ -10,7 +10,10 @@ export const queryClient = new QueryClient({
     queries: {
       retry: (failureCount, error) => {
         // Don't retry on NOT_FOUND errors (404)
-        if (error instanceof TRPCClientError && error.data?.code === "NOT_FOUND") {
+        if (
+          error instanceof TRPCClientError &&
+          error.data?.code === "NOT_FOUND"
+        ) {
           return false;
         }
         // Default retry logic: retry up to 3 times for other errors

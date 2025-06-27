@@ -17,7 +17,7 @@ const FieldInfo = () => {
     <div className="flex flex-col gap-1">
       {errors.map((error, index) =>
         error.message && typeof error.message === "string" ? (
-          <Caption key={index} className="text-red-500 text-sm">
+          <Caption key={index} className="text-sm text-red-500">
             {error.message}
           </Caption>
         ) : null
