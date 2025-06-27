@@ -6,4 +6,5 @@ export const expenseFormSchema = z.object({
     .string()
     .min(1, "A Description is required")
     .max(60, "Description is too long"),
+  payee: z.string().min(1, "A payee is required"),
 });

@@ -5,6 +5,7 @@ export const formOpts = formOptions({
   defaultValues: {
     amount: "",
     description: "",
+    payee: "",
   },
   validators: {
     onChange: expenseFormSchema,

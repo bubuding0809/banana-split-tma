@@ -49,6 +49,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // * From API ===================================================================================
   const form = useAppForm({
     ...formOpts,
+    defaultValues: {
+      ...formOpts.defaultValues,
+      payee: userId.toString(),
+    },
 
     onSubmit: async ({ value }) => {
       // TODO: Call mutation to create expense
