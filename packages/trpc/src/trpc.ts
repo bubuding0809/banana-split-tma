@@ -2,6 +2,7 @@ import { initTRPC } from "@trpc/server";
 import { prisma } from "@dko/database";
 import superjson from "superjson";
 import TelegramBot from "node-telegram-bot-api";
+import type { OpenApiMeta } from "trpc-to-openapi";
 
 /**
  * 1. CONTEXT
@@ -33,8 +34,9 @@ export type Db = ReturnType<typeof createTRPCContext>["db"];
  * Initialization of tRPC backend
  * Should be done only once per backend!
  */
-const t = initTRPC.context<typeof createTRPCContext>().create({
+const t = initTRPC.context<typeof createTRPCContext>().meta<OpenApiMeta>().create({
   transformer: superjson,
+  isServer: true,
 });
 
 /**

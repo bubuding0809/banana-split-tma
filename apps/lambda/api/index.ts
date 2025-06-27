@@ -1,7 +1,8 @@
 import express, { Router } from "express";
 import cors from "cors";
 
-import { appRouter, trpcExpress, withCreateTRPCContext } from "@dko/trpc";
+import { appRouter, trpcExpress, withCreateTRPCContext, openApiDocument } from "@dko/trpc";
+import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import { env } from "./env.js";
 
 //* Create an express app
@@ -19,6 +20,20 @@ router.use(
     createContext: withCreateTRPCContext(env),
   })
 );
+
+//* Add REST endpoints for TRPC
+router.use(
+  "/rest",
+  createOpenApiExpressMiddleware({
+    router: appRouter,
+    createContext: withCreateTRPCContext(env),
+  })
+);
+
+router.get("/swagger", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.status(200).json(openApiDocument);
+});
 
 //* Add TRPC panel for testing APIs in development
 router.use("/panel", async (_req, res) => {
