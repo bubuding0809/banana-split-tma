@@ -9,5 +9,5 @@ export const openApiDocument = generateOpenApiDocument(appRouter, {
   description: "REST API for Banana Split Telegram Mini App",
   version: "1.0.0",
   baseUrl: "http://localhost:3000/api/rest",
-  tags: ["user"],
+  tags: ["user", "chat"],
 });

@@ -1,24 +1,83 @@
-import { z } from 'zod'
-import { Db, publicProcedure } from '../../trpc.js'
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { Db, publicProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
-  userId: z.number(),
+  userId: z.number().transform(val => BigInt(val)),
   firstName: z.string(),
   lastName: z.string().optional(),
   userName: z.string().optional(),
-})
+});
 
-export const createUserHandler = async (input: z.infer<typeof inputSchema>, db: Db) => {
-  return db.user.create({
-    data: {
-      id: input.userId,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      username: input.userName,
+export const outputSchema = z.object({
+  id: z.preprocess((arg) => String(arg), z.string()),
+  firstName: z.string(),
+  lastName: z.string().nullable(),
+  username: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const createUserHandler = async (
+  input: z.infer<typeof inputSchema>,
+  db: Db
+) => {
+  try {
+    // Check if user already exists
+    const existingUser = await db.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (existingUser) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `User with ID ${input.userId} already exists`,
+      });
+    }
+
+    return db.user.create({
+      data: {
+        id: input.userId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        username: input.userName,
+      },
+    });
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+
+    // Handle Prisma unique constraint violations
+    if (
+      error instanceof Error &&
+      error.message.includes("Unique constraint failed")
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `User with ID ${input.userId} already exists`,
+      });
+    }
+
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to create user",
+    });
+  }
+};
+
+export default publicProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/user",
+      contentTypes: ["application/json"],
+      tags: ["user"],
+      summary: "Create a new user",
+      description: "Create a new user with the provided information",
     },
   })
-}
-
-export default publicProcedure.input(inputSchema).mutation(async ({ input, ctx }) => {
-  return createUserHandler(input, ctx.db)
-})
+  .input(inputSchema)
+  .output(outputSchema)
+  .mutation(async ({ input, ctx }) => {
+    return createUserHandler(input, ctx.db);
+  });

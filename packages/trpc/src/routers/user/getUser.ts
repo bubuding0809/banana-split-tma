@@ -1,26 +1,44 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { Db, publicProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
-  userId: z.preprocess((arg) => Number(arg), z.number()),
+  userId: z.number().transform(val => BigInt(val)),
 });
-export const outputSchema = z
-  .object({
-    id: z.preprocess((arg) => String(arg), z.string()),
-    firstName: z.string(),
-    lastName: z.string().nullable(),
-    username: z.string().nullable(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
-  })
-  .nullable();
+export const outputSchema = z.object({
+  id: z.preprocess((arg) => String(arg), z.string()),
+  firstName: z.string(),
+  lastName: z.string().nullable(),
+  username: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
 
 export const getUserHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db
 ) => {
-  const user = await db.user.findUnique({ where: { id: input.userId } });
-  return user;
+  try {
+    const user = await db.user.findUnique({ where: { id: input.userId } });
+    
+    if (!user) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `User with ID ${input.userId} not found`,
+      });
+    }
+    
+    return user;
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to retrieve user",
+    });
+  }
 };
 
 export default publicProcedure
