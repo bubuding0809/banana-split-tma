@@ -118,6 +118,7 @@ const AmountFormStep = withForm({
       }
     }, []);
 
+    //* Handlers ===================================================================================
     const handleAmountChange = (value: string) => {
       const cleanValue = value.replace(/[^\d.]/g, "");
       const parts = cleanValue.split(".");
@@ -202,7 +203,7 @@ const AmountFormStep = withForm({
             <div className="flex flex-col gap-2">
               <div
                 className={cn(
-                  "rounded-xl p-3 px-4 bg-[#212121]",
+                  "rounded-xl bg-[#212121] p-3 px-4",
                   field.state.meta.isTouched &&
                     field.state.meta.errors.length &&
                     "ring-2 ring-red-600"
@@ -254,7 +255,7 @@ const AmountFormStep = withForm({
                         placeholder="0"
                         className={cn(
                           "max-w-full bg-transparent font-light focus:outline-none",
-                          field.state.meta.errors.length && "text-red-600"
+                          field.state.meta.errors.length && field.state.meta.isTouched && "text-red-600"
                         )}
                         style={{
                           fontSize: getFontSize(field.state.value),
@@ -266,7 +267,6 @@ const AmountFormStep = withForm({
                       <span
                         className={cn(
                           "ml-2 flex-shrink-0 text-4xl text-gray-500"
-                          // field.state.meta.errors.length && 'text-red-600'
                         )}
                       >
                         {expenseCurrency}
@@ -313,43 +313,40 @@ const AmountFormStep = withForm({
         </form.AppField>
 
         {/* Description */}
-        <div>
-          <form.AppField name="description">
-            {(field) => (
-              <div className="flex flex-col gap-2">
-                <label
-                  className={cn(
-                    "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
-                  )}
-                >
-                  <Subheadline>Description</Subheadline>
-                  <span className="text-sm text-gray-500">
-                    {field.state.value.length} / {descriptionMaxLength}{" "}
-                    characters
-                  </span>
-                </label>
-                <Input
-                  status={
-                    field.state.meta.isTouched && field.state.meta.errors.length
-                      ? "error"
-                      : "default"
-                  }
-                  placeholder="What was this for?"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => {
-                    if (e.target.value.length > (descriptionMaxLength ?? 60))
-                      return;
-                    field.handleChange(e.target.value);
-                  }}
-                />
-                <div className="px-2">
-                  <FieldInfo />
-                </div>
+        <form.AppField name="description">
+          {(field) => (
+            <div className="flex flex-col gap-2">
+              <label
+                className={cn(
+                  "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
+                )}
+              >
+                <Subheadline>Description</Subheadline>
+                <span className="text-sm text-gray-500">
+                  {field.state.value.length} / {descriptionMaxLength} characters
+                </span>
+              </label>
+              <Input
+                status={
+                  field.state.meta.isTouched && field.state.meta.errors.length
+                    ? "error"
+                    : "default"
+                }
+                placeholder="Supper at Paradise Biryani"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => {
+                  if (e.target.value.length > (descriptionMaxLength ?? 60))
+                    return;
+                  field.handleChange(e.target.value);
+                }}
+              />
+              <div className="px-2">
+                <FieldInfo />
               </div>
-            )}
-          </form.AppField>
-        </div>
+            </div>
+          )}
+        </form.AppField>
       </div>
     );
   },

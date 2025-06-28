@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -22,21 +23,6 @@ const splitModeMap = {
   EXACT: "Split exactly",
   SHARES: "Split by shares",
 } as const;
-
-interface ChatExpenseAvatarProps {
-  userId: number;
-  size?: ImageProps["size"];
-}
-const ChatExpenseAvatar = ({ userId, size = 24 }: ChatExpenseAvatarProps) => {
-  const { data: photoUrl } = trpc.telegram.getUserProfilePhotoUrl.useQuery({
-    userId,
-  });
-
-  if (!photoUrl) {
-    return <Avatar size={size}>🐵</Avatar>;
-  }
-  return <Avatar src={photoUrl} size={size} />;
-};
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
@@ -111,7 +97,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     <>
       <Cell
         onClick={() => setModalOpen(true)}
-        before={<ChatExpenseAvatar userId={creatorId} size={48} />}
+        before={<ChatMemberAvatar userId={creatorId} size={48} />}
         subhead={
           <Skeleton visible={isMemberLoading}>
             <Caption
@@ -184,7 +170,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
           />
         }
       >
-        <span className="mr-0.5 text-xs">$</span>
+        <span className="mr-0.5 font-medium">$</span>
         {expense.amount.toFixed(2)}
       </Cell>
       <Modal
@@ -194,7 +180,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       >
         <div className="p-4">
           <div className="flex items-start gap-2">
-            <ChatExpenseAvatar userId={creatorId} />
+            <ChatMemberAvatar userId={creatorId} />
             <Text weight="2">{memberFullName}</Text>
           </div>
           <div className="mt-4 flex items-start gap-2">

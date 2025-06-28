@@ -19,6 +19,7 @@ import { cn } from "@utils/cn";
 
 import { trpc } from "@/utils/trpc";
 import { AppRouter } from "@dko/trpc";
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 const settleUpButtonLabel = "Settle up 🤝";
 const reminderButtonLabel = "Remind 💬";
@@ -45,9 +46,7 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
   const userId = tUserData?.id ?? 0;
 
   // * Queries ====================================================================================
-  const { data: photoUrl } = trpc.telegram.getUserProfilePhotoUrl.useQuery({
-    userId: member.id,
-  });
+
   const { data: memberInfo } = trpc.telegram.getChatMember.useQuery({
     chatId,
     userId: member.id,
@@ -120,18 +119,11 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
     setModalOpen(open);
   };
 
-  const MemberAvatar = () => {
-    if (!photoUrl) {
-      return <Avatar size={48}>🐵</Avatar>;
-    }
-    return <Avatar src={photoUrl} size={48} />;
-  };
-
   return (
     <>
       <Cell
         key={member.id}
-        before={<MemberAvatar />}
+        before={<ChatMemberAvatar userId={member.id} size={48} />}
         subtitle={memberInfo?.status ?? "Not a chat member"}
         after={
           <Info

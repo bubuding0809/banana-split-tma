@@ -1,6 +1,7 @@
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { trpc } from "@/utils/trpc";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Avatar, Title } from "@telegram-apps/telegram-ui";
+import { Title } from "@telegram-apps/telegram-ui";
 
 const UserPage = () => {
   const tUserData = useSignal(initData.user);
@@ -13,7 +14,7 @@ const UserPage = () => {
     <div className="p-4">
       <Title>User: {tUserData?.firstName}</Title>
       <div className="mt-1.5 flex gap-2">
-        <Avatar src={tUserData?.photoUrl ?? ""} />
+        <ChatMemberAvatar userId={tUserData?.id ?? 0} size={48} />
         <pre className="overflow-auto">
           <code className="truncate text-wrap">
             {JSON.stringify(duserData, null, 2)}

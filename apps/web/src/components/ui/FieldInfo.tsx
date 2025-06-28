@@ -6,10 +6,10 @@ const FieldInfo = () => {
   const field = useFieldContext();
   const [errors, isTouched] = useStore(field.store, (state) => [
     state.meta.errors,
-    field.state.meta.isTouched,
+    state.meta.isTouched,
   ]);
 
-  if (isTouched && !errors.length) {
+  if (!isTouched || !errors.length) {
     return null;
   }
 
