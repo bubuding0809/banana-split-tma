@@ -5,13 +5,7 @@ import {
   mainButton,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import {
-  Avatar,
-  Cell,
-  Info,
-  Modal,
-  Placeholder,
-} from "@telegram-apps/telegram-ui";
+import { Cell, Info, Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { ModalHeader } from "@telegram-apps/telegram-ui/dist/components/Overlays/Modal/components/ModalHeader/ModalHeader";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(pnpm check-types:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx husky init:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

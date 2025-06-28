@@ -1,9 +1,7 @@
 import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
 import {
-  Avatar,
   Caption,
   Cell,
-  type ImageProps,
   Info,
   Modal,
   Skeleton,
