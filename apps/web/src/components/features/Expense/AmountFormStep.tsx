@@ -201,6 +201,13 @@ const AmountFormStep = withForm({
         >
           {(field) => (
             <div className="flex flex-col gap-2">
+              <label
+                className={cn(
+                  "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
+                )}
+              >
+                <Subheadline weight="2">Amount</Subheadline>
+              </label>
               <div
                 className={cn(
                   "rounded-xl bg-[#212121] p-3 px-4",
@@ -324,7 +331,7 @@ const AmountFormStep = withForm({
                   "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
                 )}
               >
-                <Subheadline>Description</Subheadline>
+                <Subheadline weight="2">Description</Subheadline>
                 <span className="text-sm text-gray-500">
                   {field.state.value.length} / {descriptionMaxLength} characters
                 </span>
