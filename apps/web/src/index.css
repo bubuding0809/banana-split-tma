@@ -19,3 +19,7 @@
 .mobile-content {
    height: calc(100% + 1px);
 }
+
+::-webkit-scrollbar {
+   display: none;
+}

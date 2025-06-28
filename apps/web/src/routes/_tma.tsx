@@ -102,12 +102,7 @@ function LayoutComponent() {
           </div>
         </div>
         <Outlet />
-        <footer className="flex items-center justify-center pb-8 pt-4 text-sm text-gray-500">
-          <p>
-            &copy; {new Date().getFullYear()} Banana Splitz. All rights
-            reserved.
-          </p>
-        </footer>
+        <footer className="flex items-center justify-center pb-8 pt-4 text-sm text-gray-500"></footer>
       </div>
     </div>
   );
