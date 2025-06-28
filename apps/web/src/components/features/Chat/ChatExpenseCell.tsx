@@ -3,28 +3,21 @@ import {
   Caption,
   Cell,
   Info,
-  Modal,
   Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { ModalHeader } from "@telegram-apps/telegram-ui/dist/components/Overlays/Modal/components/ModalHeader/ModalHeader";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-
-const splitModeMap = {
-  EQUAL: "Split equally",
-  PERCENTAGE: "Split by percentage",
-  EXACT: "Split exactly",
-  SHARES: "Split by shares",
-} as const;
+import ExpenseDetailsModal from "./ExpenseDetailsModal";
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
 }
+
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
   const tUserData = useSignal(initData.user);
@@ -171,40 +164,19 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         <span className="mr-0.5 font-medium">$</span>
         {expense.amount.toFixed(2)}
       </Cell>
-      <Modal
+      <ExpenseDetailsModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        header={<ModalHeader>Transaction details</ModalHeader>}
-      >
-        <div className="p-4">
-          <div className="flex items-start gap-2">
-            <ChatMemberAvatar userId={payerId} />
-            <Text weight="2">{memberFullName}</Text>
-          </div>
-          <div className="mt-4 flex items-start gap-2">
-            <Text weight="2">Amount:</Text>
-            <Text>${expense.amount.toFixed(2)}</Text>
-          </div>
-          <div className="mt-2 flex flex-col items-start gap-2">
-            <Text weight="2">Description:</Text>
-            <Text>{expense.description}</Text>
-          </div>
-          <div className="mt-2 flex items-start gap-2">
-            <Text weight="2">Split mode:</Text>
-            <Text>{splitModeMap[expense.splitMode]}</Text>
-          </div>
-          <div className="mt-2 flex items-start gap-2">
-            <Text weight="2">Date:</Text>
-            <Text className="text-gray-300">
-              {new Date(expense.createdAt).toLocaleDateString("default", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </Text>
-          </div>
-        </div>
-      </Modal>
+        expense={expense}
+        member={member}
+        isMemberLoading={isMemberLoading}
+        expenseDetails={expenseDetails}
+        isExpenseDetailsLoading={isExpenseDetailsLoading}
+        expenseRelation={expenseRelation}
+        borrowedAmount={borrowedAmount}
+        lentAmount={lentAmount}
+        userId={userId}
+      />
     </>
   );
 };

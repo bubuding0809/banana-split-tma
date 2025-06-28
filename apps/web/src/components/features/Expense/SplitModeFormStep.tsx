@@ -9,14 +9,17 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { SegmentedControlItem } from "@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem";
 import { trpc } from "@/utils/trpc";
-import {
-  hapticFeedback,
-  mainButton,
-} from "@telegram-apps/sdk-react";
+import { hapticFeedback, mainButton } from "@telegram-apps/sdk-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
 import { useMemo, useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Check, DollarSign, Percent } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Check,
+  DollarSign,
+  Percent,
+} from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
 
@@ -24,9 +27,9 @@ const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
 const splitModeOptions: { value: SplitModeType; label: string }[] = [
   { value: "EQUAL", label: "Equal" },
-  { value: "PERCENTAGE", label: "Percent" },
-  { value: "EXACT", label: "Exact" },
   { value: "SHARES", label: "Shares" },
+  // { value: "PERCENTAGE", label: "Percent" },
+  // { value: "EXACT", label: "Exact" },
 ];
 
 const SplitModeFormStep = withForm({
@@ -51,7 +54,10 @@ const SplitModeFormStep = withForm({
 
     // Initialize participants with all members (including payee) when component loads
     useEffect(() => {
-      if (allMembers.length > 0 && form.state.values.participants.length === 0) {
+      if (
+        allMembers.length > 0 &&
+        form.state.values.participants.length === 0
+      ) {
         const allParticipantIds = allMembers.map((member) =>
           Number(member.id).toString()
         );
@@ -63,8 +69,14 @@ const SplitModeFormStep = withForm({
     useEffect(() => {
       const offClick = mainButton.onClick.ifAvailable(() => {
         form.validateSync("change");
-        form.setFieldMeta("splitMode", (prev) => ({ ...prev, isTouched: true }));
-        form.setFieldMeta("participants", (prev) => ({ ...prev, isTouched: true }));
+        form.setFieldMeta("splitMode", (prev) => ({
+          ...prev,
+          isTouched: true,
+        }));
+        form.setFieldMeta("participants", (prev) => ({
+          ...prev,
+          isTouched: true,
+        }));
 
         const hasErrors = Object.values(form.state.fieldMeta).some(
           (meta) => meta.errors.length > 0
@@ -108,7 +120,9 @@ const SplitModeFormStep = withForm({
 
       if (isSelected) {
         // Remove participant
-        const newParticipants = currentParticipants.filter(id => id !== memberId);
+        const newParticipants = currentParticipants.filter(
+          (id) => id !== memberId
+        );
         form.setFieldValue("participants", newParticipants);
       } else {
         // Add participant
@@ -128,8 +142,10 @@ const SplitModeFormStep = withForm({
         {/* Split Mode Selection */}
         <form.AppField name="splitMode">
           {(field) => (
-            <div className="bg-[#1a1a1a] rounded-2xl p-4">
-              <Subheadline className="mb-3 text-white">How should this be split?</Subheadline>
+            <div className="rounded-2xl bg-[#1a1a1a] p-4">
+              <Subheadline className="mb-3 text-white">
+                How should this be split?
+              </Subheadline>
               <SegmentedControl>
                 {splitModeOptions.map((option) => (
                   <SegmentedControlItem
@@ -151,57 +167,76 @@ const SplitModeFormStep = withForm({
         {/* Participant Selection */}
         <form.AppField name="participants">
           {(field) => (
-            <div className="bg-[#1a1a1a] rounded-2xl p-4">
-              <Subheadline className="mb-3 text-white">Who&apos;s splitting this?</Subheadline>
+            <div className="rounded-2xl bg-[#1a1a1a] p-4">
+              <Subheadline className="mb-3 text-white">
+                Who&apos;s splitting this?
+              </Subheadline>
               <ButtonCell
-                before={isParticipantsExpanded ? <ChevronUp /> : <ChevronDown />}
-                onClick={() => setIsParticipantsExpanded(!isParticipantsExpanded)}
+                before={
+                  isParticipantsExpanded ? <ChevronUp /> : <ChevronDown />
+                }
+                onClick={() =>
+                  setIsParticipantsExpanded(!isParticipantsExpanded)
+                }
                 disabled={allMembers.length === 0}
                 className="rounded-xl"
               >
                 {getParticipantsButtonText()}
               </ButtonCell>
-              
+
               {isParticipantsExpanded && (
                 <div className="mt-3 space-y-2">
                   {allMembers.map((member) => {
                     const memberId = Number(member.id).toString();
                     const isSelected = field.state.value.includes(memberId);
                     const isPayee = memberId === form.state.values.payee;
-                    
+
                     return (
                       <div
                         key={memberId}
                         className={cn(
-                          "flex items-center justify-between p-3 rounded-xl transition-colors cursor-pointer",
-                          isSelected ? "bg-blue-500/20 ring-1 ring-blue-500/30" : "bg-[#2a2a2a] hover:bg-[#333]",
+                          "flex cursor-pointer items-center justify-between rounded-xl p-3 transition-colors",
+                          isSelected
+                            ? "bg-blue-500/20 ring-1 ring-blue-500/30"
+                            : "bg-[#2a2a2a] hover:bg-[#333]",
                           isPayee && "ring-1 ring-yellow-500/50"
                         )}
                         onClick={() => handleParticipantToggle(memberId)}
                       >
                         <div className="flex items-center gap-3">
-                          <ChatMemberAvatar userId={Number(member.id)} size={40} />
+                          <ChatMemberAvatar
+                            userId={Number(member.id)}
+                            size={40}
+                          />
                           <div>
-                            <div className="text-white font-medium">
+                            <div className="font-medium text-white">
                               {member.firstName} {member.lastName}
-                              {isPayee && <span className="ml-2 text-yellow-400 text-sm">👤 Paid</span>}
+                              {isPayee && (
+                                <span className="ml-2 text-sm text-yellow-400">
+                                  👤 Paid
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
-                        <div className={cn(
-                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                          isSelected 
-                            ? "bg-blue-500 border-blue-500" 
-                            : "border-gray-400"
-                        )}>
-                          {isSelected && <Check className="w-4 h-4 text-white" />}
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
+                            isSelected
+                              ? "border-blue-500 bg-blue-500"
+                              : "border-gray-400"
+                          )}
+                        >
+                          {isSelected && (
+                            <Check className="h-4 w-4 text-white" />
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-              
+
               <div className="mt-3">
                 <FieldInfo />
               </div>
@@ -213,9 +248,11 @@ const SplitModeFormStep = withForm({
         {form.state.values.participants.length > 0 && (
           <form.AppField name="customSplits">
             {(field) => (
-              <div className="bg-[#1a1a1a] rounded-2xl p-4">
-                <Subheadline className="mb-4 text-white">Split breakdown</Subheadline>
-                
+              <div className="rounded-2xl bg-[#1a1a1a] p-4">
+                <Subheadline className="mb-4 text-white">
+                  Split breakdown
+                </Subheadline>
+
                 {form.state.values.splitMode === "EQUAL" && (
                   <SplitConfigEqual
                     participants={form.state.values.participants}
@@ -224,7 +261,7 @@ const SplitModeFormStep = withForm({
                     payeeId={form.state.values.payee}
                   />
                 )}
-                
+
                 {form.state.values.splitMode === "PERCENTAGE" && (
                   <SplitConfigPercentage
                     participants={form.state.values.participants}
@@ -235,7 +272,7 @@ const SplitModeFormStep = withForm({
                     payeeId={form.state.values.payee}
                   />
                 )}
-                
+
                 {form.state.values.splitMode === "EXACT" && (
                   <SplitConfigExact
                     participants={form.state.values.participants}
@@ -246,7 +283,7 @@ const SplitModeFormStep = withForm({
                     payeeId={form.state.values.payee}
                   />
                 )}
-                
+
                 {form.state.values.splitMode === "SHARES" && (
                   <SplitConfigShares
                     participants={form.state.values.participants}
@@ -257,7 +294,7 @@ const SplitModeFormStep = withForm({
                     payeeId={form.state.values.payee}
                   />
                 )}
-                
+
                 <div className="mt-4">
                   <FieldInfo />
                 </div>
@@ -280,58 +317,74 @@ interface SplitConfigProps {
   payeeId: string;
 }
 
-const SplitConfigEqual = ({ participants, totalAmount, chatMembers, payeeId }: SplitConfigProps) => {
-  const splitAmount = participants.length > 0 ? totalAmount / participants.length : 0;
-  
+const SplitConfigEqual = ({
+  participants,
+  totalAmount,
+  chatMembers,
+  payeeId,
+}: SplitConfigProps) => {
+  const splitAmount =
+    participants.length > 0 ? totalAmount / participants.length : 0;
+
   return (
     <div className="space-y-3">
       {participants.map((participantId) => {
-        const member = chatMembers.find(m => Number(m.id).toString() === participantId);
+        const member = chatMembers.find(
+          (m) => Number(m.id).toString() === participantId
+        );
         const isPayee = participantId === payeeId;
         if (!member) return null;
-        
+
         return (
           <div
             key={participantId}
             className={cn(
-              "flex items-center justify-between p-3 rounded-xl",
-              isPayee ? "bg-yellow-500/10 ring-1 ring-yellow-500/30" : "bg-[#2a2a2a]"
+              "flex items-center justify-between rounded-xl p-3",
+              isPayee
+                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
+                : "bg-[#2a2a2a]"
             )}
           >
             <div className="flex items-center gap-3">
               <ChatMemberAvatar userId={Number(member.id)} size={40} />
               <div>
-                <div className="text-white font-medium">
+                <div className="font-medium text-white">
                   {member.firstName} {member.lastName}
-                  {isPayee && <span className="ml-2 text-yellow-400 text-sm">👤 Paid</span>}
+                  {isPayee && (
+                    <span className="ml-2 text-sm text-yellow-400">
+                      👤 Paid
+                    </span>
+                  )}
                 </div>
                 {isPayee && (
-                  <div className="text-gray-400 text-xs">
+                  <div className="text-xs text-gray-400">
                     Gets ${(totalAmount - splitAmount).toFixed(2)} back
                   </div>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="text-green-400 font-semibold text-lg">
+              <div className="text-lg font-semibold text-green-400">
                 ${splitAmount.toFixed(2)}
               </div>
-              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                <Check className="w-4 h-4 text-white" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
+                <Check className="h-4 w-4 text-white" />
               </div>
             </div>
           </div>
         );
       })}
-      
+
       {/* Summary Card */}
-      <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20">
+      <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Check className="w-5 h-5 text-green-400" />
-            <span className="text-green-400 font-medium">Equal split complete</span>
+            <Check className="h-5 w-5 text-green-400" />
+            <span className="font-medium text-green-400">
+              Equal split complete
+            </span>
           </div>
-          <div className="text-white font-semibold">
+          <div className="font-semibold text-white">
             ${splitAmount.toFixed(2)} each
           </div>
         </div>
@@ -340,29 +393,32 @@ const SplitConfigEqual = ({ participants, totalAmount, chatMembers, payeeId }: S
   );
 };
 
-const SplitConfigPercentage = ({ 
-  participants, 
-  totalAmount, 
-  chatMembers, 
-  customSplits = [], 
+const SplitConfigPercentage = ({
+  participants,
+  totalAmount,
+  chatMembers,
+  customSplits = [],
   onSplitsChange,
-  payeeId 
+  payeeId,
 }: SplitConfigProps) => {
   const handlePercentageChange = (userId: string, percentage: string) => {
     const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex(s => s.userId === userId);
-    
+    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
+
     if (existingIndex >= 0) {
       newSplits[existingIndex] = { userId, amount: percentage };
     } else {
       newSplits.push({ userId, amount: percentage });
     }
-    
+
     onSplitsChange?.(newSplits);
   };
 
   const getTotalPercentage = () => {
-    return customSplits.reduce((sum, split) => sum + (Number(split.amount) || 0), 0);
+    return customSplits.reduce(
+      (sum, split) => sum + (Number(split.amount) || 0),
+      0
+    );
   };
 
   const getRemainingPercentage = () => {
@@ -375,31 +431,41 @@ const SplitConfigPercentage = ({
   return (
     <div className="space-y-3">
       {participants.map((participantId) => {
-        const member = chatMembers.find(m => Number(m.id).toString() === participantId);
-        const currentSplit = customSplits.find(s => s.userId === participantId);
+        const member = chatMembers.find(
+          (m) => Number(m.id).toString() === participantId
+        );
+        const currentSplit = customSplits.find(
+          (s) => s.userId === participantId
+        );
         const percentage = currentSplit?.amount || "";
-        const dollarAmount = ((Number(percentage) || 0) * totalAmount / 100);
+        const dollarAmount = ((Number(percentage) || 0) * totalAmount) / 100;
         const isPayee = participantId === payeeId;
-        
+
         if (!member) return null;
-        
+
         return (
           <div
             key={participantId}
             className={cn(
-              "flex items-center justify-between p-3 rounded-xl",
-              isPayee ? "bg-yellow-500/10 ring-1 ring-yellow-500/30" : "bg-[#2a2a2a]"
+              "flex items-center justify-between rounded-xl p-3",
+              isPayee
+                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
+                : "bg-[#2a2a2a]"
             )}
           >
             <div className="flex items-center gap-3">
               <ChatMemberAvatar userId={Number(member.id)} size={40} />
               <div>
-                <div className="text-white font-medium">
+                <div className="font-medium text-white">
                   {member.firstName} {member.lastName}
-                  {isPayee && <span className="ml-2 text-yellow-400 text-sm">👤 Paid</span>}
+                  {isPayee && (
+                    <span className="ml-2 text-sm text-yellow-400">
+                      👤 Paid
+                    </span>
+                  )}
                 </div>
                 {isPayee && dollarAmount > 0 && (
-                  <div className="text-gray-400 text-xs">
+                  <div className="text-xs text-gray-400">
                     Gets ${(totalAmount - dollarAmount).toFixed(2)} back
                   </div>
                 )}
@@ -412,14 +478,16 @@ const SplitConfigPercentage = ({
                     type="number"
                     placeholder="0"
                     value={percentage}
-                    onChange={(e) => handlePercentageChange(participantId, e.target.value)}
-                    className="w-20 text-right pr-8 bg-[#1a1a1a] border-gray-600 text-white"
+                    onChange={(e) =>
+                      handlePercentageChange(participantId, e.target.value)
+                    }
+                    className="w-20 border-gray-600 bg-[#1a1a1a] pr-8 text-right text-white"
                     min="0"
                     max="100"
                   />
-                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Percent className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                 </div>
-                <div className="text-gray-400 text-sm min-w-[60px] text-right">
+                <div className="min-w-[60px] text-right text-sm text-gray-400">
                   ${dollarAmount.toFixed(2)}
                 </div>
               </div>
@@ -427,52 +495,80 @@ const SplitConfigPercentage = ({
           </div>
         );
       })}
-      
+
       {/* Progress Bar */}
       <div className="mt-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-400">Progress</span>
-          <span className={cn(
-            "font-medium",
-            isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-          )}>
+          <span
+            className={cn(
+              "font-medium",
+              isValid
+                ? "text-green-400"
+                : isOverAllocated
+                  ? "text-red-400"
+                  : "text-yellow-400"
+            )}
+          >
             {getTotalPercentage()}% / 100%
           </span>
         </div>
-        <div className="h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
-          <div 
+        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
+          <div
             className={cn(
               "h-full transition-all duration-300",
-              isValid ? "bg-green-500" : isOverAllocated ? "bg-red-500" : "bg-yellow-500"
+              isValid
+                ? "bg-green-500"
+                : isOverAllocated
+                  ? "bg-red-500"
+                  : "bg-yellow-500"
             )}
             style={{ width: `${Math.min(getTotalPercentage(), 100)}%` }}
           />
         </div>
       </div>
-      
+
       {/* Summary Card */}
-      <div className={cn(
-        "mt-4 p-4 rounded-xl border",
-        isValid 
-          ? "bg-green-500/10 border-green-500/20" 
-          : isOverAllocated 
-          ? "bg-red-500/10 border-red-500/20"
-          : "bg-yellow-500/10 border-yellow-500/20"
-      )}>
+      <div
+        className={cn(
+          "mt-4 rounded-xl border p-4",
+          isValid
+            ? "border-green-500/20 bg-green-500/10"
+            : isOverAllocated
+              ? "border-red-500/20 bg-red-500/10"
+              : "border-yellow-500/20 bg-yellow-500/10"
+        )}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Percent className={cn(
-              "w-5 h-5",
-              isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-            )} />
-            <span className={cn(
-              "font-medium",
-              isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-            )}>
-              {isValid ? "Perfect split!" : isOverAllocated ? "Over-allocated" : `${getRemainingPercentage()}% remaining`}
+            <Percent
+              className={cn(
+                "h-5 w-5",
+                isValid
+                  ? "text-green-400"
+                  : isOverAllocated
+                    ? "text-red-400"
+                    : "text-yellow-400"
+              )}
+            />
+            <span
+              className={cn(
+                "font-medium",
+                isValid
+                  ? "text-green-400"
+                  : isOverAllocated
+                    ? "text-red-400"
+                    : "text-yellow-400"
+              )}
+            >
+              {isValid
+                ? "Perfect split!"
+                : isOverAllocated
+                  ? "Over-allocated"
+                  : `${getRemainingPercentage()}% remaining`}
             </span>
           </div>
-          <div className="text-white font-semibold">
+          <div className="font-semibold text-white">
             ${totalAmount.toFixed(2)} total
           </div>
         </div>
@@ -481,29 +577,32 @@ const SplitConfigPercentage = ({
   );
 };
 
-const SplitConfigExact = ({ 
-  participants, 
-  totalAmount, 
-  chatMembers, 
-  customSplits = [], 
+const SplitConfigExact = ({
+  participants,
+  totalAmount,
+  chatMembers,
+  customSplits = [],
   onSplitsChange,
-  payeeId 
+  payeeId,
 }: SplitConfigProps) => {
   const handleAmountChange = (userId: string, amount: string) => {
     const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex(s => s.userId === userId);
-    
+    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
+
     if (existingIndex >= 0) {
       newSplits[existingIndex] = { userId, amount };
     } else {
       newSplits.push({ userId, amount });
     }
-    
+
     onSplitsChange?.(newSplits);
   };
 
   const getTotalAllocated = () => {
-    return customSplits.reduce((sum, split) => sum + (Number(split.amount) || 0), 0);
+    return customSplits.reduce(
+      (sum, split) => sum + (Number(split.amount) || 0),
+      0
+    );
   };
 
   const getRemainingAmount = () => {
@@ -516,31 +615,41 @@ const SplitConfigExact = ({
   return (
     <div className="space-y-3">
       {participants.map((participantId) => {
-        const member = chatMembers.find(m => Number(m.id).toString() === participantId);
-        const currentSplit = customSplits.find(s => s.userId === participantId);
+        const member = chatMembers.find(
+          (m) => Number(m.id).toString() === participantId
+        );
+        const currentSplit = customSplits.find(
+          (s) => s.userId === participantId
+        );
         const amount = currentSplit?.amount || "";
         const dollarAmount = Number(amount) || 0;
         const isPayee = participantId === payeeId;
-        
+
         if (!member) return null;
-        
+
         return (
           <div
             key={participantId}
             className={cn(
-              "flex items-center justify-between p-3 rounded-xl",
-              isPayee ? "bg-yellow-500/10 ring-1 ring-yellow-500/30" : "bg-[#2a2a2a]"
+              "flex items-center justify-between rounded-xl p-3",
+              isPayee
+                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
+                : "bg-[#2a2a2a]"
             )}
           >
             <div className="flex items-center gap-3">
               <ChatMemberAvatar userId={Number(member.id)} size={40} />
               <div>
-                <div className="text-white font-medium">
+                <div className="font-medium text-white">
                   {member.firstName} {member.lastName}
-                  {isPayee && <span className="ml-2 text-yellow-400 text-sm">👤 Paid</span>}
+                  {isPayee && (
+                    <span className="ml-2 text-sm text-yellow-400">
+                      👤 Paid
+                    </span>
+                  )}
                 </div>
                 {isPayee && dollarAmount > 0 && (
-                  <div className="text-gray-400 text-xs">
+                  <div className="text-xs text-gray-400">
                     Gets ${(totalAmount - dollarAmount).toFixed(2)} back
                   </div>
                 )}
@@ -552,63 +661,95 @@ const SplitConfigExact = ({
                   type="number"
                   placeholder="0.00"
                   value={amount}
-                  onChange={(e) => handleAmountChange(participantId, e.target.value)}
-                  className="w-28 text-right pl-8 bg-[#1a1a1a] border-gray-600 text-white"
+                  onChange={(e) =>
+                    handleAmountChange(participantId, e.target.value)
+                  }
+                  className="w-28 border-gray-600 bg-[#1a1a1a] pl-8 text-right text-white"
                   min="0"
                   step="0.01"
                 />
-                <DollarSign className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <DollarSign className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               </div>
             </div>
           </div>
         );
       })}
-      
+
       {/* Progress Indicator */}
       <div className="mt-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-400">Allocation Progress</span>
-          <span className={cn(
-            "font-medium",
-            isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-          )}>
+          <span
+            className={cn(
+              "font-medium",
+              isValid
+                ? "text-green-400"
+                : isOverAllocated
+                  ? "text-red-400"
+                  : "text-yellow-400"
+            )}
+          >
             ${getTotalAllocated().toFixed(2)} / ${totalAmount.toFixed(2)}
           </span>
         </div>
-        <div className="h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
-          <div 
+        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
+          <div
             className={cn(
               "h-full transition-all duration-300",
-              isValid ? "bg-green-500" : isOverAllocated ? "bg-red-500" : "bg-yellow-500"
+              isValid
+                ? "bg-green-500"
+                : isOverAllocated
+                  ? "bg-red-500"
+                  : "bg-yellow-500"
             )}
-            style={{ width: `${Math.min((getTotalAllocated() / totalAmount) * 100, 100)}%` }}
+            style={{
+              width: `${Math.min((getTotalAllocated() / totalAmount) * 100, 100)}%`,
+            }}
           />
         </div>
       </div>
-      
+
       {/* Summary Card */}
-      <div className={cn(
-        "mt-4 p-4 rounded-xl border",
-        isValid 
-          ? "bg-green-500/10 border-green-500/20" 
-          : isOverAllocated 
-          ? "bg-red-500/10 border-red-500/20"
-          : "bg-yellow-500/10 border-yellow-500/20"
-      )}>
+      <div
+        className={cn(
+          "mt-4 rounded-xl border p-4",
+          isValid
+            ? "border-green-500/20 bg-green-500/10"
+            : isOverAllocated
+              ? "border-red-500/20 bg-red-500/10"
+              : "border-yellow-500/20 bg-yellow-500/10"
+        )}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DollarSign className={cn(
-              "w-5 h-5",
-              isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-            )} />
-            <span className={cn(
-              "font-medium",
-              isValid ? "text-green-400" : isOverAllocated ? "text-red-400" : "text-yellow-400"
-            )}>
-              {isValid ? "Perfect split!" : isOverAllocated ? "Over-allocated" : `$${getRemainingAmount().toFixed(2)} remaining`}
+            <DollarSign
+              className={cn(
+                "h-5 w-5",
+                isValid
+                  ? "text-green-400"
+                  : isOverAllocated
+                    ? "text-red-400"
+                    : "text-yellow-400"
+              )}
+            />
+            <span
+              className={cn(
+                "font-medium",
+                isValid
+                  ? "text-green-400"
+                  : isOverAllocated
+                    ? "text-red-400"
+                    : "text-yellow-400"
+              )}
+            >
+              {isValid
+                ? "Perfect split!"
+                : isOverAllocated
+                  ? "Over-allocated"
+                  : `$${getRemainingAmount().toFixed(2)} remaining`}
             </span>
           </div>
-          <div className="text-white font-semibold">
+          <div className="font-semibold text-white">
             ${totalAmount.toFixed(2)} total
           </div>
         </div>
@@ -617,29 +758,32 @@ const SplitConfigExact = ({
   );
 };
 
-const SplitConfigShares = ({ 
-  participants, 
-  totalAmount, 
-  chatMembers, 
-  customSplits = [], 
+const SplitConfigShares = ({
+  participants,
+  totalAmount,
+  chatMembers,
+  customSplits = [],
   onSplitsChange,
-  payeeId 
+  payeeId,
 }: SplitConfigProps) => {
   const handleSharesChange = (userId: string, shares: string) => {
     const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex(s => s.userId === userId);
-    
+    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
+
     if (existingIndex >= 0) {
       newSplits[existingIndex] = { userId, amount: shares };
     } else {
       newSplits.push({ userId, amount: shares });
     }
-    
+
     onSplitsChange?.(newSplits);
   };
 
   const getTotalShares = () => {
-    return customSplits.reduce((sum, split) => sum + (Number(split.amount) || 0), 0);
+    return customSplits.reduce(
+      (sum, split) => sum + (Number(split.amount) || 0),
+      0
+    );
   };
 
   const getAmountPerShare = () => {
@@ -652,37 +796,47 @@ const SplitConfigShares = ({
   return (
     <div className="space-y-3">
       {participants.map((participantId) => {
-        const member = chatMembers.find(m => Number(m.id).toString() === participantId);
-        const currentSplit = customSplits.find(s => s.userId === participantId);
+        const member = chatMembers.find(
+          (m) => Number(m.id).toString() === participantId
+        );
+        const currentSplit = customSplits.find(
+          (s) => s.userId === participantId
+        );
         const shares = currentSplit?.amount || "";
         const amount = (Number(shares) || 0) * getAmountPerShare();
         const isPayee = participantId === payeeId;
-        
+
         if (!member) return null;
-        
+
         return (
           <div
             key={participantId}
             className={cn(
-              "flex items-center justify-between p-3 rounded-xl",
-              isPayee ? "bg-yellow-500/10 ring-1 ring-yellow-500/30" : "bg-[#2a2a2a]"
+              "flex items-center justify-between rounded-xl p-3",
+              isPayee
+                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
+                : "bg-[#2a2a2a]"
             )}
           >
             <div className="flex items-center gap-3">
               <ChatMemberAvatar userId={Number(member.id)} size={40} />
               <div>
-                <div className="text-white font-medium">
+                <div className="font-medium text-white">
                   {member.firstName} {member.lastName}
-                  {isPayee && <span className="ml-2 text-yellow-400 text-sm">👤 Paid</span>}
+                  {isPayee && (
+                    <span className="ml-2 text-sm text-yellow-400">
+                      👤 Paid
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {hasShares && (
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-sm text-gray-400">
                       ${amount.toFixed(2)}
                     </div>
                   )}
                   {isPayee && amount > 0 && (
-                    <div className="text-gray-400 text-xs">
+                    <div className="text-xs text-gray-400">
                       Gets ${(totalAmount - amount).toFixed(2)} back
                     </div>
                   )}
@@ -694,39 +848,43 @@ const SplitConfigShares = ({
                 type="number"
                 placeholder="1"
                 value={shares}
-                onChange={(e) => handleSharesChange(participantId, e.target.value)}
-                className="w-20 text-center bg-[#1a1a1a] border-gray-600 text-white"
+                onChange={(e) =>
+                  handleSharesChange(participantId, e.target.value)
+                }
+                className="w-20 border-gray-600 bg-[#1a1a1a] text-center text-white"
                 min="0"
               />
-              <div className="text-gray-400 text-sm">
+              <div className="text-sm text-gray-400">
                 {Number(shares) === 1 ? "share" : "shares"}
               </div>
             </div>
           </div>
         );
       })}
-      
+
       {/* Shares Visualization */}
       {hasShares && (
         <div className="mt-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Share Distribution</span>
-            <span className="text-white font-medium">
+            <span className="font-medium text-white">
               {getTotalShares()} total shares
             </span>
           </div>
-          <div className="flex gap-1 h-2">
+          <div className="flex h-2 gap-1">
             {participants.map((participantId) => {
-              const currentSplit = customSplits.find(s => s.userId === participantId);
+              const currentSplit = customSplits.find(
+                (s) => s.userId === participantId
+              );
               const shares = Number(currentSplit?.amount || 0);
               const percentage = shares / getTotalShares();
-              
+
               if (shares === 0) return null;
-              
+
               return (
                 <div
                   key={participantId}
-                  className="bg-blue-500 rounded-sm h-full"
+                  className="h-full rounded-sm bg-blue-500"
                   style={{ width: `${percentage * 100}%` }}
                   title={`${shares} shares`}
                 />
@@ -735,32 +893,40 @@ const SplitConfigShares = ({
           </div>
         </div>
       )}
-      
+
       {/* Summary Card */}
-      <div className={cn(
-        "mt-4 p-4 rounded-xl border",
-        hasShares 
-          ? "bg-blue-500/10 border-blue-500/20"
-          : "bg-gray-500/10 border-gray-500/20"
-      )}>
+      <div
+        className={cn(
+          "mt-4 rounded-xl border p-4",
+          hasShares
+            ? "border-blue-500/20 bg-blue-500/10"
+            : "border-gray-500/20 bg-gray-500/10"
+        )}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-5 h-5 rounded border-2 flex items-center justify-center",
-              hasShares ? "border-blue-400 bg-blue-400" : "border-gray-400"
-            )}>
-              <span className="text-white text-xs font-bold">
+            <div
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded border-2",
+                hasShares ? "border-blue-400 bg-blue-400" : "border-gray-400"
+              )}
+            >
+              <span className="text-xs font-bold text-white">
                 {hasShares ? getTotalShares() : "?"}
               </span>
             </div>
-            <span className={cn(
-              "font-medium",
-              hasShares ? "text-blue-400" : "text-gray-400"
-            )}>
-              {hasShares ? `$${getAmountPerShare().toFixed(2)} per share` : "Set shares to calculate"}
+            <span
+              className={cn(
+                "font-medium",
+                hasShares ? "text-blue-400" : "text-gray-400"
+              )}
+            >
+              {hasShares
+                ? `$${getAmountPerShare().toFixed(2)} per share`
+                : "Set shares to calculate"}
             </span>
           </div>
-          <div className="text-white font-semibold">
+          <div className="font-semibold text-white">
             ${totalAmount.toFixed(2)} total
           </div>
         </div>

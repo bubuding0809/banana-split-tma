@@ -67,6 +67,8 @@ const AmountFormStep = withForm({
       useState<keyof typeof CURRENCIES>("SGD");
     const [containerWidth, setContainerWidth] = useState(0);
     const measureRef = useRef(null);
+    const amountFieldRef = useRef<HTMLInputElement>(null);
+    const descriptionFieldRef = useRef<HTMLInputElement>(null);
 
     // Configure main button click
     useEffect(() => {
@@ -82,6 +84,22 @@ const AmountFormStep = withForm({
           form.state.fieldMeta.amount.errors.length ||
           form.state.fieldMeta.description.errors.length
         ) {
+          for (const [ref, errors] of [
+            [amountFieldRef, form.state.fieldMeta.amount.errors] as const,
+            [
+              descriptionFieldRef,
+              form.state.fieldMeta.description.errors,
+            ] as const,
+          ]) {
+            if (errors.length) {
+              ref.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              ref.current?.focus();
+              break;
+            }
+          }
           return hapticFeedback.notificationOccurred("warning");
         }
         hapticFeedback.notificationOccurred("success");
@@ -190,7 +208,6 @@ const AmountFormStep = withForm({
     return (
       <div className="flex flex-col gap-4">
         {/* Amount */}
-
         <form.AppField
           name="amount"
           validators={{
@@ -248,10 +265,12 @@ const AmountFormStep = withForm({
                   >
                     <div className="flex w-full items-baseline ring-green-500 ring-offset-1">
                       <input
+                        ref={amountFieldRef}
                         type="text"
                         inputMode="decimal"
                         value={field.state.value}
                         onBlur={field.handleBlur}
+                        tabIndex={0}
                         autoFocus
                         onChange={(e) => {
                           const value = handleAmountChange(e.target.value);
@@ -337,6 +356,7 @@ const AmountFormStep = withForm({
                 </span>
               </label>
               <Input
+                ref={descriptionFieldRef}
                 status={
                   field.state.meta.isTouched && field.state.meta.errors.length
                     ? "error"
