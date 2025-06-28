@@ -5,7 +5,9 @@
       "Bash(pnpm lint:*)",
       "Bash(pnpm add:*)",
       "Bash(npx husky init:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(pnpm run:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

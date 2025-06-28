@@ -73,6 +73,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         await createExpenseMutation.mutateAsync({
           chatId: chatId,
           creatorId: userId,
+          payerId: Number(value.payee), // FIX: Actually send the payee data!
           description: value.description,
           amount: Number(value.amount),
           splitMode: value.splitMode,
@@ -161,7 +162,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     };
   }, [tButtonColor]);
 
-  // Set main button params based on state
+  // Set main button params based on current step
   useEffect(() => {
     const isFinalStep = currentFormStep === FORM_STEPS.length - 1;
     mainButton.setParams.ifAvailable({
@@ -173,7 +174,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     });
   }, [currentFormStep, tButtonColor]);
 
-  // Configure secondary button
+  // Set secondary button based on current step
   useEffect(() => {
     const isBackAvailable = currentFormStep > 0;
     secondaryButton.setParams.ifAvailable({
@@ -196,6 +197,16 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
       offClick?.();
     };
   }, [currentFormStep, navigate]);
+
+  // Clean up secondary button on unmount
+  useEffect(() => {
+    return () => {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+    };
+  }, []);
 
   const CurrentFormComponent = FORM_STEPS.at(currentFormStep)?.component;
 

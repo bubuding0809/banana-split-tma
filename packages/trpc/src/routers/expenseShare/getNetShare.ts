@@ -12,11 +12,12 @@ export const getNetShareHandler = async (
   db: Db
 ) => {
   //* Find out how much the target user owes the main user
+  // (Expenses where main user paid, but target user has a share)
   const toReceive = await db.expenseShare.findMany({
     where: {
       expense: {
         chatId: input.chatId,
-        creatorId: input.mainUserId,
+        payerId: input.mainUserId, // FIXED: Use payerId to find expenses main user paid for
       },
       userId: input.targetUserId,
     },
@@ -26,11 +27,12 @@ export const getNetShareHandler = async (
   });
 
   //* Find out how much the target user lent to the main user
+  // (Expenses where target user paid, but main user has a share)
   const toPay = await db.expenseShare.findMany({
     where: {
       expense: {
         chatId: input.chatId,
-        creatorId: input.targetUserId,
+        payerId: input.targetUserId, // FIXED: Use payerId to find expenses target user paid for
       },
       userId: input.mainUserId,
     },

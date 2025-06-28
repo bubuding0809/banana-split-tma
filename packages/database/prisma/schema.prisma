@@ -36,6 +36,7 @@ model User {
   username          String?
   chats             Chat[]
   createdExpenses   Expense[]      @relation("Creator")
+  paidExpenses      Expense[]      @relation("Payer")
   involvedExpenses  Expense[]      @relation("Participants")
   sentTransfers     Settlement[]   @relation("Sender")
   receivedTransfers Settlement[]   @relation("Receiver")
@@ -58,6 +59,8 @@ model Expense {
   date         DateTime       @default(now())
   creator      User           @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId    BigInt
+  payer        User           @relation("Payer", fields: [payerId], references: [id], onDelete: Cascade)
+  payerId      BigInt
   description  String
   amount       Decimal        @db.Decimal(10, 2)
   splitMode    SplitMode
@@ -68,6 +71,7 @@ model Expense {
 
   @@index([chatId]) // Optimizes queries filtering/aggregating expenses by chat
   @@index([creatorId]) // Improves performance when looking up expenses created by a specific user
+  @@index([payerId]) // Optimizes queries filtering/aggregating expenses by payer for balance calculations
 }
 
 model ExpenseShare {

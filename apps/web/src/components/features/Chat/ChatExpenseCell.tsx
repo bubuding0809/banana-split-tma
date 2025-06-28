@@ -26,7 +26,7 @@ interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
 }
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
-  const { creatorId, chatId } = expense;
+  const { payerId, chatId } = expense;
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,7 +40,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const { data: member, isLoading: isMemberLoading } =
     trpc.telegram.getChatMember.useQuery({
       chatId,
-      userId: creatorId,
+      userId: payerId,
     });
 
   // * State ======================================================================================
@@ -50,16 +50,16 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     member?.user.last_name ? ` ${member.user.last_name}` : ""
   }`;
 
-  // Determine the relation of the user to the expense (owner, borrower, unrelated)
+  // Determine the relation of the user to the expense (payer, borrower, unrelated)
   const expenseRelation = useMemo(() => {
-    const ownerIsYou = member?.user.id === userId;
+    const payerIsYou = member?.user.id === userId;
     const isUnrelated =
-      !ownerIsYou &&
+      !payerIsYou &&
       !expenseDetails?.shares.some((share) => share.userId === userId);
 
     switch (true) {
-      case ownerIsYou:
-        return "owner";
+      case payerIsYou:
+        return "payer";
       case isUnrelated:
         return "unrelated";
       default:
@@ -81,7 +81,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
 
   // Amount lent for this expense
   const lentAmount = useMemo(() => {
-    if (expenseRelation !== "owner") return 0;
+    if (expenseRelation !== "payer") return 0;
     return (
       expenseDetails?.shares.reduce((acc, share) => {
         const isDebtor = share.userId !== userId;
@@ -95,17 +95,17 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     <>
       <Cell
         onClick={() => setModalOpen(true)}
-        before={<ChatMemberAvatar userId={creatorId} size={48} />}
+        before={<ChatMemberAvatar userId={payerId} size={48} />}
         subhead={
           <Skeleton visible={isMemberLoading}>
             <Caption
               weight="1"
               level="1"
               style={{
-                color: expenseRelation === "owner" ? tButtonColor : undefined,
+                color: expenseRelation === "payer" ? tButtonColor : undefined,
               }}
             >
-              {expenseRelation === "owner" ? "You" : memberFullName} paid
+              {expenseRelation === "payer" ? "You" : memberFullName} paid
             </Caption>
           </Skeleton>
         }
@@ -124,7 +124,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                   <Skeleton visible={isExpenseDetailsLoading}>
                     {(() => {
                       switch (expenseRelation) {
-                        case "owner":
+                        case "payer":
                           return lentAmount === 0 ? (
                             <Text weight="2">✅</Text>
                           ) : (
@@ -154,7 +154,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                           return "Unrelated";
                         case "borrower":
                           return borrowedAmount === 0 ? "Settled" : "Borrowed";
-                        case "owner":
+                        case "payer":
                           return lentAmount === 0 ? "Settled" : "Lent";
                         default:
                           return "";
@@ -178,7 +178,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       >
         <div className="p-4">
           <div className="flex items-start gap-2">
-            <ChatMemberAvatar userId={creatorId} />
+            <ChatMemberAvatar userId={payerId} />
             <Text weight="2">{memberFullName}</Text>
           </div>
           <div className="mt-4 flex items-start gap-2">

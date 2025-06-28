@@ -17,6 +17,7 @@ const getExpenseDetailsHandler = async (
     include: {
       participants: true,
       creator: true,
+      payer: true,
       shares: true,
       chat: true,
     },

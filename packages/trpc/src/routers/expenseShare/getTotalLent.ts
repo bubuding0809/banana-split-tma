@@ -11,7 +11,7 @@ const getTotalLent = async (input: z.infer<typeof inputSchema>, db: Db) => {
     where: {
       expense: {
         chatId: input.chatId,
-        creatorId: input.userId,
+        payerId: input.userId, // FIXED: Use payerId to find expenses this user paid for
       },
     },
     select: {

@@ -16,7 +16,7 @@ const getTotalBorrowedHandler = async (
       expense: {
         chatId: input.chatId,
         NOT: {
-          creatorId: input.userId,
+          payerId: input.userId, // FIXED: Use payerId to exclude expenses this user paid for
         },
       },
     },

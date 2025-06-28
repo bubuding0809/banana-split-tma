@@ -17,6 +17,7 @@ export const getExpenseByChatHandler = async (
   return expenses.map((expense) => ({
     ...expense,
     creatorId: Number(expense.creatorId),
+    payerId: Number(expense.payerId),
     chatId: Number(expense.chatId),
     amount: Number(expense.amount),
   }));
