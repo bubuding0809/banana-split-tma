@@ -1,8 +1,10 @@
 import { getRouteApi } from "@tanstack/react-router";
 import {
   backButton,
+  hapticFeedback,
   initData,
   mainButton,
+  secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -60,10 +62,13 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     onSubmit: async ({ value }) => {
       try {
         // Convert form values to API format
-        const customSplits = value.splitMode !== "EQUAL" ? value.customSplits.map(split => ({
-          userId: Number(split.userId),
-          amount: Number(split.amount),
-        })) : undefined;
+        const customSplits =
+          value.splitMode !== "EQUAL"
+            ? value.customSplits.map((split) => ({
+                userId: Number(split.userId),
+                amount: Number(split.amount),
+              }))
+            : undefined;
 
         await createExpenseMutation.mutateAsync({
           chatId: chatId,
@@ -71,7 +76,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           description: value.description,
           amount: Number(value.amount),
           splitMode: value.splitMode,
-          participantIds: value.participants.map(id => Number(id)),
+          participantIds: value.participants.map((id) => Number(id)),
           customSplits,
         });
 
@@ -91,8 +96,9 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         mainButton.setParams.ifAvailable({
           isLoaderVisible: false,
         });
-        
-        const errorMessage = error instanceof Error ? error.message : "Failed to create expense";
+
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to create expense";
         alert(`❌ Error: ${errorMessage}`);
       }
     },
@@ -159,13 +165,37 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   useEffect(() => {
     const isFinalStep = currentFormStep === FORM_STEPS.length - 1;
     mainButton.setParams.ifAvailable({
-      text: isFinalStep ? "Save" : "Next",
+      text: isFinalStep ? "Save 🚀" : "Next »",
       isVisible: true,
       isEnabled: true,
       hasShineEffect: isFinalStep,
       backgroundColor: isFinalStep ? "#00A86B" : tButtonColor,
     });
   }, [currentFormStep, tButtonColor]);
+
+  // Configure secondary button
+  useEffect(() => {
+    const isBackAvailable = currentFormStep > 0;
+    secondaryButton.setParams.ifAvailable({
+      isVisible: isBackAvailable,
+      isEnabled: isBackAvailable,
+      text: "« Back",
+    });
+
+    const offClick = secondaryButton.onClick.ifAvailable(() => {
+      hapticFeedback.notificationOccurred("success");
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          currentFormStep: currentFormStep - 1,
+        }),
+      });
+    });
+
+    return () => {
+      offClick?.();
+    };
+  }, [currentFormStep, navigate]);
 
   const CurrentFormComponent = FORM_STEPS.at(currentFormStep)?.component;
 

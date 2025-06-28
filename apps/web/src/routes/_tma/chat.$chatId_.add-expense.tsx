@@ -7,6 +7,7 @@ import AddExpensePage from "@components/features/Expense/AddExpensePage";
 const searchSchema = z.object({
   prevSegment: z.enum(["balance", "expense"]).catch("balance"),
   currentFormStep: z.number().catch(0),
+  membersExpanded: z.boolean().catch(false),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId_/add-expense")({

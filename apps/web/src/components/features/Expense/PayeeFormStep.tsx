@@ -1,10 +1,20 @@
 import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-import { ButtonCell, Cell, Radio, Section } from "@telegram-apps/telegram-ui";
+import {
+  ButtonCell,
+  Cell,
+  Radio,
+  Section,
+} from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
-import { hapticFeedback, initData, mainButton, useSignal } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  initData,
+  mainButton,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getRouteApi } from "@tanstack/react-router";
 
@@ -17,13 +27,17 @@ const PayeeFormStep = withForm({
     isLastStep: false,
   },
   render: function Render({ form, isLastStep, step }) {
+    // * Hooks =====================================================================================
     const navigate = routeApi.useNavigate();
+    const {membersExpanded} = routeApi.useSearch();
     const tStartParams = useStartParams();
     const tUserData = useSignal(initData.user);
 
+    //* Variables ==================================================================================
     const userId = tUserData?.id ?? 0;
     const chatId = tStartParams?.chat_id ?? 0;
 
+    //* Queries ====================================================================================
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({
       chatId,
     });
@@ -34,13 +48,12 @@ const PayeeFormStep = withForm({
       );
     }, [chatMembers, userId]);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-
+    //* Handlers ===================================================================================
     const getButtonText = () => {
       if (filteredMembers.length === 0) {
         return "You are all alone";
       }
-      if (isExpanded) {
+      if (membersExpanded) {
         return `Hide ${filteredMembers.length} members`;
       }
       return `Select from ${filteredMembers.length} members`;
@@ -89,33 +102,39 @@ const PayeeFormStep = withForm({
                 <Cell
                   Component="label"
                   key={userId}
+                  subtitle={`${tUserData?.firstName} ${tUserData?.lastName}`}
                   before={<ChatMemberAvatar userId={userId} size={48} />}
-                  subtitle="Yourself"
                   after={
                     <Radio
                       name="radio"
                       value={userId}
                       onBlur={field.handleBlur}
-                      defaultChecked
+                      checked={field.state.value === String(userId)}
                       onChange={(e) => field.handleChange(e.target.value)}
                     />
                   }
                 >
-                  {tUserData?.firstName} {tUserData?.lastName}
+                  @{tUserData?.username || "You"}
                 </Cell>
                 <ButtonCell
-                  before={isExpanded ? <ChevronUp /> : <ChevronDown />}
-                  onClick={() => setIsExpanded((prev) => !prev)}
+                  before={membersExpanded ? <ChevronUp /> : <ChevronDown />}
+                  onClick={() => navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      membersExpanded: !membersExpanded,
+                    }),
+                  })}
                   disabled={filteredMembers.length === 0}
                 >
                   {getButtonText()}
                 </ButtonCell>
 
-                {isExpanded
+                {membersExpanded
                   ? filteredMembers.map((member) => (
                       <Cell
                         Component="label"
                         key={String(member.id)}
+                        subtitle={`${member.firstName} ${member.lastName || ""}`}
                         before={
                           <ChatMemberAvatar
                             userId={Number(member.id)}
@@ -127,11 +146,12 @@ const PayeeFormStep = withForm({
                             name="radio"
                             value={String(member.id)}
                             onBlur={field.handleBlur}
+                            checked={field.state.value === String(member.id)}
                             onChange={(e) => field.handleChange(e.target.value)}
                           />
                         }
                       >
-                        {member.firstName} {member.lastName}
+                        @{member.username || "Unkown"}
                       </Cell>
                     ))
                   : []}
