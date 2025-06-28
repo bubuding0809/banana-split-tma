@@ -5,8 +5,8 @@ import { Db, publicProcedure } from "../../trpc.js";
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
   firstName: z.string(),
-  lastName: z.string().optional(),
-  userName: z.string().optional(),
+  lastName: z.string().nullable(),
+  userName: z.string().nullable(),
 });
 
 export const outputSchema = z.object({
