@@ -7,7 +7,9 @@
       "Bash(npx husky init:*)",
       "Bash(ls:*)",
       "Bash(pnpm run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": []
   }
