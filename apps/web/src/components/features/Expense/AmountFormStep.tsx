@@ -245,6 +245,7 @@ const AmountFormStep = withForm({
                         inputMode="decimal"
                         value={field.state.value}
                         onBlur={field.handleBlur}
+                        autoFocus
                         onChange={(e) => {
                           const value = handleAmountChange(e.target.value);
                           if (value === undefined) return;
@@ -254,8 +255,10 @@ const AmountFormStep = withForm({
                         }}
                         placeholder="0"
                         className={cn(
-                          "max-w-full bg-transparent font-light focus:outline-none",
-                          field.state.meta.errors.length && field.state.meta.isTouched && "text-red-600"
+                          "max-w-full bg-transparent focus:outline-none",
+                          field.state.meta.errors.length &&
+                            field.state.meta.isTouched &&
+                            "text-red-600"
                         )}
                         style={{
                           fontSize: getFontSize(field.state.value),
