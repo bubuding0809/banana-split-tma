@@ -127,7 +127,7 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
               netBalance && netBalance < 0 ? "text-red-500" : "text-green-500"
             )}
           >
-            ${Math.abs(netBalance ?? 0)}
+            ${Math.abs(netBalance ?? 0).toFixed(2)}
           </Info>
         }
         onClick={() => handleCellClick()}

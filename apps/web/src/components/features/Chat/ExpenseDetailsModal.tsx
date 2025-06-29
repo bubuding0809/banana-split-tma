@@ -1,4 +1,5 @@
 import {
+  Badge,
   Caption,
   Cell,
   Info,
@@ -150,11 +151,11 @@ const ExpenseDetailsModal = ({
       case "unrelated":
         return "Not involved";
       case "borrower":
-        return `You owe $${borrowedAmount.toFixed(2)}`;
+        return `🚨 You owe $${borrowedAmount.toFixed(2)}`;
       case "payer":
         return lentAmount === 0
-          ? "All settled"
-          : `You're owed $${lentAmount.toFixed(2)}`;
+          ? "✅ All settled"
+          : `💸 You're owed $${lentAmount.toFixed(2)}`;
       default:
         return "";
     }
@@ -183,18 +184,19 @@ const ExpenseDetailsModal = ({
             backgroundColor: tSecondaryBgColor,
           }}
         >
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center gap-1">
             <div className="flex items-center gap-2">
-              <span role="img" aria-hidden="true">
-                💸
-              </span>
               <Text weight="2">Expense Details</Text>
             </div>
-            <Text
-              className={cn("mt-1 text-center text-sm", getSubtitleColor())}
+            <Badge
+              type="number"
+              mode="secondary"
+              className={getSubtitleColor()}
             >
-              {getSubtitle()}
-            </Text>
+              <Caption weight="2" className={getSubtitleColor()}>
+                {getSubtitle()}
+              </Caption>
+            </Badge>
           </div>
         </ModalHeader>
       }
