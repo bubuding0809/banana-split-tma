@@ -12,13 +12,11 @@ import { type inferRouterOutputs } from "@trpc/server";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { ModalHeader } from "@telegram-apps/telegram-ui/dist/components/Overlays/Modal/components/ModalHeader/ModalHeader";
-import {
-  themeParamsSectionBackgroundColor,
-  useSignal,
-} from "@telegram-apps/sdk-react";
+import ModalHeader from "@/components/ui/ModalHeader";
+import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
+import { useMemo } from "react";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -44,7 +42,7 @@ const ShareParticipant = ({
     chatId,
     userId,
   });
-  const tSectionBgColor = useSignal(themeParamsSectionBackgroundColor);
+  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
 
   const memberName = isCurrentUser
     ? "You"
@@ -98,23 +96,115 @@ const ExpenseDetailsModal = ({
   userId,
 }: ExpenseDetailsModalProps) => {
   //* hooks ========================================================================================
-  const tSectionBgColor = useSignal(themeParamsSectionBackgroundColor);
+  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const memberFullName = `${member?.user.first_name}${
     member?.user.last_name ? ` ${member.user.last_name}` : ""
   }`;
 
-  // Create custom header with status
-  const customHeader = <ModalHeader>💸 Expense Details</ModalHeader>;
+  // Determine the relation of the user to the expense (payer, borrower, unrelated)
+  const expenseRelation = useMemo(() => {
+    const payerIsYou = expense.payerId === userId;
+    const isUnrelated =
+      !payerIsYou &&
+      !expenseDetails?.shares.some((share) => share.userId === userId);
+
+    switch (true) {
+      case payerIsYou:
+        return "payer";
+      case isUnrelated:
+        return "unrelated";
+      default:
+        return "borrower";
+    }
+  }, [expenseDetails?.shares, expense.payerId, userId]);
+
+  // Amount borrowed for this expense
+  const borrowedAmount = useMemo(() => {
+    if (expenseRelation !== "borrower") return 0;
+    return (
+      expenseDetails?.shares.reduce((acc, share) => {
+        const isCreditor = share.userId === userId;
+        if (isCreditor) return acc + share.amount;
+        return acc;
+      }, 0) ?? 0
+    );
+  }, [userId, expenseDetails, expenseRelation]);
+
+  // Amount lent for this expense
+  const lentAmount = useMemo(() => {
+    if (expenseRelation !== "payer") return 0;
+    return (
+      expenseDetails?.shares.reduce((acc, share) => {
+        const isDebtor = share.userId !== userId;
+        if (isDebtor) return acc + share.amount;
+        return acc;
+      }, 0) ?? 0
+    );
+  }, [expenseRelation, expenseDetails?.shares, userId]);
+
+  //* Handlers =====================================================================================
+  const getSubtitle = () => {
+    switch (expenseRelation) {
+      case "unrelated":
+        return "Not involved";
+      case "borrower":
+        return `You owe $${borrowedAmount.toFixed(2)}`;
+      case "payer":
+        return lentAmount === 0
+          ? "All settled"
+          : `You're owed $${lentAmount.toFixed(2)}`;
+      default:
+        return "";
+    }
+  };
+
+  const getSubtitleColor = () => {
+    switch (expenseRelation) {
+      case "unrelated":
+        return "text-zinc-500";
+      case "borrower":
+        return "text-red-500";
+      case "payer":
+        return lentAmount === 0 ? "text-zinc-500" : "text-green-500";
+      default:
+        return "text-zinc-500";
+    }
+  };
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      header={customHeader}
-      className="pb-10"
+      header={
+        <ModalHeader
+          style={{
+            backgroundColor: tSecondaryBgColor,
+          }}
+        >
+          <div className="flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2">
+              <span role="img" aria-hidden="true">
+                💸
+              </span>
+              <Text weight="2">Expense Details</Text>
+            </div>
+            <Text
+              className={cn("mt-1 text-center text-sm", getSubtitleColor())}
+            >
+              {getSubtitle()}
+            </Text>
+          </div>
+        </ModalHeader>
+      }
     >
-      <div className="flex flex-col pb-4">
+      <div
+        className="flex flex-col pb-5"
+        style={{
+          backgroundColor: tSecondaryBgColor,
+        }}
+      >
         {/* Description */}
         <Section header="What was this for?" className="px-3">
           <Cell

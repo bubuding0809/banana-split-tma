@@ -1,4 +1,10 @@
-import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
+import {
+  initData,
+  mainButton,
+  secondaryButton,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import {
   Caption,
   Cell,
@@ -23,6 +29,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
+  const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const [modalOpen, setModalOpen] = useState(false);
 
   // * Queries ====================================================================================
@@ -37,7 +44,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       userId: payerId,
     });
 
-  // * State ======================================================================================
+  // * State =======================================================================================
   const userId = tUserData?.id ?? 0;
 
   const memberFullName = `${member?.user.first_name}${
@@ -84,6 +91,33 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       }, 0) ?? 0
     );
   }, [expenseRelation, expenseDetails?.shares, userId]);
+
+  // * Handlers ====================================================================================
+  const handleModalOpenChange = (open: boolean) => {
+    setModalOpen(open);
+    if (open) {
+      mainButton.setParams({
+        text: "Edit",
+        isVisible: true,
+        isEnabled: true,
+      });
+      secondaryButton.setParams({
+        text: "Delete",
+        isVisible: true,
+        isEnabled: true,
+        textColor: tDesctructiveTextColor,
+      });
+    } else {
+      mainButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+      });
+      secondaryButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+      });
+    }
+  };
 
   return (
     <>
@@ -164,7 +198,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       </Cell>
       <ExpenseDetailsModal
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={handleModalOpenChange}
         expense={expense}
         member={member}
         isMemberLoading={isMemberLoading}
