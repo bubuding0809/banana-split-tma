@@ -39,6 +39,155 @@ export const outputSchema = z.object({
   updatedAt: z.date(),
 });
 
+// Common validation functions
+const validateCustomSplitsExist = (
+  customSplits: { userId: bigint; amount: number }[] | undefined,
+  mode: string
+): { userId: bigint; amount: number }[] => {
+  if (!customSplits || customSplits.length === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Custom splits required for ${mode} mode`,
+    });
+  }
+  return customSplits;
+};
+
+const validateAllParticipantsCovered = (
+  customSplits: { userId: bigint; amount: number }[],
+  participantIds: bigint[]
+): void => {
+  const splitUserIds = new Set(customSplits.map((s) => s.userId.toString()));
+  const participantUserIds = new Set(participantIds.map((id) => id.toString()));
+
+  if (
+    splitUserIds.size !== participantUserIds.size ||
+    ![...splitUserIds].every((id) => participantUserIds.has(id))
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "All participants must have splits defined",
+    });
+  }
+};
+
+// Split mode handlers
+const calculateEqualSplits = (
+  amount: number,
+  participantIds: bigint[]
+): { userId: bigint; amount: number }[] => {
+  const splitAmount = amount / participantIds.length;
+  return participantIds.map((userId) => ({
+    userId,
+    amount: splitAmount,
+  }));
+};
+
+const calculateExactSplits = (
+  amount: number,
+  participantIds: bigint[],
+  customSplits: { userId: bigint; amount: number }[]
+): { userId: bigint; amount: number }[] => {
+  validateAllParticipantsCovered(customSplits, participantIds);
+
+  // Validate individual amounts are positive and don't exceed total
+  for (const split of customSplits) {
+    if (split.amount <= 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "All split amounts must be positive",
+      });
+    }
+    if (split.amount > amount) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Individual split amount (${split.amount}) cannot exceed total expense amount (${amount})`,
+      });
+    }
+  }
+
+  // Validate split totals equal the expense amount
+  const totalSplitAmount = customSplits.reduce(
+    (sum, split) => sum + split.amount,
+    0
+  );
+  const tolerance = 0.01;
+
+  if (Math.abs(totalSplitAmount - amount) > tolerance) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Split amounts (${totalSplitAmount.toFixed(2)}) must equal total expense amount (${amount.toFixed(2)})`,
+    });
+  }
+
+  return customSplits;
+};
+
+const calculatePercentageSplits = (
+  amount: number,
+  participantIds: bigint[],
+  customSplits: { userId: bigint; amount: number }[]
+): { userId: bigint; amount: number }[] => {
+  validateAllParticipantsCovered(customSplits, participantIds);
+
+  // Validate individual percentages are valid (0-100%)
+  for (const split of customSplits) {
+    if (split.amount <= 0 || split.amount > 100) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "All percentages must be between 0 and 100",
+      });
+    }
+  }
+
+  // Validate percentages sum to 100%
+  const totalPercentage = customSplits.reduce(
+    (sum, split) => sum + split.amount,
+    0
+  );
+  const tolerance = 0.01;
+
+  if (Math.abs(totalPercentage - 100) > tolerance) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Percentages (${totalPercentage.toFixed(2)}%) must sum to 100%`,
+    });
+  }
+
+  // Convert percentages to dollar amounts
+  return customSplits.map((split) => ({
+    userId: split.userId,
+    amount: (split.amount / 100) * amount,
+  }));
+};
+
+const calculateSharesSplits = (
+  amount: number,
+  participantIds: bigint[],
+  customSplits: { userId: bigint; amount: number }[]
+): { userId: bigint; amount: number }[] => {
+  validateAllParticipantsCovered(customSplits, participantIds);
+
+  // Calculate total shares
+  const totalShares = customSplits.reduce(
+    (sum, split) => sum + split.amount,
+    0
+  );
+
+  if (totalShares <= 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Total shares must be greater than zero",
+    });
+  }
+
+  // Convert shares to proportional dollar amounts
+  return customSplits.map((split) => ({
+    userId: split.userId,
+    amount: (split.amount / totalShares) * amount,
+  }));
+};
+
 const calculateSplits = (
   amount: number,
   splitMode: SplitMode,
@@ -46,57 +195,25 @@ const calculateSplits = (
   customSplits?: { userId: bigint; amount: number }[]
 ): { userId: bigint; amount: number }[] => {
   switch (splitMode) {
-    case SplitMode.EQUAL: {
-      const splitAmount = amount / participantIds.length;
-      return participantIds.map((userId) => ({
-        userId,
-        amount: splitAmount,
-      }));
+    case SplitMode.EQUAL:
+      return calculateEqualSplits(amount, participantIds);
+
+    case SplitMode.EXACT: {
+      const validatedSplits = validateCustomSplitsExist(customSplits, "EXACT");
+      return calculateExactSplits(amount, participantIds, validatedSplits);
     }
 
-    case SplitMode.EXACT:
-    case SplitMode.PERCENTAGE:
+    case SplitMode.PERCENTAGE: {
+      const validatedSplits = validateCustomSplitsExist(
+        customSplits,
+        "PERCENTAGE"
+      );
+      return calculatePercentageSplits(amount, participantIds, validatedSplits);
+    }
+
     case SplitMode.SHARES: {
-      if (!customSplits || customSplits.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Custom splits required for ${splitMode} mode`,
-        });
-      }
-
-      // Validate that all participants have splits defined
-      const splitUserIds = new Set(
-        customSplits.map((s) => s.userId.toString())
-      );
-      const participantUserIds = new Set(
-        participantIds.map((id) => id.toString())
-      );
-
-      if (
-        splitUserIds.size !== participantUserIds.size ||
-        ![...splitUserIds].every((id) => participantUserIds.has(id))
-      ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "All participants must have splits defined",
-        });
-      }
-
-      // Validate split totals
-      const totalSplitAmount = customSplits.reduce(
-        (sum, split) => sum + split.amount,
-        0
-      );
-      const tolerance = 0.01; // Allow for small rounding differences
-
-      if (Math.abs(totalSplitAmount - amount) > tolerance) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Split amounts (${totalSplitAmount}) must equal total amount (${amount})`,
-        });
-      }
-
-      return customSplits;
+      const validatedSplits = validateCustomSplitsExist(customSplits, "SHARES");
+      return calculateSharesSplits(amount, participantIds, validatedSplits);
     }
 
     default:
