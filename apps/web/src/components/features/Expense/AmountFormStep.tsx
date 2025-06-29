@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { hapticFeedback, mainButton } from "@telegram-apps/sdk-react";
-import { Input, Subheadline } from "@telegram-apps/telegram-ui";
+import { Subheadline, Textarea } from "@telegram-apps/telegram-ui";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
@@ -355,7 +355,9 @@ const AmountFormStep = withForm({
                   {field.state.value.length} / {descriptionMaxLength} characters
                 </span>
               </label>
-              <Input
+              <Textarea
+                className="text-wrap"
+                //@ts-expect-error There should be a ref for Textarea
                 ref={descriptionFieldRef}
                 status={
                   field.state.meta.isTouched && field.state.meta.errors.length

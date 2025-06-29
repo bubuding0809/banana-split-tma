@@ -97,9 +97,8 @@ const ExpenseDetailsModal = ({
   expenseDetails,
   userId,
 }: ExpenseDetailsModalProps) => {
+  //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParamsSectionBackgroundColor);
-
-  const { payerId, chatId } = expense;
 
   const memberFullName = `${member?.user.first_name}${
     member?.user.last_name ? ` ${member.user.last_name}` : ""
@@ -130,7 +129,7 @@ const ExpenseDetailsModal = ({
         {/* Overview */}
         <Section header="Who paid for this?" className="px-3">
           <Cell
-            before={<ChatMemberAvatar userId={payerId} size={48} />}
+            before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
             subtitle={
               <Skeleton visible={isMemberLoading}>
                 <Caption>
@@ -159,7 +158,7 @@ const ExpenseDetailsModal = ({
             {expenseDetails.shares.map((share) => (
               <ShareParticipant
                 key={share.userId}
-                chatId={chatId}
+                chatId={expense.chatId}
                 userId={share.userId}
                 amount={share.amount}
                 isCurrentUser={share.userId === Number(userId)}
