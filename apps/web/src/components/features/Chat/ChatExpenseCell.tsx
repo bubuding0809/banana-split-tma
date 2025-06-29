@@ -13,6 +13,7 @@ import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
+import { formatExpenseDateShort } from "@utils/date";
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
@@ -109,10 +110,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
                   <Caption className="w-max" weight="2">
-                    {new Date(expense.createdAt).toLocaleDateString("default", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatExpenseDateShort(new Date(expense.createdAt))}
                   </Caption>
                   <Skeleton visible={isExpenseDetailsLoading}>
                     {(() => {
@@ -172,9 +170,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         isMemberLoading={isMemberLoading}
         expenseDetails={expenseDetails}
         isExpenseDetailsLoading={isExpenseDetailsLoading}
-        expenseRelation={expenseRelation}
-        borrowedAmount={borrowedAmount}
-        lentAmount={lentAmount}
         userId={userId}
       />
     </>

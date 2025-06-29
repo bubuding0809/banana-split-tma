@@ -2,6 +2,11 @@ import { Placeholder, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { useMemo } from "react";
 
 import { trpc } from "@utils/trpc";
+import {
+  getExpenseMonthYear,
+  compareDatesDesc,
+  formatMonthYear,
+} from "@utils/date";
 
 import ChatExpenseCell from "./ChatExpenseCell";
 
@@ -25,11 +30,10 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
       expenses?.reduce(
         (acc, curr) => {
           const expenseDate = new Date(curr.date);
-          const year = expenseDate.getFullYear();
-          const month = expenseDate.getMonth() + 1;
+          const { month, year } = getExpenseMonthYear(expenseDate);
 
-          // Format: YYYY-MM
-          const key = `${year}-${month.toString().padStart(2, "0")}`;
+          // Format: YYYY-MM (month is 0-indexed from getMonth)
+          const key = `${year}-${(month + 1).toString().padStart(2, "0")}`;
 
           if (!acc[key]) {
             acc[key] = [];
@@ -47,13 +51,13 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
     // Sort expenses by date (descending)
     Object.entries(groupedExpenses).forEach(([key, value]) => {
       groupedExpenses[key] = value.sort((a, b) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return compareDatesDesc(new Date(a.date), new Date(b.date));
       });
     });
 
     // Sort the keys (year-month) in descending order
     const sortedKeys = Object.keys(groupedExpenses).sort((a, b) => {
-      return new Date(b).getTime() - new Date(a).getTime();
+      return compareDatesDesc(new Date(a), new Date(b));
     });
 
     return {
@@ -83,10 +87,7 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
 
       {sortedKeys.map((key) => {
         const expenses = groupedExpenses[key];
-        const dateDisplay = new Date(key).toLocaleDateString("default", {
-          month: "long",
-          year: "numeric",
-        });
+        const dateDisplay = formatMonthYear(new Date(key));
 
         return (
           <Section

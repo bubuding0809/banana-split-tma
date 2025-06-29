@@ -1,6 +1,7 @@
 import {
   Caption,
   Cell,
+  Info,
   Modal,
   Section,
   Skeleton,
@@ -16,6 +17,8 @@ import {
   themeParamsSectionBackgroundColor,
   useSignal,
 } from "@telegram-apps/sdk-react";
+import { formatExpenseDate } from "@utils/date";
+import { cn } from "@/utils/cn";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -51,21 +54,20 @@ const ShareParticipant = ({
 
   return (
     <Cell
-      before={<ChatMemberAvatar userId={userId} size={40} />}
-      subtitle={isCurrentUser ? "You" : "Participant"}
+      before={<ChatMemberAvatar userId={userId} size={28} />}
       after={
-        <div className="text-right">
-          <Text weight="2" className={isCurrentUser ? "text-blue-600" : ""}>
+        <Info type="text">
+          <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
             ${amount.toFixed(2)}
           </Text>
-        </div>
+        </Info>
       }
       style={{
         backgroundColor: tSectionBgColor,
       }}
     >
       <Skeleton visible={isLoading && !isCurrentUser}>
-        <Text weight={isCurrentUser ? "2" : "1"}>{memberName}</Text>
+        <Text weight={isCurrentUser ? "1" : "3"}>{memberName}</Text>
       </Skeleton>
     </Cell>
   );
@@ -83,9 +85,6 @@ interface ExpenseDetailsModalProps {
     | inferRouterOutputs<AppRouter>["expense"]["getExpenseDetails"]
     | undefined;
   isExpenseDetailsLoading: boolean;
-  expenseRelation: "payer" | "borrower" | "unrelated";
-  borrowedAmount: number;
-  lentAmount: number;
   userId: number;
 }
 
@@ -96,9 +95,6 @@ const ExpenseDetailsModal = ({
   member,
   isMemberLoading,
   expenseDetails,
-  expenseRelation,
-  borrowedAmount,
-  lentAmount,
   userId,
 }: ExpenseDetailsModalProps) => {
   const tSectionBgColor = useSignal(themeParamsSectionBackgroundColor);
@@ -110,59 +106,7 @@ const ExpenseDetailsModal = ({
   }`;
 
   // Create custom header with status
-  const customHeader = (
-    <ModalHeader
-      after={
-        <div className="text-right">
-          {(() => {
-            switch (expenseRelation) {
-              case "payer":
-                return lentAmount === 0 ? (
-                  <Text weight="2" className="text-sm text-green-600">
-                    ✅ Settled
-                  </Text>
-                ) : (
-                  <div className="text-right">
-                    <Caption className="block text-green-600">
-                      You&apos;re owed
-                    </Caption>
-                    <Text weight="2" className="text-sm text-green-600">
-                      +${lentAmount.toFixed(2)}
-                    </Text>
-                  </div>
-                );
-              case "borrower":
-                return borrowedAmount === 0 ? (
-                  <Text weight="2" className="text-sm text-green-600">
-                    ✅ Settled
-                  </Text>
-                ) : (
-                  <div className="text-right">
-                    <Caption className="block text-red-600">You owe</Caption>
-                    <Text weight="2" className="text-sm text-red-600">
-                      -${borrowedAmount.toFixed(2)}
-                    </Text>
-                  </div>
-                );
-              case "unrelated":
-                return (
-                  <div className="text-right">
-                    <Caption className="block text-gray-400">No share</Caption>
-                    <Text weight="2" className="text-sm text-gray-400">
-                      ~
-                    </Text>
-                  </div>
-                );
-              default:
-                return null;
-            }
-          })()}
-        </div>
-      }
-    >
-      💸 Expense Details
-    </ModalHeader>
-  );
+  const customHeader = <ModalHeader>💸 Expense Details</ModalHeader>;
 
   return (
     <Modal
@@ -179,32 +123,25 @@ const ExpenseDetailsModal = ({
               backgroundColor: tSectionBgColor,
             }}
           >
-            <Text>{expense.description}</Text>
+            <Text className="text-wrap">{expense.description}</Text>
           </Cell>
         </Section>
 
-        {/* Payee */}
+        {/* Overview */}
         <Section header="Who paid for this?" className="px-3">
           <Cell
             before={<ChatMemberAvatar userId={payerId} size={48} />}
             subtitle={
               <Skeleton visible={isMemberLoading}>
                 <Caption>
-                  {new Date(expense.createdAt).toLocaleDateString("default", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatExpenseDate(new Date(expense.createdAt))}
                 </Caption>
               </Skeleton>
             }
             after={
-              <div className="text-right">
-                <Text weight="2" className="pr-1 text-xl">
-                  ${expense.amount.toFixed(2)}
-                </Text>
-                <Caption className="text-gray-400">Total</Caption>
-              </div>
+              <Info subtitle="Total" type="text">
+                <Text weight="2">${expense.amount.toFixed(2)}</Text>
+              </Info>
             }
             style={{
               backgroundColor: tSectionBgColor,
