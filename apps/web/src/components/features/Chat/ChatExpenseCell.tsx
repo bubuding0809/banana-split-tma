@@ -4,6 +4,7 @@ import {
   secondaryButton,
   themeParams,
   useSignal,
+  popup,
 } from "@telegram-apps/sdk-react";
 import {
   Caption,
@@ -13,7 +14,7 @@ import {
   Text,
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
@@ -31,18 +32,56 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const [modalOpen, setModalOpen] = useState(false);
+  const offMainButtonClickRef = useRef<VoidFunction | undefined>(undefined);
+  const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
+    undefined
+  );
+  const trpcUtils = trpc.useUtils();
 
-  // * Queries ====================================================================================
+  // Cleanup main and secondary buttons when the component unmounts
+  useEffect(() => {
+    return () => {
+      mainButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+      });
+      secondaryButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+      });
+
+      offMainButtonClickRef.current?.();
+      offSecondaryButtonClickRef.current?.();
+    };
+  }, []);
+
+  // * Queries =====================================================================================
   const { data: expenseDetails, isLoading: isExpenseDetailsLoading } =
     trpc.expense.getExpenseDetails.useQuery({
       expenseId: expense.id,
     });
 
+  //* Queries ======================================================================================
   const { data: member, isLoading: isMemberLoading } =
     trpc.telegram.getChatMember.useQuery({
       chatId,
       userId: payerId,
     });
+
+  //* Mutations ====================================================================================
+  const deleteExpenseMutation = trpc.expense.deleteExpense.useMutation({
+    onSuccess: () => {
+      // Invalidate the expense details query to refresh the data
+      trpcUtils.expense.getExpenseDetails.invalidate({
+        expenseId: expense.id,
+      });
+
+      // Optionally, you can also invalidate the chat expenses list if needed
+      trpcUtils.expense.getExpenseByChat.invalidate({
+        chatId,
+      });
+    },
+  });
 
   // * State =======================================================================================
   const userId = tUserData?.id ?? 0;
@@ -92,9 +131,41 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     );
   }, [expenseRelation, expenseDetails?.shares, userId]);
 
+  const onDeleteExpense = async () => {
+    const action = await popup.open.ifAvailable({
+      title: "Delete Expense?",
+      message: `You can't undo this action.`,
+      buttons: [
+        {
+          type: "destructive",
+          text: "Delete",
+          id: "delete-expense",
+        },
+        {
+          type: "cancel",
+        },
+      ],
+    });
+
+    if (action === "delete-expense") {
+      try {
+        await deleteExpenseMutation.mutateAsync({
+          expenseId: expense.id,
+        });
+        handleModalOpenChange(false);
+      } catch (error) {
+        console.error("Failed to delete expense:", error);
+        alert("Failed to delete expense. Please try again later.");
+      }
+    }
+  };
+
+  const onEditExpense = async () => {
+    alert("🚧 Chill ah, still working on it");
+  };
+
   // * Handlers ====================================================================================
   const handleModalOpenChange = (open: boolean) => {
-    setModalOpen(open);
     if (open) {
       mainButton.setParams({
         text: "Edit",
@@ -107,6 +178,10 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         isEnabled: true,
         textColor: tDesctructiveTextColor,
       });
+
+      offMainButtonClickRef.current = mainButton.onClick(onEditExpense);
+      offSecondaryButtonClickRef.current =
+        secondaryButton.onClick(onDeleteExpense);
     } else {
       mainButton.setParams({
         isVisible: false,
@@ -116,7 +191,12 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         isVisible: false,
         isEnabled: false,
       });
+
+      offMainButtonClickRef.current?.();
+      offSecondaryButtonClickRef.current?.();
     }
+
+    setModalOpen(open);
   };
 
   return (
