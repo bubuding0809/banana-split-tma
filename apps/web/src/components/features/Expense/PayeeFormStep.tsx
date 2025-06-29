@@ -1,11 +1,6 @@
 import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-import {
-  ButtonCell,
-  Cell,
-  Radio,
-  Section,
-} from "@telegram-apps/telegram-ui";
+import { ButtonCell, Cell, Radio, Section } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import {
   hapticFeedback,
@@ -29,7 +24,7 @@ const PayeeFormStep = withForm({
   render: function Render({ form, isLastStep, step }) {
     // * Hooks =====================================================================================
     const navigate = routeApi.useNavigate();
-    const {membersExpanded} = routeApi.useSearch();
+    const { membersExpanded } = routeApi.useSearch();
     const tStartParams = useStartParams();
     const tUserData = useSignal(initData.user);
 
@@ -38,9 +33,10 @@ const PayeeFormStep = withForm({
     const chatId = tStartParams?.chat_id ?? 0;
 
     //* Queries ====================================================================================
-    const { data: chatMembers } = trpc.chat.getMembers.useQuery({
-      chatId,
-    });
+    const { data: chatMembers, isLoading: isChatMembersLoading } =
+      trpc.chat.getMembers.useQuery({
+        chatId,
+      });
 
     const filteredMembers = useMemo(() => {
       return (
@@ -50,6 +46,9 @@ const PayeeFormStep = withForm({
 
     //* Handlers ===================================================================================
     const getButtonText = () => {
+      if (isChatMembersLoading) {
+        return "Loading members...";
+      }
       if (filteredMembers.length === 0) {
         return "You are all alone";
       }
@@ -118,12 +117,14 @@ const PayeeFormStep = withForm({
                 </Cell>
                 <ButtonCell
                   before={membersExpanded ? <ChevronUp /> : <ChevronDown />}
-                  onClick={() => navigate({
-                    search: (prev) => ({
-                      ...prev,
-                      membersExpanded: !membersExpanded,
-                    }),
-                  })}
+                  onClick={() =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        membersExpanded: !membersExpanded,
+                      }),
+                    })
+                  }
                   disabled={filteredMembers.length === 0}
                 >
                   {getButtonText()}

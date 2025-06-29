@@ -149,7 +149,7 @@ const ExpenseDetailsModal = ({
   const getSubtitle = () => {
     switch (expenseRelation) {
       case "unrelated":
-        return "Not involved";
+        return "🤷‍♂️ Not involved";
       case "borrower":
         return `🚨 You owe $${borrowedAmount.toFixed(2)}`;
       case "payer":
