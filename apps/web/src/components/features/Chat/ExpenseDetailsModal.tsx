@@ -58,7 +58,6 @@ const ShareParticipant = ({
           <Text weight="2" className={isCurrentUser ? "text-blue-600" : ""}>
             ${amount.toFixed(2)}
           </Text>
-          <Caption className="pl-1 text-gray-400">Share</Caption>
         </div>
       }
       style={{
@@ -219,7 +218,7 @@ const ExpenseDetailsModal = ({
 
         {/* Split Details Section */}
         {expenseDetails?.shares && expenseDetails.shares.length > 0 && (
-          <Section header="Shares" className="px-3">
+          <Section header="Split amounts" className="px-3">
             {expenseDetails.shares.map((share) => (
               <ShareParticipant
                 key={share.userId}
