@@ -2,35 +2,72 @@ import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { SplitModeType } from "./AddExpenseForm.type";
 import {
-  ButtonCell,
   Input,
-  SegmentedControl,
-  Subheadline,
+  Caption,
+  Section,
+  Cell,
+  Checkbox,
+  Badge,
+  Modal,
+  Chip,
+  Text,
 } from "@telegram-apps/telegram-ui";
-import { SegmentedControlItem } from "@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem";
 import { trpc } from "@/utils/trpc";
-import { hapticFeedback, mainButton } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  mainButton,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import {
-  ChevronDown,
-  ChevronUp,
   Check,
   DollarSign,
   Percent,
+  Equal,
+  Pizza,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
+import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
+import ModalHeader from "@/components/ui/ModalHeader";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
-const splitModeOptions: { value: SplitModeType; label: string }[] = [
-  { value: "EQUAL", label: "Equal" },
-  { value: "SHARES", label: "Shares" },
-  // { value: "PERCENTAGE", label: "Percent" },
-  // { value: "EXACT", label: "Exact" },
-];
+const SPLIT_MODE_OPTIONS: {
+  value: SplitModeType;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "EQUAL",
+    label: "Equal",
+    description: "Amount split equally",
+    icon: <Equal size={20} />,
+  },
+  {
+    value: "SHARES",
+    label: "Shares",
+    description: "Amount split by shares",
+    icon: <Pizza size={20} />,
+  },
+  // {
+  //   value: "PERCENTAGE",
+  //   label: "Percent",
+  //   description: "Split based on percentage assigned",
+  //   icon: <Percent size={20}/>,
+  // },
+  {
+    value: "EXACT",
+    label: "Exact",
+    description: "Custom amounts",
+    icon: <DollarSign size={20} />,
+  },
+] as const;
 
 const SplitModeFormStep = withForm({
   ...formOpts,
@@ -41,10 +78,9 @@ const SplitModeFormStep = withForm({
   render: function Render({ form, isLastStep, step }) {
     const navigate = routeApi.useNavigate();
     const tStartParams = useStartParams();
+    const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
     const chatId = tStartParams?.chat_id ?? 0;
-
-    const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(true);
 
     // Get all chat members (including payee)
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
@@ -114,226 +150,263 @@ const SplitModeFormStep = withForm({
       form.setFieldValue("customSplits", []);
     };
 
-    const getParticipantsButtonText = () => {
-      const count = form.state.values.participants.length;
-      if (count === 0) return "Select participants";
-      if (isParticipantsExpanded) return `Hide ${count} people`;
-      return `${count} people selected`;
-    };
-
     return (
       <div className="flex flex-col gap-6">
         {/* Split Mode Selection */}
         <form.AppField name="splitMode">
           {(field) => (
-            <div className="rounded-2xl bg-[#1a1a1a] p-4">
-              <Subheadline className="mb-3 text-white">
-                How should this be split?
-              </Subheadline>
-              <SegmentedControl>
-                {splitModeOptions.map((option) => (
-                  <SegmentedControlItem
-                    key={option.value}
-                    selected={field.state.value === option.value}
-                    onClick={() => handleSplitModeChange(option.value)}
-                  >
-                    {option.label}
-                  </SegmentedControlItem>
-                ))}
-              </SegmentedControl>
-              <div className="mt-3">
-                <FieldInfo />
-              </div>
-            </div>
+            <section className="flex flex-col">
+              <Section.Header large>Split by?</Section.Header>
+              <fieldset className="grid grid-cols-3 gap-2.5" role="radiogroup">
+                {SPLIT_MODE_OPTIONS.map(
+                  ({ description, icon, label, value }, index) => {
+                    const isSelected = field.state.value === value;
+                    const isFirstOption = index === 0;
+                    const shouldBeTabbable =
+                      isSelected || (!field.state.value && isFirstOption);
+
+                    return (
+                      <div key={value} className="relative">
+                        <input
+                          type="radio"
+                          id={`split-mode-${value}`}
+                          name="splitMode"
+                          value={value}
+                          checked={isSelected}
+                          onChange={() => handleSplitModeChange(value)}
+                          className="sr-only"
+                        />
+                        <CardCell
+                          readOnly
+                          subtitle={<Caption>{description}</Caption>}
+                          subhead={icon}
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-describedby={`split-mode-${value}-desc`}
+                          tabIndex={shouldBeTabbable ? 0 : -1}
+                          className={cn(
+                            "cursor-pointer rounded-lg transition-all",
+                            "focus:outline-2 focus:outline-offset-2 focus:outline-blue-500",
+                            isSelected &&
+                              "outline-2 outline-offset-2 outline-blue-500/30"
+                          )}
+                          onClick={() => handleSplitModeChange(value)}
+                        >
+                          {label}
+                        </CardCell>
+                        <div
+                          id={`split-mode-${value}-desc`}
+                          className="sr-only"
+                        >
+                          {description}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </fieldset>
+            </section>
           )}
         </form.AppField>
 
         {/* Participant Selection */}
         <form.AppField name="participants">
           {(field) => (
-            <div className="rounded-2xl bg-[#1a1a1a] p-4">
-              <Subheadline className="mb-3 text-white">
-                Who&apos;s splitting this?
-              </Subheadline>
-              <ButtonCell
-                before={
-                  isParticipantsExpanded ? <ChevronUp /> : <ChevronDown />
-                }
-                onClick={() =>
-                  setIsParticipantsExpanded(!isParticipantsExpanded)
-                }
-                disabled={allMembers.length === 0}
-                className="rounded-xl"
+            <section>
+              <Section
+                header={<Section.Header large>Who is involved?</Section.Header>}
+                className=""
               >
-                {getParticipantsButtonText()}
-              </ButtonCell>
+                {allMembers.map((member) => {
+                  const memberId = Number(member.id).toString();
+                  const isPayee = memberId === form.state.values.payee;
 
-              {isParticipantsExpanded && (
-                <div className="mt-3 space-y-2">
-                  {allMembers.map((member) => {
-                    const memberId = Number(member.id).toString();
-                    const isSelected = field.state.value.includes(memberId);
-                    const isPayee = memberId === form.state.values.payee;
-
-                    return (
-                      <div
-                        key={memberId}
-                        className={cn(
-                          "flex cursor-pointer items-center justify-between rounded-xl p-3 transition-colors",
-                          isSelected
-                            ? "bg-blue-500/20 ring-1 ring-blue-500/30"
-                            : "bg-[#2a2a2a] hover:bg-[#333]",
-                          isPayee && "ring-1 ring-yellow-500/50"
-                        )}
-                        onClick={() => {
-                          field.handleChange((prev) => {
-                            const currentParticipants = prev;
-                            console.log(currentParticipants);
-                            const isSelected =
-                              currentParticipants.includes(memberId);
-                            console.log(
-                              `Toggling participant ${memberId}, currently selected: ${isSelected}`
-                            );
-
-                            if (isSelected) {
-                              // Remove participant
-                              return currentParticipants.filter(
-                                (p) => p !== memberId
+                  return (
+                    <Cell
+                      Component="label"
+                      key={memberId}
+                      subtitle={`${member?.firstName} ${member?.lastName || ""}`}
+                      before={
+                        <ChatMemberAvatar userId={Number(memberId)} size={48} />
+                      }
+                      after={
+                        <Checkbox
+                          name="checkbox"
+                          value={memberId}
+                          onBlur={field.handleBlur}
+                          checked={field.state.value.includes(memberId)}
+                          onChange={(e) =>
+                            field.handleChange((prev) => {
+                              const currentParticipants = prev;
+                              const isSelected = currentParticipants.includes(
+                                e.target.value
                               );
-                            } else {
-                              // Add participant
-                              return [...currentParticipants, memberId];
-                            }
-                          });
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <ChatMemberAvatar
-                            userId={Number(member.id)}
-                            size={40}
-                          />
-                          <div>
-                            <div className="font-medium text-white">
-                              {member.firstName} {member.lastName}
-                              {isPayee && (
-                                <span className="ml-2 text-sm text-yellow-400">
-                                  👤 Paid
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className={cn(
-                            "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
-                            isSelected
-                              ? "border-blue-500 bg-blue-500"
-                              : "border-gray-400"
-                          )}
-                        >
-                          {isSelected && (
-                            <Check className="h-4 w-4 text-white" />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
 
+                              if (isSelected) {
+                                return currentParticipants.filter(
+                                  (p) => p !== memberId
+                                );
+                              } else {
+                                return [...currentParticipants, memberId];
+                              }
+                            })
+                          }
+                        />
+                      }
+                      titleBadge={
+                        isPayee ? <Badge type="number">Paid</Badge> : <></>
+                      }
+                    >
+                      @{member?.username || "Unknown"}{" "}
+                    </Cell>
+                  );
+                })}
+              </Section>
               <div className="mt-3">
                 <FieldInfo />
               </div>
-            </div>
+            </section>
           )}
         </form.AppField>
 
         {/* Split Configuration */}
-        <form.Subscribe selector={(state) => state.values.participants.length}>
-          {(participantsCount) =>
-            participantsCount > 0 && (
-              <form.AppField name="customSplits">
-                {(field) => (
-                  <div className="rounded-2xl bg-[#1a1a1a] p-4">
-                    <Subheadline className="mb-4 text-white">
-                      Split breakdown
-                    </Subheadline>
-
-                    <form.Subscribe
-                      selector={(state) => ({
-                        splitMode: state.values.splitMode,
-                        participants: state.values.participants,
-                        amount: state.values.amount,
-                        payee: state.values.payee,
-                      })}
-                    >
-                      {(state) =>
-                        state.splitMode === "EQUAL" && (
-                          <SplitConfigEqual
-                            participants={state.participants}
-                            totalAmount={Number(state.amount) || 0}
-                            chatMembers={chatMembers || []}
-                            payeeId={state.payee}
-                          />
-                        )
+        <footer
+          className="fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between py-3 pe-3 ps-5"
+          style={{
+            backgroundColor: tSecondaryBgColor,
+          }}
+        >
+          <form.Subscribe selector={(state) => state.values.splitMode}>
+            {(splitMode) => (
+              <Text weight="2">
+                {splitMode === "EQUAL" && "Split equally"}
+                {splitMode === "PERCENTAGE" && "Split by percentage"}
+                {splitMode === "EXACT" && "Custom amounts"}
+                {splitMode === "SHARES" && "Split by shares"}
+              </Text>
+            )}
+          </form.Subscribe>
+          <form.Subscribe
+            selector={(state) => state.values.participants.length}
+          >
+            {(participantsCount) =>
+              participantsCount > 0 && (
+                <form.AppField name="customSplits">
+                  {(field) => (
+                    <Modal
+                      trigger={
+                        <Chip after={<ChevronUp />}>
+                          {field.state.value.length > 0
+                            ? `${field.state.value.length} custom splits`
+                            : "Configure"}
+                        </Chip>
                       }
-                    </form.Subscribe>
-
-                    <form.Subscribe
-                      selector={(state) => ({
-                        splitMode: state.values.splitMode,
-                        participants: state.values.participants,
-                        amount: state.values.amount,
-                        payee: state.values.payee,
-                      })}
+                      header={<ModalHeader>Split configuration</ModalHeader>}
                     >
-                      {(state) =>
-                        state.splitMode === "PERCENTAGE" && (
-                          <SplitConfigPercentage
-                            participants={state.participants}
-                            totalAmount={Number(state.amount) || 0}
-                            chatMembers={chatMembers || []}
-                            customSplits={field.state.value}
-                            onSplitsChange={(splits) =>
-                              field.handleChange(splits)
-                            }
-                            payeeId={state.payee}
-                          />
-                        )
-                      }
-                    </form.Subscribe>
+                      <section className="px-4 pb-16 pt-1">
+                        <form.Subscribe
+                          selector={(state) => ({
+                            splitMode: state.values.splitMode,
+                            participants: state.values.participants,
+                            amount: state.values.amount,
+                            payee: state.values.payee,
+                          })}
+                        >
+                          {(state) =>
+                            state.splitMode === "EQUAL" && (
+                              <SplitConfigEqual
+                                participants={state.participants}
+                                totalAmount={Number(state.amount) || 0}
+                                chatMembers={chatMembers || []}
+                                payeeId={state.payee}
+                              />
+                            )
+                          }
+                        </form.Subscribe>
 
-                    {form.state.values.splitMode === "EXACT" && (
-                      <SplitConfigExact
-                        participants={form.state.values.participants}
-                        totalAmount={Number(form.state.values.amount) || 0}
-                        chatMembers={chatMembers || []}
-                        customSplits={field.state.value}
-                        onSplitsChange={(splits) => field.handleChange(splits)}
-                        payeeId={form.state.values.payee}
-                      />
-                    )}
+                        <form.Subscribe
+                          selector={(state) => ({
+                            splitMode: state.values.splitMode,
+                            participants: state.values.participants,
+                            amount: state.values.amount,
+                            payee: state.values.payee,
+                          })}
+                        >
+                          {(state) =>
+                            state.splitMode === "PERCENTAGE" && (
+                              <SplitConfigPercentage
+                                participants={state.participants}
+                                totalAmount={Number(state.amount) || 0}
+                                chatMembers={chatMembers || []}
+                                customSplits={field.state.value}
+                                onSplitsChange={(splits) =>
+                                  field.handleChange(splits)
+                                }
+                                payeeId={state.payee}
+                              />
+                            )
+                          }
+                        </form.Subscribe>
 
-                    {form.state.values.splitMode === "SHARES" && (
-                      <SplitConfigShares
-                        participants={form.state.values.participants}
-                        totalAmount={Number(form.state.values.amount) || 0}
-                        chatMembers={chatMembers || []}
-                        customSplits={field.state.value}
-                        onSplitsChange={(splits) => field.handleChange(splits)}
-                        payeeId={form.state.values.payee}
-                      />
-                    )}
+                        <form.Subscribe
+                          selector={(state) => ({
+                            splitMode: state.values.splitMode,
+                            participants: state.values.participants,
+                            amount: state.values.amount,
+                            payee: state.values.payee,
+                          })}
+                        >
+                          {(state) =>
+                            state.splitMode === "EXACT" && (
+                              <SplitConfigExact
+                                participants={state.participants}
+                                totalAmount={Number(state.amount) || 0}
+                                chatMembers={chatMembers || []}
+                                customSplits={field.state.value}
+                                onSplitsChange={(splits) =>
+                                  field.handleChange(splits)
+                                }
+                                payeeId={state.payee}
+                              />
+                            )
+                          }
+                        </form.Subscribe>
 
-                    <div className="mt-4">
-                      <FieldInfo />
-                    </div>
-                  </div>
-                )}
-              </form.AppField>
-            )
-          }
-        </form.Subscribe>
+                        <form.Subscribe
+                          selector={(state) => ({
+                            splitMode: state.values.splitMode,
+                            participants: state.values.participants,
+                            amount: state.values.amount,
+                            payee: state.values.payee,
+                          })}
+                        >
+                          {(state) =>
+                            state.splitMode === "SHARES" && (
+                              <SplitConfigShares
+                                participants={state.participants}
+                                totalAmount={Number(state.amount) || 0}
+                                chatMembers={chatMembers || []}
+                                customSplits={field.state.value}
+                                onSplitsChange={(splits) =>
+                                  field.handleChange(splits)
+                                }
+                                payeeId={state.payee}
+                              />
+                            )
+                          }
+                        </form.Subscribe>
+                      </section>
+
+                      <div className="mt-4">
+                        <FieldInfo />
+                      </div>
+                    </Modal>
+                  )}
+                </form.AppField>
+              )
+            }
+          </form.Subscribe>
+        </footer>
       </div>
     );
   },
@@ -692,15 +765,15 @@ const SplitConfigExact = ({
                 <Input
                   type="number"
                   placeholder="0.00"
+                  before={<DollarSign />}
                   value={amount}
                   onChange={(e) =>
                     handleAmountChange(participantId, e.target.value)
                   }
-                  className="w-28 border-gray-600 bg-[#1a1a1a] pl-8 text-right text-white"
+                  className="w-30"
                   min="0"
                   step="0.01"
                 />
-                <DollarSign className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               </div>
             </div>
           </div>
@@ -879,6 +952,7 @@ const SplitConfigShares = ({
               <Input
                 type="number"
                 placeholder="1"
+                before={<Pizza size={20} />}
                 value={shares}
                 onChange={(e) =>
                   handleSharesChange(participantId, e.target.value)
@@ -886,9 +960,6 @@ const SplitConfigShares = ({
                 className="w-20 border-gray-600 bg-[#1a1a1a] text-center text-white"
                 min="0"
               />
-              <div className="text-sm text-gray-400">
-                {Number(shares) === 1 ? "share" : "shares"}
-              </div>
             </div>
           </div>
         );

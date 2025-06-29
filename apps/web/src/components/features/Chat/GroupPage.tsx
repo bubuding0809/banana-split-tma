@@ -127,7 +127,7 @@ const GroupPage = () => {
               <Subheadline className="text-white">To pay</Subheadline>
               <LargeTitle weight="1" className="text-white">
                 <span className="mr-0.5">$</span>
-                {amountBorrowed ?? 0}
+                {(amountBorrowed ?? 0).toFixed(2)}
               </LargeTitle>
             </div>
             <Button
@@ -150,7 +150,7 @@ const GroupPage = () => {
               <Subheadline className="text-white">To receive</Subheadline>
               <LargeTitle weight="1" className="text-white">
                 <span className="mr-0.5">$</span>
-                {amountLent ?? 0}
+                {(amountLent ?? 0).toFixed(2)}
               </LargeTitle>
             </div>
             <Button
