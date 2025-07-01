@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, publicProcedure } from "../../trpc.js";
+import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
   mainUserId: z.number(),
@@ -67,21 +68,27 @@ export const getNetShareHandler = async (
     },
   });
 
-  //* Calculate the net amount between the two users
+  //* Calculate the net amount between the two users using precise Decimal arithmetic
   // Positive = target user owes main user, Negative = main user owes target user
-  const netAmount =
-    toReceive.reduce((acc, share) => acc + Number(share.amount ?? 0), 0) -
-    toPay.reduce((acc, share) => acc + Number(share.amount ?? 0), 0) +
-    settlementsMainToTarget.reduce(
-      (acc, settlement) => acc + Number(settlement.amount ?? 0),
-      0
-    ) -
-    settlementsTargetToMain.reduce(
-      (acc, settlement) => acc + Number(settlement.amount ?? 0),
-      0
-    );
 
-  return netAmount;
+  // Sum amounts using Decimal arithmetic to avoid floating point errors
+  const toReceiveTotal = sumAmounts(toReceive.map((share) => share.amount));
+  const toPayTotal = sumAmounts(toPay.map((share) => share.amount));
+  const settlementsMainToTargetTotal = sumAmounts(
+    settlementsMainToTarget.map((settlement) => settlement.amount)
+  );
+  const settlementsTargetToMainTotal = sumAmounts(
+    settlementsTargetToMain.map((settlement) => settlement.amount)
+  );
+
+  // Calculate net balance: (amount to receive) - (amount to pay) + (settlements sent) - (settlements received)
+  const netAmountDecimal = toReceiveTotal
+    .minus(toPayTotal)
+    .plus(settlementsMainToTargetTotal)
+    .minus(settlementsTargetToMainTotal);
+
+  // Convert to number for API response
+  return toNumber(netAmountDecimal);
 };
 
 export default publicProcedure

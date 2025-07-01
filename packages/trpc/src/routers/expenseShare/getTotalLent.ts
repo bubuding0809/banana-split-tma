@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, publicProcedure } from "../../trpc.js";
+import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
   userId: z.number(),
@@ -19,7 +20,9 @@ const getTotalLent = async (input: z.infer<typeof inputSchema>, db: Db) => {
     },
   });
 
-  return lent.reduce((acc, share) => acc + Number(share.amount ?? 0), 0);
+  // Use sumAmounts utility for precise Decimal arithmetic
+  const amounts = lent.map((share) => share.amount);
+  return toNumber(sumAmounts(amounts));
 };
 
 export default publicProcedure

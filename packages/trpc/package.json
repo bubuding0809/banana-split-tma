@@ -24,6 +24,7 @@
   "dependencies": {
     "@dko/database": "workspace:*",
     "@trpc/server": "^11.0.0",
+    "decimal.js": "^10.5.0",
     "node-telegram-bot-api": "^0.66.0",
     "superjson": "^2.2.2",
     "trpc-to-openapi": "^2.3.1",

@@ -7,6 +7,7 @@ import { cn } from "@utils/cn";
 import { z } from "zod";
 
 import FieldInfo from "@components/ui/FieldInfo";
+import { Decimal } from "decimal.js";
 
 import { expenseFormSchema } from "./AddExpenseForm.type";
 import { withForm } from "@/hooks";
@@ -191,12 +192,20 @@ const AmountFormStep = withForm({
     const getConvertedAmount = (
       amount: z.infer<typeof expenseFormSchema>["amount"]
     ) => {
-      const numAmount = parseFloat(amount || "0");
+      if (!amount || amount === "0") return "0.00";
+
+      // Use Decimal for precise currency conversion
+      const amountDecimal = new Decimal(amount);
+      const expenseRate = new Decimal(CURRENCIES[expenseCurrency].rate);
+      const displayRate = new Decimal(CURRENCIES[displayCurrency].rate);
+
+      // Convert to SGD first (base currency), then to display currency
       const amountInSGD =
         expenseCurrency === "SGD"
-          ? numAmount
-          : numAmount / CURRENCIES[expenseCurrency].rate;
-      const convertedAmount = amountInSGD * CURRENCIES[displayCurrency].rate;
+          ? amountDecimal
+          : amountDecimal.dividedBy(expenseRate);
+
+      const convertedAmount = amountInSGD.times(displayRate);
       return convertedAmount.toFixed(2);
     };
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Db, publicProcedure } from "../../trpc.js";
 import { getNetShareHandler } from "../expenseShare/getNetShare.js";
 import { getMembersHandler } from "./getMembers.js";
+import { isDebtor } from "../../utils/financial.js";
 
 const inputSchema = z.object({
   userId: z.number(),
@@ -35,8 +36,8 @@ const getDebtorsHandler = async (
       }) ?? [];
   const balances = await Promise.all(balanceQueries);
 
-  //* Get debtors (users with positive balance)
-  const debtors = balances.filter(({ balance }) => balance > 0);
+  //* Get debtors (users with significant positive balance, using financial threshold)
+  const debtors = balances.filter(({ balance }) => isDebtor(balance));
 
   return debtors.map((debtor) => ({
     ...debtor,

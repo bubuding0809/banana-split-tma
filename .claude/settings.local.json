@@ -11,7 +11,10 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "Bash(find:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(grep:*)",
+      "Bash(turbo check-types:*)",
+      "Bash(turbo lint:*)"
     ],
     "deny": []
   }

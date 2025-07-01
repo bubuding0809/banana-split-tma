@@ -14,6 +14,11 @@ import { cn } from "@utils/cn";
 import { trpc } from "@/utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
+import {
+  formatCurrency,
+  getBalanceLabel,
+  getBalanceColorClass,
+} from "@/utils/financial";
 
 const settleUpButtonLabel = "Settle up 🤝";
 const reminderButtonLabel = "Remind 💬";
@@ -122,12 +127,10 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
         after={
           <Info
             type="text"
-            subtitle={netBalance && netBalance < 0 ? "To pay" : "To receive"}
-            className={cn(
-              netBalance && netBalance < 0 ? "text-red-500" : "text-green-500"
-            )}
+            subtitle={getBalanceLabel(netBalance)}
+            className={cn(getBalanceColorClass(netBalance))}
           >
-            ${Math.abs(netBalance ?? 0).toFixed(2)}
+            {formatCurrency(netBalance)}
           </Info>
         }
         onClick={() => handleCellClick()}

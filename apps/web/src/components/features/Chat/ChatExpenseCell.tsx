@@ -21,6 +21,7 @@ import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import { formatExpenseDateShort } from "@utils/date";
+import { formatCurrency } from "@/utils/financial";
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
@@ -110,25 +111,28 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   // Amount borrowed for this expense
   const borrowedAmount = useMemo(() => {
     if (expenseRelation !== "borrower") return 0;
-    return (
-      expenseDetails?.shares.reduce((acc, share) => {
-        const isCreditor = share.userId === userId;
-        if (isCreditor) return acc + share.amount;
-        return acc;
-      }, 0) ?? 0
+    if (!expenseDetails?.shares) return 0;
+
+    // Find the current user's share amount
+    const userShare = expenseDetails.shares.find(
+      (share) => share.userId === userId
     );
+    return userShare?.amount ?? 0;
   }, [userId, expenseDetails, expenseRelation]);
 
   // Amount lent for this expense
   const lentAmount = useMemo(() => {
     if (expenseRelation !== "payer") return 0;
-    return (
-      expenseDetails?.shares.reduce((acc, share) => {
-        const isDebtor = share.userId !== userId;
-        if (isDebtor) return acc + share.amount;
-        return acc;
-      }, 0) ?? 0
-    );
+    if (!expenseDetails?.shares) return 0;
+
+    // Sum all shares except the payer's own share
+    let total = 0;
+    for (const share of expenseDetails.shares) {
+      if (share.userId !== userId) {
+        total += share.amount;
+      }
+    }
+    return total;
   }, [expenseRelation, expenseDetails?.shares, userId]);
 
   const onDeleteExpense = async () => {
@@ -234,7 +238,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="2">✅</Text>
                           ) : (
                             <Text weight="2" className="text-green-600">
-                              ${lentAmount.toFixed(2)}
+                              {formatCurrency(lentAmount)}
                             </Text>
                           );
                         case "borrower":
@@ -242,7 +246,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="2">✅</Text>
                           ) : (
                             <Text weight="2" className="text-red-600">
-                              ${borrowedAmount.toFixed(2)}
+                              {formatCurrency(borrowedAmount)}
                             </Text>
                           );
                         case "unrelated":
@@ -273,8 +277,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
           />
         }
       >
-        <span className="mr-0.5 font-medium">$</span>
-        {expense.amount.toFixed(2)}
+        {formatCurrency(expense.amount)}
       </Cell>
       <ExpenseDetailsModal
         open={modalOpen}

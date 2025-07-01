@@ -18,6 +18,7 @@ import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
+import { formatCurrency } from "@/utils/financial";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -57,7 +58,7 @@ const ShareParticipant = ({
       after={
         <Info type="text">
           <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
-            ${amount.toFixed(2)}
+            {formatCurrency(amount)}
           </Text>
         </Info>
       }

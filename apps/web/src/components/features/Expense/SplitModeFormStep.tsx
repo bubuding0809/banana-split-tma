@@ -34,8 +34,16 @@ import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
 import ModalHeader from "@/components/ui/ModalHeader";
+import Decimal from "decimal.js";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
+
+// Utility functions for Decimal operations
+const toDecimal = (value: string | number): Decimal => new Decimal(value || 0);
+const toNumber = (decimal: Decimal): number => decimal.toNumber();
+const sumDecimals = (values: (string | number)[]): Decimal => {
+  return values.reduce((sum, val) => sum.plus(toDecimal(val)), new Decimal(0));
+};
 
 const SPLIT_MODE_OPTIONS: {
   value: SplitModeType;
@@ -428,8 +436,10 @@ const SplitConfigEqual = ({
   chatMembers,
   payeeId,
 }: SplitConfigProps) => {
-  const splitAmount =
-    participants.length > 0 ? totalAmount / participants.length : 0;
+  const splitAmountDecimal =
+    participants.length > 0
+      ? toDecimal(totalAmount).dividedBy(participants.length)
+      : new Decimal(0);
 
   return (
     <div className="space-y-3">
@@ -463,14 +473,18 @@ const SplitConfigEqual = ({
                 </div>
                 {isPayee && (
                   <div className="text-xs text-gray-400">
-                    Gets ${(totalAmount - splitAmount).toFixed(2)} back
+                    Gets $
+                    {toDecimal(totalAmount)
+                      .minus(splitAmountDecimal)
+                      .toFixed(2)}{" "}
+                    back
                   </div>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-lg font-semibold text-green-400">
-                ${splitAmount.toFixed(2)}
+                ${splitAmountDecimal.toFixed(2)}
               </div>
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
                 <Check className="h-4 w-4 text-white" />
@@ -490,7 +504,7 @@ const SplitConfigEqual = ({
             </span>
           </div>
           <div className="font-semibold text-white">
-            ${splitAmount.toFixed(2)} each
+            ${splitAmountDecimal.toFixed(2)} each
           </div>
         </div>
       </div>
@@ -520,18 +534,19 @@ const SplitConfigPercentage = ({
   };
 
   const getTotalPercentage = () => {
-    return customSplits.reduce(
-      (sum, split) => sum + (Number(split.amount) || 0),
-      0
-    );
+    const amounts = customSplits.map((split) => split.amount || "0");
+    return toNumber(sumDecimals(amounts));
   };
 
   const getRemainingPercentage = () => {
-    return 100 - getTotalPercentage();
+    return toNumber(new Decimal(100).minus(getTotalPercentage()));
   };
 
-  const isValid = getTotalPercentage() === 100;
-  const isOverAllocated = getTotalPercentage() > 100;
+  const totalPercentageDecimal = sumDecimals(
+    customSplits.map((split) => split.amount || "0")
+  );
+  const isValid = totalPercentageDecimal.equals(100);
+  const isOverAllocated = totalPercentageDecimal.greaterThan(100);
 
   return (
     <div className="space-y-3">
@@ -543,7 +558,11 @@ const SplitConfigPercentage = ({
           (s) => s.userId === participantId
         );
         const percentage = currentSplit?.amount || "";
-        const dollarAmount = ((Number(percentage) || 0) * totalAmount) / 100;
+        const dollarAmount = toNumber(
+          toDecimal(percentage || "0")
+            .dividedBy(100)
+            .times(totalAmount)
+        );
         const isPayee = participantId === payeeId;
 
         if (!member) return null;
@@ -571,7 +590,8 @@ const SplitConfigPercentage = ({
                 </div>
                 {isPayee && dollarAmount > 0 && (
                   <div className="text-xs text-gray-400">
-                    Gets ${(totalAmount - dollarAmount).toFixed(2)} back
+                    Gets $
+                    {toDecimal(totalAmount).minus(dollarAmount).toFixed(2)} back
                   </div>
                 )}
               </div>
@@ -615,7 +635,7 @@ const SplitConfigPercentage = ({
                   : "text-yellow-400"
             )}
           >
-            {getTotalPercentage()}% / 100%
+            {toNumber(totalPercentageDecimal)}% / 100%
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
@@ -628,7 +648,9 @@ const SplitConfigPercentage = ({
                   ? "bg-red-500"
                   : "bg-yellow-500"
             )}
-            style={{ width: `${Math.min(getTotalPercentage(), 100)}%` }}
+            style={{
+              width: `${Math.min(toNumber(totalPercentageDecimal), 100)}%`,
+            }}
           />
         </div>
       </div>
@@ -674,7 +696,7 @@ const SplitConfigPercentage = ({
             </span>
           </div>
           <div className="font-semibold text-white">
-            ${totalAmount.toFixed(2)} total
+            ${toDecimal(totalAmount).toFixed(2)} total
           </div>
         </div>
       </div>
@@ -703,19 +725,11 @@ const SplitConfigExact = ({
     onSplitsChange?.(newSplits);
   };
 
-  const getTotalAllocated = () => {
-    return customSplits.reduce(
-      (sum, split) => sum + (Number(split.amount) || 0),
-      0
-    );
-  };
-
-  const getRemainingAmount = () => {
-    return totalAmount - getTotalAllocated();
-  };
-
-  const isValid = Math.abs(getRemainingAmount()) < 0.01;
-  const isOverAllocated = getRemainingAmount() < -0.01;
+  const remainingAmountDecimal = toDecimal(totalAmount).minus(
+    sumDecimals(customSplits.map((split) => split.amount || "0"))
+  );
+  const isValid = remainingAmountDecimal.abs().lessThan(0.01);
+  const isOverAllocated = remainingAmountDecimal.lessThan(-0.01);
 
   return (
     <div className="space-y-3">
@@ -727,7 +741,7 @@ const SplitConfigExact = ({
           (s) => s.userId === participantId
         );
         const amount = currentSplit?.amount || "";
-        const dollarAmount = Number(amount) || 0;
+        const dollarAmount = toNumber(toDecimal(amount || "0"));
         const isPayee = participantId === payeeId;
 
         if (!member) return null;
@@ -755,7 +769,8 @@ const SplitConfigExact = ({
                 </div>
                 {isPayee && dollarAmount > 0 && (
                   <div className="text-xs text-gray-400">
-                    Gets ${(totalAmount - dollarAmount).toFixed(2)} back
+                    Gets $
+                    {toDecimal(totalAmount).minus(dollarAmount).toFixed(2)} back
                   </div>
                 )}
               </div>
@@ -794,7 +809,11 @@ const SplitConfigExact = ({
                   : "text-yellow-400"
             )}
           >
-            ${getTotalAllocated().toFixed(2)} / ${totalAmount.toFixed(2)}
+            $
+            {sumDecimals(
+              customSplits.map((split) => split.amount || "0")
+            ).toFixed(2)}{" "}
+            / ${toDecimal(totalAmount).toFixed(2)}
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
@@ -808,7 +827,14 @@ const SplitConfigExact = ({
                   : "bg-yellow-500"
             )}
             style={{
-              width: `${Math.min((getTotalAllocated() / totalAmount) * 100, 100)}%`,
+              width: `${Math.min(
+                toNumber(
+                  sumDecimals(customSplits.map((split) => split.amount || "0"))
+                    .dividedBy(totalAmount)
+                    .times(100)
+                ),
+                100
+              )}%`,
             }}
           />
         </div>
@@ -851,11 +877,11 @@ const SplitConfigExact = ({
                 ? "Perfect split!"
                 : isOverAllocated
                   ? "Over-allocated"
-                  : `$${getRemainingAmount().toFixed(2)} remaining`}
+                  : `$${remainingAmountDecimal.toFixed(2)} remaining`}
             </span>
           </div>
           <div className="font-semibold text-white">
-            ${totalAmount.toFixed(2)} total
+            ${toDecimal(totalAmount).toFixed(2)} total
           </div>
         </div>
       </div>
@@ -885,15 +911,17 @@ const SplitConfigShares = ({
   };
 
   const getTotalShares = () => {
-    return customSplits.reduce(
-      (sum, split) => sum + (Number(split.amount) || 0),
-      0
-    );
+    const amounts = customSplits.map((split) => split.amount || "0");
+    return toNumber(sumDecimals(amounts));
   };
 
   const getAmountPerShare = () => {
-    const totalShares = getTotalShares();
-    return totalShares > 0 ? totalAmount / totalShares : 0;
+    const totalSharesDecimal = sumDecimals(
+      customSplits.map((split) => split.amount || "0")
+    );
+    return totalSharesDecimal.greaterThan(0)
+      ? toNumber(toDecimal(totalAmount).dividedBy(totalSharesDecimal))
+      : 0;
   };
 
   const hasShares = getTotalShares() > 0;
@@ -908,7 +936,9 @@ const SplitConfigShares = ({
           (s) => s.userId === participantId
         );
         const shares = currentSplit?.amount || "";
-        const amount = (Number(shares) || 0) * getAmountPerShare();
+        const amount = toNumber(
+          toDecimal(shares || "0").times(getAmountPerShare())
+        );
         const isPayee = participantId === payeeId;
 
         if (!member) return null;
@@ -942,7 +972,8 @@ const SplitConfigShares = ({
                   )}
                   {isPayee && amount > 0 && (
                     <div className="text-xs text-gray-400">
-                      Gets ${(totalAmount - amount).toFixed(2)} back
+                      Gets ${toDecimal(totalAmount).minus(amount).toFixed(2)}{" "}
+                      back
                     </div>
                   )}
                 </div>
@@ -979,8 +1010,14 @@ const SplitConfigShares = ({
               const currentSplit = customSplits.find(
                 (s) => s.userId === participantId
               );
-              const shares = Number(currentSplit?.amount || 0);
-              const percentage = shares / getTotalShares();
+              const sharesDecimal = toDecimal(currentSplit?.amount || "0");
+              const totalSharesDecimal = sumDecimals(
+                customSplits.map((split) => split.amount || "0")
+              );
+              const percentage = totalSharesDecimal.greaterThan(0)
+                ? toNumber(sharesDecimal.dividedBy(totalSharesDecimal))
+                : 0;
+              const shares = toNumber(sharesDecimal);
 
               if (shares === 0) return null;
 
@@ -1030,7 +1067,7 @@ const SplitConfigShares = ({
             </span>
           </div>
           <div className="font-semibold text-white">
-            ${totalAmount.toFixed(2)} total
+            ${toDecimal(totalAmount).toFixed(2)} total
           </div>
         </div>
       </div>

@@ -2,6 +2,12 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, publicProcedure } from "../../trpc.js";
 import { SplitMode } from "@dko/database";
+import { Decimal } from "decimal.js";
+import {
+  toNumber,
+  sumAmounts,
+  FINANCIAL_THRESHOLDS,
+} from "../../utils/financial.js";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -76,10 +82,13 @@ const calculateEqualSplits = (
   amount: number,
   participantIds: bigint[]
 ): { userId: bigint; amount: number }[] => {
-  const splitAmount = amount / participantIds.length;
+  const amountDecimal = new Decimal(amount);
+  const participantCount = new Decimal(participantIds.length);
+  const splitAmount = amountDecimal.dividedBy(participantCount);
+
   return participantIds.map((userId) => ({
     userId,
-    amount: splitAmount,
+    amount: toNumber(splitAmount),
   }));
 };
 
@@ -106,17 +115,16 @@ const calculateExactSplits = (
     }
   }
 
-  // Validate split totals equal the expense amount
-  const totalSplitAmount = customSplits.reduce(
-    (sum, split) => sum + split.amount,
-    0
-  );
-  const tolerance = 0.01;
+  // Validate split totals equal the expense amount using precise Decimal arithmetic
+  const splitAmounts = customSplits.map((split) => split.amount);
+  const totalSplitAmountDecimal = sumAmounts(splitAmounts);
+  const amountDecimal = new Decimal(amount);
+  const difference = totalSplitAmountDecimal.minus(amountDecimal).abs();
 
-  if (Math.abs(totalSplitAmount - amount) > tolerance) {
+  if (difference.greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Split amounts (${totalSplitAmount.toFixed(2)}) must equal total expense amount (${amount.toFixed(2)})`,
+      message: `Split amounts (${totalSplitAmountDecimal.toFixed(2)}) must equal total expense amount (${amountDecimal.toFixed(2)})`,
     });
   }
 
@@ -140,25 +148,29 @@ const calculatePercentageSplits = (
     }
   }
 
-  // Validate percentages sum to 100%
-  const totalPercentage = customSplits.reduce(
-    (sum, split) => sum + split.amount,
-    0
-  );
-  const tolerance = 0.01;
+  // Validate percentages sum to 100% using precise Decimal arithmetic
+  const percentages = customSplits.map((split) => split.amount);
+  const totalPercentageDecimal = sumAmounts(percentages);
+  const hundredDecimal = new Decimal(100);
+  const difference = totalPercentageDecimal.minus(hundredDecimal).abs();
 
-  if (Math.abs(totalPercentage - 100) > tolerance) {
+  if (difference.greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Percentages (${totalPercentage.toFixed(2)}%) must sum to 100%`,
+      message: `Percentages (${totalPercentageDecimal.toFixed(2)}%) must sum to 100%`,
     });
   }
 
-  // Convert percentages to dollar amounts
-  return customSplits.map((split) => ({
-    userId: split.userId,
-    amount: (split.amount / 100) * amount,
-  }));
+  // Convert percentages to dollar amounts using precise Decimal arithmetic
+  const amountDecimal = new Decimal(amount);
+  return customSplits.map((split) => {
+    const percentageDecimal = new Decimal(split.amount);
+    const dollarAmount = percentageDecimal.dividedBy(100).times(amountDecimal);
+    return {
+      userId: split.userId,
+      amount: toNumber(dollarAmount),
+    };
+  });
 };
 
 const calculateSharesSplits = (
@@ -168,24 +180,29 @@ const calculateSharesSplits = (
 ): { userId: bigint; amount: number }[] => {
   validateAllParticipantsCovered(customSplits, participantIds);
 
-  // Calculate total shares
-  const totalShares = customSplits.reduce(
-    (sum, split) => sum + split.amount,
-    0
-  );
+  // Calculate total shares using precise Decimal arithmetic
+  const shares = customSplits.map((split) => split.amount);
+  const totalSharesDecimal = sumAmounts(shares);
 
-  if (totalShares <= 0) {
+  if (totalSharesDecimal.lessThanOrEqualTo(0)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Total shares must be greater than zero",
     });
   }
 
-  // Convert shares to proportional dollar amounts
-  return customSplits.map((split) => ({
-    userId: split.userId,
-    amount: (split.amount / totalShares) * amount,
-  }));
+  // Convert shares to proportional dollar amounts using precise Decimal arithmetic
+  const amountDecimal = new Decimal(amount);
+  return customSplits.map((split) => {
+    const shareDecimal = new Decimal(split.amount);
+    const dollarAmount = shareDecimal
+      .dividedBy(totalSharesDecimal)
+      .times(amountDecimal);
+    return {
+      userId: split.userId,
+      amount: toNumber(dollarAmount),
+    };
+  });
 };
 
 const calculateSplits = (
