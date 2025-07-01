@@ -17,7 +17,7 @@ export interface ModalHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
    * Content to render in the header. If a string is passed, it will be rendered as a Text component.
    * If a React element is passed, it will be rendered as-is.
    */
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const ModalHeader = React.forwardRef<HTMLDivElement, ModalHeaderProps>(

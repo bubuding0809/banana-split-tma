@@ -1,3 +1,5 @@
+import Decimal from "decimal.js";
+
 /**
  * Frontend financial utilities for formatting and displaying monetary values
  *
@@ -87,3 +89,49 @@ export function getBalanceColorClass(
       return "text-gray-500";
   }
 }
+
+/**
+ * Frontend Decimal utilities for precise calculations in UI components
+ *
+ * These are primarily used for form validation and display calculations
+ * where precision is needed before sending to the backend.
+ */
+
+/**
+ * Converts a value to a Decimal instance for precise calculations
+ * @param value - Value to convert (string or number)
+ * @returns Decimal instance, defaults to 0 if value is empty
+ */
+export const toDecimal = (value: string | number): Decimal =>
+  new Decimal(value || 0);
+
+/**
+ * Converts a Decimal back to a number for display or API calls
+ * @param decimal - Decimal instance
+ * @returns Number value
+ */
+export const toNumber = (decimal: Decimal): number => decimal.toNumber();
+
+/**
+ * Sums an array of values using Decimal arithmetic for precision
+ * @param values - Array of string or number values to sum
+ * @returns Sum as Decimal instance
+ */
+export const sumDecimals = (values: (string | number)[]): Decimal => {
+  return values.reduce((sum, val) => sum.plus(toDecimal(val)), new Decimal(0));
+};
+
+/**
+ * An `Intl.NumberFormat` instance configured for formatting numbers as Singapore Dollars (SGD).
+ *
+ * Formats numbers using the "en-SG" locale with exactly two decimal places.
+ * Example output: "$1,234.56"
+ *
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat}
+ */
+export const sgdFormatter = new Intl.NumberFormat("en-SG", {
+  style: "currency",
+  currency: "SGD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});

@@ -35,15 +35,9 @@ import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
 import ModalHeader from "@/components/ui/ModalHeader";
 import Decimal from "decimal.js";
+import { toDecimal, toNumber, sumDecimals } from "@/utils/financial";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
-
-// Utility functions for Decimal operations
-const toDecimal = (value: string | number): Decimal => new Decimal(value || 0);
-const toNumber = (decimal: Decimal): number => decimal.toNumber();
-const sumDecimals = (values: (string | number)[]): Decimal => {
-  return values.reduce((sum, val) => sum.plus(toDecimal(val)), new Decimal(0));
-};
 
 const SPLIT_MODE_OPTIONS: {
   value: SplitModeType;
