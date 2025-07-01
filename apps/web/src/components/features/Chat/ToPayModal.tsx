@@ -21,14 +21,27 @@ interface ToPayModalProps {
 }
 
 const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
+  const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
 
-  const createSettlementMutation =
-    trpc.settlement.createSettlement.useMutation();
+  const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
+    {
+      onSuccess: () => {
+        trpcUtils.chat.getDebtors.invalidate({
+          chatId,
+          userId,
+        });
+        trpcUtils.chat.getCreditors.invalidate({
+          chatId,
+          userId,
+        });
+      },
+    }
+  );
 
   const absAmountOwed = Math.abs(member.balance);
 
@@ -95,16 +108,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
       });
       offMainButtonClick?.();
     };
-  }, [
-    absAmountOwed,
-    chatId,
-    createSettlementMutation,
-    handleCreateSettlement,
-    member.id,
-    modalOpen,
-    onOpenChange,
-    userId,
-  ]);
+  }, [handleCreateSettlement, modalOpen]);
 
   return (
     <Modal
