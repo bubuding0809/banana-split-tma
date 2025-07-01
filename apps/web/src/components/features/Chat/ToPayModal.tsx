@@ -60,11 +60,6 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
       console.error("Error creating settlement:", error);
       popup.open.ifAvailable({
         message: "Failed to create settlement. Please try again later.",
-        buttons: [
-          {
-            type: "close",
-          },
-        ],
       });
       return;
     } finally {
