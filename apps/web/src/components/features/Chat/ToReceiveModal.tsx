@@ -1,8 +1,9 @@
 import ModalHeader from "@/components/ui/ModalHeader";
 import { sgdFormatter } from "@/utils/financial";
 import { RouterOutputs } from "@dko/trpc";
+import { mainButton } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -20,6 +21,41 @@ const ToRecieveModal = ({
   useEffect(() => {}, [modalOpen]);
 
   const absAmountLent = Math.abs(member.balance);
+
+  const handleSendReminder = useCallback(async () => {
+    alert(
+      `Reminder sent to ${member.firstName} for the amount of ${sgdFormatter.format(absAmountLent)}.`
+    );
+  }, [absAmountLent, member.firstName]);
+
+  useEffect(() => {
+    let offMainButtonClick: ReturnType<typeof mainButton.onClick> | undefined;
+
+    if (modalOpen) {
+      mainButton.setParams.ifAvailable({
+        text: "Not yet, send a reminder! 💬",
+        isEnabled: true,
+        isVisible: true,
+      });
+
+      offMainButtonClick = mainButton.onClick(handleSendReminder);
+    } else {
+      mainButton.setParams({
+        isEnabled: false,
+        isVisible: false,
+      });
+      offMainButtonClick?.();
+    }
+
+    return () => {
+      mainButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+      });
+      offMainButtonClick?.();
+    };
+  }, [handleSendReminder, modalOpen]);
+
   return (
     <Modal
       header={<ModalHeader />}
