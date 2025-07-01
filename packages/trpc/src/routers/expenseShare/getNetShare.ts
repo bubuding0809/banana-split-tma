@@ -17,7 +17,7 @@ export const getNetShareHandler = async (
     where: {
       expense: {
         chatId: input.chatId,
-        payerId: input.mainUserId, // FIXED: Use payerId to find expenses main user paid for
+        payerId: input.mainUserId,
       },
       userId: input.targetUserId,
     },
@@ -32,7 +32,7 @@ export const getNetShareHandler = async (
     where: {
       expense: {
         chatId: input.chatId,
-        payerId: input.targetUserId, // FIXED: Use payerId to find expenses target user paid for
+        payerId: input.targetUserId,
       },
       userId: input.mainUserId,
     },
@@ -41,10 +41,45 @@ export const getNetShareHandler = async (
     },
   });
 
+  //* Find out how much the main user has settled with the target user
+  // (Settlements where main user paid the target user - reduces main user's debt)
+  const settlementsMainToTarget = await db.settlement.findMany({
+    where: {
+      chatId: input.chatId,
+      senderId: input.mainUserId,
+      receiverId: input.targetUserId,
+    },
+    select: {
+      amount: true,
+    },
+  });
+
+  //* Find out how much the target user has settled with the main user
+  // (Settlements where target user paid the main user - increases main user's debt)
+  const settlementsTargetToMain = await db.settlement.findMany({
+    where: {
+      chatId: input.chatId,
+      senderId: input.targetUserId,
+      receiverId: input.mainUserId,
+    },
+    select: {
+      amount: true,
+    },
+  });
+
   //* Calculate the net amount between the two users
+  // Positive = target user owes main user, Negative = main user owes target user
   const netAmount =
     toReceive.reduce((acc, share) => acc + Number(share.amount ?? 0), 0) -
-    toPay.reduce((acc, share) => acc + Number(share.amount ?? 0), 0);
+    toPay.reduce((acc, share) => acc + Number(share.amount ?? 0), 0) +
+    settlementsMainToTarget.reduce(
+      (acc, settlement) => acc + Number(settlement.amount ?? 0),
+      0
+    ) -
+    settlementsTargetToMain.reduce(
+      (acc, settlement) => acc + Number(settlement.amount ?? 0),
+      0
+    );
 
   return netAmount;
 };
