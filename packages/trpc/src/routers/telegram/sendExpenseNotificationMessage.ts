@@ -128,9 +128,7 @@ export const sendExpenseNotificationMessageHandler = async (
 > ${escapedDescription}
 Total: ${formattedTotalAmount}
 
-*Your shares:*\n${participantList}
-
-Balances have been updated\\!`;
+*Your shares:*\n${participantList}`;
 
   const chatContext = {
     chat_id: input.chatId,
@@ -142,7 +140,7 @@ Balances have been updated\\!`;
     base64EnchodedChatContext
   );
   const keyboard = inlineKeyboard([
-    { text: "View Expenses 💸", url: deepLink },
+    { text: "View Balances 💸", url: deepLink },
   ]);
 
   // Send the message directly (components are pre-escaped)
