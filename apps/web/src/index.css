@@ -20,6 +20,16 @@
    height: calc(100% + 1px);
 }
 
-::-webkit-scrollbar {
-   display: none;
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
+
+/* ::-webkit-scrollbar {
+   display: none;
+} */

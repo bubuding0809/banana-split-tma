@@ -291,7 +291,11 @@ export const createExpenseHandler = async (
     if (input.sendNotification) {
       try {
         // Fetch creator and participant details for notification
-        const [creator, participants] = await Promise.all([
+        const [payer, creator, participants] = await Promise.all([
+          db.user.findUnique({
+            where: { id: input.payerId },
+            select: { id: true, firstName: true, username: true },
+          }),
           db.user.findUnique({
             where: { id: input.creatorId },
             select: { id: true, firstName: true, username: true },
@@ -302,7 +306,7 @@ export const createExpenseHandler = async (
           }),
         ]);
 
-        if (creator && participants.length > 0) {
+        if (creator && payer && participants.length > 0) {
           // Map splits to participants with user info
           const participantsWithAmounts = splits.map((split) => {
             const participant = participants.find((p) => p.id === split.userId);
@@ -321,6 +325,8 @@ export const createExpenseHandler = async (
           await sendExpenseNotificationMessageHandler(
             {
               chatId: Number(input.chatId),
+              payerId: Number(input.payerId),
+              payerName: payer.firstName,
               creatorUserId: Number(creator.id),
               creatorName: creator.firstName,
               creatorUsername: creator.username || undefined,

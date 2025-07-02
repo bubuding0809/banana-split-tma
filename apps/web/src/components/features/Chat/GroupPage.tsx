@@ -120,7 +120,7 @@ const GroupPage = () => {
           {dchatData?.title}
         </Cell>
       </section>
-      <section className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-2">
+      <section className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-2">
         <div className="flex aspect-video w-[97%] flex-none snap-center flex-col rounded-2xl bg-gradient-to-r from-rose-500 to-red-500 p-4 px-5 shadow">
           <div className="flex justify-between">
             <div>

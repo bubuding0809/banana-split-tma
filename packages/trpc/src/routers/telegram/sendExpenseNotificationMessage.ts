@@ -13,6 +13,8 @@ const participantSchema = z.object({
 
 const inputSchema = z.object({
   chatId: z.number(),
+  payerId: z.number(),
+  payerName: z.string().min(1, "Payer name is required"),
   creatorUserId: z.number(),
   creatorName: z.string().min(1, "Creator name is required"),
   creatorUsername: z.string().optional(),
@@ -73,6 +75,14 @@ export const sendExpenseNotificationMessageHandler = async (
     creatorMention = escapedCreatorName;
   }
 
+  // Create payer mention
+  let payerMention: string;
+  try {
+    payerMention = mentionMarkdown(input.payerId, input.payerName, 2);
+  } catch (error) {
+    payerMention = escapeMarkdown(input.payerName, 2);
+  }
+
   // Build participant list with amounts
   const participantList = input.participants
     .map((participant) => {
@@ -108,7 +118,14 @@ export const sendExpenseNotificationMessageHandler = async (
     .join("\n");
 
   // Create the expense notification message
-  const message = `🧾 New expense added by ${creatorMention}\\!\n\n*${escapedDescription}*\nTotal: ${formattedTotalAmount}\n\n*Your shares:*\n${participantList}\n\nBalances have been updated\\!`;
+  const message = `🧾 New expense paid by ${payerMention}\\!
+
+> ${escapedDescription}
+Total: ${formattedTotalAmount}
+
+*Your shares:*\n${participantList}
+
+Balances have been updated\\!`;
 
   // Send the message directly (components are pre-escaped)
   try {
