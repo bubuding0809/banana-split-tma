@@ -1,8 +1,9 @@
 import { initTRPC } from "@trpc/server";
 import { prisma } from "@dko/database";
 import superjson from "superjson";
-import TelegramBot from "node-telegram-bot-api";
 import type { OpenApiMeta } from "trpc-to-openapi";
+import { Telegram } from "telegraf";
+import "telegraf/types"; // Required to ensure types are portable
 
 /**
  * 1. CONTEXT
@@ -18,7 +19,7 @@ import type { OpenApiMeta } from "trpc-to-openapi";
  */
 const createTRPCContext = ({ botToken }: { botToken: string }) => ({
   db: prisma as typeof prisma,
-  teleBot: new TelegramBot(botToken),
+  teleBot: new Telegram(botToken),
 });
 export const withCreateTRPCContext = (
   env: Readonly<{

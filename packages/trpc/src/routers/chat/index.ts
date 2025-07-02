@@ -1,3 +1,4 @@
+import { createTRPCRouter } from "../../trpc.js";
 import getNetShare from "../expenseShare/getNetShare.js";
 import addMember from "./addMember.js";
 import createChat from "./createChat.js";
@@ -8,7 +9,7 @@ import getMembers from "./getMembers.js";
 import hasMember from "./hasMember.js";
 import removeMember from "./removeMember.js";
 
-export const chatRouter = {
+export const chatRouter = createTRPCRouter({
   createChat,
   getChat,
   addMember,
@@ -18,4 +19,4 @@ export const chatRouter = {
   getNetShare,
   getDebtors,
   getCreditors,
-};
+});

@@ -14,7 +14,7 @@ const ChatMemberAvatar = ({ userId, size = 24 }: ChatMemberProps) => {
   if (!photoUrl) {
     return <Avatar size={size}>🐵</Avatar>;
   }
-  return <Avatar src={photoUrl} size={size} />;
+  return <Avatar src={photoUrl.toString()} size={size} />;
 };
 
 export default ChatMemberAvatar;

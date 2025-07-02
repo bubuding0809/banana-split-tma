@@ -114,7 +114,7 @@ const GroupPage = () => {
           onClick={() => alert("Settings")}
           className="px-0"
           after={<Navigation className="text-gray-500">Settings</Navigation>}
-          before={<Avatar size={48} src={tChatData?.photoUrl ?? ""} />}
+          before={<Avatar size={48} src={tChatData?.photoUrl?.toString()} />}
           subtitle={tChatData?.type}
         >
           {dchatData?.title}

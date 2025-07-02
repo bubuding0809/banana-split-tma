@@ -1,0 +1,23 @@
+import { z } from "zod";
+import { publicProcedure } from "../../trpc.js";
+import { Telegram } from "telegraf";
+
+const inputSchema = z.object({ userId: z.number() });
+
+export const getUserProfilePhotoUrlHandler = async (
+  input: z.infer<typeof inputSchema>,
+  teleBot: Telegram
+) => {
+  const { photos } = await teleBot.getUserProfilePhotos(input.userId);
+  const targetPhoto = photos.at(0)?.at(0);
+  if (!targetPhoto) {
+    return null;
+  }
+  return teleBot.getFileLink(targetPhoto.file_id);
+};
+
+export default publicProcedure
+  .input(inputSchema)
+  .query(async ({ input, ctx }) => {
+    return getUserProfilePhotoUrlHandler(input, ctx.teleBot);
+  });
