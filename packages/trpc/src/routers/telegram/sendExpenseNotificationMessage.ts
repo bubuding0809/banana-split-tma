@@ -70,15 +70,6 @@ export const sendExpenseNotificationMessageHandler = async (
 
   // Escape expense description and creator name for MarkdownV2
   const escapedDescription = escapeMarkdown(input.expenseDescription, 2);
-  const escapedCreatorName = escapeMarkdown(input.creatorName, 2);
-
-  // Create creator mention
-  let creatorMention: string;
-  try {
-    creatorMention = mentionMarkdown(input.creatorUserId, input.creatorName, 2);
-  } catch (error) {
-    creatorMention = escapedCreatorName;
-  }
 
   // Create payer mention
   let payerMention: string;

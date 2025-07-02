@@ -122,7 +122,7 @@ export function createDeepLinkedUrl(
 
   if (payload.length > MessageLimit.DEEP_LINK_LENGTH) {
     throw new ValueError(
-      `The deep-linking payload must not exceed ${MessageLimit.DEEP_LINK_LENGTH} characters.`
+      `The deep-linking payload must not exceed ${MessageLimit.DEEP_LINK_LENGTH} characters. ${payload} has ${payload.length} characters.`
     );
   }
 
