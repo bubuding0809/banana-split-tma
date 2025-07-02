@@ -43,9 +43,7 @@ export const sendDebtReminderMessageHandler = async (
   // Create user mention - prefer username if available, otherwise use name with user ID
   let debtorMention: string;
   try {
-    debtorMention = input.debtorUsername
-      ? `@${input.debtorUsername}` // Don't escape username mentions
-      : mentionMarkdown(input.debtorUserId, input.debtorName, 2); // Already escaped in mentionMarkdown
+    debtorMention = mentionMarkdown(input.debtorUserId, input.debtorName, 2); // Already escaped in mentionMarkdown
   } catch (error) {
     // Fallback to escaped plain name if mention creation fails
     debtorMention = escapeMarkdown(input.debtorName, 2);

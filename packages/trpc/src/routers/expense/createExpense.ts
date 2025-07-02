@@ -8,6 +8,8 @@ import {
   sumAmounts,
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
+import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
+import { Telegram } from "telegraf";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -30,6 +32,7 @@ export const inputSchema = z.object({
       })
     )
     .optional(),
+  sendNotification: z.boolean().default(true),
 });
 
 export const outputSchema = z.object({
@@ -243,7 +246,8 @@ const calculateSplits = (
 
 export const createExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  teleBot: Telegram
 ) => {
   try {
     // Calculate the splits for each participant
@@ -283,6 +287,57 @@ export const createExpenseHandler = async (
       return newExpense;
     });
 
+    // Send notification if requested and teleBot is available
+    if (input.sendNotification) {
+      try {
+        // Fetch creator and participant details for notification
+        const [creator, participants] = await Promise.all([
+          db.user.findUnique({
+            where: { id: input.creatorId },
+            select: { id: true, firstName: true, username: true },
+          }),
+          db.user.findMany({
+            where: { id: { in: input.participantIds } },
+            select: { id: true, firstName: true, username: true },
+          }),
+        ]);
+
+        if (creator && participants.length > 0) {
+          // Map splits to participants with user info
+          const participantsWithAmounts = splits.map((split) => {
+            const participant = participants.find((p) => p.id === split.userId);
+            if (!participant) {
+              throw new Error(`Participant with ID ${split.userId} not found`);
+            }
+            return {
+              userId: Number(participant.id),
+              name: participant.firstName,
+              username: participant.username || undefined,
+              amount: split.amount,
+            };
+          });
+
+          // Send expense notification
+          await sendExpenseNotificationMessageHandler(
+            {
+              chatId: Number(input.chatId),
+              creatorUserId: Number(creator.id),
+              creatorName: creator.firstName,
+              creatorUsername: creator.username || undefined,
+              expenseDescription: input.description,
+              totalAmount: input.amount,
+              participants: participantsWithAmounts,
+              currency: "SGD",
+            },
+            teleBot
+          );
+        }
+      } catch (notificationError) {
+        // Log notification error but don't fail expense creation
+        console.error("Error sending expense notification:", notificationError);
+      }
+    }
+
     return {
       ...expense,
       chatId: Number(expense.chatId),
@@ -317,5 +372,5 @@ export default publicProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return createExpenseHandler(input, ctx.db);
+    return createExpenseHandler(input, ctx.db, ctx.teleBot);
   });

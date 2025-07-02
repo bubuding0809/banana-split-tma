@@ -52,9 +52,11 @@ export const sendSettlementNotificationMessageHandler = async (
   // Create user mention - prefer username if available, otherwise use name with user ID
   let creditorMention: string;
   try {
-    creditorMention = input.creditorUsername
-      ? `@${input.creditorUsername}` // Don't escape username mentions
-      : mentionMarkdown(input.creditorUserId, input.creditorName, 2); // Already escaped in mentionMarkdown
+    creditorMention = mentionMarkdown(
+      input.creditorUserId,
+      input.creditorName,
+      2
+    );
   } catch (error) {
     // Fallback to escaped plain name if mention creation fails
     creditorMention = escapeMarkdown(input.creditorName, 2);

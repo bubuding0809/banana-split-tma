@@ -5,6 +5,7 @@ import getChatMember from "./getChatMember.js";
 import sendMessage from "./sendMessage.js";
 import sendDebtReminderMessage from "./sendDebtReminderMessage.js";
 import sendSettlementNotificationMessage from "./sendSettlementNotificationMessage.js";
+import sendExpenseNotificationMessage from "./sendExpenseNotificationMessage.js";
 
 export const telegramRouter = createTRPCRouter({
   getChat,
@@ -13,4 +14,5 @@ export const telegramRouter = createTRPCRouter({
   sendMessage,
   sendDebtReminderMessage,
   sendSettlementNotificationMessage,
+  sendExpenseNotificationMessage,
 });
