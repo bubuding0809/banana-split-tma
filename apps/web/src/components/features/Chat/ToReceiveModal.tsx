@@ -33,9 +33,6 @@ const ToRecieveModal = ({
 
   const absAmountLent = Math.abs(member.balance);
 
-  const { data: tChatData } = trpc.chat.getChat.useQuery({
-    chatId,
-  });
   const sendTelegramMessageMutation = trpc.telegram.sendMessage.useMutation();
 
   const handleSendReminder = useCallback(async () => {
@@ -67,8 +64,8 @@ const ToRecieveModal = ({
     absAmountLent,
     chatId,
     member.firstName,
+    member.username,
     sendTelegramMessageMutation,
-    tChatData?.title,
     tUserData?.firstName,
   ]);
 
