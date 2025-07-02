@@ -33,19 +33,29 @@ const ToRecieveModal = ({
 
   const absAmountLent = Math.abs(member.balance);
 
-  const sendTelegramMessageMutation = trpc.telegram.sendMessage.useMutation();
+  const sendDebtReminderMutation =
+    trpc.telegram.sendDebtReminderMessage.useMutation();
 
   const handleSendReminder = useCallback(async () => {
-    const mention = member.username ? `@${member.username}` : member.firstName;
-    const message = `💁 Hey ${mention}, you still owe ${tUserData?.firstName} ${sgdFormatter.format(absAmountLent)}. Don't forget to settle up!`;
+    if (!tUserData?.firstName) {
+      popup.open({
+        message: "Unable to send reminder. User data not available.",
+      });
+      return;
+    }
 
     try {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: true,
       });
-      await sendTelegramMessageMutation.mutateAsync({
+      await sendDebtReminderMutation.mutateAsync({
         chatId,
-        message,
+        debtorUserId: Number(member.id),
+        debtorName: member.firstName,
+        debtorUsername: member.username || undefined,
+        creditorName: tUserData.firstName,
+        amount: absAmountLent,
+        currency: "SGD",
       });
       popup.open({
         message: "Reminder sent successfully! 📩",
@@ -64,8 +74,9 @@ const ToRecieveModal = ({
     absAmountLent,
     chatId,
     member.firstName,
+    member.id,
     member.username,
-    sendTelegramMessageMutation,
+    sendDebtReminderMutation,
     tUserData?.firstName,
   ]);
 
