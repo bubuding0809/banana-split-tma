@@ -7,10 +7,12 @@ import {
   initData,
   mainButton,
   popup,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
+import bananaLoudSpeaker from "@/assets/gifs/banana-loudspeaker.gif";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -29,6 +31,8 @@ const ToRecieveModal = ({
 
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
+  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
+
   const chatId = startParams?.chat_id ?? 0;
 
   const absAmountLent = Math.abs(member.balance);
@@ -110,31 +114,43 @@ const ToRecieveModal = ({
 
   return (
     <Modal
-      header={<ModalHeader />}
+      header={
+        <ModalHeader
+          style={{
+            backgroundColor: tSecondaryBgColor,
+          }}
+        />
+      }
       open={modalOpen}
       onOpenChange={onOpenChange}
     >
-      <Placeholder
-        description="Received your payment?"
-        header={
-          <>
-            {member.firstName} owes you{" "}
-            <span className="text-green-500">
-              {sgdFormatter.format(absAmountLent)}
-            </span>
-          </>
-        }
+      <div
+        style={{
+          backgroundColor: tSecondaryBgColor,
+        }}
       >
-        <img
-          alt="Telegram sticker"
-          src="https://xelene.me/telegram.gif"
-          style={{
-            display: "block",
-            height: "88px",
-            width: "88px",
-          }}
-        />
-      </Placeholder>
+        <Placeholder
+          description="Received your payment?"
+          header={
+            <>
+              {member.firstName} owes you{" "}
+              <span className="text-green-500">
+                {sgdFormatter.format(absAmountLent)}
+              </span>
+            </>
+          }
+        >
+          <img
+            alt="Telegram sticker"
+            src={bananaLoudSpeaker}
+            style={{
+              display: "block",
+              height: "88px",
+              width: "88px",
+            }}
+          />
+        </Placeholder>
+      </div>
     </Modal>
   );
 };

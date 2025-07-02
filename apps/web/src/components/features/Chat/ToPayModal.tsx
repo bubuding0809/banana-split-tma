@@ -7,10 +7,12 @@ import {
   initData,
   mainButton,
   popup,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
+import bananaGun from "@/assets/gifs/banana-gun.gif";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -24,6 +26,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
+  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
@@ -147,31 +150,43 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
 
   return (
     <Modal
-      header={<ModalHeader />}
+      header={
+        <ModalHeader
+          style={{
+            backgroundColor: tSecondaryBgColor,
+          }}
+        />
+      }
       open={modalOpen}
       onOpenChange={onOpenChange}
     >
-      <Placeholder
-        description="Already settled your debt?"
-        header={
-          <>
-            You owe {member.firstName}{" "}
-            <span className="text-red-500">
-              {sgdFormatter.format(absAmountOwed)}
-            </span>
-          </>
-        }
+      <div
+        style={{
+          backgroundColor: tSecondaryBgColor,
+        }}
       >
-        <img
-          alt="Telegram sticker"
-          src="https://xelene.me/telegram.gif"
-          style={{
-            display: "block",
-            height: "88px",
-            width: "88px",
-          }}
-        />
-      </Placeholder>
+        <Placeholder
+          description="Already settled your debt?"
+          header={
+            <>
+              You owe {member.firstName}{" "}
+              <span className="text-red-500">
+                {sgdFormatter.format(absAmountOwed)}
+              </span>
+            </>
+          }
+        >
+          <img
+            alt="Telegram sticker"
+            src={bananaGun}
+            style={{
+              display: "block",
+              height: "88px",
+              width: "88px",
+            }}
+          />
+        </Placeholder>
+      </div>
     </Modal>
   );
 };
