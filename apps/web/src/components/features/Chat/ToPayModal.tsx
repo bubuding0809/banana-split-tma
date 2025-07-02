@@ -43,18 +43,54 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     }
   );
 
+  const sendSettlementNotificationMutation =
+    trpc.telegram.sendSettlementNotificationMessage.useMutation();
+
   const absAmountOwed = Math.abs(member.balance);
 
   const handleCreateSettlement = useCallback(async () => {
+    if (!tUserData?.firstName) {
+      popup.open.ifAvailable({
+        message: "Unable to create settlement. User data not available.",
+      });
+      return;
+    }
+
     try {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: true,
       });
+
+      // Create the settlement
       await createSettlementMutation.mutateAsync({
         amount: absAmountOwed,
         receiverId: member.id,
         senderId: userId,
         chatId,
+      });
+
+      // Send notification to creditor
+      try {
+        await sendSettlementNotificationMutation.mutateAsync({
+          chatId,
+          creditorUserId: Number(member.id),
+          creditorName: member.firstName,
+          creditorUsername: member.username || undefined,
+          debtorName: tUserData.firstName,
+          amount: absAmountOwed,
+          currency: "SGD",
+        });
+      } catch (notificationError) {
+        // Log notification error but don't fail the settlement
+        console.error(
+          "Error sending settlement notification:",
+          notificationError
+        );
+        // Settlement was successful, so we still show success
+      }
+
+      popup.open.ifAvailable({
+        message: "Settlement created successfully! 🤝",
       });
     } catch (error) {
       console.error("Error creating settlement:", error);
@@ -72,8 +108,12 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     absAmountOwed,
     chatId,
     createSettlementMutation,
+    member.firstName,
     member.id,
+    member.username,
     onOpenChange,
+    sendSettlementNotificationMutation,
+    tUserData?.firstName,
     userId,
   ]);
 

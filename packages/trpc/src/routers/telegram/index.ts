@@ -4,6 +4,7 @@ import getUserProfilePhotoUrl from "./getUserProfilePhotoUrl.js";
 import getChatMember from "./getChatMember.js";
 import sendMessage from "./sendMessage.js";
 import sendDebtReminderMessage from "./sendDebtReminderMessage.js";
+import sendSettlementNotificationMessage from "./sendSettlementNotificationMessage.js";
 
 export const telegramRouter = createTRPCRouter({
   getChat,
@@ -11,4 +12,5 @@ export const telegramRouter = createTRPCRouter({
   getChatMember,
   sendMessage,
   sendDebtReminderMessage,
+  sendSettlementNotificationMessage,
 });

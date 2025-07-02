@@ -6,21 +6,30 @@ import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
-  debtorUserId: z.number(),
-  debtorName: z.string().min(1, "Debtor name is required"),
-  debtorUsername: z.string().optional(),
+  creditorUserId: z.number(),
   creditorName: z.string().min(1, "Creditor name is required"),
+  creditorUsername: z.string().optional(),
+  debtorName: z.string().min(1, "Debtor name is required"),
   amount: z.number().positive("Amount must be positive"),
   currency: z
     .string()
     .length(3, "Currency must be a 3-letter code")
     .default("SGD"),
+  description: z.string().optional(),
 });
 
-export const sendDebtReminderMessageHandler = async (
+export const sendSettlementNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   teleBot: Telegram
 ) => {
+  // Validate business logic
+  if (input.chatId === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid chat ID. Cannot send message to chat ID 0.",
+    });
+  }
+
   // Format the amount as currency with error handling
   let formattedAmount: string;
   try {
@@ -38,21 +47,24 @@ export const sendDebtReminderMessageHandler = async (
   }
 
   // Escape names for MarkdownV2
-  const escapedCreditorName = escapeMarkdown(input.creditorName, 2);
+  const escapedDebtorName = escapeMarkdown(input.debtorName, 2);
 
   // Create user mention - prefer username if available, otherwise use name with user ID
-  let debtorMention: string;
+  let creditorMention: string;
   try {
-    debtorMention = input.debtorUsername
-      ? `@${input.debtorUsername}` // Don't escape username mentions
-      : mentionMarkdown(input.debtorUserId, input.debtorName, 2); // Already escaped in mentionMarkdown
+    creditorMention = input.creditorUsername
+      ? `@${input.creditorUsername}` // Don't escape username mentions
+      : mentionMarkdown(input.creditorUserId, input.creditorName, 2); // Already escaped in mentionMarkdown
   } catch (error) {
     // Fallback to escaped plain name if mention creation fails
-    debtorMention = escapeMarkdown(input.debtorName, 2);
+    creditorMention = escapeMarkdown(input.creditorName, 2);
   }
 
-  // Create the reminder message with pre-escaped components
-  const message = `💁 Hey ${debtorMention}, you still owe ${escapedCreditorName} ${formattedAmount}\\. Don't forget to settle up\\!`;
+  // Create the settlement notification message with pre-escaped components
+  const descriptionPart = input.description
+    ? ` \\(${escapeMarkdown(input.description, 2)}\\)`
+    : "";
+  const message = `✅ Great news ${creditorMention}\\! ${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\. Your balance has been updated\\! 💰`;
 
   // Send the message directly (no additional escaping needed)
   try {
@@ -62,10 +74,10 @@ export const sendDebtReminderMessageHandler = async (
 
     return sentMessage.message_id;
   } catch (error) {
-    console.error("Error sending debt reminder message:", error);
+    console.error("Error sending settlement notification message:", error);
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: `Failed to send message: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: `Failed to send settlement notification: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
   }
 };
@@ -73,5 +85,5 @@ export const sendDebtReminderMessageHandler = async (
 export default publicProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
-    return sendDebtReminderMessageHandler(input, ctx.teleBot);
+    return sendSettlementNotificationMessageHandler(input, ctx.teleBot);
   });
