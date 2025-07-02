@@ -132,6 +132,7 @@ Total: ${formattedTotalAmount}
 
   const chatContext = {
     chat_id: input.chatId,
+    chat_type: "supergroup", // Assuming supergroup for group chats
   };
   const base64EnchodedChatContext = btoa(JSON.stringify(chatContext));
   const botInfo = await teleBot.getMe();
