@@ -101,14 +101,14 @@ export function mentionMarkdown(
  *
  * @param botUsername - The username to link to
  * @param payload - Parameters to encode in the created URL (optional)
- * @param group - If true, prompts user to select a group to add the bot to. Defaults to false.
+ * @param type - The type of the link, either "app", "bot", or "group". Defaults to "bot".
  * @returns An URL to start the bot with specific parameters
  * @throws Error if bot_username is invalid, payload is too long, or contains invalid characters
  */
 export function createDeepLinkedUrl(
   botUsername: string,
   payload?: string,
-  group: boolean = false
+  type: "app" | "bot" | "group" = "bot"
 ): string {
   if (!botUsername || botUsername.length <= 3) {
     throw new ValueError("You must provide a valid bot_username.");
@@ -132,6 +132,19 @@ export function createDeepLinkedUrl(
     );
   }
 
-  const key = group ? "startgroup" : "start";
+  let key: string;
+  switch (type) {
+    case "app":
+      key = "startapp";
+      break;
+    case "bot":
+      key = "start";
+      break;
+    case "group":
+      key = "startgroup";
+      break;
+    default:
+      throw new ValueError("Invalid type for deep-linked URL.");
+  }
   return `${baseUrl}?${key}=${payload}`;
 }

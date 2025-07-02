@@ -129,7 +129,8 @@ Total: ${formattedTotalAmount}
   const botInfo = await teleBot.getMe();
   const deepLink = createDeepLinkedUrl(
     botInfo.username,
-    base64EnchodedChatContext
+    base64EnchodedChatContext,
+    "app"
   );
   const keyboard = inlineKeyboard([
     { text: "View Balances 💸", url: deepLink },
