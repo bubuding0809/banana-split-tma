@@ -2,7 +2,12 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
-import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
+import {
+  mentionMarkdown,
+  escapeMarkdown,
+  createDeepLinkedUrl,
+} from "../../utils/telegram.js";
+import { inlineKeyboard } from "telegraf/markup";
 
 const participantSchema = z.object({
   userId: z.number(),
@@ -127,10 +132,24 @@ Total: ${formattedTotalAmount}
 
 Balances have been updated\\!`;
 
+  const chatContext = {
+    chat_id: input.chatId,
+  };
+  const base64EnchodedChatContext = btoa(JSON.stringify(chatContext));
+  const botInfo = await teleBot.getMe();
+  const deepLink = createDeepLinkedUrl(
+    botInfo.username,
+    base64EnchodedChatContext
+  );
+  const keyboard = inlineKeyboard([
+    { text: "View Expenses 💸", url: deepLink },
+  ]);
+
   // Send the message directly (components are pre-escaped)
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
+      ...keyboard,
     });
 
     return sentMessage.message_id;
