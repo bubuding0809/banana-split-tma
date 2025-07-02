@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { publicProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
-import { mentionMarkdown } from "../../utils/telegram.js";
+import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -29,12 +29,16 @@ export const sendDebtReminderMessageHandler = async (
     : mentionMarkdown(input.debtorUserId, input.debtorName, 2);
 
   // Create the reminder message
-  const message = `💁 Hey ${debtorMention}, you still owe ${input.creditorName} ${formattedAmount}\\. Don't forget to settle up\\!`;
+  const message = `💁 Hey ${debtorMention}, you still owe ${input.creditorName} ${formattedAmount}. Don't forget to settle up!`;
 
   // Send the message
-  const sentMessage = await teleBot.sendMessage(input.chatId, message, {
-    parse_mode: "MarkdownV2",
-  });
+  const sentMessage = await teleBot.sendMessage(
+    input.chatId,
+    escapeMarkdown(message),
+    {
+      parse_mode: "MarkdownV2",
+    }
+  );
 
   return sentMessage.message_id;
 };
