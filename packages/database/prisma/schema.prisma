@@ -22,6 +22,7 @@ model Chat {
   title     String
   photo     String       @default("https://xelene.me/telegram.gif")
   type      ChatType
+  threadId  BigInt?
   members   User[]
   expenses  Expense[]
   transfers Settlement[]

@@ -32,6 +32,7 @@ const inputSchema = z.object({
     .string()
     .length(3, "Currency must be a 3-letter code")
     .default("SGD"),
+  threadId: z.number().optional(),
 });
 
 export const sendExpenseNotificationMessageHandler = async (
@@ -140,6 +141,7 @@ Total: ${formattedTotalAmount}
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
+      message_thread_id: input.threadId,
       ...keyboard,
     });
 

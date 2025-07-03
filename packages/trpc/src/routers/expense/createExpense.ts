@@ -33,6 +33,7 @@ export const inputSchema = z.object({
     )
     .optional(),
   sendNotification: z.boolean().default(true),
+  threadId: z.number().optional(),
 });
 
 export const outputSchema = z.object({
@@ -334,6 +335,7 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: "SGD",
+              threadId: input.threadId,
             },
             teleBot
           );

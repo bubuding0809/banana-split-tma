@@ -14,6 +14,7 @@ export const getChatHandler = async (
 
   return {
     ...chat,
+    threadId: chat?.threadId ? Number(chat.threadId) : undefined,
     members:
       chat?.members.map((m) => ({
         ...m,

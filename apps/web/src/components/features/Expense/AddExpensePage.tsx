@@ -51,6 +51,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
   // * From API ===================================================================================
   const createExpenseMutation = trpc.expense.createExpense.useMutation();
+  const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
 
   const form = useAppForm({
     ...formOpts,
@@ -79,6 +80,9 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           splitMode: value.splitMode,
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
+          threadId: dChatData?.threadId
+            ? Number(dChatData.threadId)
+            : undefined,
         });
 
         mainButton.setParams.ifAvailable({

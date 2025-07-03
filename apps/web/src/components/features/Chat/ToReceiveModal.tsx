@@ -27,13 +27,12 @@ const ToRecieveModal = ({
   modalOpen,
   member,
 }: ToPayModalProps) => {
-  useEffect(() => {}, [modalOpen]);
-
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const chatId = startParams?.chat_id ?? 0;
+  const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
 
   const absAmountLent = Math.abs(member.balance);
 
@@ -60,6 +59,7 @@ const ToRecieveModal = ({
         creditorName: tUserData.firstName,
         amount: absAmountLent,
         currency: "SGD",
+        threadId: dChatData?.threadId ? Number(dChatData.threadId) : undefined,
       });
       popup.open({
         message: "Reminder sent successfully! 📩",
@@ -76,6 +76,7 @@ const ToRecieveModal = ({
     }
   }, [
     absAmountLent,
+    dChatData?.threadId,
     chatId,
     member.firstName,
     member.id,

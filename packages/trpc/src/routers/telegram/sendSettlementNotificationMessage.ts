@@ -16,6 +16,7 @@ const inputSchema = z.object({
     .length(3, "Currency must be a 3-letter code")
     .default("SGD"),
   description: z.string().optional(),
+  threadId: z.number().optional(),
 });
 
 export const sendSettlementNotificationMessageHandler = async (
@@ -72,6 +73,7 @@ export const sendSettlementNotificationMessageHandler = async (
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
+      message_thread_id: input.threadId,
     });
 
     return sentMessage.message_id;

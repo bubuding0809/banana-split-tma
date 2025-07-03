@@ -30,6 +30,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
+  const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
 
   const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
     {
@@ -82,6 +83,9 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
           debtorName: tUserData.firstName,
           amount: absAmountOwed,
           currency: "SGD",
+          threadId: dChatData?.threadId
+            ? Number(dChatData.threadId)
+            : undefined,
         });
       } catch (notificationError) {
         // Log notification error but don't fail the settlement
@@ -109,6 +113,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     onOpenChange(false);
   }, [
     absAmountOwed,
+    dChatData?.threadId,
     chatId,
     createSettlementMutation,
     member.firstName,

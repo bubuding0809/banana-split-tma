@@ -5,13 +5,16 @@ import { Telegram } from "telegraf";
 const inputSchema = z.object({
   chatId: z.number(),
   message: z.string(),
+  threadId: z.number().optional(),
 });
 
 export const sendMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   teleBot: Telegram
 ) => {
-  const message = await teleBot.sendMessage(input.chatId, input.message);
+  const message = await teleBot.sendMessage(input.chatId, input.message, {
+    message_thread_id: input.threadId,
+  });
   return message.message_id;
 };
 
