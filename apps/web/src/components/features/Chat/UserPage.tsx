@@ -1,26 +1,47 @@
-import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { trpc } from "@/utils/trpc";
-import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Title } from "@telegram-apps/telegram-ui";
+import { mainButton, openTelegramLink } from "@telegram-apps/sdk-react";
+import { Placeholder } from "@telegram-apps/telegram-ui";
+import { useEffect } from "react";
 
 const UserPage = () => {
-  const tUserData = useSignal(initData.user);
+  useEffect(() => {
+    mainButton.setParams.ifAvailable({
+      text: "Add me to a group",
+      isEnabled: true,
+      isVisible: true,
+    });
 
-  const { data: duserData } = trpc.user.getUser.useQuery({
-    userId: tUserData?.id ?? 0,
-  });
+    const offMainButtonClick = mainButton.onClick.ifAvailable(() => {
+      // This will open the Telegram app to add the bot to a group
+      openTelegramLink(
+        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup`
+      );
+    });
+
+    return () => {
+      offMainButtonClick?.();
+      mainButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+    };
+  }, []);
 
   return (
     <div className="p-4">
-      <Title>User: {tUserData?.firstName}</Title>
-      <div className="mt-1.5 flex gap-2">
-        <ChatMemberAvatar userId={tUserData?.id ?? 0} size={48} />
-        <pre className="overflow-auto">
-          <code className="truncate text-wrap">
-            {JSON.stringify(duserData, null, 2)}
-          </code>
-        </pre>
-      </div>
+      <Placeholder
+        header="Nothing to see here"
+        description="Add me to a group to start splitting expenses"
+      >
+        <img
+          alt="Telegram sticker"
+          src="https://xelene.me/telegram.gif"
+          style={{
+            display: "block",
+            height: "144px",
+            width: "144px",
+          }}
+        />
+      </Placeholder>
     </div>
   );
 };
