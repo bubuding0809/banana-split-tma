@@ -1,8 +1,14 @@
-import { mainButton, openTelegramLink } from "@telegram-apps/sdk-react";
+import {
+  mainButton,
+  openTelegramLink,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { Placeholder } from "@telegram-apps/telegram-ui";
 import { useEffect } from "react";
 
 const UserPage = () => {
+  const isMainButtonMounted = useSignal(mainButton.isMounted);
+
   useEffect(() => {
     mainButton.setParams.ifAvailable({
       text: "Add me to a group",
@@ -24,7 +30,7 @@ const UserPage = () => {
         isEnabled: false,
       });
     };
-  }, []);
+  }, [isMainButtonMounted]);
 
   return (
     <div className="p-4">
