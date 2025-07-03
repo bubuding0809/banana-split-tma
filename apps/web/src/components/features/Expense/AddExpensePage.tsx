@@ -89,7 +89,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           to: "..",
           search: (prev) => ({
             ...prev,
-            selectedSegment: prevSegment,
+            selectedSegment: "balance",
             title: "👥 Group",
           }),
         });
