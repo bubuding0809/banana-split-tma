@@ -5,6 +5,7 @@ import {
 } from "@telegram-apps/sdk-react";
 import { Placeholder } from "@telegram-apps/telegram-ui";
 import { useEffect } from "react";
+import bananaMiddleFinger from "@/assets/gifs/banana-middle-finger.gif";
 
 const UserPage = () => {
   const isMainButtonMounted = useSignal(mainButton.isMounted);
@@ -40,7 +41,7 @@ const UserPage = () => {
       >
         <img
           alt="Telegram sticker"
-          src="https://xelene.me/telegram.gif"
+          src={bananaMiddleFinger}
           style={{
             display: "block",
             height: "144px",
