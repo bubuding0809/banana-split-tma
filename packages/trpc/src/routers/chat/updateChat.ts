@@ -61,16 +61,9 @@ export const updateChatHandler = async (
       updateData.type = input.type;
     }
 
-    // Update the chat
     const updatedChat = await db.chat.update({
       where: { id: input.chatId },
       data: updateData,
-    });
-
-    // Log successful update for monitoring
-    console.log(`Chat ${input.chatId} updated successfully:`, {
-      updatedFields: Object.keys(updateData),
-      threadId: updatedChat.threadId ? Number(updatedChat.threadId) : undefined,
     });
 
     return {
@@ -84,17 +77,6 @@ export const updateChatHandler = async (
 
     // Log the error for debugging
     console.error("Error updating chat:", error);
-
-    // Handle Prisma constraint violations
-    if (
-      error instanceof Error &&
-      error.message.includes("Unique constraint failed")
-    ) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "Chat update failed due to constraint violation",
-      });
-    }
 
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
