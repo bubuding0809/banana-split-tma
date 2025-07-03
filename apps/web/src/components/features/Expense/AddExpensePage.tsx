@@ -73,7 +73,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         await createExpenseMutation.mutateAsync({
           chatId: chatId,
           creatorId: userId,
-          payerId: Number(value.payee), // FIX: Actually send the payee data!
+          payerId: Number(value.payee),
           description: value.description,
           amount: Number(value.amount),
           splitMode: value.splitMode,
@@ -89,8 +89,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           to: "..",
           search: (prev) => ({
             ...prev,
-            selectedSegment: "balance",
-            title: "👥 Group",
+            selectedSegment: "expense",
           }),
         });
       } catch (error) {
