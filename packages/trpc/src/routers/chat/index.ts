@@ -8,10 +8,12 @@ import getDebtors from "./getDebtors.js";
 import getMembers from "./getMembers.js";
 import hasMember from "./hasMember.js";
 import removeMember from "./removeMember.js";
+import updateChat from "./updateChat.js";
 
 export const chatRouter = createTRPCRouter({
   createChat,
   getChat,
+  updateChat,
   addMember,
   removeMember,
   getMembers,
