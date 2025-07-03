@@ -83,7 +83,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   // Check for API key authentication
   if (apiKey) {
     const validApiKey = process.env.API_KEY;
-    console.log("Valid API Key:", validApiKey);
     if (!validApiKey || apiKey !== validApiKey) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -126,7 +125,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
       user = parseInitData(initData).user ?? null;
       authType = "telegram";
-      console.log("Parsed Telegram user:", user);
     } catch (error) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -141,6 +139,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       message:
         "Authentication required. Provide either X-Api-Key header or Authorization header with Telegram initData",
     });
+  }
+
+  console.info(`Authenticated via ${authType}`);
+  if (authType === "telegram") {
+    console.info(
+      `Authenticated user: ${user?.id} (${user?.username || "no username"})`
+    );
   }
 
   return next({

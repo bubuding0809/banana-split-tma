@@ -48,7 +48,6 @@ function LayoutComponent() {
       !isFullScreen &&
       !NON_MOBILE_PLATFORMS.includes(launchParams.platform)
     ) {
-      console.log("Requesting fullscreen for viewport");
       viewport.requestFullscreen();
     }
   }, [isFullScreen, isViewPortMounted, launchParams.platform]);
