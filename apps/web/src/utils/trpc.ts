@@ -4,6 +4,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { TRPCClientError } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@dko/trpc";
+import { initDataRaw } from "@telegram-apps/sdk-react";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,11 @@ export const trpcClient = trpc.createClient({
     httpBatchLink({
       url: import.meta.env.VITE_TRPC_URL ?? "/trpc",
       transformer: superjson,
+      async headers() {
+        return {
+          Authorization: `tma ${initDataRaw()}`,
+        };
+      },
     }),
   ],
 });
