@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { SplitMode } from "@dko/database";
 import { Decimal } from "decimal.js";
 import {
@@ -363,7 +363,7 @@ export const createExpenseHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "POST",

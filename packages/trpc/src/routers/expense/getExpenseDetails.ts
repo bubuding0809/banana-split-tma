@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { Prisma } from "@dko/database";
 
 const inputSchema = z.object({
@@ -40,7 +40,7 @@ const getExpenseDetailsHandler = async (
   };
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getExpenseDetailsHandler(input, ctx.db);

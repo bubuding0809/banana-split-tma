@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
@@ -31,7 +31,7 @@ const getTotalBorrowedHandler = async (
   return toNumber(sumAmounts(amounts));
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getTotalBorrowedHandler(input, ctx.db);

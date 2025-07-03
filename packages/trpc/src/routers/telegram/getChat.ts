@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc.js";
+import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
 
 const inputSchema = z.object({ chatId: z.number() });
@@ -27,7 +27,7 @@ export const getChatHandler = async (
   };
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getChatHandler(input, ctx.teleBot);

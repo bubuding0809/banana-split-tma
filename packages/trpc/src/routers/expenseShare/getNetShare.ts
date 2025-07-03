@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
@@ -91,7 +91,7 @@ export const getNetShareHandler = async (
   return toNumber(netAmountDecimal);
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getNetShareHandler(input, ctx.db);

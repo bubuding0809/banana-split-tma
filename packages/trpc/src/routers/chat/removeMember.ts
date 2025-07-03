@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
   chatId: z
@@ -22,7 +22,7 @@ export const removeMemberHandler = async (
   });
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
     return removeMemberHandler(input, ctx.db);

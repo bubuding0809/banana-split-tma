@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc.js";
+import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
 
 const inputSchema = z.object({
@@ -15,7 +15,7 @@ export const sendMessageHandler = async (
   return message.message_id;
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
     return sendMessageHandler(input, ctx.teleBot);

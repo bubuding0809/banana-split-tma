@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -65,7 +65,7 @@ export const createUserHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "POST",

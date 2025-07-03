@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 
 export const inputSchema = z.object({
   expenseId: z.string(),
@@ -56,7 +56,7 @@ export const deleteExpenseHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "DELETE",

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure } from "../../trpc.js";
+import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
 import {
   mentionMarkdown,
@@ -153,7 +153,7 @@ Total: ${formattedTotalAmount}
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
     return sendExpenseNotificationMessageHandler(input, ctx.teleBot);

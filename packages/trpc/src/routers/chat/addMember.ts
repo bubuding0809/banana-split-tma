@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { ChatType } from "@dko/database";
 
 export const inputSchema = z.object({
@@ -71,7 +71,7 @@ export const addMemberHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "PUT",

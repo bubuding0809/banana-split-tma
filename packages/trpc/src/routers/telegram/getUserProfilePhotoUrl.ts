@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc.js";
+import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
 
 const inputSchema = z.object({ userId: z.number() });
@@ -16,7 +16,7 @@ export const getUserProfilePhotoUrlHandler = async (
   return teleBot.getFileLink(targetPhoto.file_id);
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getUserProfilePhotoUrlHandler(input, ctx.teleBot);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 
 const inputSchema = z.object({ chatId: z.number() });
 
@@ -22,7 +22,7 @@ export const getChatHandler = async (
   };
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getChatHandler(input, ctx.db);

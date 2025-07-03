@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import {
   toNumber,
   toDecimal,
@@ -120,7 +120,7 @@ export const createSettlementHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "POST",

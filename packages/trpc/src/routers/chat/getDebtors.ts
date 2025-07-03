@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { getNetShareHandler } from "../expenseShare/getNetShare.js";
 import { getMembersHandler } from "./getMembers.js";
 import { isDebtor } from "../../utils/financial.js";
@@ -45,7 +45,7 @@ const getDebtorsHandler = async (
   }));
 };
 
-export default publicProcedure
+export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
     return getDebtorsHandler(input, ctx.db);
