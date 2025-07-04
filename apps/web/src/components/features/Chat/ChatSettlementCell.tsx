@@ -14,7 +14,7 @@ interface ChatSettlementCellProps {
 }
 
 const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
-  const { senderId, receiverId, chatId, amount, date } = settlement;
+  const { senderId, receiverId, chatId, amount } = settlement;
   const tUserData = useSignal(initData.user);
 
   // * Queries =====================================================================================
