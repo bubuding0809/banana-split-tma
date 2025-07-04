@@ -20,7 +20,7 @@ const UserPage = () => {
     const offMainButtonClick = mainButton.onClick.ifAvailable(() => {
       // This will open the Telegram app to add the bot to a group
       openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup`
+        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup=group_add`
       );
     });
 
