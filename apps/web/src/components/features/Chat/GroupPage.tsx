@@ -27,6 +27,7 @@ import { trpc } from "@utils/trpc";
 
 import ChatBalanceSegment from "./ChatBalanceSegment";
 import ChatExpenseSegment from "./ChatExpenseSegment";
+import ChatSettlementSegment from "./ChatSettlementSegment";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -66,7 +67,7 @@ const GroupPage = () => {
     creditors?.reduce((acc, creditor) => acc + creditor.balance, 0) ?? 0
   );
 
-  const handleSegmentChange = (segment: "expense" | "balance") => {
+  const handleSegmentChange = (segment: typeof selectedSegment) => {
     hapticFeedback.selectionChanged();
     navigate({
       search: (prev) => ({
@@ -97,6 +98,12 @@ const GroupPage = () => {
     },
     { enabled: userId !== 0 && chatId !== 0 }
   );
+
+  const SelectedSegment = {
+    balance: ChatBalanceSegment,
+    expense: ChatExpenseSegment,
+    settlement: ChatSettlementSegment,
+  }[selectedSegment];
 
   if (isDUserLoading || isDChatDataLoading) {
     return (
@@ -209,12 +216,15 @@ const GroupPage = () => {
           >
             💸 Expenses
           </SegmentedControlItem>
+          <SegmentedControlItem
+            onClick={() => handleSegmentChange("settlement")}
+            selected={selectedSegment === "settlement"}
+          >
+            🤝 Settlements
+          </SegmentedControlItem>
         </SegmentedControl>
-        {selectedSegment === "expense" ? (
-          <ChatExpenseSegment chatId={chatId} />
-        ) : (
-          <ChatBalanceSegment chatId={chatId} />
-        )}
+
+        <SelectedSegment chatId={chatId} />
       </section>
     </main>
   );

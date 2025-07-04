@@ -1,13 +1,9 @@
-import {
-  Cell,
-  Placeholder,
-  Section,
-  Subheadline,
-} from "@telegram-apps/telegram-ui";
+import { Placeholder, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { useMemo } from "react";
 
 import { trpc } from "@utils/trpc";
 import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
+import ChatSettlementCell from "./ChatSettlementCell";
 
 interface ChatSettlementSegmentProps {
   chatId: number;
@@ -94,11 +90,7 @@ const ChatSettlementSegment = ({ chatId }: ChatSettlementSegmentProps) => {
             }
           >
             {settlements.map((settlement) => (
-              <Cell key={settlement.id}>
-                {settlement.senderId} settled {settlement.amount} with{" "}
-                {settlement.receiverId} on{" "}
-                {new Date(settlement.date).toLocaleDateString()}
-              </Cell>
+              <ChatSettlementCell key={settlement.id} settlement={settlement} />
             ))}
           </Section>
         );
