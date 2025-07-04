@@ -2,7 +2,6 @@ import { initData, useSignal } from "@telegram-apps/sdk-react";
 import { Caption, Cell, Info, Skeleton } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
-
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
