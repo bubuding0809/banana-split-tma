@@ -18,6 +18,10 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
   const { data: expenses } = trpc.expense.getExpenseByChat.useQuery({
     chatId,
   });
+  const { data: settlements } = trpc.settlement.getSettlementByChat.useQuery({
+    chatId,
+  });
+  console.log("settlements", settlements);
 
   // * Effects ====================================================================================
 
