@@ -12,7 +12,7 @@ import {
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
-import bananaLoudSpeaker from "@/assets/gifs/banana-loudspeaker.gif";
+import { assetUrls } from "@/assets/urls";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -143,7 +143,7 @@ const ToRecieveModal = ({
         >
           <img
             alt="Telegram sticker"
-            src={bananaLoudSpeaker}
+            src={assetUrls.bananaLoudSpeaker}
             style={{
               display: "block",
               height: "88px",

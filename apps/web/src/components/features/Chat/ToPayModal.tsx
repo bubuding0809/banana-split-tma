@@ -12,7 +12,7 @@ import {
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
-import bananaGun from "@/assets/gifs/banana-gun.gif";
+import { assetUrls } from "@/assets/urls";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -183,7 +183,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         >
           <img
             alt="Telegram sticker"
-            src={bananaGun}
+            src={assetUrls.bananaGun}
             style={{
               display: "block",
               height: "88px",
