@@ -1,28 +1,31 @@
-import { Placeholder, Section, Subheadline } from "@telegram-apps/telegram-ui";
+import {
+  Cell,
+  Placeholder,
+  Section,
+  Subheadline,
+} from "@telegram-apps/telegram-ui";
 import { useMemo } from "react";
 
 import { trpc } from "@utils/trpc";
 import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
 
-import ChatExpenseCell from "./ChatExpenseCell";
-
-interface ChatExpenseSegmentProps {
+interface ChatSettlementSegmentProps {
   chatId: number;
 }
-const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
+const ChatSettlementSegment = ({ chatId }: ChatSettlementSegmentProps) => {
   // * Queries ====================================================================================
-  const { data: expenses } = trpc.expense.getExpenseByChat.useQuery({
+  const { data: settlements } = trpc.settlement.getSettlementByChat.useQuery({
     chatId,
   });
 
-  // Allocate expenses into month buckets then sort them by date
-  const { groupedExpenses, sortedKeys } = useMemo(() => {
-    // Group expenses by year - month
-    const groupedExpenses =
-      expenses?.reduce(
+  // Allocate settlements into month buckets then sort them by date
+  const { groupedSettlements, sortedKeys } = useMemo(() => {
+    // Group settlements by year - month
+    const groupedSettlements =
+      settlements?.reduce(
         (acc, curr) => {
-          const expenseDate = new Date(curr.date);
-          const { month, year } = getMonthYear(expenseDate);
+          const settlementDate = new Date(curr.date);
+          const { month, year } = getMonthYear(settlementDate);
 
           // Format: YYYY-MM (month is 0-indexed from getMonth)
           const key = `${year}-${(month + 1).toString().padStart(2, "0")}`;
@@ -37,33 +40,33 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
 
           return acc;
         },
-        {} as Record<string, typeof expenses>
+        {} as Record<string, typeof settlements>
       ) ?? {};
 
-    // Sort expenses by date (descending)
-    Object.entries(groupedExpenses).forEach(([key, value]) => {
-      groupedExpenses[key] = value.sort((a, b) => {
+    // Sort settlements by date (descending)
+    Object.entries(groupedSettlements).forEach(([key, value]) => {
+      groupedSettlements[key] = value.sort((a, b) => {
         return compareDatesDesc(new Date(a.date), new Date(b.date));
       });
     });
 
     // Sort the keys (year-month) in descending order
-    const sortedKeys = Object.keys(groupedExpenses).sort((a, b) => {
+    const sortedKeys = Object.keys(groupedSettlements).sort((a, b) => {
       return compareDatesDesc(new Date(a), new Date(b));
     });
 
     return {
-      groupedExpenses,
+      groupedSettlements,
       sortedKeys,
     };
-  }, [expenses]);
+  }, [settlements]);
 
   return (
     <>
-      {expenses?.length === 0 && (
+      {settlements?.length === 0 && (
         <Placeholder
-          header="No expenses yet"
-          description="Add an expense to keep track of your spendings"
+          header="No settlements yet"
+          description="Add an settlement to keep track of your spendings"
         >
           <img
             alt="Telegram sticker"
@@ -78,7 +81,7 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
       )}
 
       {sortedKeys.map((key) => {
-        const expenses = groupedExpenses[key];
+        const settlements = groupedSettlements[key];
         const dateDisplay = formatMonthYear(new Date(key));
 
         return (
@@ -90,8 +93,12 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
               </div>
             }
           >
-            {expenses.map((expense) => (
-              <ChatExpenseCell key={expense.id} expense={expense} />
+            {settlements.map((settlement) => (
+              <Cell key={settlement.id}>
+                {settlement.senderId} settled {settlement.amount} with{" "}
+                {settlement.receiverId} on{" "}
+                {new Date(settlement.date).toLocaleDateString()}
+              </Cell>
             ))}
           </Section>
         );
@@ -100,4 +107,4 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
   );
 };
 
-export default ChatExpenseSegment;
+export default ChatSettlementSegment;
