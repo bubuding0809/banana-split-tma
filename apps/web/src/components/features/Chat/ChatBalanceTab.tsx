@@ -4,10 +4,10 @@ import { Caption, Section, Title } from "@telegram-apps/telegram-ui";
 import ChatBalanceCell from "./ChatBalanceCell";
 import { trpc } from "@/utils/trpc";
 
-interface ChatBalanceSegmentProps {
+interface ChatBalanceTabProps {
   chatId: number;
 }
-const ChatBalanceSegment = ({ chatId }: ChatBalanceSegmentProps) => {
+const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
   // * Hooks =======================================================================================
   const tUserData = useSignal(initData.user);
 
@@ -26,7 +26,7 @@ const ChatBalanceSegment = ({ chatId }: ChatBalanceSegmentProps) => {
       <Section
         header={
           <Title weight="2" className="px-1 py-2" level="3">
-            Owes you
+            🤑 Collectables
           </Title>
         }
       >
@@ -46,7 +46,7 @@ const ChatBalanceSegment = ({ chatId }: ChatBalanceSegmentProps) => {
       <Section
         header={
           <Title weight="2" className="px-1 py-2" level="3">
-            You owe
+            🚨 Debts
           </Title>
         }
       >
@@ -67,4 +67,4 @@ const ChatBalanceSegment = ({ chatId }: ChatBalanceSegmentProps) => {
   );
 };
 
-export default ChatBalanceSegment;
+export default ChatBalanceTab;

@@ -88,12 +88,10 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
             : undefined,
         });
       } catch (notificationError) {
-        // Log notification error but don't fail the settlement
         console.error(
           "Error sending settlement notification:",
           notificationError
         );
-        // Settlement was successful, so we still show success
       }
 
       popup.open.ifAvailable({
@@ -125,30 +123,32 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     userId,
   ]);
 
+  // Set main button parameters when modal opens
   useEffect(() => {
-    let offMainButtonClick: ReturnType<typeof mainButton.onClick> | undefined;
+    if (!modalOpen) return;
 
-    if (modalOpen) {
-      mainButton.setParams.ifAvailable({
-        text: "Yup, I settled! 🤝",
-        isEnabled: true,
-        isVisible: true,
-      });
-
-      offMainButtonClick = mainButton.onClick(handleCreateSettlement);
-    } else {
-      mainButton.setParams({
-        isEnabled: false,
-        isVisible: false,
-      });
-      offMainButtonClick?.();
-    }
+    mainButton.setParams.ifAvailable({
+      text: "Yup, I settled! 🤝",
+      isEnabled: true,
+      isVisible: true,
+    });
 
     return () => {
-      mainButton.setParams({
+      mainButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
+    };
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const offMainButtonClick = mainButton.onClick.ifAvailable(
+      handleCreateSettlement
+    );
+
+    return () => {
       offMainButtonClick?.();
     };
   }, [handleCreateSettlement, modalOpen]);

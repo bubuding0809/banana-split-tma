@@ -23,7 +23,7 @@ import useStartParams from "@hooks/useStartParams";
 import { ArrowRightLeft, FileSpreadsheet, Plus } from "lucide-react";
 import { useEffect } from "react";
 import { trpc } from "@utils/trpc";
-import ChatBalanceSegment from "./ChatBalanceSegment";
+import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -97,7 +97,7 @@ const GroupPage = () => {
   );
 
   const SelectedTab = {
-    balance: ChatBalanceSegment,
+    balance: ChatBalanceTab,
     transaction: ChatTransactionTab,
   }[selectedTab];
 

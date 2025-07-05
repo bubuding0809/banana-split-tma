@@ -85,30 +85,32 @@ const ToRecieveModal = ({
     tUserData?.firstName,
   ]);
 
+  // Set main button parameters when modal opens
   useEffect(() => {
-    let offMainButtonClick: ReturnType<typeof mainButton.onClick> | undefined;
+    if (!modalOpen) return;
 
-    if (modalOpen) {
-      mainButton.setParams.ifAvailable({
-        text: "Not yet, send a reminder! 💬",
-        isEnabled: true,
-        isVisible: true,
-      });
-
-      offMainButtonClick = mainButton.onClick(handleSendReminder);
-    } else {
-      mainButton.setParams({
-        isEnabled: false,
-        isVisible: false,
-      });
-      offMainButtonClick?.();
-    }
+    mainButton.setParams.ifAvailable({
+      text: "Not yet, send a reminder! 💬",
+      isEnabled: true,
+      isVisible: true,
+    });
 
     return () => {
-      mainButton.setParams({
+      mainButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
+    };
+  }, [modalOpen]);
+
+  // Attach button handlers
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const offMainButtonClick =
+      mainButton.onClick.ifAvailable(handleSendReminder);
+
+    return () => {
       offMainButtonClick?.();
     };
   }, [handleSendReminder, modalOpen]);
