@@ -5,7 +5,7 @@ import { z } from "zod";
 import AddExpensePage from "@components/features/Expense/AddExpensePage";
 
 const searchSchema = z.object({
-  prevSegment: z.enum(["balance", "expense"]).catch("balance"),
+  prevTab: z.enum(["balance", "transaction"]).catch("balance"),
   currentFormStep: z.number().catch(0),
   membersExpanded: z.boolean().catch(false),
 });

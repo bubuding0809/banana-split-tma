@@ -10,7 +10,7 @@ interface SettleUpPageProps {
 }
 
 const SettleUpPage = ({ chatId, userId }: SettleUpPageProps) => {
-  const { prevSegment } = routeApi.useSearch();
+  const { prevTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
   useEffect(() => {
@@ -18,7 +18,7 @@ const SettleUpPage = ({ chatId, userId }: SettleUpPageProps) => {
       navigate({
         to: "../..",
         search: {
-          selectedSegment: prevSegment,
+          selectedTab: prevTab,
           title: "👥 Group",
         },
       });
@@ -28,7 +28,7 @@ const SettleUpPage = ({ chatId, userId }: SettleUpPageProps) => {
       offClick();
       backButton.hide.ifAvailable();
     };
-  }, [chatId, navigate, prevSegment]);
+  }, [chatId, navigate, prevTab]);
 
   return (
     <div>

@@ -8,22 +8,18 @@ interface ChatBalanceSegmentProps {
   chatId: number;
 }
 const ChatBalanceSegment = ({ chatId }: ChatBalanceSegmentProps) => {
-  // * Hooks ======================================================================================
+  // * Hooks =======================================================================================
   const tUserData = useSignal(initData.user);
 
-  // * Variables ==================================================================================
+  // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
 
-  // * Queries ====================================================================================
+  // * Queries =====================================================================================
   const { data: debtors } = trpc.chat.getDebtors.useQuery({ userId, chatId });
   const { data: creditors } = trpc.chat.getCreditors.useQuery({
     userId,
     chatId,
   });
-
-  // * Effects ====================================================================================
-
-  // * Handlers ===================================================================================
 
   return (
     <div className="flex flex-col gap-4">

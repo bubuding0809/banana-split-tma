@@ -5,7 +5,7 @@ import { z } from "zod";
 import SettleUpPage from "@components/features/Settlement/SettleUpPage";
 
 const searchSchema = z.object({
-  prevSegment: z.enum(["balance", "expense"]).catch("balance"),
+  prevTab: z.enum(["balance", "transaction"]).catch("balance"),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId_/settle-debt/$userId")(

@@ -45,7 +45,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
-  const { prevSegment, currentFormStep } = routeApi.useSearch();
+  const { prevTab, currentFormStep } = routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
 
@@ -93,7 +93,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           to: "..",
           search: (prev) => ({
             ...prev,
-            selectedSegment: "expense",
+            selectedTab: "transaction",
           }),
         });
       } catch (error) {
@@ -126,7 +126,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         return navigate({
           to: "..",
           search: {
-            selectedSegment: prevSegment,
+            selectedTab: prevTab,
             title: "👥 Group",
           },
         });
@@ -143,7 +143,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, navigate, prevSegment]);
+  }, [chatId, currentFormStep, navigate, prevTab]);
 
   // Show main button on mount
   useEffect(() => {

@@ -13,27 +13,24 @@ import {
   Divider,
   LargeTitle,
   Navigation,
-  SegmentedControl,
+  Text,
   Spinner,
   Subheadline,
+  TabsList,
 } from "@telegram-apps/telegram-ui";
-import { SegmentedControlItem } from "@telegram-apps/telegram-ui/dist/components/Navigation/SegmentedControl/components/SegmentedControlItem/SegmentedControlItem";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
-import { Plus } from "lucide-react";
+import { ArrowRightLeft, FileSpreadsheet, Plus } from "lucide-react";
 import { useEffect } from "react";
-
 import { trpc } from "@utils/trpc";
-
 import ChatBalanceSegment from "./ChatBalanceSegment";
-import ChatExpenseSegment from "./ChatExpenseSegment";
-import ChatSettlementSegment from "./ChatSettlementSegment";
+import ChatTransactionTab from "./ChatTransactionTab";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 const GroupPage = () => {
   // * Hooks ======================================================================================
-  const { selectedSegment } = routeApi.useSearch();
+  const { selectedTab: selectedTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const tStartParams = useStartParams();
   const tUserData = useSignal(initData.user);
@@ -67,12 +64,12 @@ const GroupPage = () => {
     creditors?.reduce((acc, creditor) => acc + creditor.balance, 0) ?? 0
   );
 
-  const handleSegmentChange = (segment: typeof selectedSegment) => {
+  const handleSegmentChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
     navigate({
       search: (prev) => ({
         ...prev,
-        selectedSegment: segment,
+        selectedTab: tab,
       }),
     });
   };
@@ -99,11 +96,10 @@ const GroupPage = () => {
     { enabled: userId !== 0 && chatId !== 0 }
   );
 
-  const SelectedSegment = {
+  const SelectedTab = {
     balance: ChatBalanceSegment,
-    expense: ChatExpenseSegment,
-    settlement: ChatSettlementSegment,
-  }[selectedSegment];
+    transaction: ChatTransactionTab,
+  }[selectedTab];
 
   if (isDUserLoading || isDChatDataLoading) {
     return (
@@ -186,7 +182,7 @@ const GroupPage = () => {
           chatId: chatId.toString(),
         }}
         search={{
-          prevSegment: selectedSegment,
+          prevTab: selectedTab,
           title: "➕ Add expense",
         }}
       >
@@ -202,29 +198,32 @@ const GroupPage = () => {
 
       <Divider className="mx-4" />
 
-      <section className="flex flex-col gap-2 px-4">
-        <SegmentedControl>
-          <SegmentedControlItem
+      <section className="flex flex-col gap-4 px-4">
+        <TabsList>
+          <TabsList.Item
             onClick={() => handleSegmentChange("balance")}
-            selected={selectedSegment === "balance"}
+            selected={selectedTab === "balance"}
           >
-            ⚖️ Balances
-          </SegmentedControlItem>
-          <SegmentedControlItem
-            onClick={() => handleSegmentChange("expense")}
-            selected={selectedSegment === "expense"}
+            <div className="flex items-center justify-center gap-1">
+              <FileSpreadsheet />
+              <Text weight={selectedTab === "balance" ? "2" : "3"}>
+                Balances
+              </Text>
+            </div>
+          </TabsList.Item>
+          <TabsList.Item
+            onClick={() => handleSegmentChange("transaction")}
+            selected={selectedTab === "transaction"}
           >
-            💸 Expenses
-          </SegmentedControlItem>
-          <SegmentedControlItem
-            onClick={() => handleSegmentChange("settlement")}
-            selected={selectedSegment === "settlement"}
-          >
-            🤝 Settlements
-          </SegmentedControlItem>
-        </SegmentedControl>
-
-        <SelectedSegment chatId={chatId} />
+            <div className="flex items-center justify-center gap-1">
+              <ArrowRightLeft />
+              <Text weight={selectedTab === "transaction" ? "2" : "3"}>
+                Transactions
+              </Text>
+            </div>
+          </TabsList.Item>
+        </TabsList>
+        <SelectedTab chatId={chatId} />
       </section>
     </main>
   );
