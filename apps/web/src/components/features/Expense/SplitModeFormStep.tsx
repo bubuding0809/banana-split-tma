@@ -2,7 +2,6 @@ import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { SplitModeType } from "./AddExpenseForm.type";
 import {
-  Input,
   Caption,
   Section,
   Cell,
@@ -23,25 +22,18 @@ import {
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
 import { useEffect } from "react";
-import {
-  Check,
-  DollarSign,
-  Percent,
-  Equal,
-  Pizza,
-  ChevronUp,
-} from "lucide-react";
+import { Equal, Pizza, Plus, Minus } from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
 import ModalHeader from "@/components/ui/ModalHeader";
-import Decimal from "decimal.js";
 import {
   toDecimal,
   toNumber,
   sumDecimals,
   formatCurrency,
 } from "@/utils/financial";
+import { useStore } from "@tanstack/react-form";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
@@ -131,7 +123,6 @@ const SplitModeFormStep = withForm({
 
     const handleSplitModeChange = (mode: SplitModeType) => {
       form.setFieldValue("splitMode", mode);
-      // Reset custom splits when changing mode
       form.setFieldValue("customSplits", []);
     };
 
@@ -409,67 +400,148 @@ const SplitShareConfig = withForm({
     isLastStep: true,
   },
   render: function Render({ form }) {
+    const tButtonColor = useSignal(themeParams.buttonColor);
+    const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+    const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
     const tStartParams = useStartParams();
     const chatId = tStartParams?.chat_id ?? 0;
+    const { customSplits } = useStore(form.store, (state) => ({
+      customSplits: state.values.customSplits,
+    }));
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
+
     return (
-      <form.AppField name="participants">
-        {(field) => (
-          <section>
-            <Section
-              header={<Section.Header large>Who is involved?</Section.Header>}
-            >
-              {chatMembers?.map((member) => {
-                const memberId = Number(member.id).toString();
-                const isPayee = memberId === form.state.values.payee;
+      <form.AppField name="customSplits">
+        {(field) => {
+          const handleSharesChange = (userId: string, shares: string) => {
+            if (shares === "0") {
+              form.setFieldValue("participants", (prev) => {
+                return prev.filter((p) => p !== userId);
+              });
+            }
 
-                return (
-                  <Cell
-                    Component="label"
-                    key={memberId}
-                    subtitle={`${member?.firstName} ${member?.lastName || ""}`}
-                    before={
-                      <ChatMemberAvatar userId={Number(memberId)} size={48} />
-                    }
-                    after={
-                      <Checkbox
-                        name="checkbox"
-                        value={memberId}
-                        onBlur={field.handleBlur}
-                        checked={field.state.value.includes(memberId)}
-                        onChange={(e) =>
-                          field.handleChange((prev) => {
-                            const currentParticipants = prev;
-                            const isSelected = currentParticipants.includes(
-                              e.target.value
-                            );
+            if (shares === "1") {
+              form.setFieldValue("participants", (prev) => {
+                if (!prev.includes(userId)) {
+                  return [...prev, userId];
+                }
+                return prev;
+              });
+            }
 
-                            if (isSelected) {
-                              return currentParticipants.filter(
-                                (p) => p !== memberId
+            const newSplits = [...customSplits];
+            const existingIndex = newSplits.findIndex(
+              (s) => s.userId === userId
+            );
+
+            if (existingIndex >= 0) {
+              newSplits[existingIndex] = { userId, amount: shares };
+            } else {
+              newSplits.push({ userId, amount: shares });
+            }
+
+            field.handleChange(newSplits);
+          };
+          return (
+            <section>
+              <Section
+                header={<Section.Header large>Who is involved?</Section.Header>}
+              >
+                {chatMembers?.map((member) => {
+                  const memberId = Number(member.id).toString();
+                  const isPayee = memberId === form.state.values.payee;
+                  const shares =
+                    customSplits.find((s) => s.userId === memberId)?.amount ||
+                    "0";
+
+                  return (
+                    <Cell
+                      key={memberId}
+                      subtitle={`${member?.firstName} ${member?.lastName || ""}`}
+                      before={
+                        <div className="relative">
+                          <Badge
+                            type="number"
+                            className={cn(
+                              "absolute -right-3 -top-1 z-10",
+                              shares === "0" ? "invisible" : ""
+                            )}
+                          >
+                            {shares}
+                          </Badge>
+                          <ChatMemberAvatar
+                            userId={Number(memberId)}
+                            size={48}
+                          />
+                        </div>
+                      }
+                      after={
+                        <div className="flex items-center gap-1">
+                          <button
+                            style={{
+                              backgroundColor: tDesctructiveTextColor,
+                              color: tButtonTextColor,
+                            }}
+                            className={cn(
+                              "flex h-8 w-10 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
+                              shares === "0" ? "invisible w-0" : "w-10"
+                            )}
+                            onClick={() => {
+                              if (shares === "0") return;
+                              hapticFeedback.impactOccurred("medium");
+                              handleSharesChange(
+                                memberId,
+                                (Number(shares) - 1).toString()
                               );
-                            } else {
-                              return [...currentParticipants, memberId];
-                            }
-                          })
-                        }
-                      />
-                    }
-                    titleBadge={
-                      isPayee ? <Badge type="number">Paid</Badge> : <></>
-                    }
-                  >
-                    @{member?.username || "Unknown"}{" "}
-                  </Cell>
-                );
-              })}
-            </Section>
-            <div className="mt-3">
-              <FieldInfo />
-            </div>
-          </section>
-        )}
+                            }}
+                          >
+                            <Minus size={22} strokeWidth={3} />
+                          </button>
+                          <button
+                            style={{
+                              backgroundColor: tButtonColor,
+                              color: tButtonTextColor,
+                            }}
+                            className={cn(
+                              "flex h-8 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
+                              shares === "0" ? "w-20" : "w-10"
+                            )}
+                            onClick={() => {
+                              hapticFeedback.impactOccurred("medium");
+                              handleSharesChange(
+                                memberId,
+                                (Number(shares) + 1).toString()
+                              );
+                            }}
+                          >
+                            {shares === "0" ? (
+                              <Text weight="2">Add</Text>
+                            ) : (
+                              <Plus size={22} strokeWidth={3} />
+                            )}
+                          </button>
+                        </div>
+                      }
+                      titleBadge={
+                        isPayee ? <Badge type="number">Paid</Badge> : <></>
+                      }
+                    >
+                      @{member?.username || "Unknown"}{" "}
+                    </Cell>
+                  );
+                })}
+              </Section>
+              <form.AppField name="participants">
+                {() => (
+                  <div className="mt-3">
+                    <FieldInfo />
+                  </div>
+                )}
+              </form.AppField>
+            </section>
+          );
+        }}
       </form.AppField>
     );
   },
@@ -494,122 +566,37 @@ const SplitShareFooter = withForm({
           backgroundColor: tSectionBgColor,
         }}
       >
-        <form.Subscribe selector={(state) => state.values.splitMode}>
-          {(splitMode) => (
-            <Text weight="2">
-              {splitMode === "EQUAL" && "Split equally"}
-              {splitMode === "PERCENTAGE" && "Split by percentage"}
-              {splitMode === "EXACT" && "Custom amounts"}
-              {splitMode === "SHARES" && "Split by shares"}
-            </Text>
-          )}
-        </form.Subscribe>
+        <Text weight="2">Split by shares</Text>
+
         <form.Subscribe selector={(state) => state.values.participants.length}>
           {(participantsCount) =>
             participantsCount > 0 && (
               <form.AppField name="customSplits">
                 {(field) => (
                   <Modal
-                    trigger={
-                      <Chip after={<ChevronUp />}>
-                        {field.state.value.length > 0
-                          ? `${field.state.value.length} custom splits`
-                          : "Configure"}
-                      </Chip>
-                    }
+                    trigger={<Chip>Details</Chip>}
                     header={<ModalHeader>Split configuration</ModalHeader>}
                   >
                     <section className="px-4 pb-16 pt-1">
                       <form.Subscribe
                         selector={(state) => ({
-                          splitMode: state.values.splitMode,
                           participants: state.values.participants,
                           amount: state.values.amount,
                           payee: state.values.payee,
                         })}
                       >
-                        {(state) =>
-                          state.splitMode === "EQUAL" && (
-                            <SplitConfigEqual
-                              participants={state.participants}
-                              totalAmount={Number(state.amount) || 0}
-                              chatMembers={chatMembers || []}
-                              payeeId={state.payee}
-                            />
-                          )
-                        }
-                      </form.Subscribe>
-
-                      <form.Subscribe
-                        selector={(state) => ({
-                          splitMode: state.values.splitMode,
-                          participants: state.values.participants,
-                          amount: state.values.amount,
-                          payee: state.values.payee,
-                        })}
-                      >
-                        {(state) =>
-                          state.splitMode === "PERCENTAGE" && (
-                            <SplitConfigPercentage
-                              participants={state.participants}
-                              totalAmount={Number(state.amount) || 0}
-                              chatMembers={chatMembers || []}
-                              customSplits={field.state.value}
-                              onSplitsChange={(splits) =>
-                                field.handleChange(splits)
-                              }
-                              payeeId={state.payee}
-                            />
-                          )
-                        }
-                      </form.Subscribe>
-
-                      <form.Subscribe
-                        selector={(state) => ({
-                          splitMode: state.values.splitMode,
-                          participants: state.values.participants,
-                          amount: state.values.amount,
-                          payee: state.values.payee,
-                        })}
-                      >
-                        {(state) =>
-                          state.splitMode === "EXACT" && (
-                            <SplitConfigExact
-                              participants={state.participants}
-                              totalAmount={Number(state.amount) || 0}
-                              chatMembers={chatMembers || []}
-                              customSplits={field.state.value}
-                              onSplitsChange={(splits) =>
-                                field.handleChange(splits)
-                              }
-                              payeeId={state.payee}
-                            />
-                          )
-                        }
-                      </form.Subscribe>
-
-                      <form.Subscribe
-                        selector={(state) => ({
-                          splitMode: state.values.splitMode,
-                          participants: state.values.participants,
-                          amount: state.values.amount,
-                          payee: state.values.payee,
-                        })}
-                      >
-                        {(state) =>
-                          state.splitMode === "SHARES" && (
-                            <SplitConfigShares
-                              participants={state.participants}
-                              totalAmount={Number(state.amount) || 0}
-                              chatMembers={chatMembers || []}
-                              customSplits={field.state.value}
-                              onSplitsChange={(splits) =>
-                                field.handleChange(splits)
-                              }
-                              payeeId={state.payee}
-                            />
-                          )
-                        }
+                        {(state) => (
+                          <SplitConfigShares
+                            participants={state.participants}
+                            totalAmount={Number(state.amount) || 0}
+                            chatMembers={chatMembers || []}
+                            customSplits={field.state.value}
+                            onSplitsChange={(splits) =>
+                              field.handleChange(splits)
+                            }
+                            payeeId={state.payee}
+                          />
+                        )}
                       </form.Subscribe>
                     </section>
 
@@ -636,109 +623,11 @@ interface SplitConfigProps {
   payeeId: string;
 }
 
-const SplitConfigEqual = ({
-  participants,
-  totalAmount,
-  chatMembers,
-  payeeId,
-}: SplitConfigProps) => {
-  const splitAmountDecimal =
-    participants.length > 0
-      ? toDecimal(totalAmount).dividedBy(participants.length)
-      : new Decimal(0);
-
-  return (
-    <div className="space-y-3">
-      {participants.map((participantId) => {
-        const member = chatMembers.find(
-          (m) => Number(m.id).toString() === participantId
-        );
-        const isPayee = participantId === payeeId;
-        if (!member) return null;
-
-        return (
-          <div
-            key={participantId}
-            className={cn(
-              "flex items-center justify-between rounded-xl p-3",
-              isPayee
-                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
-                : "bg-[#2a2a2a]"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ChatMemberAvatar userId={Number(member.id)} size={40} />
-              <div>
-                <div className="font-medium text-white">
-                  {member.firstName} {member.lastName}
-                  {isPayee && (
-                    <span className="ml-2 text-sm text-yellow-400">
-                      👤 Paid
-                    </span>
-                  )}
-                </div>
-                {isPayee && (
-                  <div className="text-xs text-gray-400">
-                    Gets $
-                    {toDecimal(totalAmount)
-                      .minus(splitAmountDecimal)
-                      .toFixed(2)}{" "}
-                    back
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="text-lg font-semibold text-green-400">
-                ${splitAmountDecimal.toFixed(2)}
-              </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                <Check className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Summary Card */}
-      <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-400" />
-            <span className="font-medium text-green-400">
-              Equal split complete
-            </span>
-          </div>
-          <div className="font-semibold text-white">
-            ${splitAmountDecimal.toFixed(2)} each
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const SplitConfigShares = ({
   participants,
   totalAmount,
-  chatMembers,
   customSplits = [],
-  onSplitsChange,
-  payeeId,
 }: SplitConfigProps) => {
-  const handleSharesChange = (userId: string, shares: string) => {
-    const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
-
-    if (existingIndex >= 0) {
-      newSplits[existingIndex] = { userId, amount: shares };
-    } else {
-      newSplits.push({ userId, amount: shares });
-    }
-
-    onSplitsChange?.(newSplits);
-  };
-
   const getTotalShares = () => {
     const amounts = customSplits.map((split) => split.amount || "0");
     return toNumber(sumDecimals(amounts));
@@ -757,74 +646,6 @@ const SplitConfigShares = ({
 
   return (
     <div className="space-y-3">
-      {participants.map((participantId) => {
-        const member = chatMembers.find(
-          (m) => Number(m.id).toString() === participantId
-        );
-        const currentSplit = customSplits.find(
-          (s) => s.userId === participantId
-        );
-        const shares = currentSplit?.amount || "";
-        const amount = toNumber(
-          toDecimal(shares || "0").times(getAmountPerShare())
-        );
-        const isPayee = participantId === payeeId;
-
-        if (!member) return null;
-
-        return (
-          <div
-            key={participantId}
-            className={cn(
-              "flex items-center justify-between rounded-xl p-3",
-              isPayee
-                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
-                : "bg-[#2a2a2a]"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ChatMemberAvatar userId={Number(member.id)} size={40} />
-              <div>
-                <div className="font-medium text-white">
-                  {member.firstName} {member.lastName}
-                  {isPayee && (
-                    <span className="ml-2 text-sm text-yellow-400">
-                      👤 Paid
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {hasShares && (
-                    <div className="text-sm text-gray-400">
-                      ${amount.toFixed(2)}
-                    </div>
-                  )}
-                  {isPayee && amount > 0 && (
-                    <div className="text-xs text-gray-400">
-                      Gets ${toDecimal(totalAmount).minus(amount).toFixed(2)}{" "}
-                      back
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Input
-                type="number"
-                placeholder="1"
-                before={"🍌"}
-                value={shares}
-                onChange={(e) =>
-                  handleSharesChange(participantId, e.target.value)
-                }
-                className="w-20 border-gray-600 bg-[#1a1a1a] text-center text-white"
-                min="0"
-              />
-            </div>
-          </div>
-        );
-      })}
-
       {/* Shares Visualization */}
       {hasShares && (
         <div className="mt-4 space-y-2">
@@ -893,383 +714,6 @@ const SplitConfigShares = ({
               {hasShares
                 ? `$${getAmountPerShare().toFixed(2)} per share`
                 : "Set shares to calculate"}
-            </span>
-          </div>
-          <div className="font-semibold text-white">
-            ${toDecimal(totalAmount).toFixed(2)} total
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SplitConfigPercentage = ({
-  participants,
-  totalAmount,
-  chatMembers,
-  customSplits = [],
-  onSplitsChange,
-  payeeId,
-}: SplitConfigProps) => {
-  const handlePercentageChange = (userId: string, percentage: string) => {
-    const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
-
-    if (existingIndex >= 0) {
-      newSplits[existingIndex] = { userId, amount: percentage };
-    } else {
-      newSplits.push({ userId, amount: percentage });
-    }
-
-    onSplitsChange?.(newSplits);
-  };
-
-  const getTotalPercentage = () => {
-    const amounts = customSplits.map((split) => split.amount || "0");
-    return toNumber(sumDecimals(amounts));
-  };
-
-  const getRemainingPercentage = () => {
-    return toNumber(new Decimal(100).minus(getTotalPercentage()));
-  };
-
-  const totalPercentageDecimal = sumDecimals(
-    customSplits.map((split) => split.amount || "0")
-  );
-  const isValid = totalPercentageDecimal.equals(100);
-  const isOverAllocated = totalPercentageDecimal.greaterThan(100);
-
-  return (
-    <div className="space-y-3">
-      {participants.map((participantId) => {
-        const member = chatMembers.find(
-          (m) => Number(m.id).toString() === participantId
-        );
-        const currentSplit = customSplits.find(
-          (s) => s.userId === participantId
-        );
-        const percentage = currentSplit?.amount || "";
-        const dollarAmount = toNumber(
-          toDecimal(percentage || "0")
-            .dividedBy(100)
-            .times(totalAmount)
-        );
-        const isPayee = participantId === payeeId;
-
-        if (!member) return null;
-
-        return (
-          <div
-            key={participantId}
-            className={cn(
-              "flex items-center justify-between rounded-xl p-3",
-              isPayee
-                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
-                : "bg-[#2a2a2a]"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ChatMemberAvatar userId={Number(member.id)} size={40} />
-              <div>
-                <div className="font-medium text-white">
-                  {member.firstName} {member.lastName}
-                  {isPayee && (
-                    <span className="ml-2 text-sm text-yellow-400">
-                      👤 Paid
-                    </span>
-                  )}
-                </div>
-                {isPayee && dollarAmount > 0 && (
-                  <div className="text-xs text-gray-400">
-                    Gets $
-                    {toDecimal(totalAmount).minus(dollarAmount).toFixed(2)} back
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={percentage}
-                    onChange={(e) =>
-                      handlePercentageChange(participantId, e.target.value)
-                    }
-                    className="w-20 border-gray-600 bg-[#1a1a1a] pr-8 text-right text-white"
-                    min="0"
-                    max="100"
-                  />
-                  <Percent className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                </div>
-                <div className="min-w-[60px] text-right text-sm text-gray-400">
-                  ${dollarAmount.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Progress Bar */}
-      <div className="mt-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-400">Progress</span>
-          <span
-            className={cn(
-              "font-medium",
-              isValid
-                ? "text-green-400"
-                : isOverAllocated
-                  ? "text-red-400"
-                  : "text-yellow-400"
-            )}
-          >
-            {toNumber(totalPercentageDecimal)}% / 100%
-          </span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
-          <div
-            className={cn(
-              "h-full transition-all duration-300",
-              isValid
-                ? "bg-green-500"
-                : isOverAllocated
-                  ? "bg-red-500"
-                  : "bg-yellow-500"
-            )}
-            style={{
-              width: `${Math.min(toNumber(totalPercentageDecimal), 100)}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Summary Card */}
-      <div
-        className={cn(
-          "mt-4 rounded-xl border p-4",
-          isValid
-            ? "border-green-500/20 bg-green-500/10"
-            : isOverAllocated
-              ? "border-red-500/20 bg-red-500/10"
-              : "border-yellow-500/20 bg-yellow-500/10"
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Percent
-              className={cn(
-                "h-5 w-5",
-                isValid
-                  ? "text-green-400"
-                  : isOverAllocated
-                    ? "text-red-400"
-                    : "text-yellow-400"
-              )}
-            />
-            <span
-              className={cn(
-                "font-medium",
-                isValid
-                  ? "text-green-400"
-                  : isOverAllocated
-                    ? "text-red-400"
-                    : "text-yellow-400"
-              )}
-            >
-              {isValid
-                ? "Perfect split!"
-                : isOverAllocated
-                  ? "Over-allocated"
-                  : `${getRemainingPercentage()}% remaining`}
-            </span>
-          </div>
-          <div className="font-semibold text-white">
-            ${toDecimal(totalAmount).toFixed(2)} total
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SplitConfigExact = ({
-  participants,
-  totalAmount,
-  chatMembers,
-  customSplits = [],
-  onSplitsChange,
-  payeeId,
-}: SplitConfigProps) => {
-  const handleAmountChange = (userId: string, amount: string) => {
-    const newSplits = [...customSplits];
-    const existingIndex = newSplits.findIndex((s) => s.userId === userId);
-
-    if (existingIndex >= 0) {
-      newSplits[existingIndex] = { userId, amount };
-    } else {
-      newSplits.push({ userId, amount });
-    }
-
-    onSplitsChange?.(newSplits);
-  };
-
-  const remainingAmountDecimal = toDecimal(totalAmount).minus(
-    sumDecimals(customSplits.map((split) => split.amount || "0"))
-  );
-  const isValid = remainingAmountDecimal.abs().lessThan(0.01);
-  const isOverAllocated = remainingAmountDecimal.lessThan(-0.01);
-
-  return (
-    <div className="space-y-3">
-      {participants.map((participantId) => {
-        const member = chatMembers.find(
-          (m) => Number(m.id).toString() === participantId
-        );
-        const currentSplit = customSplits.find(
-          (s) => s.userId === participantId
-        );
-        const amount = currentSplit?.amount || "";
-        const dollarAmount = toNumber(toDecimal(amount || "0"));
-        const isPayee = participantId === payeeId;
-
-        if (!member) return null;
-
-        return (
-          <div
-            key={participantId}
-            className={cn(
-              "flex items-center justify-between rounded-xl p-3",
-              isPayee
-                ? "bg-yellow-500/10 ring-1 ring-yellow-500/30"
-                : "bg-[#2a2a2a]"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ChatMemberAvatar userId={Number(member.id)} size={40} />
-              <div>
-                <div className="font-medium text-white">
-                  {member.firstName} {member.lastName}
-                  {isPayee && (
-                    <span className="ml-2 text-sm text-yellow-400">
-                      👤 Paid
-                    </span>
-                  )}
-                </div>
-                {isPayee && dollarAmount > 0 && (
-                  <div className="text-xs text-gray-400">
-                    Gets $
-                    {toDecimal(totalAmount).minus(dollarAmount).toFixed(2)} back
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  before={<DollarSign />}
-                  value={amount}
-                  onChange={(e) =>
-                    handleAmountChange(participantId, e.target.value)
-                  }
-                  className="w-30"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Progress Indicator */}
-      <div className="mt-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-400">Allocation Progress</span>
-          <span
-            className={cn(
-              "font-medium",
-              isValid
-                ? "text-green-400"
-                : isOverAllocated
-                  ? "text-red-400"
-                  : "text-yellow-400"
-            )}
-          >
-            $
-            {sumDecimals(
-              customSplits.map((split) => split.amount || "0")
-            ).toFixed(2)}{" "}
-            / ${toDecimal(totalAmount).toFixed(2)}
-          </span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#2a2a2a]">
-          <div
-            className={cn(
-              "h-full transition-all duration-300",
-              isValid
-                ? "bg-green-500"
-                : isOverAllocated
-                  ? "bg-red-500"
-                  : "bg-yellow-500"
-            )}
-            style={{
-              width: `${Math.min(
-                toNumber(
-                  sumDecimals(customSplits.map((split) => split.amount || "0"))
-                    .dividedBy(totalAmount)
-                    .times(100)
-                ),
-                100
-              )}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Summary Card */}
-      <div
-        className={cn(
-          "mt-4 rounded-xl border p-4",
-          isValid
-            ? "border-green-500/20 bg-green-500/10"
-            : isOverAllocated
-              ? "border-red-500/20 bg-red-500/10"
-              : "border-yellow-500/20 bg-yellow-500/10"
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <DollarSign
-              className={cn(
-                "h-5 w-5",
-                isValid
-                  ? "text-green-400"
-                  : isOverAllocated
-                    ? "text-red-400"
-                    : "text-yellow-400"
-              )}
-            />
-            <span
-              className={cn(
-                "font-medium",
-                isValid
-                  ? "text-green-400"
-                  : isOverAllocated
-                    ? "text-red-400"
-                    : "text-yellow-400"
-              )}
-            >
-              {isValid
-                ? "Perfect split!"
-                : isOverAllocated
-                  ? "Over-allocated"
-                  : `$${remainingAmountDecimal.toFixed(2)} remaining`}
             </span>
           </div>
           <div className="font-semibold text-white">
