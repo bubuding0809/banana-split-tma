@@ -48,13 +48,13 @@ const SPLIT_MODE_OPTIONS: {
   {
     value: "EQUAL",
     label: "Equal",
-    description: "Amount split equally",
+    description: "Amount split equally among participants",
     icon: <Equal size={20} />,
   },
   {
     value: "SHARES",
     label: "Shares",
-    description: "Amount split by shares",
+    description: "Amount split based on shares assigned",
     icon: <Pizza size={20} />,
   },
   // {
@@ -63,12 +63,12 @@ const SPLIT_MODE_OPTIONS: {
   //   description: "Split based on percentage assigned",
   //   icon: <Percent size={20}/>,
   // },
-  {
-    value: "EXACT",
-    label: "Exact",
-    description: "Custom amounts",
-    icon: <DollarSign size={20} />,
-  },
+  // {
+  //   value: "EXACT",
+  //   label: "Exact",
+  //   description: "Custom amounts",
+  //   icon: <DollarSign size={20} />,
+  // },
 ] as const;
 
 const SplitModeFormStep = withForm({
@@ -159,7 +159,7 @@ const SplitModeFormStep = withForm({
           {(field) => (
             <section className="flex flex-col">
               <Section.Header large>Split by?</Section.Header>
-              <fieldset className="grid grid-cols-3 gap-2.5" role="radiogroup">
+              <fieldset className="grid grid-cols-2 gap-2.5" role="radiogroup">
                 {SPLIT_MODE_OPTIONS.map(
                   ({ description, icon, label, value }, index) => {
                     const isSelected = field.state.value === value;
