@@ -1,12 +1,13 @@
 import { initData, useSignal } from "@telegram-apps/sdk-react";
 import { Caption, Cell, Info, Skeleton } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrency } from "@/utils/financial";
+import SettlementDetailsModal from "./SettlementDetailsModal";
 
 interface ChatSettlementCellProps {
   settlement: inferRouterOutputs<AppRouter>["settlement"]["getSettlementByChat"][number];
@@ -31,6 +32,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
 
   // * State =======================================================================================
   const userId = tUserData?.id ?? 0;
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const senderFullName = `${senderMember?.user.first_name}${
     senderMember?.user.last_name ? ` ${senderMember.user.last_name}` : ""
@@ -100,44 +102,58 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
   ]);
 
   return (
-    <Cell
-      before={<ChatMemberAvatar userId={senderId} size={48} />}
-      subhead={
-        <Skeleton visible={displayInfo.isLoading}>
-          <Caption weight="1" level="1">
-            {displayInfo.primaryText}
-          </Caption>
-        </Skeleton>
-      }
-      description={
-        <Skeleton visible={displayInfo.isLoading}>
-          <Caption weight="1" level="2">
-            {displayInfo.secondaryText}
-          </Caption>
-        </Skeleton>
-      }
-      after={
-        <Info
-          avatarStack={
-            <Info type="text">
-              <div className="flex flex-col items-end gap-1.5">
-                <Caption className="w-max" weight="2">
-                  {formatExpenseDateShort(new Date(settlement.createdAt))}
-                </Caption>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xl">💰</span>
-                  <span>➡︎</span>
-                  <ChatMemberAvatar userId={receiverId} size={28} />
+    <>
+      <Cell
+        before={<ChatMemberAvatar userId={senderId} size={48} />}
+        subhead={
+          <Skeleton visible={displayInfo.isLoading}>
+            <Caption weight="1" level="1">
+              {displayInfo.primaryText}
+            </Caption>
+          </Skeleton>
+        }
+        description={
+          <Skeleton visible={displayInfo.isLoading}>
+            <Caption weight="1" level="2">
+              {displayInfo.secondaryText}
+            </Caption>
+          </Skeleton>
+        }
+        after={
+          <Info
+            avatarStack={
+              <Info type="text">
+                <div className="flex flex-col items-end gap-1.5">
+                  <Caption className="w-max" weight="2">
+                    {formatExpenseDateShort(new Date(settlement.createdAt))}
+                  </Caption>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xl">💰</span>
+                    <span>»</span>
+                    <ChatMemberAvatar userId={receiverId} size={28} />
+                  </div>
                 </div>
-              </div>
-            </Info>
-          }
-          type="avatarStack"
-        />
-      }
-    >
-      {formatCurrency(amount)}
-    </Cell>
+              </Info>
+            }
+            type="avatarStack"
+          />
+        }
+        onClick={() => setIsModalOpen(true)}
+      >
+        {formatCurrency(amount)}
+      </Cell>
+
+      <SettlementDetailsModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        settlement={settlement}
+        senderMember={senderMember}
+        receiverMember={receiverMember}
+        isSenderLoading={isSenderLoading}
+        isReceiverLoading={isReceiverLoading}
+        userId={userId}
+      />
+    </>
   );
 };
 
