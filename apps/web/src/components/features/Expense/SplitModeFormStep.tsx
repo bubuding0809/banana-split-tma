@@ -16,6 +16,7 @@ import { trpc } from "@/utils/trpc";
 import {
   hapticFeedback,
   mainButton,
+  popup,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -121,8 +122,32 @@ const SplitModeFormStep = withForm({
       };
     }, [step, form, navigate, isLastStep]);
 
-    const handleSplitModeChange = (mode: SplitModeType) => {
+    const handleSplitModeChange = async (mode: SplitModeType) => {
+      // Ask for confirmation if participants are dirty
+      const { isDirty } = form.getFieldMeta("participants") ?? {};
+      if (isDirty) {
+        const id = await popup.open({
+          title: "Change split mode",
+          message:
+            "This will reset your current split configuration. Are you sure?",
+          buttons: [
+            {
+              text: "Yes",
+              id: "confirm",
+            },
+            {
+              type: "cancel",
+            },
+          ],
+        });
+        if (id !== "confirm") {
+          return;
+        }
+      }
+
+      // Reset participants and custom splits when changing split mode
       form.setFieldValue("splitMode", mode);
+      form.setFieldValue("participants", []);
       form.setFieldValue("customSplits", []);
     };
 
