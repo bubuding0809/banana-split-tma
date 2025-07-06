@@ -4,6 +4,7 @@ import { sgdFormatter } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
 import { RouterOutputs } from "@dko/trpc";
 import {
+  hapticFeedback,
   initData,
   mainButton,
   popup,
@@ -94,10 +95,9 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         );
       }
 
-      popup.open.ifAvailable({
-        message: "Settlement created successfully! 🤝",
-      });
+      onOpenChange(false);
     } catch (error) {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
       console.error("Error creating settlement:", error);
       popup.open.ifAvailable({
         message: "Failed to create settlement. Please try again later.",
@@ -108,7 +108,6 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         isLoaderVisible: false,
       });
     }
-    onOpenChange(false);
   }, [
     absAmountOwed,
     dChatData?.threadId,
