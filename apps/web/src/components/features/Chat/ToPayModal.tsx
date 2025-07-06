@@ -95,6 +95,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         );
       }
 
+      hapticFeedback.notificationOccurred.ifAvailable("success");
       onOpenChange(false);
     } catch (error) {
       hapticFeedback.notificationOccurred.ifAvailable("error");

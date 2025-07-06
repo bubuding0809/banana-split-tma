@@ -62,6 +62,8 @@ const ToRecieveModal = ({
         currency: "SGD",
         threadId: dChatData?.threadId ? Number(dChatData.threadId) : undefined,
       });
+
+      hapticFeedback.notificationOccurred.ifAvailable("success");
       onOpenChange(false);
     } catch (error) {
       hapticFeedback.notificationOccurred.ifAvailable("error");
