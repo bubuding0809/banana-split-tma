@@ -34,7 +34,6 @@ import {
   formatCurrency,
 } from "@/utils/financial";
 import { useStore } from "@tanstack/react-form";
-import { motion, Variants } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
@@ -489,27 +488,6 @@ const SplitShareConfig = withForm({
     const [badgeAnimations, setBadgeAnimations] = useState<
       Record<string, "idle" | "pop" | "shake">
     >({});
-    const badgeVariants: Variants = {
-      idle: {
-        scale: 1,
-        x: 0,
-      },
-      pop: {
-        scale: [1, 1.25, 1],
-        transition: {
-          duration: 0.2,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        },
-      },
-      shake: {
-        x: [0, -2, 2, 0],
-        scale: [1, 1.1, 1.1, 1],
-        transition: {
-          duration: 0.25,
-          ease: [0.42, 0, 0.58, 1],
-        },
-      },
-    };
 
     const triggerBadgeAnimation = (userId: string, type: "pop" | "shake") => {
       setBadgeAnimations((prev) => ({ ...prev, [userId]: type }));
@@ -592,16 +570,18 @@ const SplitShareConfig = withForm({
                       subtitle={`${member?.firstName} ${member?.lastName || ""}`}
                       before={
                         <div className="relative">
-                          <motion.div
-                            variants={badgeVariants}
-                            animate={badgeAnimations[memberId] || "idle"}
+                          <div
                             className={cn(
                               "absolute -right-3 -top-1 z-10",
-                              shares === "0" ? "invisible" : ""
+                              shares === "0" ? "invisible" : "",
+                              badgeAnimations[memberId] === "pop" &&
+                                "animate-badge-pop",
+                              badgeAnimations[memberId] === "shake" &&
+                                "animate-badge-shake"
                             )}
                           >
                             <Badge type="number">{shares}</Badge>
-                          </motion.div>
+                          </div>
                           <ChatMemberAvatar
                             userId={Number(memberId)}
                             size={48}
