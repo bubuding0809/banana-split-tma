@@ -22,7 +22,6 @@ import {
 } from "@telegram-apps/sdk-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
-import { useEffect } from "react";
 import { Equal, Pizza, Plus, Minus } from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
@@ -35,6 +34,8 @@ import {
   formatCurrency,
 } from "@/utils/financial";
 import { useStore } from "@tanstack/react-form";
+import { motion, Variants } from "framer-motion";
+import { useState, useEffect } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
@@ -485,10 +486,49 @@ const SplitShareConfig = withForm({
       (member) => member.id === BigInt(form.state.values.payee)
     );
 
+    const [badgeAnimations, setBadgeAnimations] = useState<
+      Record<string, "idle" | "pop" | "shake">
+    >({});
+    const badgeVariants: Variants = {
+      idle: {
+        scale: 1,
+        x: 0,
+      },
+      pop: {
+        scale: [1, 1.25, 1],
+        transition: {
+          duration: 0.2,
+          ease: [0.25, 0.46, 0.45, 0.94],
+        },
+      },
+      shake: {
+        x: [0, -2, 2, 0],
+        scale: [1, 1.1, 1.1, 1],
+        transition: {
+          duration: 0.25,
+          ease: [0.42, 0, 0.58, 1],
+        },
+      },
+    };
+
+    const triggerBadgeAnimation = (userId: string, type: "pop" | "shake") => {
+      setBadgeAnimations((prev) => ({ ...prev, [userId]: type }));
+      setTimeout(
+        () => {
+          setBadgeAnimations((prev) => ({ ...prev, [userId]: "idle" }));
+        },
+        type === "pop" ? 200 : 250
+      );
+    };
+
     return (
       <form.AppField name="customSplits">
         {(field) => {
-          const handleSharesChange = (userId: string, shares: string) => {
+          const handleSharesChange = (
+            userId: string,
+            shares: string,
+            isIncrement?: boolean
+          ) => {
             if (shares === "0") {
               form.setFieldValue("participants", (prev) => {
                 return prev.filter((p) => p !== userId);
@@ -516,6 +556,11 @@ const SplitShareConfig = withForm({
             }
 
             field.handleChange(newSplits);
+
+            // Trigger animation if shares > 0
+            if (shares !== "0" && isIncrement !== undefined) {
+              triggerBadgeAnimation(userId, isIncrement ? "pop" : "shake");
+            }
           };
           return (
             <section>
@@ -547,15 +592,16 @@ const SplitShareConfig = withForm({
                       subtitle={`${member?.firstName} ${member?.lastName || ""}`}
                       before={
                         <div className="relative">
-                          <Badge
-                            type="number"
+                          <motion.div
+                            variants={badgeVariants}
+                            animate={badgeAnimations[memberId] || "idle"}
                             className={cn(
                               "absolute -right-3 -top-1 z-10",
                               shares === "0" ? "invisible" : ""
                             )}
                           >
-                            {shares}
-                          </Badge>
+                            <Badge type="number">{shares}</Badge>
+                          </motion.div>
                           <ChatMemberAvatar
                             userId={Number(memberId)}
                             size={48}
@@ -578,7 +624,8 @@ const SplitShareConfig = withForm({
                               hapticFeedback.impactOccurred("medium");
                               handleSharesChange(
                                 memberId,
-                                (Number(shares) - 1).toString()
+                                (Number(shares) - 1).toString(),
+                                false
                               );
                             }}
                           >
@@ -597,7 +644,8 @@ const SplitShareConfig = withForm({
                               hapticFeedback.impactOccurred("medium");
                               handleSharesChange(
                                 memberId,
-                                (Number(shares) + 1).toString()
+                                (Number(shares) + 1).toString(),
+                                true
                               );
                             }}
                           >
