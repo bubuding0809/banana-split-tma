@@ -1,3 +1,4 @@
+import { getAnimalAvatarEmoji } from "@/utils/emoji";
 import { trpc } from "@/utils/trpc";
 import { Avatar, ImageProps } from "@telegram-apps/telegram-ui";
 
@@ -12,7 +13,9 @@ const ChatMemberAvatar = ({ userId, size = 24 }: ChatMemberProps) => {
   });
 
   if (!photoUrl) {
-    return <Avatar size={size}>🐵</Avatar>;
+    return (
+      <Avatar size={size}>{getAnimalAvatarEmoji(userId.toString())}</Avatar>
+    );
   }
   return <Avatar src={photoUrl.toString()} size={size} />;
 };
