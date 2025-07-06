@@ -28,6 +28,13 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .animate-badge-pop {
+    animation: badge-pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .animate-badge-shake {
+    animation: badge-shake 0.25s cubic-bezier(0.42, 0, 0.58, 1);
+  }
 }
 
 @keyframes badge-pop {
@@ -42,14 +49,4 @@
   50% { transform: translateY(-2px) scale(0.8); }
   75% { transform: translateY(4px) scale(0.8); }
   100% { transform: translateY(0) scale(1); }
-}
-
-@layer utilities {
-  .animate-badge-pop {
-    animation: badge-pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-  
-  .animate-badge-shake {
-    animation: badge-shake 0.25s cubic-bezier(0.42, 0, 0.58, 1);
-  }
 }
