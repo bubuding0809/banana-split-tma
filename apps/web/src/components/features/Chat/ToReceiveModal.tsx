@@ -4,6 +4,7 @@ import { sgdFormatter } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
 import { RouterOutputs } from "@dko/trpc";
 import {
+  hapticFeedback,
   initData,
   mainButton,
   popup,
@@ -61,10 +62,9 @@ const ToRecieveModal = ({
         currency: "SGD",
         threadId: dChatData?.threadId ? Number(dChatData.threadId) : undefined,
       });
-      popup.open({
-        message: "Reminder sent successfully! 📩",
-      });
+      onOpenChange(false);
     } catch (error) {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
       console.error("Error sending reminder:", error);
       popup.open({
         message: "Failed to send reminder. Please try again later.",
@@ -76,11 +76,12 @@ const ToRecieveModal = ({
     }
   }, [
     absAmountLent,
-    dChatData?.threadId,
     chatId,
+    dChatData?.threadId,
     member.firstName,
     member.id,
     member.username,
+    onOpenChange,
     sendDebtReminderMutation,
     tUserData?.firstName,
   ]);
