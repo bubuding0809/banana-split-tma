@@ -123,9 +123,12 @@ const SplitModeFormStep = withForm({
     }, [step, form, navigate, isLastStep]);
 
     const handleSplitModeChange = async (mode: SplitModeType) => {
-      // Ask for confirmation if participants are dirty
-      const { isDirty } = form.getFieldMeta("participants") ?? {};
-      if (isDirty) {
+      // Ask for confirmation if participants or custom splits are dirty
+      const { isDirty: isParticipantsDirty } =
+        form.getFieldMeta("participants") ?? {};
+      const { isDirty: isCustomSplitsDirty } =
+        form.getFieldMeta("customSplits") ?? {};
+      if (isCustomSplitsDirty || isParticipantsDirty) {
         const id = await popup.open({
           title: "Change split mode",
           message:
@@ -134,6 +137,7 @@ const SplitModeFormStep = withForm({
             {
               text: "Yes",
               id: "confirm",
+              type: "destructive",
             },
             {
               type: "cancel",
@@ -149,6 +153,18 @@ const SplitModeFormStep = withForm({
       form.setFieldValue("splitMode", mode);
       form.setFieldValue("participants", []);
       form.setFieldValue("customSplits", []);
+
+      // Reset field meta for participants and custom splits
+      form.setFieldMeta("participants", (prev) => ({
+        ...prev,
+        isDirty: false,
+        isTouched: false,
+      }));
+      form.setFieldMeta("customSplits", (prev) => ({
+        ...prev,
+        isDirty: false,
+        isTouched: false,
+      }));
     };
 
     return (
@@ -261,15 +277,35 @@ const SplitEqualConfig = withForm({
   },
   render: function Render({ form }) {
     const tStartParams = useStartParams();
+    const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+
     const chatId = tStartParams?.chat_id ?? 0;
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
+
+    const payerData = chatMembers?.find(
+      (member) => member.id === BigInt(form.state.values.payee)
+    );
+
     return (
       <form.AppField name="participants">
         {(field) => (
           <section>
             <Section
-              header={<Section.Header large>Who is involved?</Section.Header>}
+              header={
+                <div className="flex justify-between">
+                  <Section.Header large>Who is involved?</Section.Header>
+                  <Section.Header large>
+                    <span
+                      style={{
+                        color: tSubtitleTextColor,
+                      }}
+                    >
+                      @{payerData?.username} paid
+                    </span>
+                  </Section.Header>
+                </div>
+              }
             >
               <Cell
                 Component="label"
@@ -298,13 +334,24 @@ const SplitEqualConfig = withForm({
               </Cell>
               {chatMembers?.map((member) => {
                 const memberId = Number(member.id).toString();
-                const isPayee = memberId === form.state.values.payee;
+                const isSelected = field.state.value.includes(memberId);
+                const splitAmount =
+                  form.state.values.amount &&
+                  toDecimal(form.state.values.amount)
+                    .dividedBy(field.state.value.length || 1)
+                    .toFixed(2);
 
                 return (
                   <Cell
                     Component="label"
                     key={memberId}
-                    subtitle={`${member?.firstName} ${member?.lastName || ""}`}
+                    subtitle={
+                      <Caption weight={isSelected ? "2" : "3"}>
+                        {isSelected
+                          ? formatCurrency(Number(splitAmount))
+                          : "Not selected"}
+                      </Caption>
+                    }
                     before={
                       <ChatMemberAvatar userId={Number(memberId)} size={48} />
                     }
@@ -331,9 +378,6 @@ const SplitEqualConfig = withForm({
                           })
                         }
                       />
-                    }
-                    titleBadge={
-                      isPayee ? <Badge type="number">Paid</Badge> : <></>
                     }
                   >
                     @{member?.username || "Unknown"}{" "}
@@ -427,6 +471,7 @@ const SplitShareConfig = withForm({
   render: function Render({ form }) {
     const tButtonColor = useSignal(themeParams.buttonColor);
     const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+    const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
     const tStartParams = useStartParams();
     const chatId = tStartParams?.chat_id ?? 0;
@@ -435,6 +480,10 @@ const SplitShareConfig = withForm({
     }));
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
+
+    const payerData = chatMembers?.find(
+      (member) => member.id === BigInt(form.state.values.payee)
+    );
 
     return (
       <form.AppField name="customSplits">
@@ -471,15 +520,27 @@ const SplitShareConfig = withForm({
           return (
             <section>
               <Section
-                header={<Section.Header large>Who is involved?</Section.Header>}
+                header={
+                  <div className="flex justify-between">
+                    <Section.Header large>Who is involved?</Section.Header>
+                    <Section.Header large>
+                      <span
+                        style={{
+                          color: tSubtitleTextColor,
+                        }}
+                      >
+                        @{payerData?.username} paid
+                      </span>
+                    </Section.Header>
+                  </div>
+                }
               >
                 {chatMembers?.map((member) => {
                   const memberId = Number(member.id).toString();
-                  const isPayee = memberId === form.state.values.payee;
+
                   const shares =
                     customSplits.find((s) => s.userId === memberId)?.amount ||
                     "0";
-
                   return (
                     <Cell
                       key={memberId}
@@ -547,9 +608,6 @@ const SplitShareConfig = withForm({
                             )}
                           </button>
                         </div>
-                      }
-                      titleBadge={
-                        isPayee ? <Badge type="number">Paid</Badge> : <></>
                       }
                     >
                       @{member?.username || "Unknown"}{" "}
