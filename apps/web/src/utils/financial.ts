@@ -59,9 +59,9 @@ export function getBalanceLabel(balance: number | null | undefined): string {
   const type = getBalanceType(balance);
   switch (type) {
     case "positive":
-      return "To receive";
+      return "owes you";
     case "negative":
-      return "To pay";
+      return "is owed";
     case "zero":
       return "Settled";
     default:

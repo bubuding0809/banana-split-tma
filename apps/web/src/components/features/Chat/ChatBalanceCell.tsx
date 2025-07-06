@@ -1,5 +1,5 @@
 import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
-import { Cell, Info, Placeholder } from "@telegram-apps/telegram-ui";
+import { Cell, Navigation, Skeleton, Text } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import { cn } from "@utils/cn";
@@ -36,10 +36,11 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
   const userId = tUserData?.id ?? 0;
 
   // * Queries =====================================================================================
-  const { data: memberInfo } = trpc.telegram.getChatMember.useQuery({
-    chatId,
-    userId: member.id,
-  });
+  const { data: memberInfo, isLoading: isMemberInfoLoading } =
+    trpc.telegram.getChatMember.useQuery({
+      chatId,
+      userId: member.id,
+    });
 
   const { data: netBalance, status: netBalanceStatus } =
     trpc.chat.getNetShare.useQuery({
@@ -58,58 +59,55 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
     setModalOpen(true);
   };
 
-  if (netBalanceStatus === "pending") {
-    return (
-      <Cell
-        key={member.id}
-        before={<ChatMemberAvatar userId={member.id} size={48} />}
-        subtitle="Loading..."
-      >
-        <Placeholder className="h-6 w-24" />
-      </Cell>
-    );
-  }
+  const BalanceModal =
+    netBalanceStatus === "success"
+      ? netBalance > 0
+        ? ToRecieveModal
+        : ToPayModal
+      : null;
 
-  if (netBalanceStatus === "error") {
-    return (
-      <Cell
-        key={member.id}
-        before={<ChatMemberAvatar userId={member.id} size={48} />}
-        subtitle="Error loading balance"
-      >
-        <Placeholder className="h-6 w-24" />
-      </Cell>
-    );
-  }
+  const balanceLabel = (() => {
+    if (netBalanceStatus === "pending") {
+      return "Loading...";
+    }
+    if (netBalanceStatus === "error") {
+      return "Error";
+    }
+    return getBalanceLabel(netBalance);
+  })();
+
+  const balanceAction = (() => {
+    if (netBalanceStatus === "pending") {
+      return "Loading...";
+    }
+    if (netBalanceStatus === "error") {
+      return "Error";
+    }
+    return netBalance > 0 ? "Remind" : "Settle";
+  })();
 
   return (
     <>
       <Cell
         key={member.id}
         before={<ChatMemberAvatar userId={member.id} size={48} />}
-        subtitle={memberInfo?.status ?? "Not a chat member"}
-        after={
-          <Info
-            type="text"
-            subtitle={getBalanceLabel(netBalance)}
-            className={cn(getBalanceColorClass(netBalance))}
-          >
-            {formatCurrency(netBalance)}
-          </Info>
+        subhead={
+          <Skeleton visible={isMemberInfoLoading}>
+            {memberInfo?.user.first_name ?? "Unknown"} {balanceLabel}
+          </Skeleton>
         }
+        after={<Navigation>{balanceAction}</Navigation>}
         onClick={() => handleCellClick()}
       >
-        {member.firstName} {member.lastName}
+        <Skeleton visible={netBalanceStatus === "pending"}>
+          <Text className={cn(getBalanceColorClass(netBalance))}>
+            {formatCurrency(netBalance)}
+          </Text>
+        </Skeleton>
       </Cell>
 
-      {netBalance > 0 ? (
-        <ToRecieveModal
-          modalOpen={modalOpen}
-          onOpenChange={setModalOpen}
-          member={member}
-        />
-      ) : (
-        <ToPayModal
+      {BalanceModal && (
+        <BalanceModal
           modalOpen={modalOpen}
           onOpenChange={setModalOpen}
           member={member}
