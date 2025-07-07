@@ -1,4 +1,4 @@
-import { initData, useSignal } from "@telegram-apps/sdk-react";
+import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { Caption, Cell, Info, Skeleton } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
@@ -16,6 +16,7 @@ interface ChatSettlementCellProps {
 const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
   const { senderId, receiverId, chatId, amount } = settlement;
   const tUserData = useSignal(initData.user);
+  const tButtonColor = useSignal(themeParams.buttonColor);
 
   // * Queries =====================================================================================
   const { data: senderMember, isLoading: isSenderLoading } =
@@ -107,7 +108,14 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         before={<ChatMemberAvatar userId={senderId} size={48} />}
         subhead={
           <Skeleton visible={displayInfo.isLoading}>
-            <Caption weight="1" level="1">
+            <Caption
+              weight="1"
+              level="1"
+              style={{
+                color:
+                  settlementRelation === "sender" ? tButtonColor : undefined,
+              }}
+            >
               {displayInfo.primaryText}
             </Caption>
           </Skeleton>

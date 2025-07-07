@@ -30,7 +30,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           onClick={() => setSelectedSegment("settlement")}
           selected={selectedTab === "settlement"}
         >
-          🤝 Settlements
+          🤝 Payments
         </SegmentedControl.Item>
       </SegmentedControl>
 

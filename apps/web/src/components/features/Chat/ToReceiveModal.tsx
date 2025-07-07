@@ -8,7 +8,6 @@ import {
   initData,
   mainButton,
   popup,
-  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
@@ -30,7 +29,6 @@ const ToRecieveModal = ({
 }: ToPayModalProps) => {
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
-  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const chatId = startParams?.chat_id ?? 0;
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -120,21 +118,11 @@ const ToRecieveModal = ({
 
   return (
     <Modal
-      header={
-        <ModalHeader
-          style={{
-            backgroundColor: tSecondaryBgColor,
-          }}
-        />
-      }
+      header={<ModalHeader />}
       open={modalOpen}
       onOpenChange={onOpenChange}
     >
-      <div
-        style={{
-          backgroundColor: tSecondaryBgColor,
-        }}
-      >
+      <div>
         <Placeholder
           description="Received your payment?"
           header={

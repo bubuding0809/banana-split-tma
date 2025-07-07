@@ -8,7 +8,6 @@ import {
   initData,
   mainButton,
   popup,
-  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
@@ -27,7 +26,6 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
-  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
@@ -155,21 +153,11 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
 
   return (
     <Modal
-      header={
-        <ModalHeader
-          style={{
-            backgroundColor: tSecondaryBgColor,
-          }}
-        />
-      }
+      header={<ModalHeader />}
       open={modalOpen}
       onOpenChange={onOpenChange}
     >
-      <div
-        style={{
-          backgroundColor: tSecondaryBgColor,
-        }}
-      >
+      <div>
         <Placeholder
           description="Already settled your debt?"
           header={

@@ -7,13 +7,13 @@ import {
   Section,
   Skeleton,
   Text,
+  Title,
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import ModalHeader from "@/components/ui/ModalHeader";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
@@ -154,7 +154,7 @@ const ExpenseDetailsModal = ({
         return `🚨 You owe $${borrowedAmount.toFixed(2)}`;
       case "payer":
         return lentAmount === 0
-          ? "✅ All settled"
+          ? "✅ Even"
           : `💸 You're owed $${lentAmount.toFixed(2)}`;
       default:
         return "";
@@ -179,22 +179,19 @@ const ExpenseDetailsModal = ({
       open={open}
       onOpenChange={onOpenChange}
       header={
-        <ModalHeader>
-          <div className="flex flex-col items-center justify-center gap-1">
-            <div className="flex items-center gap-2">
-              <Text weight="2">Expense Details</Text>
-            </div>
-            <Badge
-              type="number"
-              mode="secondary"
-              className={getSubtitleColor()}
-            >
-              <Caption weight="2" className={getSubtitleColor()}>
-                {getSubtitle()}
-              </Caption>
-            </Badge>
-          </div>
-        </ModalHeader>
+        <Modal.Header
+          before={
+            <Title level="3" weight="1">
+              Expense
+            </Title>
+          }
+        >
+          <Badge type="number" mode="secondary" className={getSubtitleColor()}>
+            <Caption weight="2" className={getSubtitleColor()}>
+              {getSubtitle()}
+            </Caption>
+          </Badge>
+        </Modal.Header>
       }
     >
       <div className="flex flex-col pb-5">

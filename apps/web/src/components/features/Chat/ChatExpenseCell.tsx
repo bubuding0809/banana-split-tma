@@ -217,7 +217,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                 color: expenseRelation === "payer" ? tButtonColor : undefined,
               }}
             >
-              {expenseRelation === "payer" ? "You" : memberFullName} paid
+              {expenseRelation === "payer" ? "You" : memberFullName} spent
             </Caption>
           </Skeleton>
         }
@@ -235,22 +235,22 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                       switch (expenseRelation) {
                         case "payer":
                           return lentAmount === 0 ? (
-                            <Text weight="2">✅</Text>
+                            <Text weight="3">✅</Text>
                           ) : (
-                            <Text weight="2" className="text-green-600">
+                            <Text weight="3" className="text-green-600">
                               {formatCurrency(lentAmount)}
                             </Text>
                           );
                         case "borrower":
                           return borrowedAmount === 0 ? (
-                            <Text weight="2">✅</Text>
+                            <Text weight="3">✅</Text>
                           ) : (
-                            <Text weight="2" className="text-red-600">
+                            <Text weight="3" className="text-red-600">
                               {formatCurrency(borrowedAmount)}
                             </Text>
                           );
                         case "unrelated":
-                          return <Text weight="2">~</Text>;
+                          return <Text weight="3">~</Text>;
                         default:
                           return null;
                       }
@@ -262,9 +262,9 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                         case "unrelated":
                           return "Unrelated";
                         case "borrower":
-                          return borrowedAmount === 0 ? "Settled" : "Borrowed";
+                          return borrowedAmount === 0 ? "Even" : "Borrowed";
                         case "payer":
-                          return lentAmount === 0 ? "Settled" : "Lent";
+                          return lentAmount === 0 ? "Even" : "Lent";
                         default:
                           return "";
                       }

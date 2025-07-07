@@ -7,6 +7,7 @@ import {
   Section,
   Skeleton,
   Text,
+  Title,
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useCallback } from "react";
@@ -23,7 +24,6 @@ import { useEffect } from "react";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import ModalHeader from "@/components/ui/ModalHeader";
 import { formatExpenseDate } from "@utils/date";
 import { useMemo } from "react";
 import { formatCurrency } from "@/utils/financial";
@@ -186,22 +186,19 @@ const SettlementDetailsModal = ({
       open={open}
       onOpenChange={onOpenChange}
       header={
-        <ModalHeader>
-          <div className="flex flex-col items-center justify-center gap-1">
-            <div className="flex items-center gap-2">
-              <Text weight="2">Settlement Details</Text>
-            </div>
-            <Badge
-              type="number"
-              mode="secondary"
-              className={getSubtitleColor()}
-            >
-              <Caption weight="2" className={getSubtitleColor()}>
-                {getSubtitle()}
-              </Caption>
-            </Badge>
-          </div>
-        </ModalHeader>
+        <Modal.Header
+          before={
+            <Title level="3" weight="1">
+              Payment
+            </Title>
+          }
+        >
+          <Badge type="number" mode="secondary" className={getSubtitleColor()}>
+            <Caption weight="2" className={getSubtitleColor()}>
+              {getSubtitle()}
+            </Caption>
+          </Badge>
+        </Modal.Header>
       }
     >
       <div className="flex flex-col pb-5">
