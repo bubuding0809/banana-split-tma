@@ -55,7 +55,6 @@ const SettlementDetailsModal = ({
 }: SettlementDetailsModalProps) => {
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const utils = trpc.useUtils();
 
@@ -187,11 +186,7 @@ const SettlementDetailsModal = ({
       open={open}
       onOpenChange={onOpenChange}
       header={
-        <ModalHeader
-          style={{
-            backgroundColor: tSecondaryBgColor,
-          }}
-        >
+        <ModalHeader>
           <div className="flex flex-col items-center justify-center gap-1">
             <div className="flex items-center gap-2">
               <Text weight="2">Settlement Details</Text>
@@ -209,12 +204,7 @@ const SettlementDetailsModal = ({
         </ModalHeader>
       }
     >
-      <div
-        className="flex flex-col pb-5"
-        style={{
-          backgroundColor: tSecondaryBgColor,
-        }}
-      >
+      <div className="flex flex-col pb-5">
         {/* Description */}
         {settlement.description && (
           <Section header="What was this settlement for?" className="px-3">

@@ -99,7 +99,6 @@ const ExpenseDetailsModal = ({
 }: ExpenseDetailsModalProps) => {
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const memberFullName = `${member?.user.first_name}${
     member?.user.last_name ? ` ${member.user.last_name}` : ""
@@ -180,11 +179,7 @@ const ExpenseDetailsModal = ({
       open={open}
       onOpenChange={onOpenChange}
       header={
-        <ModalHeader
-          style={{
-            backgroundColor: tSecondaryBgColor,
-          }}
-        >
+        <ModalHeader>
           <div className="flex flex-col items-center justify-center gap-1">
             <div className="flex items-center gap-2">
               <Text weight="2">Expense Details</Text>
@@ -202,12 +197,7 @@ const ExpenseDetailsModal = ({
         </ModalHeader>
       }
     >
-      <div
-        className="flex flex-col pb-5"
-        style={{
-          backgroundColor: tSecondaryBgColor,
-        }}
-      >
+      <div className="flex flex-col pb-5">
         {/* Description */}
         <Section header="What was this for?" className="px-3">
           <Cell
