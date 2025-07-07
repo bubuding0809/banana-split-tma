@@ -1,4 +1,3 @@
-import ModalHeader from "@/components/ui/ModalHeader";
 import { useStartParams } from "@/hooks";
 import { sgdFormatter } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
@@ -153,7 +152,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
 
   return (
     <Modal
-      header={<ModalHeader />}
+      header={<Modal.Header>Settle debt?</Modal.Header>}
       open={modalOpen}
       onOpenChange={onOpenChange}
     >

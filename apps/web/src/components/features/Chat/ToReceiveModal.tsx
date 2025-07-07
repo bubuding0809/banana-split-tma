@@ -1,4 +1,3 @@
-import ModalHeader from "@/components/ui/ModalHeader";
 import { useStartParams } from "@/hooks";
 import { sgdFormatter } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
@@ -118,7 +117,7 @@ const ToRecieveModal = ({
 
   return (
     <Modal
-      header={<ModalHeader />}
+      header={<Modal.Header>Send reminder?</Modal.Header>}
       open={modalOpen}
       onOpenChange={onOpenChange}
     >
