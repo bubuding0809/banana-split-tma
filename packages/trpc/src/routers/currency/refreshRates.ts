@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { fetchExchangeRates } from "../../utils/currencyApi.js";
 
 export const inputSchema = z.object({
@@ -87,7 +87,7 @@ export const refreshRatesHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "POST",

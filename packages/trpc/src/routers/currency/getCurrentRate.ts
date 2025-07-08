@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, publicProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { toNumber } from "../../utils/financial.js";
 import { refreshRatesHandler } from "./refreshRates.js";
 import { isCacheExpired } from "../../utils/currencyApi.js";
@@ -209,7 +209,7 @@ export const getCurrentRateHandler = async (
   }
 };
 
-export default publicProcedure
+export default protectedProcedure
   .meta({
     openapi: {
       method: "GET",
