@@ -1,5 +1,6 @@
 import {
   chatRouter,
+  currencyRouter,
   expenseRouter,
   expenseShareRouter,
   settlementRouter,
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   expense: expenseRouter,
   expenseShare: expenseShareRouter,
   settlement: settlementRouter,
+  currency: currencyRouter,
 });
 
 export type AppRouter = typeof appRouter;

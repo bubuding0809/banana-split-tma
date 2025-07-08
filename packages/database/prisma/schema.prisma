@@ -105,3 +105,16 @@ model Settlement {
   @@index([senderId]) // Improves performance when querying settlements sent by a user
   @@index([receiverId]) // Optimizes lookups of settlements received by a user
 }
+
+model CurrencyRate {
+  id             String   @id @default(uuid())
+  baseCurrency   String
+  targetCurrency String
+  rate           Decimal  @db.Decimal(20, 8)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([baseCurrency, targetCurrency])
+  @@index([baseCurrency, targetCurrency])
+  @@index([updatedAt])
+}

@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js";
+import { getCurrencySymbol } from "./currencyApi.js";
 
 /**
  * Financial calculation utilities for precise monetary operations.
@@ -117,6 +118,72 @@ export function formatCurrency(
     amount instanceof Decimal ? amount : new Decimal(amount);
   const rounded = roundToCents(amountDecimal);
   return `${currency}${rounded.toFixed(2)}`;
+}
+
+/**
+ * Formats a financial amount with currency code
+ * @param amount - Amount to format
+ * @param currencyCode - Currency code (e.g., "USD", "EUR")
+ * @returns Formatted currency string with symbol
+ */
+export function formatCurrencyWithCode(
+  amount: number | Decimal,
+  currencyCode: string
+): string {
+  const symbol = getCurrencySymbol(currencyCode);
+  return formatCurrency(amount, symbol);
+}
+
+/**
+ * Converts an amount from one currency to another
+ * @param amount - Amount to convert
+ * @param rate - Exchange rate (target currency per unit of source currency)
+ * @returns Converted amount as Decimal
+ */
+export function convertCurrency(
+  amount: number | Decimal,
+  rate: number | Decimal
+): Decimal {
+  const amountDecimal =
+    amount instanceof Decimal ? amount : new Decimal(amount);
+  const rateDecimal = rate instanceof Decimal ? rate : new Decimal(rate);
+
+  return amountDecimal.times(rateDecimal);
+}
+
+/**
+ * Calculates the equivalent amount in target currency
+ * @param amount - Source amount
+ * @param fromCurrency - Source currency code
+ * @param toCurrency - Target currency code
+ * @param exchangeRate - Exchange rate from source to target
+ * @returns Object with converted amount and formatted strings
+ */
+export function convertAndFormat(
+  amount: number | Decimal,
+  fromCurrency: string,
+  toCurrency: string,
+  exchangeRate: number | Decimal
+): {
+  originalAmount: Decimal;
+  convertedAmount: Decimal;
+  originalFormatted: string;
+  convertedFormatted: string;
+  rate: Decimal;
+} {
+  const originalAmount =
+    amount instanceof Decimal ? amount : new Decimal(amount);
+  const rate =
+    exchangeRate instanceof Decimal ? exchangeRate : new Decimal(exchangeRate);
+  const convertedAmount = convertCurrency(originalAmount, rate);
+
+  return {
+    originalAmount,
+    convertedAmount,
+    originalFormatted: formatCurrencyWithCode(originalAmount, fromCurrency),
+    convertedFormatted: formatCurrencyWithCode(convertedAmount, toCurrency),
+    rate,
+  };
 }
 
 /**
