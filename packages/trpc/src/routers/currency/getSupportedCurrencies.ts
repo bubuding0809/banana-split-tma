@@ -8,20 +8,18 @@ export const inputSchema = z.object({
   onlyWithRates: z.boolean().default(false),
 });
 
-export const outputSchema = z.object({
-  currencies: z.array(
-    z.object({
-      code: z.string(),
-      name: z.string(),
-      symbol: z.string(),
-      symbol_native: z.string(),
-      name_plural: z.string(),
-      decimal_digits: z.number(),
-      hasRate: z.boolean().optional(),
-      lastUpdated: z.date().optional(),
-    })
-  ),
-});
+export const outputSchema = z.array(
+  z.object({
+    code: z.string(),
+    name: z.string(),
+    symbol: z.string(),
+    symbol_native: z.string(),
+    name_plural: z.string(),
+    decimal_digits: z.number(),
+    hasRate: z.boolean().optional(),
+    lastUpdated: z.date().optional(),
+  })
+);
 
 export const getSupportedCurrenciesHandler = async (
   input: z.infer<typeof inputSchema>,
@@ -76,9 +74,7 @@ export const getSupportedCurrenciesHandler = async (
       }),
     }));
 
-    return {
-      currencies,
-    };
+    return currencies;
   } catch (error) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",

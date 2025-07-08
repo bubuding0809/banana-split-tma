@@ -12,34 +12,7 @@ import { Decimal } from "decimal.js";
 import { expenseFormSchema } from "./AddExpenseForm.type";
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-
-const CURRENCIES = {
-  SGD: {
-    symbol: "SGD",
-    name: "Singapore Dollar",
-    rate: 1,
-  },
-  USD: {
-    symbol: "USD",
-    name: "US Dollar",
-    rate: 0.741488522,
-  },
-  EUR: {
-    symbol: "EUR",
-    name: "Euro",
-    rate: 0.68,
-  },
-  GBP: {
-    symbol: "GBP",
-    name: "British Pound",
-    rate: 0.58,
-  },
-  JPY: {
-    symbol: "JPY",
-    name: "Japanese Yen",
-    rate: 113.45,
-  },
-} as const;
+import { trpc } from "@/utils/trpc";
 
 const SELECT_STYLES = {
   WebkitAppearance: "none",
@@ -62,14 +35,21 @@ const AmountFormStep = withForm({
   },
   render: function Render({ form, isLastStep, step }) {
     const navigate = routeApi.useNavigate();
-    const [expenseCurrency, setExpenseCurrency] =
-      useState<keyof typeof CURRENCIES>("SGD");
-    const [displayCurrency, setDisplayCurrency] =
-      useState<keyof typeof CURRENCIES>("SGD");
+    const [expenseCurrency, setExpenseCurrency] = useState("SGD");
+    const [displayCurrency, setDisplayCurrency] = useState("SGD");
     const [containerWidth, setContainerWidth] = useState(0);
     const measureRef = useRef(null);
     const amountFieldRef = useRef<HTMLInputElement>(null);
     const descriptionFieldRef = useRef<HTMLInputElement>(null);
+
+    const { data: supportedCurrencies } =
+      trpc.currency.getSupportedCurrencies.useQuery({});
+    const { data: exchangeRate } = trpc.currency.getCurrentRate.useQuery({
+      baseCurrency: expenseCurrency,
+      targetCurrency: displayCurrency,
+    });
+
+    console.log("Supported Currencies:", supportedCurrencies);
 
     // Configure main button click
     useEffect(() => {
@@ -196,17 +176,8 @@ const AmountFormStep = withForm({
 
       // Use Decimal for precise currency conversion
       const amountDecimal = new Decimal(amount);
-      const expenseRate = new Decimal(CURRENCIES[expenseCurrency].rate);
-      const displayRate = new Decimal(CURRENCIES[displayCurrency].rate);
-
-      // Convert to SGD first (base currency), then to display currency
-      const amountInSGD =
-        expenseCurrency === "SGD"
-          ? amountDecimal
-          : amountDecimal.dividedBy(expenseRate);
-
-      const convertedAmount = amountInSGD.times(displayRate);
-      return convertedAmount.toFixed(2);
+      const rate = exchangeRate?.rate || 1;
+      return amountDecimal.mul(rate).toFixed(2);
     };
 
     const descriptionMaxLength =
@@ -249,16 +220,12 @@ const AmountFormStep = withForm({
                     <select
                       style={SELECT_STYLES}
                       value={expenseCurrency}
-                      onChange={(e) =>
-                        setExpenseCurrency(
-                          e.target.value as keyof typeof CURRENCIES
-                        )
-                      }
+                      onChange={(e) => setExpenseCurrency(e.target.value)}
                       className="pr-6 focus:outline-none"
                     >
-                      {Object.entries(CURRENCIES).map(([symbol]) => (
-                        <option key={symbol} value={symbol}>
-                          {symbol}
+                      {supportedCurrencies?.map((currency) => (
+                        <option key={currency.symbol} value={currency.symbol}>
+                          {currency.symbol}
                         </option>
                       ))}
                     </select>
@@ -323,16 +290,15 @@ const AmountFormStep = withForm({
                         <select
                           style={SELECT_STYLES}
                           value={displayCurrency}
-                          onChange={(e) =>
-                            setDisplayCurrency(
-                              e.target.value as keyof typeof CURRENCIES
-                            )
-                          }
+                          onChange={(e) => setDisplayCurrency(e.target.value)}
                           className="pr-6 focus:outline-none"
                         >
-                          {Object.entries(CURRENCIES).map(([symbol]) => (
-                            <option key={symbol} value={symbol}>
-                              {symbol}
+                          {supportedCurrencies?.map((currency) => (
+                            <option
+                              key={currency.symbol}
+                              value={currency.symbol}
+                            >
+                              {currency.symbol}
                             </option>
                           ))}
                         </select>
