@@ -224,8 +224,8 @@ const AmountFormStep = withForm({
                       className="pr-6 focus:outline-none"
                     >
                       {supportedCurrencies?.map((currency) => (
-                        <option key={currency.symbol} value={currency.symbol}>
-                          {currency.symbol}
+                        <option key={currency.code} value={currency.code}>
+                          {currency.code}
                         </option>
                       ))}
                     </select>
@@ -294,11 +294,8 @@ const AmountFormStep = withForm({
                           className="pr-6 focus:outline-none"
                         >
                           {supportedCurrencies?.map((currency) => (
-                            <option
-                              key={currency.symbol}
-                              value={currency.symbol}
-                            >
-                              {currency.symbol}
+                            <option key={currency.code} value={currency.code}>
+                              {currency.code}
                             </option>
                           ))}
                         </select>
