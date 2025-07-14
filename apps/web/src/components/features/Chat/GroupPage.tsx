@@ -76,13 +76,14 @@ const GroupPage = () => {
   }, [dUserError, isDUserError]);
 
   // Ensure user is a member of the chat
-  useEnsureChatMember(
-    {
-      chatId,
-      userId,
-    },
-    { enabled: userId !== 0 && chatId !== 0 }
-  );
+  const { isPending: isEnsuringChatMember, data: ensureChatMemberData } =
+    useEnsureChatMember(
+      {
+        chatId,
+        userId,
+      },
+      { enabled: userId !== 0 && chatId !== 0 }
+    );
 
   const SelectedTab = {
     balance: ChatBalanceTab,
@@ -94,6 +95,17 @@ const GroupPage = () => {
       <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
         <Spinner size="l" />
         <Caption weight="1">Preparing bananas</Caption>
+      </main>
+    );
+  }
+
+  if (isEnsuringChatMember) {
+    return (
+      <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
+        <Spinner size="l" />
+        <Caption weight="1">
+          Adding you to {ensureChatMemberData?.title ?? "group"}
+        </Caption>
       </main>
     );
   }

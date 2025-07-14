@@ -21,7 +21,12 @@ const useEnsureChatMember = (
   const { data: dchatData } = trpc.chat.getChat.useQuery({ chatId });
 
   //* Mutations ===================================================================================
-  const { mutateAsync: addMember } = trpc.chat.addMember.useMutation();
+  const {
+    mutateAsync: addMember,
+    isPending,
+    isError,
+    error,
+  } = trpc.chat.addMember.useMutation();
 
   //* Effects
   useEffect(() => {
@@ -45,7 +50,14 @@ const useEnsureChatMember = (
         }
       );
     }
-  }, [dchatData, chatId, userId, enabled, addMember, trpcUtils.chat.getChat]);
+  }, [addMember, chatId, dchatData, enabled, trpcUtils.chat.getChat, userId]);
+
+  return {
+    isPending,
+    isError,
+    error,
+    data: dchatData,
+  };
 };
 
 export default useEnsureChatMember;
