@@ -239,6 +239,15 @@ export const CURRENCY_DATABASE = {
     symbol: "₩",
     symbol_native: "₩",
   },
+  KZT: {
+    code: "KZT",
+    name: "Kazakhstani Tenge",
+    decimal_digits: 2,
+    name_plural: "Kazakhstani tenges",
+    rounding: 0,
+    symbol: "KZT",
+    symbol_native: "тңг.",
+  },
   MXN: {
     code: "MXN",
     name: "Mexican Peso",
