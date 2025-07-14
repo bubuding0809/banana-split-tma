@@ -5,7 +5,12 @@ import { trpc } from "@/utils/trpc";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import FieldInfo from "@/components/ui/FieldInfo";
 import ModalHeader from "@/components/ui/ModalHeader";
-import { toDecimal, toNumber, sumDecimals } from "@/utils/financial";
+import {
+  toDecimal,
+  toNumber,
+  sumDecimals,
+  formatCurrencyWithCode,
+} from "@/utils/financial";
 import { cn } from "@utils/cn";
 
 const SplitShareFooter = withForm({
@@ -65,6 +70,7 @@ const SplitShareFooter = withForm({
                               participants: state.values.participants,
                               amount: state.values.amount,
                               payee: state.values.payee,
+                              currency: state.values.currency,
                             })}
                           >
                             {(state) => (
@@ -77,6 +83,7 @@ const SplitShareFooter = withForm({
                                   field.handleChange(splits)
                                 }
                                 payeeId={state.payee}
+                                currency={state.currency}
                               />
                             )}
                           </form.Subscribe>
@@ -107,12 +114,14 @@ interface SplitConfigProps {
   customSplits?: { userId: string; amount: string }[];
   onSplitsChange?: (splits: { userId: string; amount: string }[]) => void;
   payeeId: string;
+  currency: string;
 }
 
 const SplitConfigShares = ({
   participants,
   totalAmount,
   customSplits = [],
+  currency,
 }: SplitConfigProps) => {
   const getTotalShares = () => {
     const amounts = customSplits.map((split) => split.amount || "0");
@@ -198,12 +207,12 @@ const SplitConfigShares = ({
               )}
             >
               {hasShares
-                ? `$${getAmountPerShare().toFixed(2)} per share`
+                ? `${formatCurrencyWithCode(getAmountPerShare(), currency)} per share`
                 : "Set shares to calculate"}
             </span>
           </div>
           <div className="font-semibold text-white">
-            ${toDecimal(totalAmount).toFixed(2)} total
+            {formatCurrencyWithCode(totalAmount, currency)} total
           </div>
         </div>
       </div>

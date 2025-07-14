@@ -9,7 +9,8 @@ import {
 } from "@telegram-apps/sdk-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
-import { toDecimal, formatCurrency } from "@/utils/financial";
+import { toDecimal, formatCurrencyWithCode } from "@/utils/financial";
+import { useStore } from "@tanstack/react-form";
 
 const SplitEqualConfig = withForm({
   ...formOpts,
@@ -22,6 +23,9 @@ const SplitEqualConfig = withForm({
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
     const chatId = tStartParams?.chat_id ?? 0;
+    const { currency } = useStore(form.store, (state) => ({
+      currency: state.values.currency,
+    }));
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
 
@@ -89,7 +93,7 @@ const SplitEqualConfig = withForm({
                     key={memberId}
                     subtitle={
                       isSelected
-                        ? formatCurrency(Number(splitAmount))
+                        ? formatCurrencyWithCode(Number(splitAmount), currency)
                         : "Not selected"
                     }
                     before={

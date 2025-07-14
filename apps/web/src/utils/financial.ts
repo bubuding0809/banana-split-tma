@@ -135,3 +135,33 @@ export const sgdFormatter = new Intl.NumberFormat("en-SG", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+
+/**
+ * Formats a financial amount with proper currency formatting using Intl.NumberFormat
+ * @param amount - Amount to format (from API response)
+ * @param currencyCode - 3-letter currency code (e.g., "USD", "SGD")
+ * @returns Formatted currency string (e.g., "$123.45", "€123.45")
+ */
+export function formatCurrencyWithCode(
+  amount: number | null | undefined,
+  currencyCode: string = "SGD"
+): string {
+  if (amount === null || amount === undefined) {
+    amount = 0;
+  }
+
+  try {
+    // Use Intl.NumberFormat for proper currency formatting
+    const formatter = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: currencyCode.toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return formatter.format(Math.abs(amount));
+  } catch {
+    // Fallback if currency code is invalid
+    return `${currencyCode.toUpperCase()} ${Math.abs(amount).toFixed(2)}`;
+  }
+}

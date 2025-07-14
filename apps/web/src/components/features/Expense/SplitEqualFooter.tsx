@@ -2,7 +2,7 @@ import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { Caption, Cell, Text, Info } from "@telegram-apps/telegram-ui";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
-import { toDecimal, toNumber, formatCurrency } from "@/utils/financial";
+import { toDecimal, toNumber, formatCurrencyWithCode } from "@/utils/financial";
 
 const SplitEqualFooter = withForm({
   ...formOpts,
@@ -26,9 +26,10 @@ const SplitEqualFooter = withForm({
               selector={(state) => ({
                 participants: state.values.participants,
                 amount: state.values.amount,
+                currency: state.values.currency,
               })}
             >
-              {({ participants, amount }) => {
+              {({ participants, amount, currency }) => {
                 const splitAmount = toDecimal(amount || "0").dividedBy(
                   participants.length || 1
                 );
@@ -38,7 +39,7 @@ const SplitEqualFooter = withForm({
                 }
                 return (
                   <Info type="text" subtitle="each">
-                    {formatCurrency(toNumber(splitAmount))}
+                    {formatCurrencyWithCode(toNumber(splitAmount), currency)}
                   </Info>
                 );
               }}

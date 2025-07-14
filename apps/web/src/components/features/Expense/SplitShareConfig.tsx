@@ -13,7 +13,7 @@ import { Plus, Minus } from "lucide-react";
 import { cn } from "@utils/cn";
 import { useStore } from "@tanstack/react-form";
 import { useState } from "react";
-import { formatCurrency, toDecimal, toNumber } from "@/utils/financial";
+import { formatCurrencyWithCode, toDecimal, toNumber } from "@/utils/financial";
 
 const SplitShareConfig = withForm({
   ...formOpts,
@@ -28,8 +28,9 @@ const SplitShareConfig = withForm({
     const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
     const tStartParams = useStartParams();
     const chatId = tStartParams?.chat_id ?? 0;
-    const { customSplits } = useStore(form.store, (state) => ({
+    const { customSplits, currency } = useStore(form.store, (state) => ({
       customSplits: state.values.customSplits,
+      currency: state.values.currency,
     }));
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
@@ -132,7 +133,7 @@ const SplitShareConfig = withForm({
 
                   const cellSubtitle =
                     shares !== "0"
-                      ? `${shares}/${totalShares} - ${formatCurrency(toNumber(shareCost))}`
+                      ? `${shares}/${totalShares} - ${formatCurrencyWithCode(toNumber(shareCost), currency)}`
                       : "No shares";
 
                   return (
