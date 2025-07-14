@@ -39,7 +39,7 @@ const AmountFormStep = withForm({
     isLastStep: false,
   },
   render: function Render({ form, isLastStep, step }) {
-    const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+    const tBgColor = useSignal(themeParams.backgroundColor);
 
     const navigate = routeApi.useNavigate();
     const [expenseCurrency, setExpenseCurrency] = useState("SGD");
@@ -220,7 +220,7 @@ const AmountFormStep = withForm({
                     "ring-2 ring-red-600"
                 )}
                 style={{
-                  backgroundColor: tSectionBgColor,
+                  backgroundColor: tBgColor,
                 }}
               >
                 {/* Currency Selection */}
