@@ -1,12 +1,6 @@
 import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-import {
-  Caption,
-  Section,
-  Cell,
-  Checkbox,
-  Text,
-} from "@telegram-apps/telegram-ui";
+import { Section, Cell, Checkbox, Text } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import {
   hapticFeedback,
