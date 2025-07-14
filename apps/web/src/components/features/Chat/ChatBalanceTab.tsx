@@ -1,5 +1,13 @@
 import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Caption, Section, Title } from "@telegram-apps/telegram-ui";
+import {
+  Avatar,
+  Caption,
+  Cell,
+  Section,
+  Skeleton,
+  Title,
+  Text,
+} from "@telegram-apps/telegram-ui";
 
 import ChatBalanceCell from "./ChatBalanceCell";
 import { trpc } from "@/utils/trpc";
@@ -15,11 +23,13 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
   const userId = tUserData?.id ?? 0;
 
   // * Queries =====================================================================================
-  const { data: debtors } = trpc.chat.getDebtors.useQuery({ userId, chatId });
-  const { data: creditors } = trpc.chat.getCreditors.useQuery({
-    userId,
-    chatId,
-  });
+  const { data: debtors, status: getDebtorStatus } =
+    trpc.chat.getDebtors.useQuery({ userId, chatId });
+  const { data: creditors, status: getCreditorStatus } =
+    trpc.chat.getCreditors.useQuery({
+      userId,
+      chatId,
+    });
 
   return (
     <div className="flex flex-col gap-4">
@@ -30,6 +40,27 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
           </Title>
         }
       >
+        {getDebtorStatus === "pending" &&
+          Array.from({ length: 2 }).map((_, index) => (
+            <Cell
+              key={index}
+              before={<Avatar size={48} />}
+              after={
+                <Skeleton visible>
+                  <Text>Loading...</Text>
+                </Skeleton>
+              }
+              subhead={
+                <Skeleton visible>
+                  <Text>Loading...</Text>
+                </Skeleton>
+              }
+            >
+              <Skeleton visible>
+                <Text>Loading...</Text>
+              </Skeleton>
+            </Cell>
+          ))}
         {debtors?.map((member) => (
           <ChatBalanceCell key={member.id} member={member} chatId={chatId} />
         ))}
@@ -50,6 +81,27 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
           </Title>
         }
       >
+        {getCreditorStatus === "pending" &&
+          Array.from({ length: 2 }).map((_, index) => (
+            <Cell
+              key={index}
+              before={<Avatar size={48} />}
+              after={
+                <Skeleton visible>
+                  <Text>Loading...</Text>
+                </Skeleton>
+              }
+              subhead={
+                <Skeleton visible>
+                  <Text>Loading...</Text>
+                </Skeleton>
+              }
+            >
+              <Skeleton visible>
+                <Text>Loading...</Text>
+              </Skeleton>
+            </Cell>
+          ))}
         {creditors?.map((member) => (
           <ChatBalanceCell key={member.id} member={member} chatId={chatId} />
         ))}
