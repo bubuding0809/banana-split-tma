@@ -46,10 +46,13 @@ const AmountFormStep = withForm({
     const { expenseCurrency } = useStore(form.store, (state) => ({
       expenseCurrency: state.values.currency,
     }));
+    const { chatId } = routeApi.useParams();
 
-    const [displayCurrency, setDisplayCurrency] = useState(
-      () => expenseCurrency || "SGD"
-    );
+    const { data: dChatData } = trpc.chat.getChat.useQuery({
+      chatId: Number(chatId),
+    });
+    const displayCurrency = dChatData?.baseCurrency || "SGD";
+
     const [containerWidth, setContainerWidth] = useState(0);
     const measureRef = useRef(null);
     const amountFieldRef = useRef<HTMLInputElement>(null);
@@ -57,6 +60,7 @@ const AmountFormStep = withForm({
 
     const { data: supportedCurrencies } =
       trpc.currency.getSupportedCurrencies.useQuery({});
+
     const { data: exchangeRate } = trpc.currency.getCurrentRate.useQuery({
       baseCurrency: expenseCurrency,
       targetCurrency: displayCurrency,
@@ -307,21 +311,7 @@ const AmountFormStep = withForm({
                       <span className="mx-1">
                         {getConvertedAmount(field.state.value)}
                       </span>
-                      <div className="relative">
-                        <select
-                          style={SELECT_STYLES}
-                          value={displayCurrency}
-                          onChange={(e) => setDisplayCurrency(e.target.value)}
-                          className="pr-6 focus:outline-none"
-                        >
-                          {supportedCurrencies?.map((currency) => (
-                            <option key={currency.code} value={currency.code}>
-                              {currency.code}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
-                      </div>
+                      <span className="text-gray-400">{displayCurrency}</span>
                     </div>
                   )}
                 </div>
