@@ -1,7 +1,7 @@
 import { assetUrls } from "@/assets/urls";
 import { useStartParams } from "@/hooks";
 import { mainButton, openTelegramLink } from "@telegram-apps/sdk-react";
-import { Placeholder } from "@telegram-apps/telegram-ui";
+import { Caption, Placeholder, Text } from "@telegram-apps/telegram-ui";
 import { useEffect } from "react";
 
 const NewUserPage = () => {
@@ -10,7 +10,7 @@ const NewUserPage = () => {
 
   useEffect(() => {
     mainButton.setParams.ifAvailable({
-      text: "Start here »",
+      text: "Let's go!",
       isEnabled: true,
       isVisible: true,
       hasShineEffect: true,
@@ -29,7 +29,7 @@ const NewUserPage = () => {
     const offMainButton = mainButton.onClick.ifAvailable(() => {
       // This will open the Telegram app to start the bot
       openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register:${chatId}`
+        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register`
       );
     });
 
@@ -41,8 +41,19 @@ const NewUserPage = () => {
   return (
     <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
       <Placeholder
-        header="Hey there! You seem to be new here."
-        description="Let's get you started by initiating a chat with the bot."
+        header="👋 You seem new here"
+        description={
+          <div>
+            <Text>Get started by talking to the bot.</Text>
+            <div className="mt-10 flex flex-col items-center gap-4">
+              <Caption>1. Click the button below to go to the bot</Caption>
+              <Caption>
+                2. Tap &quot;Start&quot; to initial the registration process
+              </Caption>
+              <Caption>3. Once done, come back here to continue</Caption>
+            </div>
+          </div>
+        }
       >
         <img
           alt="Telegram sticker"
