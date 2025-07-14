@@ -122,7 +122,14 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         }
         description={
           <Skeleton visible={displayInfo.isLoading}>
-            <Caption weight="1" level="2">
+            <Caption
+              weight="1"
+              level="2"
+              style={{
+                color:
+                  settlementRelation === "receiver" ? tButtonColor : undefined,
+              }}
+            >
               {displayInfo.secondaryText}
             </Caption>
           </Skeleton>
@@ -137,7 +144,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
                   </Caption>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xl">💰</span>
-                    <span>»</span>
+                    <span className="pe-0.5">▶︎</span>
                     <ChatMemberAvatar userId={receiverId} size={28} />
                   </div>
                 </div>
