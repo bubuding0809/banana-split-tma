@@ -190,7 +190,9 @@ const SplitShareConfig = withForm({
                         </div>
                       }
                     >
-                      @{member?.username || "Unknown"}{" "}
+                      {member.username
+                        ? `@${member.username}`
+                        : member.firstName}
                     </Cell>
                   );
                 })}

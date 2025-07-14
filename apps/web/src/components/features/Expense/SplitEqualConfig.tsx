@@ -128,7 +128,7 @@ const SplitEqualConfig = withForm({
                       />
                     }
                   >
-                    @{member?.username || "Unknown"}{" "}
+                    {member.username ? `@${member.username}` : member.firstName}
                   </Cell>
                 );
               })}
