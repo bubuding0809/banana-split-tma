@@ -152,7 +152,9 @@ const PayeeFormStep = withForm({
                           />
                         }
                       >
-                        @{member.username || "Unkown"}
+                        {member.username
+                          ? `@${member.username}`
+                          : member.firstName}
                       </Cell>
                     ))
                   : []}
