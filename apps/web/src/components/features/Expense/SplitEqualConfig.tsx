@@ -94,11 +94,9 @@ const SplitEqualConfig = withForm({
                     Component="label"
                     key={memberId}
                     subtitle={
-                      <Caption weight={isSelected ? "2" : "3"}>
-                        {isSelected
-                          ? formatCurrency(Number(splitAmount))
-                          : "Not selected"}
-                      </Caption>
+                      isSelected
+                        ? formatCurrency(Number(splitAmount))
+                        : "Not selected"
                     }
                     before={
                       <ChatMemberAvatar userId={Number(memberId)} size={48} />
