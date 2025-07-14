@@ -13,6 +13,7 @@ import { Plus, Minus } from "lucide-react";
 import { cn } from "@utils/cn";
 import { useStore } from "@tanstack/react-form";
 import { useState } from "react";
+import { formatCurrency, toDecimal, toNumber } from "@/utils/financial";
 
 const SplitShareConfig = withForm({
   ...formOpts,
@@ -92,6 +93,11 @@ const SplitShareConfig = withForm({
               triggerBadgeAnimation(userId, isIncrement ? "pop" : "shake");
             }
           };
+          const totalShares = customSplits.reduce(
+            (acc, split) => acc.plus(toDecimal(split.amount)),
+            toDecimal(0)
+          );
+
           return (
             <section>
               <Section
@@ -116,10 +122,23 @@ const SplitShareConfig = withForm({
                   const shares =
                     customSplits.find((s) => s.userId === memberId)?.amount ||
                     "0";
+
+                  const shareCost =
+                    totalShares.comparedTo(0) > 0
+                      ? toDecimal(shares)
+                          .dividedBy(totalShares)
+                          .times(toDecimal(form.state.values.amount))
+                      : toDecimal(0);
+
+                  const cellSubtitle =
+                    shares !== "0"
+                      ? `${shares}/${totalShares} - ${formatCurrency(toNumber(shareCost))}`
+                      : "No shares";
+
                   return (
                     <Cell
                       key={memberId}
-                      subtitle={`${member?.firstName} ${member?.lastName || ""}`}
+                      subtitle={cellSubtitle}
                       before={
                         <div className="relative">
                           <div
