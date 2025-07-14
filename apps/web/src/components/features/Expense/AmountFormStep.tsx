@@ -1,5 +1,10 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { hapticFeedback, mainButton } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  mainButton,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { Subheadline, Textarea } from "@telegram-apps/telegram-ui";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -34,6 +39,8 @@ const AmountFormStep = withForm({
     isLastStep: false,
   },
   render: function Render({ form, isLastStep, step }) {
+    const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+
     const navigate = routeApi.useNavigate();
     const [expenseCurrency, setExpenseCurrency] = useState("SGD");
     const [displayCurrency, setDisplayCurrency] = useState("SGD");
@@ -207,11 +214,14 @@ const AmountFormStep = withForm({
               </label>
               <div
                 className={cn(
-                  "rounded-xl bg-[#212121] p-3 px-4",
+                  "rounded-xl p-3 px-4",
                   field.state.meta.isTouched &&
                     field.state.meta.errors.length &&
                     "ring-2 ring-red-600"
                 )}
+                style={{
+                  backgroundColor: tSectionBgColor,
+                }}
               >
                 {/* Currency Selection */}
                 <div className="flex items-center">
