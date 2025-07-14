@@ -6,12 +6,17 @@ import {
   toDecimal,
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
+import { validateCurrency } from "../../utils/currencyApi.js";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
   senderId: z.number().transform((val) => BigInt(val)),
   receiverId: z.number().transform((val) => BigInt(val)),
   amount: z.number().positive("Amount must be positive"),
+  currency: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateCurrency(val), "Invalid currency code"),
   description: z.string().max(255, "Description too long").optional(),
 });
 
@@ -21,6 +26,7 @@ export const outputSchema = z.object({
   senderId: z.preprocess((arg) => String(arg), z.string()),
   receiverId: z.preprocess((arg) => String(arg), z.string()),
   amount: z.number(),
+  currency: z.string(),
   description: z.string().nullable(),
   date: z.date(),
   createdAt: z.date(),
@@ -32,6 +38,25 @@ export const createSettlementHandler = async (
   db: Db
 ) => {
   try {
+    // Determine the currency to use
+    let currency = input.currency;
+    if (!currency) {
+      // Fetch chat's baseCurrency if no currency provided
+      const chat = await db.chat.findUnique({
+        where: { id: input.chatId },
+        select: { baseCurrency: true },
+      });
+
+      if (!chat) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chat not found",
+        });
+      }
+
+      currency = chat.baseCurrency;
+    }
+
     // Validate amount using Decimal for precision
     const amountDecimal = toDecimal(input.amount);
 
@@ -97,6 +122,7 @@ export const createSettlementHandler = async (
         senderId: input.senderId,
         receiverId: input.receiverId,
         amount: toNumber(amountDecimal),
+        currency: currency,
         description: input.description || null,
       },
     });
@@ -107,6 +133,7 @@ export const createSettlementHandler = async (
       senderId: Number(settlement.senderId),
       receiverId: Number(settlement.receiverId),
       amount: Number(settlement.amount),
+      currency: settlement.currency,
     };
   } catch (error) {
     if (error instanceof TRPCError) {

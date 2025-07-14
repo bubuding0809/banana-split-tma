@@ -69,6 +69,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         receiverId: member.id,
         senderId: userId,
         chatId,
+        currency: dChatData?.baseCurrency,
       });
 
       // Send notification to creditor
@@ -80,7 +81,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
           creditorUsername: member.username || undefined,
           debtorName: tUserData.firstName,
           amount: absAmountOwed,
-          currency: "SGD",
+          currency: dChatData?.baseCurrency || "SGD",
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
@@ -109,6 +110,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
   }, [
     absAmountOwed,
     dChatData?.threadId,
+    dChatData?.baseCurrency,
     chatId,
     createSettlementMutation,
     member.firstName,
