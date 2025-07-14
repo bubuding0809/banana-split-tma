@@ -57,8 +57,6 @@ const AmountFormStep = withForm({
       targetCurrency: displayCurrency,
     });
 
-    console.log("Supported Currencies:", supportedCurrencies);
-
     // Configure main button click
     useEffect(() => {
       const offClick = mainButton.onClick.ifAvailable(() => {

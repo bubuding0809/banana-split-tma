@@ -8,6 +8,7 @@ import {
   sumAmounts,
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
+import { validateCurrency } from "../../utils/currencyApi.js";
 import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
 
@@ -20,6 +21,10 @@ export const inputSchema = z.object({
     .min(1, "Description is required")
     .max(60, "Description too long"),
   amount: z.number().positive("Amount must be positive"),
+  currency: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateCurrency(val), "Invalid currency code"),
   splitMode: z.nativeEnum(SplitMode),
   participantIds: z
     .array(z.number().transform((val) => BigInt(val)))
@@ -43,6 +48,7 @@ export const outputSchema = z.object({
   payerId: z.preprocess((arg) => String(arg), z.string()),
   description: z.string(),
   amount: z.number(),
+  currency: z.string(),
   splitMode: z.nativeEnum(SplitMode),
   date: z.date(),
   createdAt: z.date(),
@@ -251,6 +257,25 @@ export const createExpenseHandler = async (
   teleBot: Telegram
 ) => {
   try {
+    // Determine the currency to use
+    let currency = input.currency;
+    if (!currency) {
+      // Fetch chat's baseCurrency if no currency provided
+      const chat = await db.chat.findUnique({
+        where: { id: input.chatId },
+        select: { baseCurrency: true },
+      });
+
+      if (!chat) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chat not found",
+        });
+      }
+
+      currency = chat.baseCurrency;
+    }
+
     // Calculate the splits for each participant
     const splits = calculateSplits(
       input.amount,
@@ -269,6 +294,7 @@ export const createExpenseHandler = async (
           payerId: input.payerId,
           description: input.description,
           amount: input.amount,
+          currency: currency,
           splitMode: input.splitMode,
           participants: {
             connect: input.participantIds.map((id) => ({ id })),
@@ -334,7 +360,7 @@ export const createExpenseHandler = async (
               expenseDescription: input.description,
               totalAmount: input.amount,
               participants: participantsWithAmounts,
-              currency: "SGD",
+              currency: currency,
               threadId: input.threadId,
             },
             teleBot
@@ -352,6 +378,7 @@ export const createExpenseHandler = async (
       creatorId: Number(expense.creatorId),
       payerId: Number(expense.payerId),
       amount: Number(expense.amount),
+      currency: expense.currency,
     };
   } catch (error) {
     if (error instanceof TRPCError) {

@@ -437,6 +437,15 @@ export function getCurrencyDecimalDigits(currencyCode: string): number {
 }
 
 /**
+ * Validates if a currency code exists in the supported currency database
+ * @param currencyCode - ISO currency code (e.g., "USD", "EUR")
+ * @returns True if currency is supported, false otherwise
+ */
+export function validateCurrency(currencyCode: string): boolean {
+  return currencyCode.toUpperCase() in CURRENCY_DATABASE;
+}
+
+/**
  * Gets the currency name
  * @param currencyCode - ISO currency code (e.g., "USD", "EUR")
  * @returns Currency name or the code itself if not found
