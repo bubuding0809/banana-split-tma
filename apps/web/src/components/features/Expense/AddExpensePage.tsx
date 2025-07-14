@@ -58,8 +58,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     defaultValues: {
       ...formOpts.defaultValues,
       payee: userId.toString(),
+      currency: dChatData?.baseCurrency ?? "SGD",
     },
-
     onSubmit: async ({ value }) => {
       try {
         // Convert form values to API format
@@ -80,6 +80,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           splitMode: value.splitMode,
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
+          currency: value.currency,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,

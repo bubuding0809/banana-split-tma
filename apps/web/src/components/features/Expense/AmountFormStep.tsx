@@ -18,6 +18,7 @@ import { expenseFormSchema } from "./AddExpenseForm.type";
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
+import { useStore } from "@tanstack/react-form";
 
 const SELECT_STYLES = {
   WebkitAppearance: "none",
@@ -41,10 +42,14 @@ const AmountFormStep = withForm({
   render: function Render({ form, isLastStep, step }) {
     const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
     const isDarkMode = useSignal(themeParams.isDark);
-
     const navigate = routeApi.useNavigate();
-    const [expenseCurrency, setExpenseCurrency] = useState("SGD");
-    const [displayCurrency, setDisplayCurrency] = useState("SGD");
+    const { expenseCurrency } = useStore(form.store, (state) => ({
+      expenseCurrency: state.values.currency,
+    }));
+
+    const [displayCurrency, setDisplayCurrency] = useState(
+      () => expenseCurrency || "SGD"
+    );
     const [containerWidth, setContainerWidth] = useState(0);
     const measureRef = useRef(null);
     const amountFieldRef = useRef<HTMLInputElement>(null);
@@ -226,18 +231,25 @@ const AmountFormStep = withForm({
                 <div className="flex items-center">
                   <Subheadline>Expensed in</Subheadline>
                   <div className="relative ml-2">
-                    <select
-                      style={SELECT_STYLES}
-                      value={expenseCurrency}
-                      onChange={(e) => setExpenseCurrency(e.target.value)}
-                      className="pr-6 focus:outline-none"
-                    >
-                      {supportedCurrencies?.map((currency) => (
-                        <option key={currency.code} value={currency.code}>
-                          {currency.code}
-                        </option>
-                      ))}
-                    </select>
+                    <form.AppField name="currency">
+                      {(field) => (
+                        <select
+                          style={SELECT_STYLES}
+                          value={expenseCurrency}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value);
+                          }}
+                          className="pr-6 focus:outline-none"
+                        >
+                          {supportedCurrencies?.map((currency) => (
+                            <option key={currency.code} value={currency.code}>
+                              {currency.code}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </form.AppField>
+
                     <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
                   </div>
                 </div>

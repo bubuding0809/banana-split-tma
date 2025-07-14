@@ -8,6 +8,7 @@ export const formOpts = formOptions({
     amount: "",
     description: "",
     payee: "",
+    currency: "SGD",
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
     customSplits: [] as { userId: string; amount: string }[],
