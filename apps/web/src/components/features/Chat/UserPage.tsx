@@ -34,9 +34,9 @@ const UserPage = () => {
   }, [isMainButtonMounted]);
 
   return (
-    <div className="p-4">
+    <div className="flex h-[80vh] flex-col items-center justify-center p-4">
       <Placeholder
-        header="Nothing to see here"
+        header="Nothing to see here, for now ..."
         description="Add me to a group to start splitting expenses"
       >
         <img
