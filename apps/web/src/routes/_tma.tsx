@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_tma")({
   component: LayoutComponent,
   validateSearch: zodValidator(
     z.object({
-      title: z.string().catch("🍌 Splitz"),
+      title: z.string().catch("🍌 Banana Splitz"),
     })
   ),
 });
