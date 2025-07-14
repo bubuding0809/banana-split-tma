@@ -18,16 +18,17 @@ enum ChatType {
 }
 
 model Chat {
-  id        BigInt       @id
-  title     String
-  photo     String       @default("https://xelene.me/telegram.gif")
-  type      ChatType
-  threadId  BigInt?
-  members   User[]
-  expenses  Expense[]
-  transfers Settlement[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id           BigInt       @id
+  title        String
+  photo        String       @default("https://xelene.me/telegram.gif")
+  type         ChatType
+  threadId     BigInt?
+  baseCurrency String       @default("SGD")
+  members      User[]
+  expenses     Expense[]
+  transfers    Settlement[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model User {
@@ -64,6 +65,7 @@ model Expense {
   payerId      BigInt
   description  String
   amount       Decimal        @db.Decimal(10, 2)
+  currency     String         @default("SGD")
   splitMode    SplitMode
   participants User[]         @relation("Participants")
   shares       ExpenseShare[]
@@ -97,6 +99,7 @@ model Settlement {
   receiver    User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
   receiverId  BigInt
   amount      Decimal  @db.Decimal(10, 2)
+  currency    String   @default("SGD")
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
