@@ -4,15 +4,26 @@ import { useMemo } from "react";
 import { trpc } from "@utils/trpc";
 import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
 import ChatSettlementCell from "./ChatSettlementCell";
+import { useSearch } from "@tanstack/react-router";
 
 interface ChatSettlementSegmentProps {
   chatId: number;
 }
 const ChatSettlementSegment = ({ chatId }: ChatSettlementSegmentProps) => {
-  // * Queries ====================================================================================
-  const { data: settlements } = trpc.settlement.getSettlementByChat.useQuery({
-    chatId,
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
   });
+
+  // * Queries ====================================================================================
+  const { data: settlements } = trpc.settlement.getSettlementByChat.useQuery(
+    {
+      chatId,
+      currency: selectedCurrency,
+    },
+    {
+      enabled: !!selectedCurrency,
+    }
+  );
 
   // Allocate settlements into month buckets then sort them by date
   const { groupedSettlements, sortedKeys } = useMemo(() => {

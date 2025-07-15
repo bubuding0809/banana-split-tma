@@ -18,7 +18,8 @@ import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
-import { formatCurrency } from "@/utils/financial";
+import { formatCurrencyWithCode } from "@/utils/financial";
+import { useSearch } from "@tanstack/react-router";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -40,11 +41,14 @@ const ShareParticipant = ({
   amount,
   isCurrentUser,
 }: ShareParticipantProps) => {
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
+  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const { data: member, isLoading } = trpc.telegram.getChatMember.useQuery({
     chatId,
     userId,
   });
-  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
 
   const memberName = isCurrentUser
     ? "You"
@@ -58,7 +62,7 @@ const ShareParticipant = ({
       after={
         <Info type="text">
           <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
-            {formatCurrency(amount)}
+            {formatCurrencyWithCode(amount, selectedCurrency)}
           </Text>
         </Info>
       }

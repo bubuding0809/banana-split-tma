@@ -21,14 +21,19 @@ import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import { formatExpenseDateShort } from "@utils/date";
-import { formatCurrency } from "@/utils/financial";
+import { formatCurrencyWithCode } from "@/utils/financial";
+import { useSearch } from "@tanstack/react-router";
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
 }
 
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
   const { payerId, chatId } = expense;
+  const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
@@ -37,7 +42,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
   );
-  const trpcUtils = trpc.useUtils();
 
   const userId = tUserData?.id ?? 0;
 
@@ -236,7 +240,10 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="3">✅</Text>
                           ) : (
                             <Text weight="3" className="text-green-600">
-                              {formatCurrency(lentAmount)}
+                              {formatCurrencyWithCode(
+                                lentAmount,
+                                selectedCurrency
+                              )}
                             </Text>
                           );
                         case "borrower":
@@ -244,7 +251,10 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="3">✅</Text>
                           ) : (
                             <Text weight="3" className="text-red-600">
-                              {formatCurrency(borrowedAmount)}
+                              {formatCurrencyWithCode(
+                                borrowedAmount,
+                                selectedCurrency
+                              )}
                             </Text>
                           );
                         case "unrelated":
@@ -275,7 +285,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
           />
         }
       >
-        {formatCurrency(expense.amount)}
+        {formatCurrencyWithCode(expense.amount, selectedCurrency)}
       </Cell>
       <ExpenseDetailsModal
         open={modalOpen}

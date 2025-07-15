@@ -5,15 +5,27 @@ import { trpc } from "@utils/trpc";
 import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
 
 import ChatExpenseCell from "./ChatExpenseCell";
+import { useSearch } from "@tanstack/react-router";
 
 interface ChatExpenseSegmentProps {
   chatId: number;
 }
 const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
-  // * Queries ====================================================================================
-  const { data: expenses } = trpc.expense.getExpenseByChat.useQuery({
-    chatId,
+  // * Hooks =======================================================================================
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
   });
+
+  // * Queries =====================================================================================
+  const { data: expenses } = trpc.expense.getExpenseByChat.useQuery(
+    {
+      chatId,
+      currency: selectedCurrency,
+    },
+    {
+      enabled: !!selectedCurrency,
+    }
+  );
 
   // Allocate expenses into month buckets then sort them by date
   const { groupedExpenses, sortedKeys } = useMemo(() => {

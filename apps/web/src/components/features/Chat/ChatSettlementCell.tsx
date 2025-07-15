@@ -6,8 +6,9 @@ import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatExpenseDateShort } from "@utils/date";
-import { formatCurrency } from "@/utils/financial";
+import { formatCurrencyWithCode } from "@/utils/financial";
 import SettlementDetailsModal from "./SettlementDetailsModal";
+import { useSearch } from "@tanstack/react-router";
 
 interface ChatSettlementCellProps {
   settlement: inferRouterOutputs<AppRouter>["settlement"]["getSettlementByChat"][number];
@@ -15,6 +16,9 @@ interface ChatSettlementCellProps {
 
 const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
   const { senderId, receiverId, chatId, amount } = settlement;
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
 
@@ -155,7 +159,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         }
         onClick={() => setIsModalOpen(true)}
       >
-        {formatCurrency(amount)}
+        {formatCurrencyWithCode(amount, selectedCurrency)}
       </Cell>
 
       <SettlementDetailsModal

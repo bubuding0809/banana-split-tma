@@ -8,24 +8,6 @@ import Decimal from "decimal.js";
  */
 
 /**
- * Formats a financial amount for display with proper currency formatting
- * @param amount - Amount to format (from API response)
- * @param currency - Currency symbol (defaults to '$')
- * @returns Formatted currency string
- */
-export function formatCurrency(
-  amount: number | null | undefined,
-  currency: string = "$"
-): string {
-  if (amount === null || amount === undefined) {
-    return `${currency}0.00`;
-  }
-
-  // Ensure we display exactly 2 decimal places
-  return `${currency}${Math.abs(amount).toFixed(2)}`;
-}
-
-/**
  * Checks if an amount is significant enough for display (above 1 cent)
  * @param amount - Amount to check
  * @returns True if amount should be displayed to user
