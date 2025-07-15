@@ -51,9 +51,10 @@ const CurrencyNavList = () => {
         <Chip
           key={currency.code}
           onClick={() => handleCurrencyChange(currency.code)}
-          before={<Radio checked={selectedCurrency === currency.code} />}
+          before={<span className="text-xl">{currency.flagEmoji}</span>}
+          after={<Radio checked={selectedCurrency === currency.code} />}
         >
-          {currency.flagEmoji} {currency.code}
+          {currency.code}
         </Chip>
       ))}
       {currencies?.length === 0 && (
