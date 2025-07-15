@@ -44,6 +44,7 @@ const CurrencyNavList = () => {
       search: (prev) => ({
         ...prev,
         selectedCurrency: currencyCode,
+        selectedTab: "balance",
       }),
     });
   };
