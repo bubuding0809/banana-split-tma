@@ -12,6 +12,7 @@ import {
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
+import { useSearch } from "@tanstack/react-router";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -25,6 +26,9 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
@@ -69,7 +73,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
         receiverId: member.id,
         senderId: userId,
         chatId,
-        currency: dChatData?.baseCurrency,
+        currency: selectedCurrency,
       });
 
       // Send notification to creditor
@@ -108,18 +112,19 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
       });
     }
   }, [
-    absAmountOwed,
-    dChatData?.threadId,
-    dChatData?.baseCurrency,
-    chatId,
+    tUserData?.firstName,
     createSettlementMutation,
-    member.firstName,
+    absAmountOwed,
     member.id,
+    member.firstName,
     member.username,
+    userId,
+    chatId,
+    selectedCurrency,
     onOpenChange,
     sendSettlementNotificationMutation,
-    tUserData?.firstName,
-    userId,
+    dChatData?.baseCurrency,
+    dChatData?.threadId,
   ]);
 
   // Set main button parameters when modal opens
