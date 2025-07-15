@@ -3,6 +3,11 @@ import { Db, protectedProcedure } from "../../trpc.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
+  currency: z
+    .string()
+    .min(3)
+    .max(3, { message: "Currency code must be 3 characters long" })
+    .optional(),
 });
 
 export const getExpenseByChatHandler = async (
@@ -12,6 +17,7 @@ export const getExpenseByChatHandler = async (
   const expenses = await db.expense.findMany({
     where: {
       chatId: input.chatId,
+      ...(input.currency ? { currency: input.currency } : {}),
     },
   });
   return expenses.map((expense) => ({
