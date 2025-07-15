@@ -2,7 +2,6 @@ import { Link, getRouteApi } from "@tanstack/react-router";
 import {
   hapticFeedback,
   initData,
-  openTelegramLink,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -20,7 +19,6 @@ import {
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
 import { ArrowRightLeft, FileSpreadsheet, Plus } from "lucide-react";
-import { useEffect } from "react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
@@ -46,11 +44,6 @@ const GroupPage = () => {
     trpc.chat.getChat.useQuery({
       chatId,
     });
-  const {
-    isError: isDUserError,
-    error: dUserError,
-    isLoading: isDUserLoading,
-  } = trpc.user.getUser.useQuery({ userId });
 
   const handleSegmentChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
@@ -63,17 +56,6 @@ const GroupPage = () => {
   };
 
   //* Effects =====================================================================================
-  // Initiate chat with bot if user is not registered
-  useEffect(() => {
-    if (isDUserError && dUserError?.data?.code === "NOT_FOUND") {
-      alert("👋 First time here? Lets get you setup with the bot first!");
-      openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=register`
-      );
-    } else if (isDUserError && dUserError?.data?.code !== "NOT_FOUND") {
-      alert("❌ Unable to load user data. Please try again later.");
-    }
-  }, [dUserError, isDUserError]);
 
   // Ensure user is a member of the chat
   const { isPending: isEnsuringChatMember, data: ensureChatMemberData } =
@@ -90,7 +72,7 @@ const GroupPage = () => {
     transaction: ChatTransactionTab,
   }[selectedTab];
 
-  if (isDUserLoading || isDChatDataLoading) {
+  if (isDChatDataLoading) {
     return (
       <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
         <Spinner size="l" />
