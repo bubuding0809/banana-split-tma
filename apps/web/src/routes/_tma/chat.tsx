@@ -1,4 +1,5 @@
 import NewUserPage from "@/components/features/Chat/NewUserPage";
+import { useStartParams } from "@/hooks";
 import { trpc } from "@/utils/trpc";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
@@ -9,7 +10,10 @@ export const Route = createFileRoute("/_tma/chat")({
 });
 
 function ChatIndexRoute() {
+  const { chat_id } = useStartParams() ?? {};
   const tUserData = useSignal(initData.user);
+
+  const chatId = chat_id ?? 0;
   const userId = tUserData?.id ?? 0;
 
   const { status: getUserDataStatus, error: getUserDataError } =
@@ -21,6 +25,10 @@ function ChatIndexRoute() {
         enabled: !!userId,
       }
     );
+
+  trpc.chat.getChat.usePrefetchQuery({
+    chatId,
+  });
 
   if (getUserDataStatus === "pending") {
     return (
