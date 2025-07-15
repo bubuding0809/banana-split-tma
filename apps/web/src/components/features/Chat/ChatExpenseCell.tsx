@@ -39,6 +39,8 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   );
   const trpcUtils = trpc.useUtils();
 
+  const userId = tUserData?.id ?? 0;
+
   // Cleanup main and secondary buttons when the component unmounts
   useEffect(() => {
     return () => {
@@ -72,21 +74,17 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   //* Mutations ====================================================================================
   const deleteExpenseMutation = trpc.expense.deleteExpense.useMutation({
     onSuccess: () => {
-      // Invalidate the expense details query to refresh the data
-      trpcUtils.expense.getExpenseDetails.invalidate({
-        expenseId: expense.id,
-      });
-
-      // Optionally, you can also invalidate the chat expenses list if needed
       trpcUtils.expense.getExpenseByChat.invalidate({
+        chatId,
+      });
+      trpcUtils.currency.getCurrenciesWithBalance.invalidate({
+        userId,
         chatId,
       });
     },
   });
 
   // * State =======================================================================================
-  const userId = tUserData?.id ?? 0;
-
   const memberFullName = `${member?.user.first_name}${
     member?.user.last_name ? ` ${member.user.last_name}` : ""
   }`;

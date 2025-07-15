@@ -133,7 +133,7 @@ const GroupPage = () => {
         </Button>
       </Link>
 
-      <Divider className="mx-4" />
+      <Divider />
 
       <CurrencyNavList />
 

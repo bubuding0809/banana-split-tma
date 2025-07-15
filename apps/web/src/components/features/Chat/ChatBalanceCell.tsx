@@ -8,9 +8,9 @@ import { trpc } from "@/utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import {
-  formatCurrency,
   getBalanceLabel,
   getBalanceColorClass,
+  formatCurrencyWithCode,
 } from "@/utils/financial";
 
 import ToRecieveModal from "./ToReceiveModal";
@@ -106,7 +106,7 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
       >
         <Skeleton visible={netBalanceStatus === "pending"}>
           <Text className={cn(getBalanceColorClass(netBalance))}>
-            {formatCurrency(netBalance)}
+            {formatCurrencyWithCode(netBalance, selectedCurrency)}
           </Text>
         </Skeleton>
       </Cell>

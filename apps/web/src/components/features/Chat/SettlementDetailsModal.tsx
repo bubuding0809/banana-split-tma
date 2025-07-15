@@ -80,7 +80,10 @@ const SettlementDetailsModal = ({
         utils.settlement.getSettlementByChat.invalidate({
           chatId: settlement.chatId,
         });
-        onOpenChange(false);
+        utils.currency.getCurrenciesWithBalance.invalidate({
+          userId: userId,
+          chatId: settlement.chatId,
+        });
       },
     }
   );
@@ -104,6 +107,7 @@ const SettlementDetailsModal = ({
         await deleteSettlementMutation.mutateAsync({
           settlementId: settlement.id,
         });
+        onOpenChange(false);
       }
     } catch (error) {
       hapticFeedback.notificationOccurred("error");
@@ -112,7 +116,7 @@ const SettlementDetailsModal = ({
     secondaryButton.setParams({
       isLoaderVisible: false,
     });
-  }, [deleteSettlementMutation, settlement.id]);
+  }, [deleteSettlementMutation, onOpenChange, settlement.id]);
 
   const handleEditSettlement = useCallback(() => {
     // TODO: Implement edit functionality

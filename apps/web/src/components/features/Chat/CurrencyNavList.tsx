@@ -1,7 +1,7 @@
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Chip } from "@telegram-apps/telegram-ui";
+import { Chip, Radio } from "@telegram-apps/telegram-ui";
 import { useEffect } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -36,30 +36,34 @@ const CurrencyNavList = () => {
     }
   }, [chatData, navigate, selectedCurrency]);
 
+  const handleCurrencyChange = (currencyCode: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        selectedCurrency: currencyCode,
+      }),
+    });
+  };
+
   return (
-    <nav className="flex gap-x-2 overflow-x-auto">
+    <nav className="no-scrollbar flex gap-x-2 overflow-x-auto px-4 py-2">
       {currencies?.map((currency) => (
         <Chip
           key={currency.code}
-          className={`px-4 py-2 ${
-            selectedCurrency === currency.code
-              ? "bg-blue-500 text-white"
-              : "text-gray-700"
-          }`}
-          onClick={() => {
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                selectedCurrency: currency.code,
-              }),
-            });
-          }}
+          onClick={() => handleCurrencyChange(currency.code)}
+          before={<Radio checked={selectedCurrency === currency.code} />}
         >
-          {currency.code} - {currency.name}
+          {currency.flagEmoji} {currency.code}
         </Chip>
       ))}
       {currencies?.length === 0 && (
-        <span className="px-4 py-2 text-gray-500">No currencies available</span>
+        <Chip
+          before={
+            <Radio checked={selectedCurrency === chatData?.baseCurrency} />
+          }
+        >
+          {chatData?.baseCurrency}
+        </Chip>
       )}
     </nav>
   );

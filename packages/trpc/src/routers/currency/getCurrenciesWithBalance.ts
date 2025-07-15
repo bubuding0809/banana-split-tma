@@ -21,6 +21,7 @@ export const outputSchema = z.array(
     symbol_native: z.string(),
     name_plural: z.string(),
     decimal_digits: z.number(),
+    flagEmoji: z.string(),
     totalBalance: z.number(),
     memberCount: z.number(),
   })
@@ -123,6 +124,7 @@ export const getCurrenciesWithBalanceHandler = async (
             symbol: currency,
             symbol_native: currency,
             name_plural: currency,
+            flagEmoji: "🏳️",
             decimal_digits: 2,
             totalBalance,
             memberCount,
@@ -136,6 +138,7 @@ export const getCurrenciesWithBalanceHandler = async (
           symbol_native: currencyData.symbol_native,
           name_plural: currencyData.name_plural,
           decimal_digits: currencyData.decimal_digits,
+          flagEmoji: currencyData.flag,
           totalBalance,
           memberCount,
         };
