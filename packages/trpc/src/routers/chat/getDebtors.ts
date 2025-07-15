@@ -7,6 +7,7 @@ import { isDebtor } from "../../utils/financial.js";
 const inputSchema = z.object({
   userId: z.number(),
   chatId: z.number(),
+  currency: z.string().min(3).max(3, "Currency code must be 3 characters long"),
 });
 
 const getDebtorsHandler = async (
@@ -26,6 +27,7 @@ const getDebtorsHandler = async (
             mainUserId: input.userId,
             targetUserId: Number(member.id),
             chatId: input.chatId,
+            currency: input.currency,
           },
           db
         );

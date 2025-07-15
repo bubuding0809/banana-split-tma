@@ -6,6 +6,7 @@ const inputSchema = z.object({
   mainUserId: z.number(),
   targetUserId: z.number(),
   chatId: z.number(),
+  currency: z.string().min(3).max(3, "Currency code must be 3 characters long"),
 });
 
 export const getNetShareHandler = async (
@@ -19,6 +20,7 @@ export const getNetShareHandler = async (
       expense: {
         chatId: input.chatId,
         payerId: input.mainUserId,
+        currency: input.currency,
       },
       userId: input.targetUserId,
     },
@@ -34,6 +36,7 @@ export const getNetShareHandler = async (
       expense: {
         chatId: input.chatId,
         payerId: input.targetUserId,
+        currency: input.currency,
       },
       userId: input.mainUserId,
     },
@@ -49,6 +52,7 @@ export const getNetShareHandler = async (
       chatId: input.chatId,
       senderId: input.mainUserId,
       receiverId: input.targetUserId,
+      currency: input.currency,
     },
     select: {
       amount: true,
@@ -62,6 +66,7 @@ export const getNetShareHandler = async (
       chatId: input.chatId,
       senderId: input.targetUserId,
       receiverId: input.mainUserId,
+      currency: input.currency,
     },
     select: {
       amount: true,

@@ -11,24 +11,32 @@ import {
 
 import ChatBalanceCell from "./ChatBalanceCell";
 import { trpc } from "@/utils/trpc";
+import { getRouteApi } from "@tanstack/react-router";
 
+const routeApi = getRouteApi("/_tma/chat/$chatId");
 interface ChatBalanceTabProps {
   chatId: number;
 }
 const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
   // * Hooks =======================================================================================
   const tUserData = useSignal(initData.user);
+  const { selectedCurrency } = routeApi.useSearch();
 
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
 
   // * Queries =====================================================================================
   const { data: debtors, status: getDebtorStatus } =
-    trpc.chat.getDebtors.useQuery({ userId, chatId });
+    trpc.chat.getDebtors.useQuery({
+      userId,
+      chatId,
+      currency: selectedCurrency ?? "SGD",
+    });
   const { data: creditors, status: getCreditorStatus } =
     trpc.chat.getCreditors.useQuery({
       userId,
       chatId,
+      currency: selectedCurrency ?? "SGD",
     });
 
   return (

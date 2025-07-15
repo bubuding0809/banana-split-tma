@@ -15,6 +15,9 @@ import {
 
 import ToRecieveModal from "./ToReceiveModal";
 import ToPayModal from "./ToPayModal";
+import { getRouteApi } from "@tanstack/react-router";
+
+const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 interface ChatBalanceCellProps {
   chatId: number;
@@ -28,6 +31,7 @@ interface ChatBalanceCellProps {
 const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
   // * Hooks ======================================================================================
   const tUserData = useSignal(initData.user);
+  const { selectedCurrency } = routeApi.useSearch();
 
   //* State =======================================================================================
   const [modalOpen, setModalOpen] = useState(false);
@@ -47,6 +51,7 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
       mainUserId: userId,
       targetUserId: member.id,
       chatId,
+      currency: selectedCurrency ?? "SGD",
     });
 
   // * Handlers ====================================================================================
