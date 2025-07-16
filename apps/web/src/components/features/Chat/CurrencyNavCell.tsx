@@ -190,7 +190,7 @@ const CurrencyNavList = () => {
             <Info
               type="avatarStack"
               avatarStack={
-                <AvatarStackTruncated limit={5}>
+                <AvatarStackTruncated limit={4}>
                   {avatarStackCurrencies.map(({ currency }) => (
                     <Avatar key={currency.code} size={28}>
                       {currency.flagEmoji}
@@ -199,7 +199,7 @@ const CurrencyNavList = () => {
                 </AvatarStackTruncated>
               }
             >
-              <RefreshCw />
+              <RefreshCw size={20} />
             </Info>
           }
           onClick={() => setModalOpen(true)}
