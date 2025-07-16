@@ -15,6 +15,7 @@ import {
   Text,
   Spinner,
   TabsList,
+  Skeleton,
 } from "@telegram-apps/telegram-ui";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
@@ -99,11 +100,25 @@ const GroupPage = () => {
         <Cell
           onClick={() => alert("Settings")}
           className="px-0"
-          after={<Navigation className="text-gray-500">Settings</Navigation>}
-          before={<Avatar size={48} src={tChatData?.photoUrl?.toString()} />}
-          subtitle={tChatData?.type}
+          after={
+            <Navigation className="text-gray-500">
+              <Skeleton visible={isDChatDataLoading}>Settings</Skeleton>
+            </Navigation>
+          }
+          before={
+            <Avatar size={48} src={tChatData?.photoUrl?.toString()}>
+              ⏳
+            </Avatar>
+          }
+          subtitle={
+            <Skeleton visible={isDChatDataLoading}>
+              {tChatData?.type ?? "supergroup"}
+            </Skeleton>
+          }
         >
-          {dchatData?.title}
+          <Skeleton visible={isDChatDataLoading}>
+            {dchatData?.title ?? "bananasplitz"}
+          </Skeleton>
         </Cell>
       </section>
 
@@ -134,8 +149,8 @@ const GroupPage = () => {
       </Link>
 
       <Divider />
-
       <CurrencyNavCell />
+      <Divider />
 
       <section className="flex flex-col gap-4 px-4">
         <TabsList>
