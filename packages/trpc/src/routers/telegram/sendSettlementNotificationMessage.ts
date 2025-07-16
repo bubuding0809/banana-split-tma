@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
+import { formatCurrencyWithCode } from "../../utils/financial.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -32,20 +33,9 @@ export const sendSettlementNotificationMessageHandler = async (
   }
 
   // Format the amount as currency with error handling
-  let formattedAmount: string;
-  try {
-    const rawAmount = new Intl.NumberFormat("en-SG", {
-      style: "currency",
-      currency: input.currency,
-    }).format(input.amount);
-    // Escape currency amount for MarkdownV2
-    formattedAmount = escapeMarkdown(rawAmount, 2);
-  } catch (error) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Invalid currency code: ${input.currency}`,
-    });
-  }
+  const formattedAmount = escapeMarkdown(
+    formatCurrencyWithCode(input.amount, input.currency)
+  );
 
   // Escape names for MarkdownV2
   const escapedDebtorName = escapeMarkdown(input.debtorName, 2);
@@ -67,9 +57,8 @@ export const sendSettlementNotificationMessageHandler = async (
   const descriptionPart = input.description
     ? ` \\(${escapeMarkdown(input.description, 2)}\\)`
     : "";
-  const message = `✅ Great news ${creditorMention}\\! ${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\. Your balance has been updated\\! 💰`;
+  const message = `✅ Great news ${creditorMention}\\! ${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\! 💰`;
 
-  // Send the message directly (no additional escaping needed)
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
