@@ -17,7 +17,7 @@ const AvatarStackTruncated = ({
 
   if (children.length > limit) {
     truncatedAvatars.push(
-      <Avatar key="additional-count" size={24}>
+      <Avatar key="additional-count" size={children.at(0)?.props.size || 28}>
         <Caption>+{children.length - limit}</Caption>
       </Avatar>
     );

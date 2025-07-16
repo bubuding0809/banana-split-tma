@@ -1,9 +1,9 @@
+import AvatarStackTruncated from "@/components/ui/AvatarStackTruncated";
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
 import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
 import {
   Avatar,
-  AvatarStack,
   Cell,
   Info,
   Modal,
@@ -24,7 +24,6 @@ const CurrencyNavList = () => {
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const params = routeApi.useParams();
   const navigate = routeApi.useNavigate();
-
   const [modalOpen, setModalOpen] = useState(false);
 
   const userId = tUserData?.id ?? 0;
@@ -34,6 +33,7 @@ const CurrencyNavList = () => {
   const { data: chatData } = trpc.chat.getChat.useQuery({
     chatId: Number(chatId),
   });
+
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
 
@@ -64,7 +64,7 @@ const CurrencyNavList = () => {
 
   // Currencies with pending debts or collectables
   const pendingCurrencies = useMemo(() => {
-    if (!currenciesWithBalance || !supportedCurrencies) {
+    if (!currenciesWithBalance) {
       return [];
     }
 
@@ -88,17 +88,66 @@ const CurrencyNavList = () => {
           flagEmoji: currency.flagEmoji,
         })),
     ];
-  }, [baseCurrency, currenciesWithBalance, supportedCurrencies]);
+  }, [baseCurrency, currenciesWithBalance]);
 
   // Currencies without any debts or collectables
   const settledCurrencies = useMemo(() => {
-    return (
-      currenciesWithBalance?.filter(
+    if (!currenciesWithBalance) {
+      return [];
+    }
+    return currenciesWithBalance
+      .filter(({ currency }) => currency.code !== chatData?.baseCurrency)
+      .filter(
         ({ creditors, debtors }) =>
           creditors.length === 0 && debtors.length === 0
-      ) ?? []
+      );
+  }, [chatData?.baseCurrency, currenciesWithBalance]);
+
+  // Avatar stack should show all currencies with history, excluding the selected currency
+  const avatarStackCurrencies = useMemo(() => {
+    if (!currenciesWithBalance) {
+      return [];
+    }
+
+    // Ensure group's base currency is always included
+    let currencies = [];
+    const baseCurrencyWithBalance = currenciesWithBalance?.find(
+      ({ currency }) => currency.code === chatData?.baseCurrency
     );
-  }, [currenciesWithBalance]);
+    if (baseCurrencyWithBalance) {
+      currencies = [
+        ...currenciesWithBalance.filter(
+          ({ currency }) => currency.code !== chatData?.baseCurrency
+        ),
+        baseCurrencyWithBalance,
+      ];
+    } else {
+      currencies = [
+        ...currenciesWithBalance.filter(
+          ({ currency }) => currency.code !== chatData?.baseCurrency
+        ),
+        {
+          currency: {
+            code: baseCurrency?.code ?? "SGD",
+            name: baseCurrency?.name ?? "Singapore Dollar",
+            flagEmoji: baseCurrency?.flagEmoji ?? "🇸🇬",
+          },
+          creditors: [],
+          debtors: [],
+        },
+      ];
+    }
+    return currencies.filter(
+      ({ currency }) => currency.code !== selectedCurrency
+    );
+  }, [
+    baseCurrency?.code,
+    baseCurrency?.flagEmoji,
+    baseCurrency?.name,
+    chatData?.baseCurrency,
+    currenciesWithBalance,
+    selectedCurrency,
+  ]);
 
   // Default selected currency to base currency
   useEffect(() => {
@@ -117,6 +166,7 @@ const CurrencyNavList = () => {
       search: (prev) => ({
         ...prev,
         selectedCurrency: currencyCode,
+        selectedTab: "balance",
       }),
     });
     setModalOpen(false);
@@ -140,17 +190,13 @@ const CurrencyNavList = () => {
             <Info
               type="avatarStack"
               avatarStack={
-                <AvatarStack>
-                  {currenciesWithBalance
-                    ?.filter(
-                      ({ currency }) => currency.code !== selectedCurrency
-                    )
-                    .map(({ currency }) => (
-                      <Avatar key={currency.code} size={28}>
-                        {currency.flagEmoji}
-                      </Avatar>
-                    )) || []}
-                </AvatarStack>
+                <AvatarStackTruncated limit={5}>
+                  {avatarStackCurrencies.map(({ currency }) => (
+                    <Avatar key={currency.code} size={28}>
+                      {currency.flagEmoji}
+                    </Avatar>
+                  ))}
+                </AvatarStackTruncated>
               }
             >
               <RefreshCw />
@@ -175,8 +221,9 @@ const CurrencyNavList = () => {
             }
           />
         }
+        className="pb-8"
       >
-        <div className="pb-10">
+        <div className="max-h-[78vh]">
           <Section header="Pending currencies" className="px-3">
             {pendingCurrencies.map((currency) => (
               <Cell
