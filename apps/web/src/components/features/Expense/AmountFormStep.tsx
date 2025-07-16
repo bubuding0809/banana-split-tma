@@ -5,8 +5,13 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Subheadline, Textarea } from "@telegram-apps/telegram-ui";
-import { ChevronDown } from "lucide-react";
+import {
+  Cell,
+  Section,
+  Subheadline,
+  Textarea,
+} from "@telegram-apps/telegram-ui";
+import { ChevronRight, Currency } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -19,17 +24,6 @@ import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
-
-const SELECT_STYLES = {
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  appearance: "none",
-  background: "transparent",
-  border: "none",
-  color: "#3B82F6",
-  paddingRight: "1.5rem",
-  cursor: "pointer",
-} as const;
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
@@ -220,104 +214,111 @@ const AmountFormStep = withForm({
               >
                 <Subheadline weight="2">Amount</Subheadline>
               </label>
-              <div
-                className={cn(
-                  "rounded-xl p-3 px-4",
-                  field.state.meta.isTouched &&
-                    field.state.meta.errors.length &&
-                    "ring-2 ring-red-600"
-                )}
-                style={{
-                  backgroundColor: isDarkMode ? "#212121" : tSectionBgColor,
-                }}
-              >
+              <Section>
                 {/* Currency Selection */}
-                <div className="flex items-center">
-                  <Subheadline>Expensed in</Subheadline>
-                  <div className="relative ml-2">
-                    <form.AppField name="currency">
-                      {(field) => (
-                        <select
-                          style={SELECT_STYLES}
-                          value={expenseCurrency}
-                          onChange={(e) => {
-                            field.handleChange(e.target.value);
-                          }}
-                          className="pr-6 focus:outline-none"
-                        >
-                          {supportedCurrencies?.map((currency) => (
-                            <option key={currency.code} value={currency.code}>
-                              {currency.flagEmoji} {currency.name} (
-                              {currency.code})
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </form.AppField>
-
-                    <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-500" />
-                  </div>
-                </div>
-
-                <div>
-                  {/* Amount Input */}
-                  <div
-                    className="mr-4 flex flex-1 items-baseline overflow-hidden"
-                    ref={measureRef}
-                  >
-                    <div className="flex w-full items-baseline ring-green-500 ring-offset-1">
-                      <input
-                        ref={amountFieldRef}
-                        type="text"
-                        inputMode="decimal"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        tabIndex={0}
-                        autoFocus
-                        onChange={(e) => {
-                          const value = handleAmountChange(e.target.value);
-                          if (value === undefined) return;
-                          if (value === "" || !isNaN(Number(value))) {
-                            field.handleChange(value);
-                          }
-                        }}
-                        placeholder="0"
-                        className={cn(
-                          "max-w-full bg-transparent focus:outline-none",
-                          field.state.meta.errors.length &&
-                            field.state.meta.isTouched &&
-                            "text-red-600"
-                        )}
-                        style={{
-                          fontSize: getFontSize(field.state.value),
-                          padding: "0",
-                          margin: "0",
-                          width: "100%",
-                        }}
-                      />
-                      <span
-                        className={cn(
-                          "ml-2 flex-shrink-0 text-4xl text-gray-500"
-                        )}
-                      >
-                        {expenseCurrency}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Converted */}
-                  {field.state.value && expenseCurrency !== displayCurrency && (
-                    <div className="mt-2 flex items-center text-lg text-gray-500">
-                      <span>≈</span>
-                      <span className="mx-1">
-                        {getConvertedAmount(field.state.value)}
-                      </span>
-                      <span className="text-gray-400">{displayCurrency}</span>
-                    </div>
+                <form.AppField name="currency">
+                  {(field) => (
+                    <Cell
+                      Component="label"
+                      before={<Currency />}
+                      after={
+                        <div className="flex items-center">
+                          <select
+                            value={expenseCurrency}
+                            onChange={(e) => {
+                              field.handleChange(e.target.value);
+                            }}
+                            className="focus:outline-none"
+                          >
+                            {supportedCurrencies?.map((currency) => (
+                              <option key={currency.code} value={currency.code}>
+                                {currency.flagEmoji} {currency.code}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronRight size={20} />
+                        </div>
+                      }
+                    >
+                      Expensed in
+                    </Cell>
                   )}
-                </div>
-              </div>
+                </form.AppField>
+                <div
+                  className={cn(
+                    "rounded-xl p-2 px-4",
+                    field.state.meta.isTouched &&
+                      field.state.meta.errors.length &&
+                      "ring-2 ring-red-600"
+                  )}
+                  style={{
+                    backgroundColor: isDarkMode ? "#212121" : tSectionBgColor,
+                  }}
+                >
+                  <div>
+                    {/* Amount Input */}
+                    <div
+                      className="mr-4 flex flex-1 items-baseline overflow-hidden"
+                      ref={measureRef}
+                    >
+                      <div className="flex w-full items-baseline ring-green-500 ring-offset-1">
+                        <input
+                          ref={amountFieldRef}
+                          type="text"
+                          inputMode="decimal"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          tabIndex={0}
+                          autoFocus
+                          onChange={(e) => {
+                            const value = handleAmountChange(e.target.value);
+                            if (value === undefined) return;
+                            if (value === "" || !isNaN(Number(value))) {
+                              field.handleChange(value);
+                            }
+                          }}
+                          placeholder="0"
+                          className={cn(
+                            "max-w-full bg-transparent focus:outline-none",
+                            field.state.meta.errors.length &&
+                              field.state.meta.isTouched &&
+                              "text-red-600"
+                          )}
+                          style={{
+                            fontSize: getFontSize(field.state.value),
+                            padding: "0",
+                            margin: "0",
+                            width: "100%",
+                          }}
+                        />
+                        <span
+                          className={cn(
+                            "ml-2 flex-shrink-0 text-4xl text-gray-500"
+                          )}
+                        >
+                          {supportedCurrencies?.find(
+                            (c) => c.code === expenseCurrency
+                          )?.symbol || "$"}
+                        </span>
+                      </div>
+                    </div>
 
+                    {/* Converted */}
+                    {field.state.value &&
+                      expenseCurrency !== displayCurrency && (
+                        <div className="mt-2 flex items-center text-lg text-gray-500">
+                          <span>≈</span>
+                          <span className="mx-1">
+                            {getConvertedAmount(field.state.value)}
+                          </span>
+                          <span className="text-gray-400">
+                            {displayCurrency}
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </Section>
               <div className="px-2">
                 <FieldInfo />
               </div>
