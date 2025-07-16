@@ -22,7 +22,7 @@ import { ArrowRightLeft, FileSpreadsheet, Plus } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
-import CurrencyNavList from "./CurrencyNavList";
+import CurrencyNavCell from "./CurrencyNavCell";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -135,7 +135,7 @@ const GroupPage = () => {
 
       <Divider />
 
-      <CurrencyNavList />
+      <CurrencyNavCell />
 
       <section className="flex flex-col gap-4 px-4">
         <TabsList>
