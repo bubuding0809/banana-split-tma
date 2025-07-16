@@ -1,5 +1,5 @@
 import { useStartParams } from "@/hooks";
-import { sgdFormatter } from "@/utils/financial";
+import { formatCurrencyWithCode } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
 import { RouterOutputs } from "@dko/trpc";
 import {
@@ -12,6 +12,7 @@ import {
 import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
+import { useSearch } from "@tanstack/react-router";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -28,6 +29,9 @@ const ToRecieveModal = ({
 }: ToPayModalProps) => {
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
+  const { selectedCurrency } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
 
   const chatId = startParams?.chat_id ?? 0;
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -56,7 +60,7 @@ const ToRecieveModal = ({
         debtorUsername: member.username || undefined,
         creditorName: tUserData.firstName,
         amount: absAmountLent,
-        currency: "SGD",
+        currency: selectedCurrency,
         threadId: dChatData?.threadId ? Number(dChatData.threadId) : undefined,
       });
 
@@ -81,6 +85,7 @@ const ToRecieveModal = ({
     member.id,
     member.username,
     onOpenChange,
+    selectedCurrency,
     sendDebtReminderMutation,
     tUserData?.firstName,
   ]);
@@ -128,7 +133,7 @@ const ToRecieveModal = ({
             <>
               {member.firstName} owes you{" "}
               <span className="text-green-500">
-                {sgdFormatter.format(absAmountLent)}
+                {formatCurrencyWithCode(absAmountLent, selectedCurrency)}
               </span>
             </>
           }

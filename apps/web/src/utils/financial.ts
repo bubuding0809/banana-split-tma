@@ -104,21 +104,6 @@ export const sumDecimals = (values: (string | number)[]): Decimal => {
 };
 
 /**
- * An `Intl.NumberFormat` instance configured for formatting numbers as Singapore Dollars (SGD).
- *
- * Formats numbers using the "en-SG" locale with exactly two decimal places.
- * Example output: "$1,234.56"
- *
- * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat}
- */
-export const sgdFormatter = new Intl.NumberFormat("en-SG", {
-  style: "currency",
-  currency: "SGD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-/**
  * Formats a financial amount with proper currency formatting using Intl.NumberFormat
  * @param amount - Amount to format (from API response)
  * @param currencyCode - 3-letter currency code (e.g., "USD", "SGD")

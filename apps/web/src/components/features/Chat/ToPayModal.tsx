@@ -1,5 +1,5 @@
 import { useStartParams } from "@/hooks";
-import { sgdFormatter } from "@/utils/financial";
+import { formatCurrencyWithCode } from "@/utils/financial";
 import { trpc } from "@/utils/trpc";
 import { RouterOutputs } from "@dko/trpc";
 import {
@@ -170,7 +170,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
             <>
               You owe {member.firstName}{" "}
               <span className="text-red-500">
-                {sgdFormatter.format(absAmountOwed)}
+                {formatCurrencyWithCode(absAmountOwed, selectedCurrency)}
               </span>
             </>
           }
