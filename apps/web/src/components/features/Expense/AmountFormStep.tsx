@@ -228,7 +228,7 @@ const AmountFormStep = withForm({
                             onChange={(e) => {
                               field.handleChange(e.target.value);
                             }}
-                            className="focus:outline-none"
+                            className="appearance-none focus:outline-none"
                           >
                             {supportedCurrencies?.map((currency) => (
                               <option key={currency.code} value={currency.code}>
