@@ -105,22 +105,6 @@ export function roundToCents(amount: number | Decimal): Decimal {
 }
 
 /**
- * Formats a financial amount for display
- * @param amount - Amount to format
- * @param currency - Currency symbol (defaults to '$')
- * @returns Formatted currency string
- */
-export function formatCurrency(
-  amount: number | Decimal,
-  currency: string = "$"
-): string {
-  const amountDecimal =
-    amount instanceof Decimal ? amount : new Decimal(amount);
-  const rounded = roundToCents(amountDecimal);
-  return `${currency}${rounded.toFixed(2)}`;
-}
-
-/**
  * Formats a financial amount with currency code
  * @param amount - Amount to format
  * @param currencyCode - Currency code (e.g., "USD", "EUR")
@@ -130,8 +114,21 @@ export function formatCurrencyWithCode(
   amount: number | Decimal,
   currencyCode: string
 ): string {
-  const symbol = getCurrencySymbol(currencyCode);
-  return formatCurrency(amount, symbol);
+  try {
+    const formatter = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: currencyCode.toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return formatter.format(
+      Math.abs(amount instanceof Decimal ? amount.toNumber() : amount)
+    );
+  } catch {
+    return `${currencyCode.toUpperCase()} ${Math.abs(
+      amount instanceof Decimal ? amount.toNumber() : amount
+    ).toFixed(2)}`;
+  }
 }
 
 /**
