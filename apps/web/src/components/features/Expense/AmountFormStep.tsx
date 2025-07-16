@@ -247,7 +247,8 @@ const AmountFormStep = withForm({
                         >
                           {supportedCurrencies?.map((currency) => (
                             <option key={currency.code} value={currency.code}>
-                              {currency.code}
+                              {currency.flagEmoji} {currency.name} (
+                              {currency.code})
                             </option>
                           ))}
                         </select>
