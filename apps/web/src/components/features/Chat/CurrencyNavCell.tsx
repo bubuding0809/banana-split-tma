@@ -82,13 +82,14 @@ const CurrencyNavList = () => {
         .filter(
           ({ creditors, debtors }) => creditors.length > 0 || debtors.length > 0
         )
+        .filter(({ currency }) => currency.code !== chatData?.baseCurrency)
         .map(({ currency }) => ({
           code: currency.code,
           name: currency.name,
           flagEmoji: currency.flagEmoji,
         })),
     ];
-  }, [baseCurrency, currenciesWithBalance]);
+  }, [baseCurrency, chatData?.baseCurrency, currenciesWithBalance]);
 
   // Currencies without any debts or collectables
   const settledCurrencies = useMemo(() => {
