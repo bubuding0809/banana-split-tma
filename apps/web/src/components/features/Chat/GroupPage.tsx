@@ -116,7 +116,7 @@ const GroupPage = () => {
         }}
         search={{
           prevTab: selectedTab,
-          title: "➕ Add expense",
+          title: "+ Add expense",
         }}
       >
         <Button

@@ -12,7 +12,7 @@ const UserPage = () => {
 
   useEffect(() => {
     mainButton.setParams.ifAvailable({
-      text: "➕ Add to group",
+      text: "+ Add to group",
       isEnabled: true,
       isVisible: true,
     });
