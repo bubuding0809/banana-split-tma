@@ -10,6 +10,7 @@ import {
   Title,
   Radio,
   Skeleton,
+  Placeholder,
 } from "@telegram-apps/telegram-ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -124,25 +125,46 @@ const CurrencyNavList = () => {
           ></Modal.Header>
         }
       >
-        <ul className="pb-10">
-          {currencies?.map((currency) => (
-            <Cell
-              Component="label"
-              key={currency.code}
-              before={<Title level="1">{currency.flagEmoji}</Title>}
-              subtitle={currency.code}
-              after={
-                <Radio
-                  value={currency.code}
-                  checked={selectedCurrency === currency.code}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                />
-              }
+        <div className="pb-10">
+          {currencies && currencies?.length ? (
+            <ul>
+              {currencies.map((currency) => (
+                <Cell
+                  Component="label"
+                  key={currency.code}
+                  before={<Title level="1">{currency.flagEmoji}</Title>}
+                  subtitle={currency.code}
+                  after={
+                    <Radio
+                      value={currency.code}
+                      checked={selectedCurrency === currency.code}
+                      onChange={(e) => handleCurrencyChange(e.target.value)}
+                    />
+                  }
+                >
+                  {currency.name}
+                </Cell>
+              ))}
+            </ul>
+          ) : null}
+
+          {(!currencies || currencies.length === 0) && (
+            <Placeholder
+              header="No other currencies available"
+              description="Create expenses in other currencies to see them here"
             >
-              {currency.name}
-            </Cell>
-          ))}
-        </ul>
+              <img
+                alt="Telegram sticker"
+                src="https://xelene.me/telegram.gif"
+                style={{
+                  display: "block",
+                  height: "144px",
+                  width: "144px",
+                }}
+              />
+            </Placeholder>
+          )}
+        </div>
       </Modal>
     </>
   );
