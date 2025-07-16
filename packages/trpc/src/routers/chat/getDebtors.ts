@@ -10,7 +10,7 @@ const inputSchema = z.object({
   currency: z.string().min(3).max(3, "Currency code must be 3 characters long"),
 });
 
-const getDebtorsHandler = async (
+export const getDebtorsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db
 ) => {

@@ -1,12 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
-import {
-  isSignificantBalance,
-  sumAmounts,
-  toNumber,
-} from "../../utils/financial.js";
-import { getCurrencyInfo } from "../../utils/currencyApi.js";
+import { getDebtorsHandler } from "../chat/getDebtors.js";
+import { getCreditorsHandler } from "../chat/getCreditors.js";
+import { getSupportedCurrenciesHandler } from "./getSupportedCurrencies.js";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -15,15 +12,23 @@ export const inputSchema = z.object({
 
 export const outputSchema = z.array(
   z.object({
-    code: z.string(),
-    name: z.string(),
-    symbol: z.string(),
-    symbol_native: z.string(),
-    name_plural: z.string(),
-    decimal_digits: z.number(),
-    flagEmoji: z.string(),
-    totalBalance: z.number(),
-    memberCount: z.number(),
+    currency: z.object({
+      code: z.string(),
+      name: z.string(),
+      flagEmoji: z.string(),
+    }),
+    debtors: z.array(
+      z.object({
+        id: z.number(),
+        balance: z.number(),
+      })
+    ),
+    creditors: z.array(
+      z.object({
+        id: z.number(),
+        balance: z.number(),
+      })
+    ),
   })
 );
 
@@ -54,98 +59,61 @@ export const getCurrenciesWithBalanceHandler = async (
       ]),
     ];
 
-    if (allUsedCurrencies.length === 0) {
+    const supportedCurrencies = await getSupportedCurrenciesHandler(
+      {
+        includeRates: false,
+        onlyWithRates: false,
+      },
+      db
+    );
+
+    const filteredCurrencies = supportedCurrencies.filter((currency) =>
+      allUsedCurrencies.includes(currency.code)
+    );
+
+    if (filteredCurrencies.length === 0) {
       return [];
     }
 
-    // Get chat members to calculate balances across all members
-    const chatMembers = await db.chat.findFirst({
-      where: { id: input.chatId },
-      select: {
-        members: {
-          select: { id: true },
-        },
-      },
-    });
-
-    if (!chatMembers) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Chat not found",
-      });
-    }
-
-    const memberIds = chatMembers.members.map((m) => m.id);
-
-    // Calculate total balance for each currency
-    const currenciesWithBalances = await Promise.all(
-      allUsedCurrencies.map(async (currency) => {
-        // Calculate total balance across all members for this currency
-        let totalBalance = 0;
-        let memberCount = 0;
-
-        for (const memberId of memberIds) {
-          // Calculate net balance for this member in this currency
-          const memberBalance = await calculateMemberBalance(
-            db,
-            input.chatId,
-            memberId,
-            currency
-          );
-
-          if (isSignificantBalance(memberBalance)) {
-            totalBalance += Math.abs(memberBalance);
-            memberCount++;
-          }
-        }
-
+    const usedCurrenciesWithBalanceInfo = await Promise.all(
+      filteredCurrencies.map(async (currency) => {
+        const [debtors, creditors] = await Promise.all([
+          getDebtorsHandler(
+            {
+              chatId: Number(input.chatId),
+              userId: Number(input.userId),
+              currency: currency.code,
+            },
+            db
+          ),
+          getCreditorsHandler(
+            {
+              chatId: Number(input.chatId),
+              userId: Number(input.userId),
+              currency: currency.code,
+            },
+            db
+          ),
+        ]);
         return {
-          currency,
-          totalBalance,
-          memberCount,
+          currency: {
+            code: currency.code,
+            name: currency.name,
+            flagEmoji: currency.flagEmoji,
+          },
+          debtors: debtors.map((debtor) => ({
+            id: Number(debtor.id),
+            balance: debtor.balance,
+          })),
+          creditors: creditors.map((creditor) => ({
+            id: Number(creditor.id),
+            balance: creditor.balance,
+          })),
         };
       })
     );
 
-    // Filter currencies with significant balances
-    const significantCurrencies = currenciesWithBalances.filter(
-      ({ totalBalance }) => isSignificantBalance(totalBalance)
-    );
-
-    // Combine balance data with currency metadata
-    const result = significantCurrencies
-      .map(({ currency, totalBalance, memberCount }) => {
-        const currencyData = getCurrencyInfo(currency);
-        if (!currencyData) {
-          // Fallback for unknown currencies
-          return {
-            code: currency,
-            name: currency,
-            symbol: currency,
-            symbol_native: currency,
-            name_plural: currency,
-            flagEmoji: "🏳️",
-            decimal_digits: 2,
-            totalBalance,
-            memberCount,
-          };
-        }
-
-        return {
-          code: currencyData.code,
-          name: currencyData.name,
-          symbol: currencyData.symbol,
-          symbol_native: currencyData.symbol_native,
-          name_plural: currencyData.name_plural,
-          decimal_digits: currencyData.decimal_digits,
-          flagEmoji: currencyData.flag,
-          totalBalance,
-          memberCount,
-        };
-      })
-      .sort((a, b) => b.totalBalance - a.totalBalance); // Sort by total balance descending
-
-    return result;
+    return usedCurrenciesWithBalanceInfo;
   } catch (error) {
     if (error instanceof TRPCError) {
       throw error;
@@ -157,79 +125,6 @@ export const getCurrenciesWithBalanceHandler = async (
     });
   }
 };
-
-/**
- * Calculate the net balance for a specific member in a specific currency
- * This replicates the logic from getNetShareHandler but for a single member
- */
-async function calculateMemberBalance(
-  db: Db,
-  chatId: bigint,
-  memberId: bigint,
-  currency: string
-): Promise<number> {
-  // Amount this member should receive (others owe them)
-  const toReceive = await db.expenseShare.findMany({
-    where: {
-      expense: {
-        chatId: chatId,
-        payerId: memberId,
-        currency: currency,
-      },
-      userId: { not: memberId }, // Exclude self
-    },
-    select: { amount: true },
-  });
-
-  // Amount this member owes to others
-  const toPay = await db.expenseShare.findMany({
-    where: {
-      expense: {
-        chatId: chatId,
-        payerId: { not: memberId }, // Exclude self
-        currency: currency,
-      },
-      userId: memberId,
-    },
-    select: { amount: true },
-  });
-
-  // Settlements this member sent (reduces their debt)
-  const settlementsSent = await db.settlement.findMany({
-    where: {
-      chatId: chatId,
-      senderId: memberId,
-      currency: currency,
-    },
-    select: { amount: true },
-  });
-
-  // Settlements this member received (increases their debt)
-  const settlementsReceived = await db.settlement.findMany({
-    where: {
-      chatId: chatId,
-      receiverId: memberId,
-      currency: currency,
-    },
-    select: { amount: true },
-  });
-
-  // Calculate net balance using Decimal arithmetic
-  const toReceiveTotal = sumAmounts(toReceive.map((s) => s.amount));
-  const toPayTotal = sumAmounts(toPay.map((s) => s.amount));
-  const settlementsSentTotal = sumAmounts(settlementsSent.map((s) => s.amount));
-  const settlementsReceivedTotal = sumAmounts(
-    settlementsReceived.map((s) => s.amount)
-  );
-
-  // Net balance: (amount to receive) - (amount to pay) + (settlements sent) - (settlements received)
-  const netBalance = toReceiveTotal
-    .minus(toPayTotal)
-    .plus(settlementsSentTotal)
-    .minus(settlementsReceivedTotal);
-
-  return toNumber(netBalance);
-}
 
 export default protectedProcedure
   .meta({

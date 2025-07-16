@@ -1,6 +1,6 @@
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
-import { initData, useSignal } from "@telegram-apps/sdk-react";
+import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
 import {
   Avatar,
   AvatarStack,
@@ -11,6 +11,7 @@ import {
   Radio,
   Skeleton,
   Placeholder,
+  Section,
 } from "@telegram-apps/telegram-ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -20,6 +21,7 @@ const routeApi = getRouteApi("/_tma/chat/$chatId");
 const CurrencyNavList = () => {
   const { selectedCurrency } = routeApi.useSearch();
   const tUserData = useSignal(initData.user);
+  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const params = routeApi.useParams();
   const navigate = routeApi.useNavigate();
 
@@ -35,7 +37,7 @@ const CurrencyNavList = () => {
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
 
-  const { data: currencies, status: getCurrenciesStatus } =
+  const { data: currenciesWithBalance, status: getCurrenciesStatus } =
     trpc.currency.getCurrenciesWithBalance.useQuery({
       userId,
       chatId,
@@ -50,6 +52,53 @@ const CurrencyNavList = () => {
       (currency) => currency.code === selectedCurrency
     );
   }, [supportedCurrencies, selectedCurrency]);
+
+  const baseCurrency = useMemo(() => {
+    if (!chatData || !supportedCurrencies) {
+      return null;
+    }
+    return supportedCurrencies.find(
+      (currency) => currency.code === chatData.baseCurrency
+    );
+  }, [chatData, supportedCurrencies]);
+
+  // Currencies with pending debts or collectables
+  const pendingCurrencies = useMemo(() => {
+    if (!currenciesWithBalance || !supportedCurrencies) {
+      return [];
+    }
+
+    return [
+      ...(baseCurrency
+        ? [
+            {
+              code: baseCurrency.code,
+              name: baseCurrency.name,
+              flagEmoji: baseCurrency.flagEmoji,
+            },
+          ]
+        : []),
+      ...currenciesWithBalance
+        .filter(
+          ({ creditors, debtors }) => creditors.length > 0 || debtors.length > 0
+        )
+        .map(({ currency }) => ({
+          code: currency.code,
+          name: currency.name,
+          flagEmoji: currency.flagEmoji,
+        })),
+    ];
+  }, [baseCurrency, currenciesWithBalance, supportedCurrencies]);
+
+  // Currencies without any debts or collectables
+  const settledCurrencies = useMemo(() => {
+    return (
+      currenciesWithBalance?.filter(
+        ({ creditors, debtors }) =>
+          creditors.length === 0 && debtors.length === 0
+      ) ?? []
+    );
+  }, [currenciesWithBalance]);
 
   // Default selected currency to base currency
   useEffect(() => {
@@ -92,9 +141,11 @@ const CurrencyNavList = () => {
               type="avatarStack"
               avatarStack={
                 <AvatarStack>
-                  {currencies
-                    ?.filter((currency) => currency.code !== selectedCurrency)
-                    .map((currency) => (
+                  {currenciesWithBalance
+                    ?.filter(
+                      ({ currency }) => currency.code !== selectedCurrency
+                    )
+                    .map(({ currency }) => (
                       <Avatar key={currency.code} size={28}>
                         {currency.flagEmoji}
                       </Avatar>
@@ -122,13 +173,36 @@ const CurrencyNavList = () => {
                 Currencies
               </Title>
             }
-          ></Modal.Header>
+          />
         }
       >
         <div className="pb-10">
-          {currencies && currencies?.length ? (
-            <ul>
-              {currencies.map((currency) => (
+          <Section header="Pending currencies" className="px-3">
+            {pendingCurrencies.map((currency) => (
+              <Cell
+                Component="label"
+                key={currency.code}
+                before={<Title level="1">{currency.flagEmoji}</Title>}
+                subtitle={currency.code}
+                after={
+                  <Radio
+                    value={currency.code}
+                    checked={selectedCurrency === currency.code}
+                    onChange={(e) => handleCurrencyChange(e.target.value)}
+                  />
+                }
+                style={{
+                  backgroundColor: tSectionBgColor,
+                }}
+              >
+                {currency.name}
+              </Cell>
+            ))}
+          </Section>
+
+          {settledCurrencies?.length ? (
+            <Section header="Settled currencies" className="px-3">
+              {settledCurrencies.map(({ currency }) => (
                 <Cell
                   Component="label"
                   key={currency.code}
@@ -141,14 +215,17 @@ const CurrencyNavList = () => {
                       onChange={(e) => handleCurrencyChange(e.target.value)}
                     />
                   }
+                  style={{
+                    backgroundColor: tSectionBgColor,
+                  }}
                 >
                   {currency.name}
                 </Cell>
               ))}
-            </ul>
+            </Section>
           ) : null}
 
-          {(!currencies || currencies.length === 0) && (
+          {(!currenciesWithBalance || currenciesWithBalance.length === 0) && (
             <Placeholder
               header="No other currencies available"
               description="Create expenses in other currencies to see them here"
