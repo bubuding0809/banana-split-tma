@@ -48,27 +48,28 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
           </Title>
         }
       >
-        {getDebtorStatus === "pending" &&
-          Array.from({ length: 2 }).map((_, index) => (
-            <Cell
-              key={index}
-              before={<Avatar size={48} />}
-              after={
+        {getDebtorStatus === "pending"
+          ? Array.from({ length: 2 }).map((_, index) => (
+              <Cell
+                key={index}
+                before={<Avatar size={48} />}
+                after={
+                  <Skeleton visible>
+                    <Text>Loading...</Text>
+                  </Skeleton>
+                }
+                subhead={
+                  <Skeleton visible>
+                    <Text>Loading...</Text>
+                  </Skeleton>
+                }
+              >
                 <Skeleton visible>
                   <Text>Loading...</Text>
                 </Skeleton>
-              }
-              subhead={
-                <Skeleton visible>
-                  <Text>Loading...</Text>
-                </Skeleton>
-              }
-            >
-              <Skeleton visible>
-                <Text>Loading...</Text>
-              </Skeleton>
-            </Cell>
-          ))}
+              </Cell>
+            ))
+          : []}
         {debtors?.map((member) => (
           <ChatBalanceCell key={member.id} member={member} chatId={chatId} />
         ))}
@@ -89,27 +90,28 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
           </Title>
         }
       >
-        {getCreditorStatus === "pending" &&
-          Array.from({ length: 2 }).map((_, index) => (
-            <Cell
-              key={index}
-              before={<Avatar size={48} />}
-              after={
+        {getCreditorStatus === "pending"
+          ? Array.from({ length: 2 }).map((_, index) => (
+              <Cell
+                key={index}
+                before={<Avatar size={48} />}
+                after={
+                  <Skeleton visible>
+                    <Text>Loading...</Text>
+                  </Skeleton>
+                }
+                subhead={
+                  <Skeleton visible>
+                    <Text>Loading...</Text>
+                  </Skeleton>
+                }
+              >
                 <Skeleton visible>
                   <Text>Loading...</Text>
                 </Skeleton>
-              }
-              subhead={
-                <Skeleton visible>
-                  <Text>Loading...</Text>
-                </Skeleton>
-              }
-            >
-              <Skeleton visible>
-                <Text>Loading...</Text>
-              </Skeleton>
-            </Cell>
-          ))}
+              </Cell>
+            ))
+          : []}
         {creditors?.map((member) => (
           <ChatBalanceCell key={member.id} member={member} chatId={chatId} />
         ))}

@@ -9,7 +9,13 @@ import {
   popup,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
+import {
+  Badge,
+  Modal,
+  Placeholder,
+  Skeleton,
+  Text,
+} from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
 import { useSearch } from "@tanstack/react-router";
@@ -20,9 +26,15 @@ interface ToPayModalProps {
   member: NonNullable<RouterOutputs["chat"]["getChat"]>["members"][0] & {
     balance: number;
   };
+  convertedBalance?: number;
 }
 
-const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
+const ToPayModal = ({
+  onOpenChange,
+  modalOpen,
+  member,
+  convertedBalance,
+}: ToPayModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
@@ -32,7 +44,18 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
+
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: conversionRateData, status: conversionRateStatus } =
+    trpc.currency.getCurrentRate.useQuery(
+      {
+        baseCurrency: dChatData?.baseCurrency ?? "SGD",
+        targetCurrency: selectedCurrency ?? "SGD",
+      },
+      {
+        enabled: !!dChatData?.baseCurrency && !!selectedCurrency,
+      }
+    );
 
   const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
     {
@@ -132,7 +155,7 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     if (!modalOpen) return;
 
     mainButton.setParams.ifAvailable({
-      text: "Yup, I settled! 🤝",
+      text: "Settled! 🤝",
       isEnabled: true,
       isVisible: true,
     });
@@ -165,7 +188,23 @@ const ToPayModal = ({ onOpenChange, modalOpen, member }: ToPayModalProps) => {
     >
       <div>
         <Placeholder
-          description="Already settled your debt?"
+          description={
+            <div className="flex flex-col items-center gap-2">
+              <Text>
+                or $
+                {formatCurrencyWithCode(
+                  convertedBalance,
+                  dChatData?.baseCurrency
+                )}
+              </Text>
+              <Skeleton visible={conversionRateStatus === "pending"}>
+                <Badge type="number">
+                  1 {dChatData?.baseCurrency} ≈{" "}
+                  {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
+                </Badge>
+              </Skeleton>
+            </div>
+          }
           header={
             <>
               You owe {member.firstName}{" "}

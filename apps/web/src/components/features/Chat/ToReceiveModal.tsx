@@ -9,24 +9,32 @@ import {
   popup,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Modal, Placeholder } from "@telegram-apps/telegram-ui";
+import {
+  Badge,
+  Modal,
+  Placeholder,
+  Skeleton,
+  Text,
+} from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
 import { useSearch } from "@tanstack/react-router";
 
-interface ToPayModalProps {
+interface ToReceiveModalProps {
   modalOpen: boolean;
   onOpenChange: (open: boolean) => void;
   member: NonNullable<RouterOutputs["chat"]["getChat"]>["members"][0] & {
     balance: number;
   };
+  convertedBalance?: number;
 }
 
-const ToRecieveModal = ({
+const ToReceiveModal = ({
   onOpenChange,
   modalOpen,
   member,
-}: ToPayModalProps) => {
+  convertedBalance,
+}: ToReceiveModalProps) => {
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
   const { selectedCurrency } = useSearch({
@@ -34,7 +42,18 @@ const ToRecieveModal = ({
   });
 
   const chatId = startParams?.chat_id ?? 0;
+
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: conversionRateData, status: conversionRateStatus } =
+    trpc.currency.getCurrentRate.useQuery(
+      {
+        baseCurrency: dChatData?.baseCurrency ?? "SGD",
+        targetCurrency: selectedCurrency ?? "SGD",
+      },
+      {
+        enabled: !!dChatData?.baseCurrency && !!selectedCurrency,
+      }
+    );
 
   const absAmountLent = Math.abs(member.balance);
 
@@ -95,7 +114,7 @@ const ToRecieveModal = ({
     if (!modalOpen) return;
 
     mainButton.setParams.ifAvailable({
-      text: "Not yet, send a reminder! 💬",
+      text: "Send a reminder! 💬",
       isEnabled: true,
       isVisible: true,
     });
@@ -128,7 +147,23 @@ const ToRecieveModal = ({
     >
       <div>
         <Placeholder
-          description="Received your payment?"
+          description={
+            <div className="flex flex-col items-center gap-2">
+              <Text>
+                or $
+                {formatCurrencyWithCode(
+                  convertedBalance,
+                  dChatData?.baseCurrency
+                )}
+              </Text>
+              <Skeleton visible={conversionRateStatus === "pending"}>
+                <Badge type="number">
+                  1 {dChatData?.baseCurrency} ≈{" "}
+                  {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
+                </Badge>
+              </Skeleton>
+            </div>
+          }
           header={
             <>
               {member.firstName} owes you{" "}
@@ -153,4 +188,4 @@ const ToRecieveModal = ({
   );
 };
 
-export default ToRecieveModal;
+export default ToReceiveModal;
