@@ -189,21 +189,23 @@ const ToPayModal = ({
       <div>
         <Placeholder
           description={
-            <div className="flex flex-col items-center gap-2">
-              <Text>
-                or $
-                {formatCurrencyWithCode(
-                  convertedBalance,
-                  dChatData?.baseCurrency
-                )}
-              </Text>
-              <Skeleton visible={conversionRateStatus === "pending"}>
-                <Badge type="number">
-                  1 {dChatData?.baseCurrency} ≈{" "}
-                  {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
-                </Badge>
-              </Skeleton>
-            </div>
+            selectedCurrency !== dChatData?.baseCurrency ? (
+              <div className="flex flex-col items-center gap-2">
+                <Text>
+                  or $
+                  {formatCurrencyWithCode(
+                    convertedBalance,
+                    dChatData?.baseCurrency
+                  )}
+                </Text>
+                <Skeleton visible={conversionRateStatus === "pending"}>
+                  <Badge type="number">
+                    1 {dChatData?.baseCurrency} ≈{" "}
+                    {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
+                  </Badge>
+                </Skeleton>
+              </div>
+            ) : null
           }
           header={
             <>
