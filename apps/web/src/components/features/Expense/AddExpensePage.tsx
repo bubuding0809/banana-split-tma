@@ -95,6 +95,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           search: (prev) => ({
             ...prev,
             selectedTab: "transaction",
+            selectedCurrency: value.currency,
           }),
         });
       } catch (error) {
