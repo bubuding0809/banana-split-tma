@@ -19,7 +19,6 @@ import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { useSearch } from "@tanstack/react-router";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -33,6 +32,7 @@ interface ShareParticipantProps {
   userId: number;
   amount: number;
   isCurrentUser: boolean;
+  currency: string;
 }
 
 const ShareParticipant = ({
@@ -40,10 +40,8 @@ const ShareParticipant = ({
   userId,
   amount,
   isCurrentUser,
+  currency,
 }: ShareParticipantProps) => {
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const { data: member, isLoading } = trpc.telegram.getChatMember.useQuery({
     chatId,
@@ -62,7 +60,7 @@ const ShareParticipant = ({
       after={
         <Info type="text">
           <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
-            {formatCurrencyWithCode(amount, selectedCurrency)}
+            {formatCurrencyWithCode(amount, currency)}
           </Text>
         </Info>
       }
@@ -223,7 +221,9 @@ const ExpenseDetailsModal = ({
             }
             after={
               <Info subtitle="Total" type="text">
-                <Text weight="2">${expense.amount.toFixed(2)}</Text>
+                <Text weight="2">
+                  {formatCurrencyWithCode(expense.amount, expense.currency)}
+                </Text>
               </Info>
             }
             style={{
@@ -245,6 +245,7 @@ const ExpenseDetailsModal = ({
                 chatId={expense.chatId}
                 userId={share.userId}
                 amount={share.amount}
+                currency={expense.currency}
                 isCurrentUser={share.userId === Number(userId)}
               />
             ))}

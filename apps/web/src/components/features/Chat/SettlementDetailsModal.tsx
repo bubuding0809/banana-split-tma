@@ -27,7 +27,6 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatExpenseDate } from "@utils/date";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { useSearch } from "@tanstack/react-router";
 
 interface SettlementDetailsModalProps {
   open: boolean;
@@ -55,9 +54,6 @@ const SettlementDetailsModal = ({
   userId,
 }: SettlementDetailsModalProps) => {
   //* hooks ========================================================================================
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const utils = trpc.useUtils();
@@ -130,9 +126,9 @@ const SettlementDetailsModal = ({
   const getSubtitle = () => {
     switch (settlementRelation) {
       case "sender":
-        return `📤 You sent ${formatCurrencyWithCode(settlement.amount, selectedCurrency)}`;
+        return `📤 You sent ${formatCurrencyWithCode(settlement.amount, settlement.currency)}`;
       case "receiver":
-        return `📥 You received ${formatCurrencyWithCode(settlement.amount, selectedCurrency)}`;
+        return `📥 You received ${formatCurrencyWithCode(settlement.amount, settlement.currency)}`;
       case "unrelated":
         return `🤷 Not involved`;
       default:
@@ -237,7 +233,10 @@ const SettlementDetailsModal = ({
             after={
               <Info subtitle="Total" type="text">
                 <Text weight="2">
-                  {formatCurrencyWithCode(settlement.amount, selectedCurrency)}
+                  {formatCurrencyWithCode(
+                    settlement.amount,
+                    settlement.currency
+                  )}
                 </Text>
               </Info>
             }
@@ -259,7 +258,10 @@ const SettlementDetailsModal = ({
             after={
               <Info type="text">
                 <Text weight="2" className="text-green-500">
-                  {formatCurrencyWithCode(settlement.amount, selectedCurrency)}
+                  {formatCurrencyWithCode(
+                    settlement.amount,
+                    settlement.currency
+                  )}
                 </Text>
               </Info>
             }
