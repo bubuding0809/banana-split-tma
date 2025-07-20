@@ -61,8 +61,8 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
     switch (settlementRelation) {
       case "sender":
         return {
-          primaryText: "You settled",
-          secondaryText: `with ${receiverFullName}`,
+          primaryText: "You paid",
+          secondaryText: `to ${receiverFullName}`,
           avatarUserId: receiverId,
           amountColor: "text-red-600", // Money sent out
           statusText: "Sent",
@@ -70,8 +70,8 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         };
       case "receiver":
         return {
-          primaryText: `${senderFullName} settled`,
-          secondaryText: "with you",
+          primaryText: `${senderFullName} paid`,
+          secondaryText: "to you",
           avatarUserId: senderId,
           amountColor: "text-green-600", // Money received
           statusText: "Received",

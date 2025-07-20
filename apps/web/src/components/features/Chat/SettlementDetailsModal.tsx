@@ -56,11 +56,16 @@ const SettlementDetailsModal = ({
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+
   const utils = trpc.useUtils();
 
-  const senderFullName = `${senderMember?.user.first_name}${
-    senderMember?.user.last_name ? ` ${senderMember.user.last_name}` : ""
-  }`;
+  const isSenderYou = settlement.senderId === userId;
+  const senderFullName = isSenderYou
+    ? "You"
+    : `${senderMember?.user.first_name}${
+        senderMember?.user.last_name ? ` ${senderMember.user.last_name}` : ""
+      }`;
 
   const receiverFullName = `${receiverMember?.user.first_name}${
     receiverMember?.user.last_name ? ` ${receiverMember.user.last_name}` : ""
@@ -220,7 +225,7 @@ const SettlementDetailsModal = ({
         )}
 
         {/* Settlement Overview */}
-        <Section header="who settled?" className="px-3">
+        <Section header="who paid?" className="px-3">
           <Cell
             before={<ChatMemberAvatar userId={settlement.senderId} size={48} />}
             subtitle={
@@ -245,7 +250,14 @@ const SettlementDetailsModal = ({
             }}
           >
             <Skeleton visible={isSenderLoading}>
-              <Text weight="2">{senderFullName}</Text>
+              <Text
+                weight="2"
+                style={{
+                  color: isSenderYou ? tButtonColor : "inherit",
+                }}
+              >
+                {senderFullName} paid
+              </Text>
             </Skeleton>
           </Cell>
         </Section>

@@ -43,6 +43,8 @@ const ShareParticipant = ({
   currency,
 }: ShareParticipantProps) => {
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+
   const { data: member, isLoading } = trpc.telegram.getChatMember.useQuery({
     chatId,
     userId,
@@ -69,7 +71,14 @@ const ShareParticipant = ({
       }}
     >
       <Skeleton visible={isLoading && !isCurrentUser}>
-        <Text weight={isCurrentUser ? "1" : "3"}>{memberName}</Text>
+        <Text
+          weight={isCurrentUser ? "1" : "3"}
+          style={{
+            color: isCurrentUser ? tButtonColor : "inherit",
+          }}
+        >
+          {memberName}
+        </Text>
       </Skeleton>
     </Cell>
   );
@@ -101,10 +110,14 @@ const ExpenseDetailsModal = ({
 }: ExpenseDetailsModalProps) => {
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
 
-  const memberFullName = `${member?.user.first_name}${
-    member?.user.last_name ? ` ${member.user.last_name}` : ""
-  }`;
+  const isPayerYou = Number(expense.payerId) === Number(userId);
+  const memberFullName = isPayerYou
+    ? "You"
+    : `${member?.user.first_name}${
+        member?.user.last_name ? ` ${member.user.last_name}` : ""
+      }`;
 
   // Determine the relation of the user to the expense (payer, borrower, unrelated)
   const expenseRelation = useMemo(() => {
@@ -231,7 +244,14 @@ const ExpenseDetailsModal = ({
             }}
           >
             <Skeleton visible={isMemberLoading}>
-              <Text weight="2">{memberFullName} paid</Text>
+              <Text
+                weight="2"
+                style={{
+                  color: isPayerYou ? tButtonColor : "inherit",
+                }}
+              >
+                {memberFullName} spent
+              </Text>
             </Skeleton>
           </Cell>
         </Section>
@@ -239,16 +259,23 @@ const ExpenseDetailsModal = ({
         {/* Split Details Section */}
         {expenseDetails?.shares && expenseDetails.shares.length > 0 && (
           <Section header="Split amounts" className="px-3">
-            {expenseDetails.shares.map((share) => (
-              <ShareParticipant
-                key={share.userId}
-                chatId={expense.chatId}
-                userId={share.userId}
-                amount={share.amount}
-                currency={expense.currency}
-                isCurrentUser={share.userId === Number(userId)}
-              />
-            ))}
+            {expenseDetails.shares
+              .sort((a, b) => {
+                // Move current user to front
+                if (a.userId === userId) return -1;
+                if (b.userId === userId) return 1;
+                return 0;
+              })
+              .map((share) => (
+                <ShareParticipant
+                  key={share.userId}
+                  chatId={expense.chatId}
+                  userId={share.userId}
+                  amount={share.amount}
+                  currency={expense.currency}
+                  isCurrentUser={share.userId === Number(userId)}
+                />
+              ))}
           </Section>
         )}
 
