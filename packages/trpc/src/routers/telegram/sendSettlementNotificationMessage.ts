@@ -58,7 +58,7 @@ export const sendSettlementNotificationMessageHandler = async (
   const descriptionPart = input.description
     ? ` \\(${escapeMarkdown(input.description, 2)}\\)`
     : "";
-  const message = `✅ Great news ${creditorMention}\\! ${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\! 💰`;
+  const message = `✅ Great news ${creditorMention}\\!\n${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\!`;
 
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {

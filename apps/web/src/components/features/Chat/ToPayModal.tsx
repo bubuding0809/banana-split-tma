@@ -108,7 +108,7 @@ const ToPayModal = ({
           creditorUsername: member.username || undefined,
           debtorName: tUserData.firstName,
           amount: absAmountOwed,
-          currency: dChatData?.baseCurrency || "SGD",
+          currency: selectedCurrency,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
