@@ -24,7 +24,8 @@ export const sendDebtReminderMessageHandler = async (
   teleBot: Telegram
 ) => {
   const formattedAmount = escapeMarkdown(
-    formatCurrencyWithCode(input.amount, input.currency)
+    formatCurrencyWithCode(input.amount, input.currency),
+    2
   );
 
   // Escape names for MarkdownV2

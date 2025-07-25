@@ -34,7 +34,8 @@ export const sendSettlementNotificationMessageHandler = async (
 
   // Format the amount as currency with error handling
   const formattedAmount = escapeMarkdown(
-    formatCurrencyWithCode(input.amount, input.currency)
+    formatCurrencyWithCode(input.amount, input.currency),
+    2
   );
 
   // Escape names for MarkdownV2
