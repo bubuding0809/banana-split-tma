@@ -32,7 +32,6 @@ export const trpcClient = trpc.createClient({
       transformer: superjson,
       async headers() {
         return {
-          "x-api-key": import.meta.env.VITE_API_KEY,
           Authorization: `tma ${initDataRaw()}`,
         };
       },
