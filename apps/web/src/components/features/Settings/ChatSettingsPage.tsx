@@ -112,6 +112,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       <Section header="Currency">
         <Cell
           before={<Currency />}
+          Component="label"
           after={
             <Navigation>
               <Skeleton
