@@ -12,6 +12,7 @@ export const inputSchema = z.object({
   title: z.string().optional(),
   photo: z.string().optional(),
   type: z.nativeEnum(ChatType).optional(),
+  baseCurrency: z.string().optional(),
 });
 
 export const outputSchema = z.object({
@@ -20,6 +21,7 @@ export const outputSchema = z.object({
   photo: z.string(),
   type: z.nativeEnum(ChatType),
   threadId: z.number().optional(),
+  baseCurrency: z.string().optional(),
   updatedAt: z.date(),
 });
 
@@ -46,6 +48,7 @@ export const updateChatHandler = async (
       title?: string;
       photo?: string;
       type?: ChatType;
+      baseCurrency?: string;
     } = {};
 
     if (input.threadId !== undefined) {
@@ -59,6 +62,9 @@ export const updateChatHandler = async (
     }
     if (input.type !== undefined) {
       updateData.type = input.type;
+    }
+    if (input.baseCurrency !== undefined) {
+      updateData.baseCurrency = input.baseCurrency;
     }
 
     const updatedChat = await db.chat.update({
