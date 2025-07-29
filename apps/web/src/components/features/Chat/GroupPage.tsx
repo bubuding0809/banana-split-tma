@@ -29,7 +29,7 @@ const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 const GroupPage = () => {
   // * Hooks ======================================================================================
-  const { selectedTab: selectedTab } = routeApi.useSearch();
+  const { selectedTab, selectedCurrency } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const tStartParams = useStartParams();
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
@@ -54,6 +54,17 @@ const GroupPage = () => {
         ...prev,
         selectedTab: tab,
       }),
+    });
+  };
+
+  const handleSettingsClick = () => {
+    navigate({
+      to: `settings`,
+      search: {
+        prevTab: selectedTab,
+        prevCurrency: selectedCurrency,
+        title: "⚙️ Group Settings",
+      },
     });
   };
 
@@ -98,10 +109,10 @@ const GroupPage = () => {
     <main className="flex flex-col gap-2.5 pb-4">
       <section className="px-4">
         <Cell
-          onClick={() => alert("Settings")}
+          onClick={handleSettingsClick}
           className="px-0"
           after={
-            <Navigation className="text-gray-500">
+            <Navigation>
               <Skeleton visible={isDChatDataLoading}>Settings</Skeleton>
             </Navigation>
           }

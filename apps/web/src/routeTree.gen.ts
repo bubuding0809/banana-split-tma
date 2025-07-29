@@ -8,214 +8,213 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as TmaRouteImport } from './routes/_tma'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as TmaHomeRouteImport } from './routes/_tma/home'
-import { Route as TmaChatRouteImport } from './routes/_tma/chat'
-import { Route as TmaChatIndexRouteImport } from './routes/_tma/chat.index'
-import { Route as TmaChatChatIdRouteImport } from './routes/_tma/chat.$chatId'
-import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
-import { Route as TmaChatChatIdSettleDebtUserIdRouteImport } from './routes/_tma/chat.$chatId_.settle-debt.$userId'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as TmaRouteImport } from "./routes/_tma";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as TmaHomeRouteImport } from "./routes/_tma/home";
+import { Route as TmaChatRouteImport } from "./routes/_tma/chat";
+import { Route as TmaChatIndexRouteImport } from "./routes/_tma/chat.index";
+import { Route as TmaChatChatIdRouteImport } from "./routes/_tma/chat.$chatId";
+import { Route as TmaChatChatIdSettingsRouteImport } from "./routes/_tma/chat.$chatId_.settings";
+import { Route as TmaChatChatIdAddExpenseRouteImport } from "./routes/_tma/chat.$chatId_.add-expense";
 
 const TmaRoute = TmaRouteImport.update({
-  id: '/_tma',
+  id: "/_tma",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const TmaHomeRoute = TmaHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+  id: "/home",
+  path: "/home",
   getParentRoute: () => TmaRoute,
-} as any)
+} as any);
 const TmaChatRoute = TmaChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
+  id: "/chat",
+  path: "/chat",
   getParentRoute: () => TmaRoute,
-} as any)
+} as any);
 const TmaChatIndexRoute = TmaChatIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => TmaChatRoute,
-} as any)
+} as any);
 const TmaChatChatIdRoute = TmaChatChatIdRouteImport.update({
-  id: '/$chatId',
-  path: '/$chatId',
+  id: "/$chatId",
+  path: "/$chatId",
   getParentRoute: () => TmaChatRoute,
-} as any)
+} as any);
+const TmaChatChatIdSettingsRoute = TmaChatChatIdSettingsRouteImport.update({
+  id: "/$chatId_/settings",
+  path: "/$chatId/settings",
+  getParentRoute: () => TmaChatRoute,
+} as any);
 const TmaChatChatIdAddExpenseRoute = TmaChatChatIdAddExpenseRouteImport.update({
-  id: '/$chatId_/add-expense',
-  path: '/$chatId/add-expense',
+  id: "/$chatId_/add-expense",
+  path: "/$chatId/add-expense",
   getParentRoute: () => TmaChatRoute,
-} as any)
-const TmaChatChatIdSettleDebtUserIdRoute =
-  TmaChatChatIdSettleDebtUserIdRouteImport.update({
-    id: '/$chatId_/settle-debt/$userId',
-    path: '/$chatId/settle-debt/$userId',
-    getParentRoute: () => TmaChatRoute,
-  } as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/chat': typeof TmaChatRouteWithChildren
-  '/home': typeof TmaHomeRoute
-  '/chat/$chatId': typeof TmaChatChatIdRoute
-  '/chat/': typeof TmaChatIndexRoute
-  '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
-  '/chat/$chatId/settle-debt/$userId': typeof TmaChatChatIdSettleDebtUserIdRoute
+  "/": typeof IndexRoute;
+  "/chat": typeof TmaChatRouteWithChildren;
+  "/home": typeof TmaHomeRoute;
+  "/chat/$chatId": typeof TmaChatChatIdRoute;
+  "/chat/": typeof TmaChatIndexRoute;
+  "/chat/$chatId/add-expense": typeof TmaChatChatIdAddExpenseRoute;
+  "/chat/$chatId/settings": typeof TmaChatChatIdSettingsRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/home': typeof TmaHomeRoute
-  '/chat/$chatId': typeof TmaChatChatIdRoute
-  '/chat': typeof TmaChatIndexRoute
-  '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
-  '/chat/$chatId/settle-debt/$userId': typeof TmaChatChatIdSettleDebtUserIdRoute
+  "/": typeof IndexRoute;
+  "/home": typeof TmaHomeRoute;
+  "/chat/$chatId": typeof TmaChatChatIdRoute;
+  "/chat": typeof TmaChatIndexRoute;
+  "/chat/$chatId/add-expense": typeof TmaChatChatIdAddExpenseRoute;
+  "/chat/$chatId/settings": typeof TmaChatChatIdSettingsRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_tma': typeof TmaRouteWithChildren
-  '/_tma/chat': typeof TmaChatRouteWithChildren
-  '/_tma/home': typeof TmaHomeRoute
-  '/_tma/chat/$chatId': typeof TmaChatChatIdRoute
-  '/_tma/chat/': typeof TmaChatIndexRoute
-  '/_tma/chat/$chatId_/add-expense': typeof TmaChatChatIdAddExpenseRoute
-  '/_tma/chat/$chatId_/settle-debt/$userId': typeof TmaChatChatIdSettleDebtUserIdRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/_tma": typeof TmaRouteWithChildren;
+  "/_tma/chat": typeof TmaChatRouteWithChildren;
+  "/_tma/home": typeof TmaHomeRoute;
+  "/_tma/chat/$chatId": typeof TmaChatChatIdRoute;
+  "/_tma/chat/": typeof TmaChatIndexRoute;
+  "/_tma/chat/$chatId_/add-expense": typeof TmaChatChatIdAddExpenseRoute;
+  "/_tma/chat/$chatId_/settings": typeof TmaChatChatIdSettingsRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/chat'
-    | '/home'
-    | '/chat/$chatId'
-    | '/chat/'
-    | '/chat/$chatId/add-expense'
-    | '/chat/$chatId/settle-debt/$userId'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/chat"
+    | "/home"
+    | "/chat/$chatId"
+    | "/chat/"
+    | "/chat/$chatId/add-expense"
+    | "/chat/$chatId/settings";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/home'
-    | '/chat/$chatId'
-    | '/chat'
-    | '/chat/$chatId/add-expense'
-    | '/chat/$chatId/settle-debt/$userId'
+    | "/"
+    | "/home"
+    | "/chat/$chatId"
+    | "/chat"
+    | "/chat/$chatId/add-expense"
+    | "/chat/$chatId/settings";
   id:
-    | '__root__'
-    | '/'
-    | '/_tma'
-    | '/_tma/chat'
-    | '/_tma/home'
-    | '/_tma/chat/$chatId'
-    | '/_tma/chat/'
-    | '/_tma/chat/$chatId_/add-expense'
-    | '/_tma/chat/$chatId_/settle-debt/$userId'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/_tma"
+    | "/_tma/chat"
+    | "/_tma/home"
+    | "/_tma/chat/$chatId"
+    | "/_tma/chat/"
+    | "/_tma/chat/$chatId_/add-expense"
+    | "/_tma/chat/$chatId_/settings";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  TmaRoute: typeof TmaRouteWithChildren
+  IndexRoute: typeof IndexRoute;
+  TmaRoute: typeof TmaRouteWithChildren;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/_tma': {
-      id: '/_tma'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof TmaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_tma/home': {
-      id: '/_tma/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof TmaHomeRouteImport
-      parentRoute: typeof TmaRoute
-    }
-    '/_tma/chat': {
-      id: '/_tma/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof TmaChatRouteImport
-      parentRoute: typeof TmaRoute
-    }
-    '/_tma/chat/': {
-      id: '/_tma/chat/'
-      path: '/'
-      fullPath: '/chat/'
-      preLoaderRoute: typeof TmaChatIndexRouteImport
-      parentRoute: typeof TmaChatRoute
-    }
-    '/_tma/chat/$chatId': {
-      id: '/_tma/chat/$chatId'
-      path: '/$chatId'
-      fullPath: '/chat/$chatId'
-      preLoaderRoute: typeof TmaChatChatIdRouteImport
-      parentRoute: typeof TmaChatRoute
-    }
-    '/_tma/chat/$chatId_/add-expense': {
-      id: '/_tma/chat/$chatId_/add-expense'
-      path: '/$chatId/add-expense'
-      fullPath: '/chat/$chatId/add-expense'
-      preLoaderRoute: typeof TmaChatChatIdAddExpenseRouteImport
-      parentRoute: typeof TmaChatRoute
-    }
-    '/_tma/chat/$chatId_/settle-debt/$userId': {
-      id: '/_tma/chat/$chatId_/settle-debt/$userId'
-      path: '/$chatId/settle-debt/$userId'
-      fullPath: '/chat/$chatId/settle-debt/$userId'
-      preLoaderRoute: typeof TmaChatChatIdSettleDebtUserIdRouteImport
-      parentRoute: typeof TmaChatRoute
-    }
+    "/_tma": {
+      id: "/_tma";
+      path: "";
+      fullPath: "";
+      preLoaderRoute: typeof TmaRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_tma/home": {
+      id: "/_tma/home";
+      path: "/home";
+      fullPath: "/home";
+      preLoaderRoute: typeof TmaHomeRouteImport;
+      parentRoute: typeof TmaRoute;
+    };
+    "/_tma/chat": {
+      id: "/_tma/chat";
+      path: "/chat";
+      fullPath: "/chat";
+      preLoaderRoute: typeof TmaChatRouteImport;
+      parentRoute: typeof TmaRoute;
+    };
+    "/_tma/chat/": {
+      id: "/_tma/chat/";
+      path: "/";
+      fullPath: "/chat/";
+      preLoaderRoute: typeof TmaChatIndexRouteImport;
+      parentRoute: typeof TmaChatRoute;
+    };
+    "/_tma/chat/$chatId": {
+      id: "/_tma/chat/$chatId";
+      path: "/$chatId";
+      fullPath: "/chat/$chatId";
+      preLoaderRoute: typeof TmaChatChatIdRouteImport;
+      parentRoute: typeof TmaChatRoute;
+    };
+    "/_tma/chat/$chatId_/settings": {
+      id: "/_tma/chat/$chatId_/settings";
+      path: "/$chatId/settings";
+      fullPath: "/chat/$chatId/settings";
+      preLoaderRoute: typeof TmaChatChatIdSettingsRouteImport;
+      parentRoute: typeof TmaChatRoute;
+    };
+    "/_tma/chat/$chatId_/add-expense": {
+      id: "/_tma/chat/$chatId_/add-expense";
+      path: "/$chatId/add-expense";
+      fullPath: "/chat/$chatId/add-expense";
+      preLoaderRoute: typeof TmaChatChatIdAddExpenseRouteImport;
+      parentRoute: typeof TmaChatRoute;
+    };
   }
 }
 
 interface TmaChatRouteChildren {
-  TmaChatChatIdRoute: typeof TmaChatChatIdRoute
-  TmaChatIndexRoute: typeof TmaChatIndexRoute
-  TmaChatChatIdAddExpenseRoute: typeof TmaChatChatIdAddExpenseRoute
-  TmaChatChatIdSettleDebtUserIdRoute: typeof TmaChatChatIdSettleDebtUserIdRoute
+  TmaChatChatIdRoute: typeof TmaChatChatIdRoute;
+  TmaChatIndexRoute: typeof TmaChatIndexRoute;
+  TmaChatChatIdAddExpenseRoute: typeof TmaChatChatIdAddExpenseRoute;
+  TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRoute;
 }
 
 const TmaChatRouteChildren: TmaChatRouteChildren = {
   TmaChatChatIdRoute: TmaChatChatIdRoute,
   TmaChatIndexRoute: TmaChatIndexRoute,
   TmaChatChatIdAddExpenseRoute: TmaChatChatIdAddExpenseRoute,
-  TmaChatChatIdSettleDebtUserIdRoute: TmaChatChatIdSettleDebtUserIdRoute,
-}
+  TmaChatChatIdSettingsRoute: TmaChatChatIdSettingsRoute,
+};
 
 const TmaChatRouteWithChildren =
-  TmaChatRoute._addFileChildren(TmaChatRouteChildren)
+  TmaChatRoute._addFileChildren(TmaChatRouteChildren);
 
 interface TmaRouteChildren {
-  TmaChatRoute: typeof TmaChatRouteWithChildren
-  TmaHomeRoute: typeof TmaHomeRoute
+  TmaChatRoute: typeof TmaChatRouteWithChildren;
+  TmaHomeRoute: typeof TmaHomeRoute;
 }
 
 const TmaRouteChildren: TmaRouteChildren = {
   TmaChatRoute: TmaChatRouteWithChildren,
   TmaHomeRoute: TmaHomeRoute,
-}
+};
 
-const TmaRouteWithChildren = TmaRoute._addFileChildren(TmaRouteChildren)
+const TmaRouteWithChildren = TmaRoute._addFileChildren(TmaRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TmaRoute: TmaRouteWithChildren,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
