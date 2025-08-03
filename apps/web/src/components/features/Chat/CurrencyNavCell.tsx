@@ -12,14 +12,14 @@ import {
   Cell,
   Info,
   Modal,
-  Button,
   Title,
   Radio,
   Skeleton,
   Placeholder,
   Section,
+  ButtonCell,
 } from "@telegram-apps/telegram-ui";
-import { ArrowRightLeft, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -261,31 +261,20 @@ const CurrencyNavList = () => {
             {selectedCurrencyInfo?.name ?? "Singapore Dollar"}
           </Skeleton>
         </Cell>
-      </div>
 
-      {/* Convert Currency Button */}
-      {selectedCurrency &&
-        chatData?.baseCurrency &&
-        selectedCurrency !== chatData.baseCurrency && (
-          <div className="mt-2 px-2">
-            <Button
-              size="s"
-              mode="filled"
+        {selectedCurrency &&
+          chatData?.baseCurrency &&
+          selectedCurrency !== chatData.baseCurrency && (
+            <ButtonCell
+              before={<ArrowLeftRight />}
               onClick={handleConvertCurrency}
-              disabled={convertCurrencyMutation.isPending}
-              className="w-full bg-orange-500 hover:bg-orange-600"
             >
-              <div className="flex items-center gap-2">
-                <ArrowRightLeft size={16} />
-                <span>
-                  {convertCurrencyMutation.isPending
-                    ? "Converting..."
-                    : `Convert all ${selectedCurrency} to ${chatData.baseCurrency}`}
-                </span>
-              </div>
-            </Button>
-          </div>
-        )}
+              {convertCurrencyMutation.isPending
+                ? "Converting..."
+                : `Convert all ${selectedCurrency} to ${chatData.baseCurrency}`}
+            </ButtonCell>
+          )}
+      </div>
 
       <Modal
         open={modalOpen}
