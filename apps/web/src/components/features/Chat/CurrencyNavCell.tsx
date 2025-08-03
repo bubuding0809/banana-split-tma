@@ -1,19 +1,25 @@
 import AvatarStackTruncated from "@/components/ui/AvatarStackTruncated";
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
-import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  initData,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import {
   Avatar,
   Cell,
   Info,
   Modal,
+  Button,
   Title,
   Radio,
   Skeleton,
   Placeholder,
   Section,
 } from "@telegram-apps/telegram-ui";
-import { RefreshCw } from "lucide-react";
+import { ArrowRightLeft, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -37,11 +43,34 @@ const CurrencyNavList = () => {
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
 
-  const { data: currenciesWithBalance, status: getCurrenciesStatus } =
-    trpc.currency.getCurrenciesWithBalance.useQuery({
-      userId,
-      chatId,
-    });
+  const {
+    data: currenciesWithBalance,
+    status: getCurrenciesStatus,
+    refetch: refetchCurrencies,
+  } = trpc.currency.getCurrenciesWithBalance.useQuery({
+    userId,
+    chatId,
+  });
+
+  // * Mutations ==================================================================================
+  const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
+    onSuccess: () => {
+      // Refetch currencies to update balances
+      refetchCurrencies();
+      hapticFeedback.notificationOccurred("success");
+      // Navigate to base currency view
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          selectedCurrency: chatData?.baseCurrency,
+        }),
+      });
+    },
+    onError: (error) => {
+      hapticFeedback.notificationOccurred("error");
+      alert(`❌ Conversion failed: ${error.message}`);
+    },
+  });
 
   // * State =======================================================================================
   const selectedCurrencyInfo = useMemo(() => {
@@ -173,6 +202,29 @@ const CurrencyNavList = () => {
     setModalOpen(false);
   };
 
+  const handleConvertCurrency = () => {
+    if (
+      !selectedCurrency ||
+      !chatData?.baseCurrency ||
+      selectedCurrency === chatData.baseCurrency
+    ) {
+      return;
+    }
+
+    const shouldConvert = confirm(
+      `⚠️ Convert all ${selectedCurrency} transactions to ${chatData.baseCurrency}?\n\nThis action cannot be undone. All expenses and settlements in ${selectedCurrency} will be converted to ${chatData.baseCurrency} using current exchange rates.`
+    );
+
+    if (shouldConvert) {
+      convertCurrencyMutation.mutate({
+        chatId,
+        fromCurrency: selectedCurrency,
+        toCurrency: chatData.baseCurrency,
+        userId,
+      });
+    }
+  };
+
   return (
     <>
       <div className="px-2">
@@ -210,6 +262,31 @@ const CurrencyNavList = () => {
           </Skeleton>
         </Cell>
       </div>
+
+      {/* Convert Currency Button */}
+      {selectedCurrency &&
+        chatData?.baseCurrency &&
+        selectedCurrency !== chatData.baseCurrency && (
+          <div className="mt-2 px-2">
+            <Button
+              size="s"
+              mode="filled"
+              onClick={handleConvertCurrency}
+              disabled={convertCurrencyMutation.isPending}
+              className="w-full bg-orange-500 hover:bg-orange-600"
+            >
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft size={16} />
+                <span>
+                  {convertCurrencyMutation.isPending
+                    ? "Converting..."
+                    : `Convert all ${selectedCurrency} to ${chatData.baseCurrency}`}
+                </span>
+              </div>
+            </Button>
+          </div>
+        )}
+
       <Modal
         open={modalOpen}
         onOpenChange={setModalOpen}
