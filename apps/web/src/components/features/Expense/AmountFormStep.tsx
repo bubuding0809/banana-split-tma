@@ -194,11 +194,11 @@ const AmountFormStep = withForm({
       if (!currentAmount || currentAmount === "0") return;
 
       const convertedAmount = getConvertedAmount(currentAmount);
-      
+
       // Update both amount and currency fields
       form.setFieldValue("amount", convertedAmount);
       form.setFieldValue("currency", displayCurrency);
-      
+
       // Provide haptic feedback
       hapticFeedback.notificationOccurred("success");
     };
@@ -316,34 +316,36 @@ const AmountFormStep = withForm({
                         </span>
                       </div>
                     </div>
-
-                    {/* Converted */}
-                    {field.state.value &&
-                      expenseCurrency !== displayCurrency && (
-                        <div className="mt-2 flex flex-col gap-2">
-                          <div className="flex items-center text-lg text-gray-500">
-                            <span>≈</span>
-                            <span className="mx-1">
-                              {getConvertedAmount(field.state.value)}
-                            </span>
-                            <span className="text-gray-400">
-                              {displayCurrency}
-                            </span>
-                          </div>
-                          {exchangeRate && (
-                            <button
-                              type="button"
-                              onClick={handleUseConvertedAmount}
-                              className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600 transition-colors"
-                            >
-                              <ArrowDownUp size={16} />
-                              <span>Convert to {displayCurrency} amount</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
                   </div>
                 </div>
+
+                {/* Converted */}
+                {field.state.value && expenseCurrency !== displayCurrency && (
+                  <Cell
+                    after={
+                      exchangeRate && (
+                        <button
+                          type="button"
+                          onClick={handleUseConvertedAmount}
+                          className="flex items-center gap-2 text-sm text-blue-500 transition-colors hover:text-blue-600"
+                        >
+                          <ArrowDownUp size={16} />
+                          <span>Convert to {displayCurrency}</span>
+                        </button>
+                      )
+                    }
+                  >
+                    <div className="flex gap-2">
+                      <div className="flex items-center text-lg text-gray-500">
+                        <span>≈</span>
+                        <span className="mx-1">
+                          {getConvertedAmount(field.state.value)}
+                        </span>
+                        <span className="text-gray-400">{displayCurrency}</span>
+                      </div>
+                    </div>
+                  </Cell>
+                )}
               </Section>
               <div className="px-2">
                 <FieldInfo />
