@@ -6,12 +6,15 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
+  Button,
+  Text,
   Cell,
   Section,
+  Skeleton,
   Subheadline,
   Textarea,
 } from "@telegram-apps/telegram-ui";
-import { ArrowDownUp, ChevronRight, Currency } from "lucide-react";
+import { ArrowUp, ChevronRight, Currency } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -35,6 +38,7 @@ const AmountFormStep = withForm({
   },
   render: function Render({ form, isLastStep, step }) {
     const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+    const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const isDarkMode = useSignal(themeParams.isDark);
     const navigate = routeApi.useNavigate();
     const { expenseCurrency } = useStore(form.store, (state) => ({
@@ -55,10 +59,11 @@ const AmountFormStep = withForm({
     const { data: supportedCurrencies } =
       trpc.currency.getSupportedCurrencies.useQuery({});
 
-    const { data: exchangeRate } = trpc.currency.getCurrentRate.useQuery({
-      baseCurrency: expenseCurrency,
-      targetCurrency: displayCurrency,
-    });
+    const { data: exchangeRate, status: exchangeRateStatus } =
+      trpc.currency.getCurrentRate.useQuery({
+        baseCurrency: expenseCurrency,
+        targetCurrency: displayCurrency,
+      });
 
     // Configure main button click
     useEffect(() => {
@@ -320,31 +325,35 @@ const AmountFormStep = withForm({
                 </div>
 
                 {/* Converted */}
-                {field.state.value && expenseCurrency !== displayCurrency && (
+                {field.state.value && expenseCurrency !== displayCurrency ? (
                   <Cell
+                    Component="label"
                     after={
-                      exchangeRate && (
-                        <button
-                          type="button"
-                          onClick={handleUseConvertedAmount}
-                          className="flex items-center gap-2 text-sm text-blue-500 transition-colors hover:text-blue-600"
-                        >
-                          <ArrowDownUp size={16} />
-                          <span>Convert to {displayCurrency}</span>
-                        </button>
-                      )
+                      <Button
+                        disabled={exchangeRateStatus === "pending"}
+                        mode="plain"
+                        type="button"
+                        onClick={handleUseConvertedAmount}
+                        after={<ArrowUp size={20} />}
+                      >
+                        Apply {displayCurrency}
+                      </Button>
                     }
                   >
-                    <div className="flex gap-2">
-                      <div className="flex items-center text-lg text-gray-500">
-                        <span>≈</span>
-                        <span className="mx-1">
-                          {getConvertedAmount(field.state.value)}
-                        </span>
-                        <span className="text-gray-400">{displayCurrency}</span>
-                      </div>
-                    </div>
+                    <Skeleton visible={exchangeRateStatus === "pending"}>
+                      <Text
+                        className="px-1"
+                        style={{
+                          color: tSubtitleTextColor,
+                        }}
+                      >
+                        ≈ {getConvertedAmount(field.state.value)}{" "}
+                        {displayCurrency}
+                      </Text>
+                    </Skeleton>
                   </Cell>
+                ) : (
+                  []
                 )}
               </Section>
               <div className="px-2">
