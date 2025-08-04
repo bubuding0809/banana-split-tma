@@ -72,9 +72,6 @@ const ToPayModal = ({
     }
   );
 
-  const sendSettlementNotificationMutation =
-    trpc.telegram.sendSettlementNotificationMessage.useMutation();
-
   const absAmountOwed = Math.abs(member.balance);
 
   const handleCreateSettlement = useCallback(async () => {
@@ -90,35 +87,19 @@ const ToPayModal = ({
         isLoaderVisible: true,
       });
 
-      // Create the settlement
+      // Create the settlement with notification
       await createSettlementMutation.mutateAsync({
         amount: absAmountOwed,
-        receiverId: member.id,
-        senderId: userId,
+        senderId: userId, // debtor (current user) is the sender
+        receiverId: member.id, // creditor is the receiver
         chatId,
         currency: selectedCurrency,
+        sendNotification: true,
+        creditorName: member.firstName,
+        creditorUsername: member.username || undefined,
+        debtorName: tUserData.firstName,
+        threadId: dChatData?.threadId,
       });
-
-      // Send notification to creditor
-      try {
-        await sendSettlementNotificationMutation.mutateAsync({
-          chatId,
-          creditorUserId: Number(member.id),
-          creditorName: member.firstName,
-          creditorUsername: member.username || undefined,
-          debtorName: tUserData.firstName,
-          amount: absAmountOwed,
-          currency: selectedCurrency,
-          threadId: dChatData?.threadId
-            ? Number(dChatData.threadId)
-            : undefined,
-        });
-      } catch (notificationError) {
-        console.error(
-          "Error sending settlement notification:",
-          notificationError
-        );
-      }
 
       hapticFeedback.notificationOccurred.ifAvailable("success");
       onOpenChange(false);
@@ -128,7 +109,6 @@ const ToPayModal = ({
       popup.open.ifAvailable({
         message: "Failed to create settlement. Please try again later.",
       });
-      return;
     } finally {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: false,
@@ -145,7 +125,6 @@ const ToPayModal = ({
     chatId,
     selectedCurrency,
     onOpenChange,
-    sendSettlementNotificationMutation,
     dChatData?.threadId,
   ]);
 
