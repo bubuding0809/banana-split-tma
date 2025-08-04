@@ -186,7 +186,7 @@ const ToReceiveModal = ({
     if (!modalOpen) return;
 
     mainButton.setParams.ifAvailable({
-      text: "Send a reminder 💬",
+      text: "Remind 💬",
       isEnabled: true,
       isVisible: true,
     });
