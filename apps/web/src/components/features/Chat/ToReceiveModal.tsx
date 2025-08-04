@@ -7,6 +7,7 @@ import {
   initData,
   mainButton,
   popup,
+  secondaryButton,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
@@ -35,12 +36,14 @@ const ToReceiveModal = ({
   member,
   convertedBalance,
 }: ToReceiveModalProps) => {
+  const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
   const { selectedCurrency } = useSearch({
     from: "/_tma/chat/$chatId",
   });
 
+  const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
 
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -59,6 +62,24 @@ const ToReceiveModal = ({
 
   const sendDebtReminderMutation =
     trpc.telegram.sendDebtReminderMessage.useMutation();
+
+  const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
+    {
+      onSuccess: () => {
+        trpcUtils.chat.getDebtors.invalidate({
+          chatId,
+          userId,
+        });
+        trpcUtils.chat.getCreditors.invalidate({
+          chatId,
+          userId,
+        });
+      },
+    }
+  );
+
+  const sendSettlementNotificationMutation =
+    trpc.telegram.sendSettlementNotificationMessage.useMutation();
 
   const handleSendReminder = useCallback(async () => {
     if (!tUserData?.firstName) {
@@ -109,18 +130,99 @@ const ToReceiveModal = ({
     tUserData?.firstName,
   ]);
 
-  // Set main button parameters when modal opens
+  const handleSettleDebt = useCallback(async () => {
+    if (!tUserData?.firstName) {
+      popup.open({
+        message: "Unable to settle debt. User data not available.",
+      });
+      return;
+    }
+
+    try {
+      secondaryButton.setParams.ifAvailable({
+        isLoaderVisible: true,
+      });
+
+      // Create the settlement (creditor settles on behalf of debtor)
+      await createSettlementMutation.mutateAsync({
+        amount: absAmountLent,
+        senderId: member.id, // debtor is the sender
+        receiverId: userId, // creditor is the receiver
+        chatId,
+        currency: selectedCurrency,
+      });
+
+      // Send notification to creditor about debtor settling (via creditor's action)
+      try {
+        await sendSettlementNotificationMutation.mutateAsync({
+          chatId,
+          creditorUserId: Number(userId), // notify the creditor
+          creditorName: tUserData.firstName,
+          creditorUsername: tUserData.username || undefined,
+          debtorName: member.firstName, // debtor who "settled"
+          amount: absAmountLent,
+          currency: selectedCurrency,
+          threadId: dChatData?.threadId
+            ? Number(dChatData.threadId)
+            : undefined,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Error sending settlement notification:",
+          notificationError
+        );
+      }
+
+      hapticFeedback.notificationOccurred.ifAvailable("success");
+      onOpenChange(false);
+    } catch (error) {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      console.error("Error settling debt:", error);
+      popup.open({
+        message: "Failed to settle debt. Please try again later.",
+      });
+    } finally {
+      secondaryButton.setParams.ifAvailable({
+        isLoaderVisible: false,
+      });
+    }
+  }, [
+    tUserData?.firstName,
+    tUserData?.username,
+    createSettlementMutation,
+    absAmountLent,
+    member.id,
+    member.firstName,
+    userId,
+    chatId,
+    selectedCurrency,
+    onOpenChange,
+    sendSettlementNotificationMutation,
+    dChatData?.threadId,
+  ]);
+
+  // Set button parameters when modal opens
   useEffect(() => {
     if (!modalOpen) return;
 
     mainButton.setParams.ifAvailable({
-      text: "Send a reminder! 💬",
+      text: "Send a reminder 💬",
+      isEnabled: true,
+      isVisible: true,
+    });
+
+    secondaryButton.setParams.ifAvailable({
+      text: "Settled ✅",
       isEnabled: true,
       isVisible: true,
     });
 
     return () => {
       mainButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+      secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
@@ -133,11 +235,14 @@ const ToReceiveModal = ({
 
     const offMainButtonClick =
       mainButton.onClick.ifAvailable(handleSendReminder);
+    const offSecondaryButtonClick =
+      secondaryButton.onClick.ifAvailable(handleSettleDebt);
 
     return () => {
       offMainButtonClick?.();
+      offSecondaryButtonClick?.();
     };
-  }, [handleSendReminder, modalOpen]);
+  }, [handleSendReminder, handleSettleDebt, modalOpen]);
 
   return (
     <Modal

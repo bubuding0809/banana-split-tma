@@ -146,7 +146,6 @@ const ToPayModal = ({
     selectedCurrency,
     onOpenChange,
     sendSettlementNotificationMutation,
-    dChatData?.baseCurrency,
     dChatData?.threadId,
   ]);
 
@@ -155,7 +154,7 @@ const ToPayModal = ({
     if (!modalOpen) return;
 
     mainButton.setParams.ifAvailable({
-      text: "Settled! 🤝",
+      text: "Settled ✅",
       isEnabled: true,
       isVisible: true,
     });
