@@ -1,6 +1,4 @@
-# DKO Turborepo
-
-A high-performance full-stack TypeScript monorepo powered by Turborepo, with TRPC, React, and Prisma.
+A full-stack TypeScript monorepo powered by Turborepo, with TRPC, React, and Prisma.
 
 ## Overview
 
