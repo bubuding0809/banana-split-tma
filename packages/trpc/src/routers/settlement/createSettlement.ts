@@ -7,6 +7,8 @@ import {
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
+import { sendSettlementNotificationMessageHandler } from "../telegram/sendSettlementNotificationMessage.js";
+import { Telegram } from "telegraf";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -18,6 +20,11 @@ export const inputSchema = z.object({
     .optional()
     .refine((val) => !val || validateCurrency(val), "Invalid currency code"),
   description: z.string().max(255, "Description too long").optional(),
+  sendNotification: z.boolean().default(false),
+  creditorName: z.string().optional(),
+  creditorUsername: z.string().optional(),
+  debtorName: z.string().optional(),
+  threadId: z.number().optional(),
 });
 
 export const outputSchema = z.object({
@@ -35,7 +42,8 @@ export const outputSchema = z.object({
 
 export const createSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  teleBot: Telegram
 ) => {
   try {
     // Determine the currency to use
@@ -127,6 +135,31 @@ export const createSettlementHandler = async (
       },
     });
 
+    // Send notification if requested
+    if (input.sendNotification && input.creditorName && input.debtorName) {
+      try {
+        await sendSettlementNotificationMessageHandler(
+          {
+            chatId: Number(input.chatId),
+            creditorUserId: Number(input.receiverId), // creditor receives the money
+            creditorName: input.creditorName,
+            creditorUsername: input.creditorUsername,
+            debtorName: input.debtorName,
+            amount: input.amount,
+            currency: currency,
+            threadId: input.threadId,
+          },
+          teleBot
+        );
+      } catch (notificationError) {
+        console.error(
+          "Failed to send settlement notification:",
+          notificationError
+        );
+        // Don't throw - settlement succeeded, notification failure is non-critical
+      }
+    }
+
     return {
       ...settlement,
       chatId: Number(settlement.chatId),
@@ -161,5 +194,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return createSettlementHandler(input, ctx.db);
+    return createSettlementHandler(input, ctx.db, ctx.teleBot);
   });

@@ -78,9 +78,6 @@ const ToReceiveModal = ({
     }
   );
 
-  const sendSettlementNotificationMutation =
-    trpc.telegram.sendSettlementNotificationMessage.useMutation();
-
   const handleSendReminder = useCallback(async () => {
     if (!tUserData?.firstName) {
       popup.open({
@@ -143,35 +140,19 @@ const ToReceiveModal = ({
         isLoaderVisible: true,
       });
 
-      // Create the settlement (creditor settles on behalf of debtor)
+      // Create the settlement with notification (creditor settles on behalf of debtor)
       await createSettlementMutation.mutateAsync({
         amount: absAmountLent,
         senderId: member.id, // debtor is the sender
         receiverId: userId, // creditor is the receiver
         chatId,
         currency: selectedCurrency,
+        sendNotification: true,
+        creditorName: tUserData.firstName,
+        creditorUsername: tUserData.username || undefined,
+        debtorName: member.firstName,
+        threadId: dChatData?.threadId,
       });
-
-      // Send notification to creditor about debtor settling (via creditor's action)
-      try {
-        await sendSettlementNotificationMutation.mutateAsync({
-          chatId,
-          creditorUserId: Number(userId), // notify the creditor
-          creditorName: tUserData.firstName,
-          creditorUsername: tUserData.username || undefined,
-          debtorName: member.firstName, // debtor who "settled"
-          amount: absAmountLent,
-          currency: selectedCurrency,
-          threadId: dChatData?.threadId
-            ? Number(dChatData.threadId)
-            : undefined,
-        });
-      } catch (notificationError) {
-        console.error(
-          "Error sending settlement notification:",
-          notificationError
-        );
-      }
 
       hapticFeedback.notificationOccurred.ifAvailable("success");
       onOpenChange(false);
@@ -197,7 +178,6 @@ const ToReceiveModal = ({
     chatId,
     selectedCurrency,
     onOpenChange,
-    sendSettlementNotificationMutation,
     dChatData?.threadId,
   ]);
 
