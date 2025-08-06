@@ -89,6 +89,7 @@ const ToReceiveModal = ({
     try {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: true,
+        isEnabled: false,
       });
       await sendDebtReminderMutation.mutateAsync({
         chatId,
@@ -112,6 +113,7 @@ const ToReceiveModal = ({
     } finally {
       mainButton.setParams({
         isLoaderVisible: false,
+        isEnabled: true,
       });
     }
   }, [
