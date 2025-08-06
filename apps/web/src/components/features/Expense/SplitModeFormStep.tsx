@@ -3,15 +3,17 @@ import { formOpts } from "./AddExpenseForm";
 import { SplitModeType } from "./AddExpenseForm.type";
 import { Caption, Section } from "@telegram-apps/telegram-ui";
 import { hapticFeedback, mainButton, popup } from "@telegram-apps/sdk-react";
-import { Equal, Pizza } from "lucide-react";
+import { DollarSign, Equal, Pizza } from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import SplitEqualConfig from "./SplitEqualConfig";
 import SplitEqualFooter from "./SplitEqualFooter";
 import SplitShareConfig from "./SplitShareConfig";
 import SplitShareFooter from "./SplitShareFooter";
+import SplitExactConfig from "./SplitExactConfig";
+import SplitExactFooter from "./SplitExactFooter";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
@@ -33,18 +35,12 @@ const SPLIT_MODE_OPTIONS: {
     description: "Amount split based on shares assigned",
     icon: <Pizza size={20} />,
   },
-  // {
-  //   value: "PERCENTAGE",
-  //   label: "Percent",
-  //   description: "Split based on percentage assigned",
-  //   icon: <Percent size={20}/>,
-  // },
-  // {
-  //   value: "EXACT",
-  //   label: "Exact",
-  //   description: "Custom amounts",
-  //   icon: <DollarSign size={20} />,
-  // },
+  {
+    value: "EXACT",
+    label: "Exact",
+    description: "Custom amounts",
+    icon: <DollarSign size={20} />,
+  },
 ] as const;
 
 const SplitModeFormStep = withForm({
@@ -56,6 +52,9 @@ const SplitModeFormStep = withForm({
   render: function Render({ form, isLastStep, step }) {
     const navigate = routeApi.useNavigate();
 
+    const [showFooter, setShowFooter] = useState(true);
+
+    //* Effects ====================================================================================
     // Configure main button click
     useEffect(() => {
       const offClick = mainButton.onClick.ifAvailable(() => {
@@ -96,6 +95,7 @@ const SplitModeFormStep = withForm({
       };
     }, [step, form, navigate, isLastStep]);
 
+    // * Handlers ==================================================================================
     const handleSplitModeChange = async (mode: SplitModeType) => {
       // Ask for confirmation if participants or custom splits are dirty
       const { isDirty: isParticipantsDirty } =
@@ -127,6 +127,7 @@ const SplitModeFormStep = withForm({
       form.setFieldValue("splitMode", mode);
       form.setFieldValue("participants", []);
       form.setFieldValue("customSplits", []);
+      form.setFieldValue("exactSplitStage", "selection");
 
       // Reset field meta for participants and custom splits
       form.setFieldMeta("participants", (prev) => ({
@@ -148,7 +149,7 @@ const SplitModeFormStep = withForm({
           {(field) => (
             <section className="flex flex-col">
               <Section.Header large>Split by?</Section.Header>
-              <fieldset className="grid grid-cols-2 gap-2.5" role="radiogroup">
+              <fieldset className="grid grid-cols-3 gap-2.5" role="radiogroup">
                 {SPLIT_MODE_OPTIONS.map(
                   ({ description, icon, label, value }, index) => {
                     const isSelected = field.state.value === value;
@@ -210,13 +211,15 @@ const SplitModeFormStep = withForm({
             const ConfigComponent = {
               EQUAL: SplitEqualConfig,
               SHARES: SplitShareConfig,
-            }[splitMode as "EQUAL" | "SHARES"];
+              EXACT: SplitExactConfig,
+            }[splitMode as "EQUAL" | "SHARES" | "EXACT"];
 
             return (
               <ConfigComponent
                 form={form}
                 step={step}
                 isLastStep={isLastStep}
+                onShowFooterChange={setShowFooter}
               />
             );
           }}
@@ -232,9 +235,12 @@ const SplitModeFormStep = withForm({
             const FooterComponent = {
               EQUAL: SplitEqualFooter,
               SHARES: SplitShareFooter,
-            }[splitMode as "EQUAL" | "SHARES"];
+              EXACT: SplitExactFooter,
+            }[splitMode as "EQUAL" | "SHARES" | "EXACT"];
 
-            return <FooterComponent form={form} step={step} isLastStep />;
+            return showFooter ? (
+              <FooterComponent form={form} step={step} isLastStep />
+            ) : null;
           }}
         </form.Subscribe>
       </div>

@@ -13,13 +13,15 @@ import {
   Skeleton,
   Subheadline,
   Textarea,
+  LargeTitle,
 } from "@telegram-apps/telegram-ui";
 import { ArrowUp, ChevronRight, Currency } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
 
 import FieldInfo from "@components/ui/FieldInfo";
+import AmountInput from "@components/ui/AmountInput";
 import { Decimal } from "decimal.js";
 
 import { expenseFormSchema } from "./AddExpenseForm.type";
@@ -37,9 +39,7 @@ const AmountFormStep = withForm({
     isLastStep: false,
   },
   render: function Render({ form, isLastStep, step }) {
-    const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
-    const isDarkMode = useSignal(themeParams.isDark);
     const navigate = routeApi.useNavigate();
     const { expenseCurrency } = useStore(form.store, (state) => ({
       expenseCurrency: state.values.currency,
@@ -51,9 +51,7 @@ const AmountFormStep = withForm({
     });
     const displayCurrency = dChatData?.baseCurrency || "SGD";
 
-    const [containerWidth, setContainerWidth] = useState(0);
-    const measureRef = useRef(null);
-    const amountFieldRef = useRef<HTMLInputElement>(null);
+    const amountInputRef = useRef<HTMLInputElement>(null);
     const descriptionFieldRef = useRef<HTMLInputElement>(null);
 
     const { data: supportedCurrencies } =
@@ -79,21 +77,23 @@ const AmountFormStep = withForm({
           form.state.fieldMeta.amount.errors.length ||
           form.state.fieldMeta.description.errors.length
         ) {
-          for (const [ref, errors] of [
-            [amountFieldRef, form.state.fieldMeta.amount.errors] as const,
-            [
-              descriptionFieldRef,
-              form.state.fieldMeta.description.errors,
-            ] as const,
-          ]) {
-            if (errors.length) {
-              ref.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-              ref.current?.focus();
-              break;
-            }
+          // Focus the first field with errors
+          if (form.state.fieldMeta.amount.errors.length) {
+            amountInputRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+            amountInputRef.current?.focus({
+              preventScroll: true,
+            });
+          } else if (form.state.fieldMeta.description.errors.length) {
+            descriptionFieldRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+            descriptionFieldRef.current?.focus({
+              preventScroll: true,
+            });
           }
           return hapticFeedback.notificationOccurred("warning");
         }
@@ -120,68 +120,7 @@ const AmountFormStep = withForm({
       };
     }, [step, form, navigate, isLastStep]);
 
-    useEffect(() => {
-      if (measureRef.current) {
-        const resizeObserver = new ResizeObserver((entries) => {
-          setContainerWidth(entries[0].contentRect.width);
-        });
-
-        resizeObserver.observe(measureRef.current);
-        return () => resizeObserver.disconnect();
-      }
-    }, []);
-
     //* Handlers ===================================================================================
-    const handleAmountChange = (value: string) => {
-      const cleanValue = value.replace(/[^\d.]/g, "");
-      const parts = cleanValue.split(".");
-      if (parts.length > 2) return;
-
-      let [wholeNumber] = parts;
-      if (wholeNumber.length > 10) {
-        wholeNumber = wholeNumber.slice(0, 10);
-      }
-
-      let decimal = "";
-      if (parts.length === 2) {
-        decimal = `.${parts[1].slice(0, 2)}`;
-      }
-
-      return wholeNumber + decimal;
-    };
-
-    const getFontSize = (
-      amount: z.infer<typeof expenseFormSchema>["amount"]
-    ) => {
-      // Create measurement element
-      const testDiv = document.createElement("div");
-      testDiv.style.fontSize = "60px";
-      testDiv.style.fontWeight = "300";
-      testDiv.style.position = "absolute";
-      testDiv.style.visibility = "hidden";
-      testDiv.style.whiteSpace = "nowrap";
-      testDiv.textContent = amount || "0";
-      document.body.appendChild(testDiv);
-
-      const textWidth = testDiv.offsetWidth;
-      document.body.removeChild(testDiv);
-
-      // Account for the currency label and padding
-      const availableWidth = containerWidth - 100;
-
-      if (textWidth <= availableWidth) return "60px";
-
-      // Calculate scale ratio needed
-      const ratio = availableWidth / textWidth;
-      const fontSize = Math.max(28, Math.floor(60 * ratio));
-
-      // Return the closest size from our predefined steps
-      if (fontSize >= 55) return "60px";
-      if (fontSize >= 45) return "48px";
-      if (fontSize >= 35) return "40px";
-      if (fontSize >= 28) return "32px";
-      return "28px";
-    };
 
     const getConvertedAmount = (
       amount: z.infer<typeof expenseFormSchema>["amount"]
@@ -263,66 +202,27 @@ const AmountFormStep = withForm({
                     </Cell>
                   )}
                 </form.AppField>
-                <div
-                  className={cn(
-                    "rounded-xl p-2 px-4",
+
+                {/* Amount Input */}
+                <AmountInput
+                  ref={amountInputRef}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  after={
+                    <LargeTitle style={{ color: tSubtitleTextColor }}>
+                      {supportedCurrencies?.find(
+                        (c) => c.code === expenseCurrency
+                      )?.symbol || "$"}
+                    </LargeTitle>
+                  }
+                  placeholder="0.00"
+                  hasError={
                     field.state.meta.isTouched &&
-                      field.state.meta.errors.length &&
-                      "ring-2 ring-red-600"
-                  )}
-                  style={{
-                    backgroundColor: isDarkMode ? "#212121" : tSectionBgColor,
-                  }}
-                >
-                  <div>
-                    {/* Amount Input */}
-                    <div
-                      className="mr-4 flex flex-1 items-baseline overflow-hidden"
-                      ref={measureRef}
-                    >
-                      <div className="flex w-full items-baseline ring-green-500 ring-offset-1">
-                        <input
-                          ref={amountFieldRef}
-                          type="text"
-                          inputMode="decimal"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          tabIndex={0}
-                          autoFocus
-                          onChange={(e) => {
-                            const value = handleAmountChange(e.target.value);
-                            if (value === undefined) return;
-                            if (value === "" || !isNaN(Number(value))) {
-                              field.handleChange(value);
-                            }
-                          }}
-                          placeholder="0"
-                          className={cn(
-                            "max-w-full bg-transparent focus:outline-none",
-                            field.state.meta.errors.length &&
-                              field.state.meta.isTouched &&
-                              "text-red-600"
-                          )}
-                          style={{
-                            fontSize: getFontSize(field.state.value),
-                            padding: "0",
-                            margin: "0",
-                            width: "100%",
-                          }}
-                        />
-                        <span
-                          className={cn(
-                            "ml-2 flex-shrink-0 text-4xl text-gray-500"
-                          )}
-                        >
-                          {supportedCurrencies?.find(
-                            (c) => c.code === expenseCurrency
-                          )?.symbol || "$"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    field.state.meta.errors.length > 0
+                  }
+                  autoFocus
+                />
 
                 {/* Converted */}
                 {field.state.value && expenseCurrency !== displayCurrency ? (
@@ -335,6 +235,10 @@ const AmountFormStep = withForm({
                         type="button"
                         onClick={handleUseConvertedAmount}
                         after={<ArrowUp size={20} />}
+                        size="s"
+                        style={{
+                          paddingRight: "0px",
+                        }}
                       >
                         Apply {displayCurrency}
                       </Button>
@@ -386,9 +290,15 @@ const AmountFormStep = withForm({
                     ? "error"
                     : "default"
                 }
-                placeholder="Supper at Paradise Biryani"
+                placeholder="e.g. Supper at Paradise Biryani"
                 value={field.state.value}
                 onBlur={field.handleBlur}
+                onFocus={(e) => {
+                  e.target.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }}
                 onChange={(e) => {
                   if (e.target.value.length > (descriptionMaxLength ?? 60))
                     return;

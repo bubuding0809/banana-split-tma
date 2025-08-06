@@ -22,6 +22,7 @@ export const expenseFormSchema = z.object({
         }),
     })
   ),
+  exactSplitStage: z.enum(["selection", "inputs"]),
 });
 
 export type SplitModeType = z.infer<typeof SplitMode>;
