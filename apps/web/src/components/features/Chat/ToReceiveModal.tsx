@@ -137,12 +137,14 @@ const ToReceiveModal = ({
       return;
     }
 
+    secondaryButton.setParams.ifAvailable({
+      isLoaderVisible: true,
+      isEnabled: false,
+    });
+    mainButton.setParams.ifAvailable({
+      isEnabled: false,
+    });
     try {
-      secondaryButton.setParams.ifAvailable({
-        isLoaderVisible: true,
-        isEnabled: false,
-      });
-
       // Create the settlement with notification (creditor settles on behalf of debtor)
       await createSettlementMutation.mutateAsync({
         amount: absAmountLent,
@@ -168,6 +170,9 @@ const ToReceiveModal = ({
     } finally {
       secondaryButton.setParams.ifAvailable({
         isLoaderVisible: false,
+        isEnabled: true,
+      });
+      mainButton.setParams.ifAvailable({
         isEnabled: true,
       });
     }
