@@ -80,9 +80,6 @@ const SplitModeFormStep = withForm({
 
         // Submit form if last step
         if (isLastStep) {
-          mainButton.setParams.ifAvailable({
-            isLoaderVisible: true,
-          });
           form.handleSubmit();
         } else {
           navigate({

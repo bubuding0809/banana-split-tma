@@ -61,6 +61,14 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
       currency: dChatData?.baseCurrency ?? "SGD",
     },
     onSubmit: async ({ value }) => {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+      mainButton.setParams.ifAvailable({
+        isLoaderVisible: true,
+        isEnabled: false,
+      });
       try {
         // Convert form values to API format
         const customSplits =
@@ -99,8 +107,13 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           }),
         });
       } catch (error) {
+        secondaryButton.setParams.ifAvailable({
+          isVisible: true,
+          isEnabled: true,
+        });
         mainButton.setParams.ifAvailable({
           isLoaderVisible: false,
+          isEnabled: true,
         });
 
         const errorMessage =
