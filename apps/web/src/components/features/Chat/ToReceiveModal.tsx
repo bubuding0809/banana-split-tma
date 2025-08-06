@@ -138,6 +138,7 @@ const ToReceiveModal = ({
     try {
       secondaryButton.setParams.ifAvailable({
         isLoaderVisible: true,
+        isEnabled: false,
       });
 
       // Create the settlement with notification (creditor settles on behalf of debtor)
@@ -165,6 +166,7 @@ const ToReceiveModal = ({
     } finally {
       secondaryButton.setParams.ifAvailable({
         isLoaderVisible: false,
+        isEnabled: true,
       });
     }
   }, [
