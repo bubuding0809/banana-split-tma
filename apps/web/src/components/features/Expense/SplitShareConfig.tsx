@@ -100,131 +100,126 @@ const SplitShareConfig = withForm({
           );
 
           return (
-            <section>
-              <Section
-                header={
-                  <div className="flex justify-between">
-                    <Section.Header large>Who is involved?</Section.Header>
-                    <Section.Header large>
-                      <span
-                        style={{
-                          color: tSubtitleTextColor,
-                        }}
-                      >
-                        @{payerData?.username} paid
-                      </span>
-                    </Section.Header>
-                  </div>
-                }
-              >
-                {chatMembers?.map((member) => {
-                  const memberId = Number(member.id).toString();
-
-                  const shares =
-                    customSplits.find((s) => s.userId === memberId)?.amount ||
-                    "0";
-
-                  const shareCost =
-                    totalShares.comparedTo(0) > 0
-                      ? toDecimal(shares)
-                          .dividedBy(totalShares)
-                          .times(toDecimal(form.state.values.amount))
-                      : toDecimal(0);
-
-                  const cellSubtitle =
-                    shares !== "0"
-                      ? `${shares}/${totalShares} - ${formatCurrencyWithCode(toNumber(shareCost), currency)}`
-                      : "No shares";
-
-                  return (
-                    <Cell
-                      key={memberId}
-                      subtitle={cellSubtitle}
-                      before={
-                        <div className="relative">
-                          <div
-                            className={cn(
-                              "absolute -right-3 -top-1 z-10",
-                              shares === "0" ? "invisible" : "",
-                              badgeAnimations[memberId] === "pop" &&
-                                "animate-badge-pop",
-                              badgeAnimations[memberId] === "shake" &&
-                                "animate-badge-shake"
-                            )}
-                          >
-                            <Badge type="number">{shares}</Badge>
-                          </div>
-                          <ChatMemberAvatar
-                            userId={Number(memberId)}
-                            size={48}
-                          />
-                        </div>
-                      }
-                      after={
-                        <div className="flex items-center gap-1">
-                          <button
-                            style={{
-                              backgroundColor: tDesctructiveTextColor,
-                              color: tButtonTextColor,
-                            }}
-                            className={cn(
-                              "flex h-8 w-10 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
-                              shares === "0" ? "invisible w-0" : "w-10"
-                            )}
-                            onClick={() => {
-                              if (shares === "0") return;
-                              hapticFeedback.impactOccurred("medium");
-                              handleSharesChange(
-                                memberId,
-                                (Number(shares) - 1).toString(),
-                                false
-                              );
-                            }}
-                          >
-                            <Minus size={22} strokeWidth={3} />
-                          </button>
-                          <button
-                            style={{
-                              backgroundColor: tButtonColor,
-                              color: tButtonTextColor,
-                            }}
-                            className={cn(
-                              "flex h-8 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
-                              shares === "0" ? "w-20" : "w-10"
-                            )}
-                            onClick={() => {
-                              hapticFeedback.impactOccurred("medium");
-                              handleSharesChange(
-                                memberId,
-                                (Number(shares) + 1).toString(),
-                                true
-                              );
-                            }}
-                          >
-                            {shares === "0" ? (
-                              <Text weight="2">Add</Text>
-                            ) : (
-                              <Plus size={22} strokeWidth={3} />
-                            )}
-                          </button>
-                        </div>
-                      }
+            <Section
+              header={
+                <div className="flex justify-between">
+                  <Section.Header large>Who is involved?</Section.Header>
+                  <Section.Header large>
+                    <span
+                      style={{
+                        color: tSubtitleTextColor,
+                      }}
                     >
-                      {member.username
-                        ? `@${member.username}`
-                        : member.firstName}
-                    </Cell>
-                  );
-                })}
-              </Section>
-              <form.AppField name="participants">
-                {() => (
-                  <div className="mt-3">
-                    <FieldInfo />
-                  </div>
-                )}
-              </form.AppField>
-            </section>
+                      @{payerData?.username} paid
+                    </span>
+                  </Section.Header>
+                </div>
+              }
+              footer={
+                <form.AppField name="participants">
+                  {() => (
+                    <div className="mt-3">
+                      <FieldInfo />
+                    </div>
+                  )}
+                </form.AppField>
+              }
+            >
+              {chatMembers?.map((member) => {
+                const memberId = Number(member.id).toString();
+
+                const shares =
+                  customSplits.find((s) => s.userId === memberId)?.amount ||
+                  "0";
+
+                const shareCost =
+                  totalShares.comparedTo(0) > 0
+                    ? toDecimal(shares)
+                        .dividedBy(totalShares)
+                        .times(toDecimal(form.state.values.amount))
+                    : toDecimal(0);
+
+                const cellSubtitle =
+                  shares !== "0"
+                    ? `${shares}/${totalShares} - ${formatCurrencyWithCode(toNumber(shareCost), currency)}`
+                    : "No shares";
+
+                return (
+                  <Cell
+                    key={memberId}
+                    subtitle={cellSubtitle}
+                    before={
+                      <div className="relative">
+                        <div
+                          className={cn(
+                            "absolute -right-3 -top-1 z-10",
+                            shares === "0" ? "invisible" : "",
+                            badgeAnimations[memberId] === "pop" &&
+                              "animate-badge-pop",
+                            badgeAnimations[memberId] === "shake" &&
+                              "animate-badge-shake"
+                          )}
+                        >
+                          <Badge type="number">{shares}</Badge>
+                        </div>
+                        <ChatMemberAvatar userId={Number(memberId)} size={48} />
+                      </div>
+                    }
+                    after={
+                      <div className="flex items-center gap-1">
+                        <button
+                          style={{
+                            backgroundColor: tDesctructiveTextColor,
+                            color: tButtonTextColor,
+                          }}
+                          className={cn(
+                            "flex h-8 w-10 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
+                            shares === "0" ? "invisible w-0" : "w-10"
+                          )}
+                          onClick={() => {
+                            if (shares === "0") return;
+                            hapticFeedback.impactOccurred("medium");
+                            handleSharesChange(
+                              memberId,
+                              (Number(shares) - 1).toString(),
+                              false
+                            );
+                          }}
+                        >
+                          <Minus size={22} strokeWidth={3} />
+                        </button>
+                        <button
+                          style={{
+                            backgroundColor: tButtonColor,
+                            color: tButtonTextColor,
+                          }}
+                          className={cn(
+                            "flex h-8 items-center justify-center rounded-lg p-1 transition-[width] duration-200",
+                            shares === "0" ? "w-20" : "w-10"
+                          )}
+                          onClick={() => {
+                            hapticFeedback.impactOccurred("medium");
+                            handleSharesChange(
+                              memberId,
+                              (Number(shares) + 1).toString(),
+                              true
+                            );
+                          }}
+                        >
+                          {shares === "0" ? (
+                            <Text weight="2">Add</Text>
+                          ) : (
+                            <Plus size={22} strokeWidth={3} />
+                          )}
+                        </button>
+                      </div>
+                    }
+                  >
+                    {member.username ? `@${member.username}` : member.firstName}
+                  </Cell>
+                );
+              })}
+            </Section>
           );
         }}
       </form.AppField>

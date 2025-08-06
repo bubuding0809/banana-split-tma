@@ -52,6 +52,11 @@ const SplitEqualConfig = withForm({
                   </Section.Header>
                 </div>
               }
+              footer={
+                <div className="mt-3">
+                  <FieldInfo />
+                </div>
+              }
             >
               <Cell
                 Component="label"
@@ -129,9 +134,6 @@ const SplitEqualConfig = withForm({
                 );
               })}
             </Section>
-            <div className="mt-3">
-              <FieldInfo />
-            </div>
           </section>
         )}
       </form.AppField>
