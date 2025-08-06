@@ -85,6 +85,7 @@ const ToPayModal = ({
     try {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: true,
+        isEnabled: false,
       });
 
       // Create the settlement with notification
@@ -112,6 +113,7 @@ const ToPayModal = ({
     } finally {
       mainButton.setParams.ifAvailable({
         isLoaderVisible: false,
+        isEnabled: true,
       });
     }
   }, [
