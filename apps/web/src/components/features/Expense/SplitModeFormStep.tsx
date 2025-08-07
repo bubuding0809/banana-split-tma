@@ -127,7 +127,6 @@ const SplitModeFormStep = withForm({
       form.setFieldValue("splitMode", mode);
       form.setFieldValue("participants", []);
       form.setFieldValue("customSplits", []);
-      form.setFieldValue("exactSplitStage", "selection");
 
       // Reset field meta for participants and custom splits
       form.setFieldMeta("participants", (prev) => ({
