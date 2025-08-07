@@ -14,6 +14,8 @@ import SplitShareConfig from "./SplitShareConfig";
 import SplitShareFooter from "./SplitShareFooter";
 import SplitExactConfig from "./SplitExactConfig";
 import SplitExactFooter from "./SplitExactFooter";
+import { toDecimal } from "@/utils/financial";
+import Decimal from "decimal.js";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
 
@@ -68,10 +70,30 @@ const SplitModeFormStep = withForm({
           isTouched: true,
         }));
 
+        // Validate exact splits if split mode is EXACT
+        if (form.state.values.splitMode === "EXACT") {
+          // Ensure all participants have a split amount
+          if (
+            form.state.values.participants.length !==
+            form.state.values.customSplits.length
+          ) {
+            hapticFeedback.notificationOccurred("error");
+            return;
+          }
+
+          const splitSum = form.state.values.customSplits.reduce(
+            (sum, split) => sum.plus(toDecimal(split.amount)),
+            Decimal(0)
+          );
+          if (!splitSum.equals(toDecimal(form.state.values.amount || "0"))) {
+            hapticFeedback.notificationOccurred("error");
+            return;
+          }
+        }
+
         const hasErrors = Object.values(form.state.fieldMeta).some(
           (meta) => meta.errors.length > 0
         );
-
         if (hasErrors) {
           return hapticFeedback.notificationOccurred("warning");
         }
