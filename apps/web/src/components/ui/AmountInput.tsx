@@ -142,7 +142,7 @@ const AmountInput = forwardRef<HTMLInputElement, AmountInputProps>(
       >
         <div className="flex w-full items-baseline">
           {before && (
-            <div ref={beforeRef} className="mr-2 flex-shrink-0">
+            <div ref={beforeRef} className="mr-2 flex-shrink-0 self-center">
               {before}
             </div>
           )}
