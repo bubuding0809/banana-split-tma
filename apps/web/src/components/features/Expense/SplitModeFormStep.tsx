@@ -26,20 +26,20 @@ const SPLIT_MODE_OPTIONS: {
   {
     value: "EQUAL",
     label: "Equal",
-    description: "Amount split equally among participants",
-    icon: <Equal size={20} />,
+    description: "Split equally",
+    icon: <Equal size={16} />,
   },
   {
     value: "SHARES",
     label: "Shares",
-    description: "Amount split based on shares assigned",
-    icon: <Pizza size={20} />,
+    description: "Split by shares",
+    icon: <Pizza size={16} />,
   },
   {
     value: "EXACT",
     label: "Exact",
-    description: "Custom amounts",
-    icon: <DollarSign size={20} />,
+    description: "Split precisely",
+    icon: <DollarSign size={16} />,
   },
 ] as const;
 
