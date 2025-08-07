@@ -2,7 +2,6 @@ import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import {
   Section,
-  Cell,
   IconButton,
   Divider,
   Title,
@@ -12,6 +11,8 @@ import {
   Caption,
   AvatarProps,
   Badge,
+  Text,
+  ButtonCell,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import {
@@ -30,11 +31,12 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  KeyboardOff,
   Plus,
   UserCog,
-  XCircle,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { formatCurrencyWithCode, toDecimal, toNumber } from "@/utils/financial";
 
 const SplitExactConfig = withForm({
   ...formOpts,
@@ -50,7 +52,6 @@ const SplitExactConfig = withForm({
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tButtonColor = useSignal(themeParams.buttonColor);
     const tButtonTextColor = useSignal(themeParams.buttonTextColor);
-    const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
     const tSecondaryBackgroundColor = useSignal(
       themeParams.secondaryBackgroundColor
     );
@@ -122,10 +123,13 @@ const SplitExactConfig = withForm({
           "participants",
           participants.filter((id) => id !== memberId)
         );
+        // Remove the split amount if the member is deselected
+        form.setFieldValue("customSplits", (prev) =>
+          prev.filter((split) => split.userId !== memberId)
+        );
       } else {
         form.setFieldValue("participants", [...participants, memberId]);
       }
-      hapticFeedback.impactOccurred("light");
     };
 
     return (
@@ -162,7 +166,7 @@ const SplitExactConfig = withForm({
                         color: tButtonTextColor,
                       }}
                     >
-                      Select Participants
+                      Add Participants
                     </Button>
                   }
                 >
@@ -219,17 +223,6 @@ const SplitExactConfig = withForm({
                             <Section.Header large>
                               Enter exact amounts
                             </Section.Header>
-                            <Section.Header large>
-                              <button
-                                onClick={() => setModalOpen(true)}
-                                style={{
-                                  color: tButtonColor,
-                                }}
-                                className="flex items-center gap-1.5"
-                              >
-                                <UserCog size={18} /> Participants
-                              </button>
-                            </Section.Header>
                           </div>
                         }
                         footer={
@@ -238,6 +231,18 @@ const SplitExactConfig = withForm({
                           </div>
                         }
                       >
+                        <ButtonCell
+                          before={<UserCog />}
+                          onClick={() => {
+                            setModalOpen(true);
+                            hapticFeedback.selectionChanged();
+                          }}
+                          style={{
+                            color: tButtonColor,
+                          }}
+                        >
+                          Edit Participants
+                        </ButtonCell>
                         {participants
                           .map((participantId) =>
                             chatMembers?.find(
@@ -254,110 +259,86 @@ const SplitExactConfig = withForm({
                             )?.symbol;
 
                             return (
-                              <>
-                                <Cell
-                                  key={memberId}
-                                  before={
+                              <AmountInput
+                                key={memberId}
+                                ref={(el) => {
+                                  if (el) {
+                                    amountInputRefs.current[memberId] = el;
+                                  } else {
+                                    delete amountInputRefs.current[memberId];
+                                  }
+                                }}
+                                value={currentAmount}
+                                onChange={(value) =>
+                                  handleAmountChange(memberId, value)
+                                }
+                                onFocus={() => {
+                                  amountInputRefs.current[
+                                    memberId
+                                  ]?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "center",
+                                  });
+                                  setFocusedInputId(memberId);
+                                  setNavigationEnabled(true);
+                                  onShowFooterChange(false);
+                                  mainButton.setParams.ifAvailable({
+                                    isVisible: false,
+                                  });
+                                  secondaryButton.setParams.ifAvailable({
+                                    isVisible: false,
+                                  });
+                                }}
+                                onBlur={() => {
+                                  // Small delay to handle focus transitions between inputs
+                                  setTimeout(() => {
+                                    const activeElement =
+                                      document.activeElement;
+                                    if (
+                                      activeElement?.tagName !== "INPUT" ||
+                                      !activeElement?.closest(
+                                        "[data-amount-input]"
+                                      )
+                                    ) {
+                                      setFocusedInputId(null);
+                                      setNavigationEnabled(false);
+                                      onShowFooterChange(true);
+                                      mainButton.setParams.ifAvailable({
+                                        isVisible: true,
+                                      });
+                                      secondaryButton.setParams.ifAvailable({
+                                        isVisible: true,
+                                      });
+                                    }
+                                  }, 100);
+                                }}
+                                after={
+                                  <Title
+                                    style={{
+                                      color: tSubtitleTextColor,
+                                    }}
+                                  >
+                                    {currencySymbol}
+                                  </Title>
+                                }
+                                before={
+                                  <div className="flex items-center gap-2">
                                     <ChatMemberAvatar
                                       userId={Number(memberId)}
                                       size={28}
                                     />
-                                  }
-                                  after={
-                                    <IconButton
-                                      size="s"
-                                      type="button"
-                                      onClick={() => {
-                                        form.setFieldValue(
-                                          "participants",
-                                          (prev) =>
-                                            prev.filter((id) => id !== memberId)
-                                        );
-                                        handleAmountChange(memberId, "");
-                                        hapticFeedback.impactOccurred("medium");
-                                      }}
-                                      mode="plain"
-                                      style={{
-                                        color: tDestructiveTextColor,
-                                        paddingRight: "0px",
-                                      }}
-                                    >
-                                      <XCircle size={20} />
-                                    </IconButton>
-                                  }
-                                >
-                                  {member!.username
-                                    ? `@${member!.username}`
-                                    : member!.firstName}
-                                </Cell>
-                                <Divider />
-                                <AmountInput
-                                  ref={(el) => {
-                                    if (el) {
-                                      amountInputRefs.current[memberId] = el;
-                                    } else {
-                                      delete amountInputRefs.current[memberId];
-                                    }
-                                  }}
-                                  value={currentAmount}
-                                  onChange={(value) =>
-                                    handleAmountChange(memberId, value)
-                                  }
-                                  onFocus={() => {
-                                    amountInputRefs.current[
-                                      memberId
-                                    ]?.scrollIntoView({
-                                      behavior: "smooth",
-                                      block: "center",
-                                    });
-                                    setFocusedInputId(memberId);
-                                    setNavigationEnabled(true);
-                                    onShowFooterChange(false);
-                                    mainButton.setParams.ifAvailable({
-                                      isVisible: false,
-                                    });
-                                    secondaryButton.setParams.ifAvailable({
-                                      isVisible: false,
-                                    });
-                                  }}
-                                  onBlur={() => {
-                                    // Small delay to handle focus transitions between inputs
-                                    setTimeout(() => {
-                                      const activeElement =
-                                        document.activeElement;
-                                      if (
-                                        activeElement?.tagName !== "INPUT" ||
-                                        !activeElement?.closest(
-                                          "[data-amount-input]"
-                                        )
-                                      ) {
-                                        setFocusedInputId(null);
-                                        setNavigationEnabled(false);
-                                        onShowFooterChange(true);
-                                        mainButton.setParams.ifAvailable({
-                                          isVisible: true,
-                                        });
-                                        secondaryButton.setParams.ifAvailable({
-                                          isVisible: true,
-                                        });
-                                      }
-                                    }, 100);
-                                  }}
-                                  after={
-                                    <Title
-                                      style={{
-                                        color: tSubtitleTextColor,
-                                      }}
-                                    >
-                                      {currencySymbol}
-                                    </Title>
-                                  }
-                                  placeholder="0.00"
-                                  textAlign="left"
-                                  autoScale={false}
-                                  fixedFontSize="32px"
-                                />
-                              </>
+                                    <Text className="truncate">
+                                      {member!.username
+                                        ? `@${member!.username}`
+                                        : member!.firstName}
+                                    </Text>
+                                  </div>
+                                }
+                                placeholder="0.00"
+                                textAlign="right"
+                                autoScale={false}
+                                fixedFontSize="24px"
+                              />
                             );
                           })}
                       </Section>
@@ -367,11 +348,69 @@ const SplitExactConfig = withForm({
 
                 {navigationEnabled && (
                   <footer className="fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-2 px-4 pb-2">
-                    <IconButton size="s">
-                      <Check />
-                    </IconButton>
+                    <div
+                      className="flex h-8 items-center rounded-full bg-gray-500 p-2 px-4"
+                      style={{
+                        backgroundColor: tSecondaryBackgroundColor,
+                      }}
+                    >
+                      <form.Subscribe
+                        selector={(state) => ({
+                          participants: state.values.participants,
+                          customSplits: state.values.customSplits,
+                          amount: state.values.amount,
+                          currency: state.values.currency,
+                        })}
+                      >
+                        {({ participants, customSplits, amount, currency }) => {
+                          const totalExpense = toDecimal(amount || "0");
+                          const currentTotal = customSplits.reduce(
+                            (acc, split) => acc.plus(toDecimal(split.amount)),
+                            toDecimal(0)
+                          );
 
-                    <div className="flex items-center gap-2">
+                          const isBalanced = currentTotal.equals(totalExpense);
+                          const difference = totalExpense.minus(currentTotal);
+
+                          // Input stage - show balance information
+                          if (participants.length === 0) {
+                            return null;
+                          }
+
+                          return (
+                            <div className="flex flex-col items-end">
+                              <Caption
+                                weight="2"
+                                className={cn(
+                                  isBalanced && "text-green-500",
+                                  !isBalanced && "text-orange-500"
+                                )}
+                              >
+                                {isBalanced
+                                  ? "✅ Balanced"
+                                  : `${formatCurrencyWithCode(
+                                      toNumber(difference.abs()),
+                                      currency
+                                    )} ${
+                                      difference.greaterThan(0)
+                                        ? "remaining"
+                                        : "excess"
+                                    }`}
+                              </Caption>
+                            </div>
+                          );
+                        }}
+                      </form.Subscribe>
+                    </div>
+                    <div
+                      className="flex items-center gap-2 rounded-full p-1"
+                      style={{
+                        backgroundColor: tSecondaryBackgroundColor,
+                      }}
+                    >
+                      <IconButton size="s" mode="gray" className="p-2">
+                        <KeyboardOff />
+                      </IconButton>
                       <IconButton
                         size="s"
                         onClick={(e) => {
@@ -409,6 +448,8 @@ const SplitExactConfig = withForm({
                 )}
               </div>
             )}
+
+            {/* Modal for Participants */}
             <Modal
               open={modalOpen}
               onOpenChange={(open) => {
@@ -441,71 +482,83 @@ const SplitExactConfig = withForm({
                 />
               }
             >
-              <div className="flex min-h-80 flex-col gap-2 pb-8">
-                <div className="grid grid-cols-4 gap-4 p-4">
-                  {chatMembers?.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex flex-col items-center gap-2"
-                      onClick={() => handleMemberToggle(member.id.toString())}
-                    >
-                      <div className="relative flex items-center justify-center">
-                        <div
-                          className={cn(
-                            participants.includes(member.id.toString()) &&
-                              "ring-offset-3 rounded-full ring-2"
-                          )}
-                          style={
-                            {
-                              "--tw-ring-color": tButtonColor,
-                              "--tw-ring-offset-color":
-                                tSecondaryBackgroundColor,
-                            } as React.CSSProperties
-                          }
-                        >
-                          <ChatMemberAvatar
-                            userId={Number(member.id)}
-                            size={64 as AvatarProps["size"]}
-                          />
-                        </div>
-                        {participants.includes(member.id.toString()) && (
+              <div className="flex flex-col gap-2 pb-8">
+                <div className="max-h-80 min-h-72 overflow-y-auto p-4">
+                  <div className="grid grid-cols-4 gap-5">
+                    {chatMembers?.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex flex-col items-center gap-2"
+                        onClick={() => handleMemberToggle(member.id.toString())}
+                      >
+                        <div className="relative flex items-center justify-center">
                           <div
-                            className="absolute -bottom-1 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2"
-                            style={{
-                              backgroundColor: tButtonColor,
-                              borderColor: tSecondaryBackgroundColor,
-                            }}
+                            className={cn(
+                              participants.includes(member.id.toString()) &&
+                                "ring-offset-3 rounded-full ring-2"
+                            )}
+                            style={
+                              {
+                                "--tw-ring-color": tButtonColor,
+                                "--tw-ring-offset-color":
+                                  tSecondaryBackgroundColor,
+                              } as React.CSSProperties
+                            }
                           >
-                            <Check
-                              size={15}
-                              color={tButtonTextColor}
-                              strokeWidth={2}
+                            <ChatMemberAvatar
+                              userId={Number(member.id)}
+                              size={52 as AvatarProps["size"]}
                             />
                           </div>
-                        )}
+                          {participants.includes(member.id.toString()) && (
+                            <div
+                              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2"
+                              style={{
+                                backgroundColor: tButtonColor,
+                                borderColor: tSecondaryBackgroundColor,
+                              }}
+                            >
+                              <Check
+                                size={15}
+                                color={tButtonTextColor}
+                                strokeWidth={2}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <Caption
+                          className="max-w-24 truncate text-center"
+                          style={{
+                            color: participants.includes(member.id.toString())
+                              ? tButtonColor
+                              : undefined,
+                          }}
+                        >
+                          {member.username
+                            ? `@${member.username}`
+                            : member.firstName}
+                        </Caption>
                       </div>
-                      <Caption className="text-center">
-                        {member.firstName} {member.lastName}
-                      </Caption>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                {participants.length > 0 && (
-                  <>
-                    <Divider />
-                    <Button
-                      mode="plain"
-                      size="l"
-                      onClick={() => {
-                        setModalOpen(false);
-                        hapticFeedback.notificationOccurred("success");
-                      }}
-                      className="relative mx-2"
-                      style={{
-                        color: tButtonColor,
-                      }}
-                    >
-                      Done
+
+                <>
+                  <Divider />
+                  <Button
+                    mode="plain"
+                    size="l"
+                    onClick={() => {
+                      setModalOpen(false);
+                      hapticFeedback.notificationOccurred("success");
+                    }}
+                    className="relative mx-2"
+                    style={{
+                      color: tButtonColor,
+                    }}
+                  >
+                    Done
+                    {participants.length > 0 && (
                       <Badge
                         type="number"
                         className="absolute translate-y-0.5"
@@ -515,9 +568,9 @@ const SplitExactConfig = withForm({
                       >
                         {participants.length}
                       </Badge>
-                    </Button>
-                  </>
-                )}
+                    )}
+                  </Button>
+                </>
               </div>
             </Modal>
           </>
