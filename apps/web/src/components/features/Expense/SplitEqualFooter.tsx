@@ -59,7 +59,7 @@ const SplitEqualFooter = withForm({
                       : `${participants.length} member selected`}
                   </Caption>
                 ) : (
-                  <Caption>No members selected</Caption>
+                  <Caption>No participants selected</Caption>
                 )
               }
             </form.Subscribe>
