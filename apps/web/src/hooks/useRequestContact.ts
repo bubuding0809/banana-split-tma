@@ -1,4 +1,8 @@
-import { hapticFeedback, requestContact } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  requestContact,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { useState } from "react";
 
 interface UseRequestContactReturn {
@@ -12,7 +16,7 @@ export const useRequestContact = (): UseRequestContactReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isSupported = requestContact.isAvailable();
+  const isSupported = useSignal(requestContact.isSupported);
 
   const requestContactInfo = async (): Promise<string | null> => {
     if (!isSupported) {
