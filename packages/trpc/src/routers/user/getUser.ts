@@ -10,6 +10,7 @@ export const outputSchema = z.object({
   firstName: z.string(),
   lastName: z.string().nullable(),
   username: z.string().nullable(),
+  phoneNumber: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

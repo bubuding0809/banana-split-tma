@@ -7,6 +7,7 @@ export const inputSchema = z.object({
   firstName: z.string(),
   lastName: z.string().nullable(),
   userName: z.string().nullable(),
+  phoneNumber: z.string().nullable().optional(),
 });
 
 export const outputSchema = z.object({
@@ -14,6 +15,7 @@ export const outputSchema = z.object({
   firstName: z.string(),
   lastName: z.string().nullable(),
   username: z.string().nullable(),
+  phoneNumber: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -40,6 +42,7 @@ export const createUserHandler = async (
         firstName: input.firstName,
         lastName: input.lastName,
         username: input.userName,
+        phoneNumber: input.phoneNumber,
       },
     });
   } catch (error) {
