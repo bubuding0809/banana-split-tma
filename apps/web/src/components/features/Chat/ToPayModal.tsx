@@ -7,6 +7,7 @@ import {
   initData,
   mainButton,
   popup,
+  secondaryButton,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
@@ -56,6 +57,9 @@ const ToPayModal = ({
         enabled: !!dChatData?.baseCurrency && !!selectedCurrency,
       }
     );
+  const { data: memberData } = trpc.user.getUser.useQuery({
+    userId: member.id,
+  });
 
   const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
     {
@@ -117,17 +121,17 @@ const ToPayModal = ({
       });
     }
   }, [
-    tUserData?.firstName,
-    createSettlementMutation,
     absAmountOwed,
-    member.id,
-    member.firstName,
-    member.username,
-    userId,
     chatId,
-    selectedCurrency,
-    onOpenChange,
+    createSettlementMutation,
     dChatData?.threadId,
+    member.firstName,
+    member.id,
+    member.username,
+    onOpenChange,
+    selectedCurrency,
+    tUserData?.firstName,
+    userId,
   ]);
 
   // Set main button parameters when modal opens
@@ -160,11 +164,52 @@ const ToPayModal = ({
     };
   }, [handleCreateSettlement, modalOpen]);
 
+  const copyNumberToClipboard = useCallback(() => {
+    if (!memberData?.phoneNumber) {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      return;
+    }
+
+    navigator.clipboard.writeText(memberData.phoneNumber);
+    hapticFeedback.notificationOccurred.ifAvailable("success");
+    secondaryButton.setParams.ifAvailable({
+      text: "✅ Copied",
+      isEnabled: false,
+    });
+    setTimeout(() => {
+      secondaryButton.setParams.ifAvailable({
+        text: "Copy Number 📲",
+        isEnabled: true,
+        isLoaderVisible: false,
+      });
+    }, 500);
+  }, [memberData?.phoneNumber]);
+
   return (
     <Modal
       header={<Modal.Header>Settle debt?</Modal.Header>}
       open={modalOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        if (open) {
+          if (memberData?.phoneNumber) {
+            secondaryButton.setParams.ifAvailable({
+              isVisible: true,
+              isEnabled: true,
+              text: `Copy Number 📲`,
+              position: "top",
+            });
+          }
+          secondaryButton.onClick.ifAvailable(copyNumberToClipboard);
+        } else {
+          secondaryButton.setParams.ifAvailable({
+            isVisible: false,
+            isEnabled: false,
+            position: "left",
+          });
+          secondaryButton.offClick.ifAvailable(copyNumberToClipboard);
+        }
+        onOpenChange(open);
+      }}
     >
       <div>
         <Placeholder
