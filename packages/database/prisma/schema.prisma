@@ -36,6 +36,7 @@ model User {
   firstName         String
   lastName          String?
   username          String?
+  phoneNumber       String?
   chats             Chat[]
   createdExpenses   Expense[]      @relation("Creator")
   paidExpenses      Expense[]      @relation("Payer")
