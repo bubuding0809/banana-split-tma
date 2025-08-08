@@ -116,8 +116,6 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
     return netBalance > 0 ? "Remind" : "Settle";
   })();
 
-  console.log(conversionRateStatus);
-
   return (
     <>
       <Cell

@@ -1,14 +1,22 @@
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
-import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
 import {
+  backButton,
+  hapticFeedback,
+  initData,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import {
+  ButtonCell,
   Cell,
   Navigation,
   Section,
   Skeleton,
+  Text,
 } from "@telegram-apps/telegram-ui";
-import { Currency } from "lucide-react";
-import { useEffect } from "react";
+import { DollarSign, Phone, X } from "lucide-react";
+import { useEffect, useCallback, useState } from "react";
+import { useRequestContact } from "@/hooks";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -21,6 +29,12 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   const { prevCurrency, prevTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
+  const tUserData = useSignal(initData.user);
+  const { requestContactInfo, isSupported } = useRequestContact();
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+
+  // * Variables ===================================================================================
+  const userId = tUserData?.id ?? 0;
 
   // * Queries =====================================================================================
   const { data: dChatData, status: dChatDataStatus } =
@@ -29,6 +43,12 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
     });
   const { data: supportedCurrencies, status: supportedCurrenciesStatus } =
     trpc.currency.getSupportedCurrencies.useQuery({});
+  const { data: userData } = trpc.user.getUser.useQuery(
+    {
+      userId,
+    },
+    { enabled: userId !== 0 }
+  );
 
   // * Mutations ===================================================================================
   const updateChatMutation = trpc.chat.updateChat.useMutation({
@@ -50,6 +70,31 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         return {
           ...prev,
           baseCurrency: dChatData?.baseCurrency,
+        };
+      });
+    },
+  });
+
+  const updateUserMutation = trpc.user.updateUser.useMutation({
+    onMutate: ({ phoneNumber }) => {
+      trpcUtils.user.getUser.setData({ userId }, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phoneNumber:
+            phoneNumber !== undefined ? phoneNumber : prev.phoneNumber,
+        };
+      });
+    },
+    onSuccess: () => {
+      trpcUtils.user.getUser.invalidate({ userId });
+    },
+    onError: () => {
+      trpcUtils.user.getUser.setData({ userId }, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phoneNumber: userData?.phoneNumber ?? null,
         };
       });
     },
@@ -107,11 +152,83 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
     );
   };
 
+  const handleAddPhoneNumber = useCallback(async () => {
+    if (!isSupported) return;
+
+    try {
+      setIsUpdatingUser(true);
+      const phoneNumber = await requestContactInfo();
+
+      if (phoneNumber && userId) {
+        await updateUserMutation.mutateAsync({
+          userId,
+          phoneNumber,
+        });
+        hapticFeedback.notificationOccurred("success");
+      }
+    } catch (err) {
+      console.error("Failed to update phone number:", err);
+      hapticFeedback.notificationOccurred("error");
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  }, [isSupported, requestContactInfo, userId, updateUserMutation]);
+
+  const handleRemovePhoneNumber = useCallback(async () => {
+    try {
+      setIsUpdatingUser(true);
+      await updateUserMutation.mutateAsync({
+        userId,
+        phoneNumber: null,
+      });
+      hapticFeedback.notificationOccurred("success");
+    } catch (err) {
+      console.error("Failed to remove phone number:", err);
+      hapticFeedback.notificationOccurred("error");
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  }, [userId, updateUserMutation]);
+
   return (
     <main className="px-3">
+      <Section header="Personal Information">
+        <Cell
+          onClick={() => !userData?.phoneNumber && handleAddPhoneNumber()}
+          before={<Phone size={20} />}
+          after={
+            userData?.phoneNumber ? (
+              <Text>{userData?.phoneNumber}</Text>
+            ) : (
+              <Navigation>
+                <Text className="text-gray-500">Add</Text>
+              </Navigation>
+            )
+          }
+        >
+          Phone Number
+        </Cell>
+
+        {userData?.phoneNumber ? (
+          <ButtonCell
+            before={<X size={20} />}
+            onClick={handleRemovePhoneNumber}
+            disabled={isUpdatingUser}
+          >
+            {isUpdatingUser ? "Removing..." : "Remove Phone Number"}
+          </ButtonCell>
+        ) : isSupported ? null : (
+          <Cell>
+            <Text className="text-sm text-gray-500">
+              Phone number sharing not supported in this version of Telegram
+            </Text>
+          </Cell>
+        )}
+      </Section>
+
       <Section header="Currency">
         <Cell
-          before={<Currency />}
+          before={<DollarSign size={20} />}
           Component="label"
           after={
             <Navigation>

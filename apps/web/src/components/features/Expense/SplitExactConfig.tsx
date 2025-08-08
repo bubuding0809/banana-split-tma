@@ -44,7 +44,7 @@ const SplitExactConfig = withForm({
     step: 2,
     isLastStep: true,
     onShowFooterChange: (show: boolean) => {
-      console.log("Footer visibility changed:", show);
+      console.info("Footer visibility changed:", show);
     },
   },
   render: function Render({ form, onShowFooterChange }) {
