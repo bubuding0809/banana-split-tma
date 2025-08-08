@@ -152,6 +152,16 @@ const ToPayModal = ({
     };
   }, [modalOpen]);
 
+  // Clean up secondary button
+  useEffect(() => {
+    return () =>
+      secondaryButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+        position: "left",
+      });
+  }, []);
+
   useEffect(() => {
     if (!modalOpen) return;
 
