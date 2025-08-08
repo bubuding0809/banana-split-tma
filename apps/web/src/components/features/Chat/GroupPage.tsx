@@ -58,6 +58,7 @@ const GroupPage = () => {
   };
 
   const handleSettingsClick = () => {
+    hapticFeedback.impactOccurred("light");
     navigate({
       to: `settings`,
       search: {
