@@ -7,7 +7,7 @@ import { DollarSign, Equal, Pizza } from "lucide-react";
 import { cn } from "@utils/cn";
 import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SplitEqualConfig from "./SplitEqualConfig";
 import SplitEqualFooter from "./SplitEqualFooter";
 import SplitShareConfig from "./SplitShareConfig";
@@ -56,66 +56,68 @@ const SplitModeFormStep = withForm({
 
     const [showFooter, setShowFooter] = useState(true);
 
+    const onFormSubmit = useCallback(async () => {
+      form.validateSync("change");
+      form.setFieldMeta("splitMode", (prev) => ({
+        ...prev,
+        isTouched: true,
+      }));
+      form.setFieldMeta("participants", (prev) => ({
+        ...prev,
+        isTouched: true,
+      }));
+
+      // Validate exact splits if split mode is EXACT
+      if (form.state.values.splitMode === "EXACT") {
+        // Ensure all participants have a split amount
+        if (
+          form.state.values.participants.length !==
+          form.state.values.customSplits.length
+        ) {
+          hapticFeedback.notificationOccurred("error");
+          return;
+        }
+
+        const splitSum = form.state.values.customSplits.reduce(
+          (sum, split) => sum.plus(toDecimal(split.amount)),
+          Decimal(0)
+        );
+        if (!splitSum.equals(toDecimal(form.state.values.amount || "0"))) {
+          hapticFeedback.notificationOccurred("error");
+          return;
+        }
+      }
+
+      const hasErrors = Object.values(form.state.fieldMeta).some(
+        (meta) => meta.errors.length > 0
+      );
+      if (hasErrors) {
+        return hapticFeedback.notificationOccurred("warning");
+      }
+      hapticFeedback.notificationOccurred("success");
+
+      // Submit form if last step
+      if (isLastStep) {
+        form.handleSubmit();
+      } else {
+        navigate({
+          search: (prev) => ({
+            ...prev,
+            currentFormStep: step + 1,
+          }),
+        });
+      }
+    }, [form, isLastStep, navigate, step]);
+
     //* Effects ====================================================================================
     // Configure main button click
     useEffect(() => {
-      const offClick = mainButton.onClick.ifAvailable(() => {
-        form.validateSync("change");
-        form.setFieldMeta("splitMode", (prev) => ({
-          ...prev,
-          isTouched: true,
-        }));
-        form.setFieldMeta("participants", (prev) => ({
-          ...prev,
-          isTouched: true,
-        }));
-
-        // Validate exact splits if split mode is EXACT
-        if (form.state.values.splitMode === "EXACT") {
-          // Ensure all participants have a split amount
-          if (
-            form.state.values.participants.length !==
-            form.state.values.customSplits.length
-          ) {
-            hapticFeedback.notificationOccurred("error");
-            return;
-          }
-
-          const splitSum = form.state.values.customSplits.reduce(
-            (sum, split) => sum.plus(toDecimal(split.amount)),
-            Decimal(0)
-          );
-          if (!splitSum.equals(toDecimal(form.state.values.amount || "0"))) {
-            hapticFeedback.notificationOccurred("error");
-            return;
-          }
-        }
-
-        const hasErrors = Object.values(form.state.fieldMeta).some(
-          (meta) => meta.errors.length > 0
-        );
-        if (hasErrors) {
-          return hapticFeedback.notificationOccurred("warning");
-        }
-        hapticFeedback.notificationOccurred("success");
-
-        // Submit form if last step
-        if (isLastStep) {
-          form.handleSubmit();
-        } else {
-          navigate({
-            search: (prev) => ({
-              ...prev,
-              currentFormStep: step + 1,
-            }),
-          });
-        }
-      });
+      const offClick = mainButton.onClick.ifAvailable(onFormSubmit);
 
       return () => {
         offClick?.();
       };
-    }, [step, form, navigate, isLastStep]);
+    }, [onFormSubmit]);
 
     // * Handlers ==================================================================================
     const handleSplitModeChange = async (mode: SplitModeType) => {
@@ -240,6 +242,7 @@ const SplitModeFormStep = withForm({
                 step={step}
                 isLastStep={isLastStep}
                 onShowFooterChange={setShowFooter}
+                onFormSubmit={onFormSubmit}
               />
             );
           }}
