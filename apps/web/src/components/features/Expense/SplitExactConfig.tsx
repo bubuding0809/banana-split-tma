@@ -46,8 +46,9 @@ const SplitExactConfig = withForm({
     onShowFooterChange: (show: boolean) => {
       console.info("Footer visibility changed:", show);
     },
+    onFormSubmit: () => {},
   },
-  render: function Render({ form, onShowFooterChange }) {
+  render: function Render({ form, onShowFooterChange, onFormSubmit }) {
     const tStartParams = useStartParams();
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tButtonColor = useSignal(themeParams.buttonColor);
@@ -348,60 +349,66 @@ const SplitExactConfig = withForm({
 
                 {navigationEnabled && (
                   <footer className="fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-2 px-4 pb-2">
-                    <div
-                      className="flex h-8 items-center rounded-full bg-gray-500 p-2 px-4"
-                      style={{
-                        backgroundColor: tSecondaryBackgroundColor,
-                      }}
+                    <form.Subscribe
+                      selector={(state) => ({
+                        participants: state.values.participants,
+                        customSplits: state.values.customSplits,
+                        amount: state.values.amount,
+                        currency: state.values.currency,
+                      })}
                     >
-                      <form.Subscribe
-                        selector={(state) => ({
-                          participants: state.values.participants,
-                          customSplits: state.values.customSplits,
-                          amount: state.values.amount,
-                          currency: state.values.currency,
-                        })}
-                      >
-                        {({ participants, customSplits, amount, currency }) => {
-                          const totalExpense = toDecimal(amount || "0");
-                          const currentTotal = customSplits.reduce(
-                            (acc, split) => acc.plus(toDecimal(split.amount)),
-                            toDecimal(0)
-                          );
+                      {({ participants, customSplits, amount, currency }) => {
+                        const totalExpense = toDecimal(amount || "0");
+                        const currentTotal = customSplits.reduce(
+                          (acc, split) => acc.plus(toDecimal(split.amount)),
+                          toDecimal(0)
+                        );
 
-                          const isBalanced = currentTotal.equals(totalExpense);
-                          const difference = totalExpense.minus(currentTotal);
+                        const isBalanced = currentTotal.equals(totalExpense);
+                        const difference = totalExpense.minus(currentTotal);
 
-                          // Input stage - show balance information
-                          if (participants.length === 0) {
-                            return null;
-                          }
+                        // Input stage - show balance information
+                        if (participants.length === 0) {
+                          return null;
+                        }
 
-                          return (
-                            <div className="flex flex-col items-end">
-                              <Caption
-                                weight="2"
-                                className={cn(
-                                  isBalanced && "text-green-500",
-                                  !isBalanced && "text-orange-500"
-                                )}
+                        return (
+                          <div className="flex flex-col items-end">
+                            {isBalanced ? (
+                              <Button
+                                size="s"
+                                style={{
+                                  backgroundColor: "#00A86B",
+                                }}
+                                onClick={onFormSubmit}
                               >
-                                {isBalanced
-                                  ? "✅ Balanced"
-                                  : `${formatCurrencyWithCode(
-                                      toNumber(difference.abs()),
-                                      currency
-                                    )} ${
-                                      difference.greaterThan(0)
-                                        ? "remaining"
-                                        : "excess"
-                                    }`}
-                              </Caption>
-                            </div>
-                          );
-                        }}
-                      </form.Subscribe>
-                    </div>
+                                Save 🚀
+                              </Button>
+                            ) : (
+                              <div
+                                className="flex h-8 items-center rounded-full bg-gray-500 p-2 px-4"
+                                style={{
+                                  backgroundColor: tSecondaryBackgroundColor,
+                                }}
+                              >
+                                <Caption
+                                  weight="2"
+                                  className={cn(
+                                    isBalanced && "text-green-500",
+                                    !isBalanced && "text-orange-500"
+                                  )}
+                                >
+                                  {`${formatCurrencyWithCode(
+                                    toNumber(difference.abs()),
+                                    currency
+                                  )} ${difference.greaterThan(0) ? "remaining" : "excess"}`}
+                                </Caption>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }}
+                    </form.Subscribe>
                     <div
                       className="flex items-center gap-2 rounded-full p-1"
                       style={{
