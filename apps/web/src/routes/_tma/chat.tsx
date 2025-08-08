@@ -1,4 +1,5 @@
 import NewUserPage from "@/components/features/Chat/NewUserPage";
+import RequestPhoneNumberPage from "@/components/features/User/RequestPhoneNumberPage";
 import { useStartParams } from "@/hooks";
 import { trpc } from "@/utils/trpc";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
@@ -16,15 +17,18 @@ function ChatIndexRoute() {
   const chatId = chat_id ?? 0;
   const userId = tUserData?.id ?? 0;
 
-  const { status: getUserDataStatus, error: getUserDataError } =
-    trpc.user.getUser.useQuery(
-      {
-        userId,
-      },
-      {
-        enabled: !!userId,
-      }
-    );
+  const {
+    status: getUserDataStatus,
+    error: getUserDataError,
+    data: userData,
+  } = trpc.user.getUser.useQuery(
+    {
+      userId,
+    },
+    {
+      enabled: !!userId,
+    }
+  );
 
   trpc.chat.getChat.usePrefetchQuery({
     chatId,
@@ -40,12 +44,17 @@ function ChatIndexRoute() {
   }
 
   if (getUserDataStatus === "success") {
+    // Check if user has phoneNumber populated and hasn't been asked before
+    if (userData && !userData.phoneNumber && !userData.phoneNumberRequested) {
+      return <RequestPhoneNumberPage />;
+    }
+
     return <Outlet />;
   }
 
   //* Region for handling errors
   // User is not yet registered, show NewUserPage
-  if (getUserDataError.data?.code === "NOT_FOUND") {
+  if (getUserDataError?.data?.code === "NOT_FOUND") {
     return <NewUserPage />;
   }
 
