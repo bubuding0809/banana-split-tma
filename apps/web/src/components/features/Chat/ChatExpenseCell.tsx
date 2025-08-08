@@ -196,6 +196,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       secondaryButton.setParams({
         isVisible: false,
         isEnabled: false,
+        textColor: tButtonColor,
       });
 
       offMainButtonClickRef.current?.();
