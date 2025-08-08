@@ -17,6 +17,7 @@ import { Route as TmaChatIndexRouteImport } from './routes/_tma/chat.index'
 import { Route as TmaChatChatIdRouteImport } from './routes/_tma/chat.$chatId'
 import { Route as TmaChatChatIdSettingsRouteImport } from './routes/_tma/chat.$chatId_.settings'
 import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
+import { Route as TmaChatChatIdEditExpenseExpenseIdRouteImport } from './routes/_tma/chat.$chatId_.edit-expense.$expenseId'
 
 const TmaRoute = TmaRouteImport.update({
   id: '/_tma',
@@ -57,6 +58,12 @@ const TmaChatChatIdAddExpenseRoute = TmaChatChatIdAddExpenseRouteImport.update({
   path: '/$chatId/add-expense',
   getParentRoute: () => TmaChatRoute,
 } as any)
+const TmaChatChatIdEditExpenseExpenseIdRoute =
+  TmaChatChatIdEditExpenseExpenseIdRouteImport.update({
+    id: '/$chatId_/edit-expense/$expenseId',
+    path: '/$chatId/edit-expense/$expenseId',
+    getParentRoute: () => TmaChatRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRoute
+  '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/chat': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRoute
+  '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/_tma/chat/': typeof TmaChatIndexRoute
   '/_tma/chat/$chatId_/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/_tma/chat/$chatId_/settings': typeof TmaChatChatIdSettingsRoute
+  '/_tma/chat/$chatId_/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/settings'
+    | '/chat/$chatId/edit-expense/$expenseId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/settings'
+    | '/chat/$chatId/edit-expense/$expenseId'
   id:
     | '__root__'
     | '/'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/'
     | '/_tma/chat/$chatId_/add-expense'
     | '/_tma/chat/$chatId_/settings'
+    | '/_tma/chat/$chatId_/edit-expense/$expenseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdAddExpenseRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/edit-expense/$expenseId': {
+      id: '/_tma/chat/$chatId_/edit-expense/$expenseId'
+      path: '/$chatId/edit-expense/$expenseId'
+      fullPath: '/chat/$chatId/edit-expense/$expenseId'
+      preLoaderRoute: typeof TmaChatChatIdEditExpenseExpenseIdRouteImport
+      parentRoute: typeof TmaChatRoute
+    }
   }
 }
 
@@ -187,6 +207,7 @@ interface TmaChatRouteChildren {
   TmaChatIndexRoute: typeof TmaChatIndexRoute
   TmaChatChatIdAddExpenseRoute: typeof TmaChatChatIdAddExpenseRoute
   TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRoute
+  TmaChatChatIdEditExpenseExpenseIdRoute: typeof TmaChatChatIdEditExpenseExpenseIdRoute
 }
 
 const TmaChatRouteChildren: TmaChatRouteChildren = {
@@ -194,6 +215,8 @@ const TmaChatRouteChildren: TmaChatRouteChildren = {
   TmaChatIndexRoute: TmaChatIndexRoute,
   TmaChatChatIdAddExpenseRoute: TmaChatChatIdAddExpenseRoute,
   TmaChatChatIdSettingsRoute: TmaChatChatIdSettingsRoute,
+  TmaChatChatIdEditExpenseExpenseIdRoute:
+    TmaChatChatIdEditExpenseExpenseIdRoute,
 }
 
 const TmaChatRouteWithChildren =

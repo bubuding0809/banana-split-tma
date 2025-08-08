@@ -141,6 +141,7 @@ const GroupPage = () => {
         }}
         search={{
           prevTab: selectedTab,
+          prevCurrency: selectedCurrency || "SGD",
           title: "+ Add expense",
         }}
       >

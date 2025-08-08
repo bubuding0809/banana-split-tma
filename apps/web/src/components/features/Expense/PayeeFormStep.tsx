@@ -1,4 +1,4 @@
-import { useStartParams, withForm } from "@/hooks";
+import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { ButtonCell, Cell, Radio, Section } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
@@ -11,26 +11,32 @@ import {
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { useMemo, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { getRouteApi } from "@tanstack/react-router";
-
-const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
+import { UseNavigateResult } from "@tanstack/react-router";
 
 const PayeeFormStep = withForm({
   ...formOpts,
   props: {
     step: 1,
     isLastStep: false,
+    navigate: (() => {}) as unknown as UseNavigateResult<
+      "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
+    >,
+    membersExpanded: false,
+    chatId: 0,
   },
-  render: function Render({ form, isLastStep, step }) {
+  render: function Render({
+    form,
+    isLastStep,
+    step,
+    navigate,
+    membersExpanded,
+    chatId,
+  }) {
     // * Hooks =====================================================================================
-    const navigate = routeApi.useNavigate();
-    const { membersExpanded } = routeApi.useSearch();
-    const tStartParams = useStartParams();
     const tUserData = useSignal(initData.user);
 
     //* Variables ==================================================================================
     const userId = tUserData?.id ?? 0;
-    const chatId = tStartParams?.chat_id ?? 0;
 
     //* Queries ====================================================================================
     const { data: chatMembers, isLoading: isChatMembersLoading } =

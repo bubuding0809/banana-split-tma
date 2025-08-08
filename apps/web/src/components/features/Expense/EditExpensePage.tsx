@@ -19,11 +19,12 @@ import { useAppForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 
-interface AddExpensePageProps {
+interface EditExpensePageProps {
   chatId: number;
+  expenseId: string;
 }
 
-const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
+const routeApi = getRouteApi("/_tma/chat/$chatId_/edit-expense/$expenseId");
 
 const FORM_STEPS = [
   {
@@ -40,7 +41,7 @@ const FORM_STEPS = [
   },
 ];
 
-const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
+const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   // * Hooks ======================================================================================
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
@@ -50,15 +51,31 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const userId = tUserData?.id ?? 0;
 
   // * From API ===================================================================================
-  const createExpenseMutation = trpc.expense.createExpense.useMutation();
+  const { data: expenseData, isLoading: isExpenseLoading } =
+    trpc.expense.getExpenseDetails.useQuery({
+      expenseId,
+    });
+
+  const updateExpenseMutation = trpc.expense.updateExpense.useMutation();
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  const trpcUtils = trpc.useUtils();
 
   const form = useAppForm({
     ...formOpts,
     defaultValues: {
-      ...formOpts.defaultValues,
-      payee: userId.toString(),
-      currency: prevCurrency,
+      amount: expenseData ? expenseData.amount.toString() : "",
+      description: expenseData?.description ?? "",
+      payee: expenseData?.payerId
+        ? expenseData.payerId.toString()
+        : userId.toString(),
+      currency: expenseData?.currency ?? dChatData?.baseCurrency ?? "SGD",
+      splitMode: expenseData?.splitMode ?? "EQUAL",
+      participants: expenseData?.participants.map((p) => p.id.toString()) ?? [],
+      customSplits:
+        expenseData?.shares.map((s) => ({
+          userId: s.userId.toString(),
+          amount: s.amount.toString(),
+        })) ?? [],
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({
@@ -79,7 +96,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
               }))
             : undefined;
 
-        await createExpenseMutation.mutateAsync({
+        await updateExpenseMutation.mutateAsync({
+          expenseId: expenseId,
           chatId: chatId,
           creatorId: userId,
           payerId: Number(value.payee),
@@ -94,17 +112,29 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             : undefined,
         });
 
+        // Invalidate relevant queries to refresh data
+        trpcUtils.expense.getExpenseByChat.invalidate({
+          chatId,
+        });
+        trpcUtils.currency.getCurrenciesWithBalance.invalidate({
+          userId,
+          chatId,
+        });
+        trpcUtils.expense.getExpenseDetails.invalidate({
+          expenseId,
+        });
+
         mainButton.setParams.ifAvailable({
           isLoaderVisible: false,
         });
 
         navigate({
-          to: "..",
-          search: (prev) => ({
-            ...prev,
+          to: "../..",
+          search: {
             selectedTab: "transaction",
             selectedCurrency: value.currency,
-          }),
+            selectedExpense: expenseId,
+          },
         });
       } catch (error) {
         secondaryButton.setParams.ifAvailable({
@@ -117,7 +147,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         });
 
         const errorMessage =
-          error instanceof Error ? error.message : "Failed to create expense";
+          error instanceof Error ? error.message : "Failed to update expense";
         alert(`❌ Error: ${errorMessage}`);
       }
     },
@@ -139,11 +169,11 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     const offClick = backButton.onClick(() => {
       if (isFirstStep) {
         return navigate({
-          to: "..",
+          to: "../..",
           search: {
             selectedTab: prevTab,
             selectedCurrency: prevCurrency,
-            title: "👥 Group",
+            selectedExpense: expenseId,
           },
         });
       }
@@ -159,7 +189,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, navigate, prevCurrency, prevTab]);
+  }, [chatId, currentFormStep, expenseId, navigate, prevCurrency, prevTab]);
 
   // Show main button on mount
   useEffect(() => {
@@ -185,7 +215,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   useEffect(() => {
     const isFinalStep = currentFormStep === FORM_STEPS.length - 1;
     mainButton.setParams.ifAvailable({
-      text: isFinalStep ? "Save 🚀" : "Next »",
+      text: isFinalStep ? "Update 🚀" : "Next »",
       isVisible: true,
       isEnabled: true,
       hasShineEffect: isFinalStep,
@@ -229,6 +259,18 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
   const CurrentFormComponent = FORM_STEPS.at(currentFormStep)?.component;
 
+  // Show loading state while fetching expense data
+  if (isExpenseLoading) {
+    return (
+      <div className="flex flex-col gap-2.5 pb-4">
+        <section className="flex w-full flex-col items-center justify-center px-4">
+          <div className="mb-4 h-4 w-full animate-pulse rounded bg-gray-200"></div>
+          <div className="h-8 w-full animate-pulse rounded bg-gray-200"></div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2.5 pb-4">
       {/* Form steps */}
@@ -262,7 +304,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             form={form}
             isLastStep={currentFormStep === FORM_STEPS.length - 1}
             step={currentFormStep}
-            isEditMode={false}
+            isEditMode={true}
             navigate={navigate}
             chatId={chatId}
             membersExpanded={routeApi.useSearch().membersExpanded}
@@ -273,4 +315,4 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   );
 };
 
-export default AddExpensePage;
+export default EditExpensePage;

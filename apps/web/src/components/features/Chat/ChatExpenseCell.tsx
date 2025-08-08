@@ -22,22 +22,27 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { useSearch } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
+
+const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
 }
 
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
+  const { selectedCurrency, selectedTab, selectedExpense } =
+    routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+
   const { payerId, chatId } = expense;
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(
+    () => expense?.id === selectedExpense
+  );
   const offMainButtonClickRef = useRef<VoidFunction | undefined>(undefined);
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
@@ -167,12 +172,27 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   };
 
   const onEditExpense = async () => {
-    alert("🚧 Chill ah, still working on it");
+    navigate({
+      to: "edit-expense/$expenseId",
+      params: { expenseId: expense.id },
+      search: {
+        title: "✍️ Edit Expense",
+        prevTab: selectedTab,
+        prevCurrency: selectedCurrency || "SGD",
+      },
+    });
   };
 
   // * Handlers ====================================================================================
   const handleModalOpenChange = (open: boolean) => {
     if (open) {
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          selectedExpense: expense.id,
+        }),
+      });
+
       mainButton.setParams({
         text: "Edit",
         isVisible: true,
@@ -189,6 +209,13 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       offSecondaryButtonClickRef.current =
         secondaryButton.onClick(onDeleteExpense);
     } else {
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          selectedExpense: undefined,
+        }),
+      });
+
       mainButton.setParams({
         isVisible: false,
         isEnabled: false,

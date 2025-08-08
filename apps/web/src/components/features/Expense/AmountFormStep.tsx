@@ -1,4 +1,3 @@
-import { getRouteApi } from "@tanstack/react-router";
 import {
   hapticFeedback,
   mainButton,
@@ -29,22 +28,25 @@ import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
+import { UseNavigateResult } from "@tanstack/react-router";
 
-const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
+// Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
 const AmountFormStep = withForm({
   ...formOpts,
   props: {
     step: 0,
     isLastStep: false,
+    navigate: (() => {}) as unknown as UseNavigateResult<
+      "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
+    >,
+    chatId: 0,
   },
-  render: function Render({ form, isLastStep, step }) {
+  render: function Render({ form, isLastStep, step, navigate, chatId }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
-    const navigate = routeApi.useNavigate();
     const { expenseCurrency } = useStore(form.store, (state) => ({
       expenseCurrency: state.values.currency,
     }));
-    const { chatId } = routeApi.useParams();
 
     const { data: dChatData } = trpc.chat.getChat.useQuery({
       chatId: Number(chatId),
