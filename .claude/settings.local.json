@@ -16,7 +16,8 @@
       "Bash(turbo check-types:*)",
       "Bash(turbo lint:*)",
       "Bash(pnpm build:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
