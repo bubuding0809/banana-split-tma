@@ -59,7 +59,7 @@ const SplitExactConfig = withForm({
     const amountInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
     const [focusedInputId, setFocusedInputId] = useState<string | null>(null);
     const [navigationEnabled, setNavigationEnabled] = useState(false);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [modalOpen, setModalOpen] = useState(true);
 
     const chatId = tStartParams?.chat_id ?? 0;
     const { currency, participants, customSplits } = useStore(

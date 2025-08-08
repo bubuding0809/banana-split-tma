@@ -186,7 +186,6 @@ const SplitModeFormStep = withForm({
                           name="splitMode"
                           value={value}
                           checked={isSelected}
-                          onChange={() => handleSplitModeChange(value)}
                           className="sr-only"
                         />
                         <CardCell
