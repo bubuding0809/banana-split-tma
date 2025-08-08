@@ -8,6 +8,7 @@ export const inputSchema = z.object({
   lastName: z.string().nullable().optional(),
   username: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
+  phoneNumberRequested: z.boolean().optional(),
 });
 
 export const outputSchema = z.object({
@@ -16,6 +17,7 @@ export const outputSchema = z.object({
   lastName: z.string().nullable(),
   username: z.string().nullable(),
   phoneNumber: z.string().nullable(),
+  phoneNumberRequested: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -43,6 +45,7 @@ export const updateUserHandler = async (
       lastName?: string | null;
       username?: string | null;
       phoneNumber?: string | null;
+      phoneNumberRequested?: boolean;
     } = {};
 
     if (input.firstName !== undefined) {
@@ -57,6 +60,9 @@ export const updateUserHandler = async (
     if (input.phoneNumber !== undefined) {
       updateData.phoneNumber = input.phoneNumber;
     }
+    if (input.phoneNumberRequested !== undefined) {
+      updateData.phoneNumberRequested = input.phoneNumberRequested;
+    }
 
     const updatedUser = await db.user.update({
       where: { id: input.userId },
@@ -67,6 +73,7 @@ export const updateUserHandler = async (
         lastName: true,
         username: true,
         phoneNumber: true,
+        phoneNumberRequested: true,
         createdAt: true,
         updatedAt: true,
       },

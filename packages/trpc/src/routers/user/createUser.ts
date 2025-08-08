@@ -16,6 +16,7 @@ export const outputSchema = z.object({
   lastName: z.string().nullable(),
   username: z.string().nullable(),
   phoneNumber: z.string().nullable(),
+  phoneNumberRequested: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
