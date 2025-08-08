@@ -5,7 +5,6 @@ import { Caption, Section } from "@telegram-apps/telegram-ui";
 import { hapticFeedback, mainButton, popup } from "@telegram-apps/sdk-react";
 import { DollarSign, Equal, Pizza } from "lucide-react";
 import { cn } from "@utils/cn";
-import { getRouteApi } from "@tanstack/react-router";
 import { CardCell } from "@telegram-apps/telegram-ui/dist/components/Blocks/Card/components/CardCell/CardCell";
 import { useCallback, useEffect, useState } from "react";
 import SplitEqualConfig from "./SplitEqualConfig";
@@ -16,8 +15,7 @@ import SplitExactConfig from "./SplitExactConfig";
 import SplitExactFooter from "./SplitExactFooter";
 import { toDecimal } from "@/utils/financial";
 import Decimal from "decimal.js";
-
-const routeApi = getRouteApi("/_tma/chat/$chatId_/add-expense");
+import { UseNavigateResult } from "@tanstack/react-router";
 
 const SPLIT_MODE_OPTIONS: {
   value: SplitModeType;
@@ -50,10 +48,12 @@ const SplitModeFormStep = withForm({
   props: {
     step: 2,
     isLastStep: true,
+    navigate: (() => {}) as unknown as UseNavigateResult<
+      "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
+    >,
+    isEditMode: false,
   },
-  render: function Render({ form, isLastStep, step }) {
-    const navigate = routeApi.useNavigate();
-
+  render: function Render({ form, isLastStep, step, navigate }) {
     const [showFooter, setShowFooter] = useState(true);
 
     const onFormSubmit = useCallback(async () => {
