@@ -7,4 +7,6 @@ export const assetUrls = {
     "https://orodqkvkgttuahfmlajx.supabase.co/storage/v1/object/public/assets/gifs/banana-middle-finger.gif",
   bananaSparklyEyes:
     "https://orodqkvkgttuahfmlajx.supabase.co/storage/v1/object/public/assets/gifs/banana-sparkly-eyes.gif",
+  bananaCash:
+    "https://orodqkvkgttuahfmlajx.supabase.co/storage/v1/object/public/assets/gifs/banana-cash.gif",
 };

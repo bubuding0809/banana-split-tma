@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { formatCurrencyWithCode, toDecimal, toNumber } from "@/utils/financial";
+import { assetUrls } from "@/assets/urls";
 
 const SplitExactConfig = withForm({
   ...formOpts,
@@ -173,7 +174,7 @@ const SplitExactConfig = withForm({
                 >
                   <img
                     alt="Telegram sticker"
-                    src="https://orodqkvkgttuahfmlajx.supabase.co/storage/v1/object/public/assets/gifs/banana-cash.gif"
+                    src={assetUrls.bananaCash}
                     style={{
                       display: "block",
                       height: "120px",
