@@ -1,4 +1,5 @@
 export { default as useEnsureChatMember } from "./useEnsureChatMember";
+export { default as useRequestContact } from "./useRequestContact";
 export { default as useStartParams } from "./useStartParams";
 export {
   fieldContext,
