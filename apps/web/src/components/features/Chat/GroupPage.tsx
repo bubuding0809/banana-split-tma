@@ -69,8 +69,6 @@ const GroupPage = () => {
     });
   };
 
-  //* Effects =====================================================================================
-
   // Ensure user is a member of the chat
   const { isPending: isEnsuringChatMember, data: ensureChatMemberData } =
     useEnsureChatMember(
