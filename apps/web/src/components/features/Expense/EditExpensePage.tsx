@@ -46,19 +46,24 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
-  const { prevTab, prevCurrency, currentFormStep } = routeApi.useSearch();
+  const trpcUtils = trpc.useUtils();
+  const { prevTab, prevCurrency, currentFormStep, membersExpanded } =
+    routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
 
-  // * From API ===================================================================================
+  // * Queries =====================================================================================
   const { data: expenseData, isLoading: isExpenseLoading } =
     trpc.expense.getExpenseDetails.useQuery({
       expenseId,
     });
-
-  const updateExpenseMutation = trpc.expense.updateExpense.useMutation();
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
-  const trpcUtils = trpc.useUtils();
+  trpc.chat.getMembers.usePrefetchQuery({
+    chatId,
+  });
+
+  // * Mutations ===================================================================================
+  const updateExpenseMutation = trpc.expense.updateExpense.useMutation();
 
   const handleInitParticipants = () => {
     if (expenseData?.splitMode === "SHARES") {
@@ -323,7 +328,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
             isEditMode={true}
             navigate={navigate}
             chatId={chatId}
-            membersExpanded={routeApi.useSearch().membersExpanded}
+            membersExpanded={membersExpanded}
           />
         )}
       </section>
