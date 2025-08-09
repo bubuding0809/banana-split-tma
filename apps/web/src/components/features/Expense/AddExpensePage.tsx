@@ -41,7 +41,7 @@ const FORM_STEPS = [
 ];
 
 const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
-  // * Hooks ======================================================================================
+  // * Hooks =======================================================================================
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
@@ -49,9 +49,14 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
   const userId = tUserData?.id ?? 0;
 
-  // * From API ===================================================================================
-  const createExpenseMutation = trpc.expense.createExpense.useMutation();
+  // * Queries =====================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  trpc.chat.getMembers.usePrefetchQuery({
+    chatId,
+  });
+
+  // * Mutations ===================================================================================
+  const createExpenseMutation = trpc.expense.createExpense.useMutation();
 
   const form = useAppForm({
     ...formOpts,
