@@ -60,6 +60,26 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
   const trpcUtils = trpc.useUtils();
 
+  const handleInitParticipants = () => {
+    if (expenseData?.splitMode === "SHARES") {
+      return [];
+    }
+    return expenseData?.participants.map((p) => p.id.toString()) ?? [];
+  };
+
+  const handleInitSplits = () => {
+    if (expenseData?.splitMode === "SHARES") {
+      return [];
+    }
+
+    return (
+      expenseData?.shares.map((s) => ({
+        userId: s.userId.toString(),
+        amount: s.amount.toString(),
+      })) ?? []
+    );
+  };
+
   const form = useAppForm({
     ...formOpts,
     defaultValues: {
@@ -70,12 +90,8 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
         : userId.toString(),
       currency: expenseData?.currency ?? dChatData?.baseCurrency ?? "SGD",
       splitMode: expenseData?.splitMode ?? "EQUAL",
-      participants: expenseData?.participants.map((p) => p.id.toString()) ?? [],
-      customSplits:
-        expenseData?.shares.map((s) => ({
-          userId: s.userId.toString(),
-          amount: s.amount.toString(),
-        })) ?? [],
+      participants: handleInitParticipants(),
+      customSplits: handleInitSplits(),
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({
