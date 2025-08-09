@@ -142,6 +142,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     const isFirstStep = currentFormStep === 0;
 
     const offClick = backButton.onClick(() => {
+      hapticFeedback.notificationOccurred("success");
+
       if (isFirstStep) {
         return navigate({
           to: "..",
