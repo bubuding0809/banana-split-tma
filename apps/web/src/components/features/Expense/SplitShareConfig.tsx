@@ -61,21 +61,6 @@ const SplitShareConfig = withForm({
             shares: string,
             isIncrement?: boolean
           ) => {
-            if (shares === "0") {
-              form.setFieldValue("participants", (prev) => {
-                return prev.filter((p) => p !== userId);
-              });
-            }
-
-            if (shares === "1") {
-              form.setFieldValue("participants", (prev) => {
-                if (!prev.includes(userId)) {
-                  return [...prev, userId];
-                }
-                return prev;
-              });
-            }
-
             const newSplits = [...customSplits];
             const existingIndex = newSplits.findIndex(
               (s) => s.userId === userId
@@ -88,6 +73,25 @@ const SplitShareConfig = withForm({
             }
 
             field.handleChange(newSplits);
+
+            if (shares === "0") {
+              console.log("Removing user from participants:", userId);
+              form.setFieldValue("participants", (prev) => {
+                return prev.filter((p) => p !== userId);
+              });
+              form.setFieldValue("customSplits", (prev) =>
+                prev.filter((s) => s.userId !== userId)
+              );
+            }
+
+            if (shares === "1") {
+              form.setFieldValue("participants", (prev) => {
+                if (!prev.includes(userId)) {
+                  return [...prev, userId];
+                }
+                return prev;
+              });
+            }
 
             // Trigger animation if shares > 0
             if (shares !== "0" && isIncrement !== undefined) {
