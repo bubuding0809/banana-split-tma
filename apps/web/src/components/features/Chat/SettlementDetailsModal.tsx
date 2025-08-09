@@ -13,7 +13,6 @@ import { type inferRouterOutputs } from "@trpc/server";
 import { useCallback } from "react";
 import {
   hapticFeedback,
-  mainButton,
   popup,
   secondaryButton,
   themeParams,
@@ -108,6 +107,7 @@ const SettlementDetailsModal = ({
       if (result === "delete-settlement") {
         secondaryButton.setParams({
           isLoaderVisible: true,
+          isEnabled: false,
         });
         await deleteSettlementMutation.mutateAsync({
           settlementId: settlement.id,
@@ -117,16 +117,13 @@ const SettlementDetailsModal = ({
     } catch (error) {
       hapticFeedback.notificationOccurred("error");
       console.error("Error showing delete confirmation:", error);
+    } finally {
+      secondaryButton.setParams({
+        isLoaderVisible: false,
+        isEnabled: true,
+      });
     }
-    secondaryButton.setParams({
-      isLoaderVisible: false,
-    });
   }, [deleteSettlementMutation, onOpenChange, settlement.id]);
-
-  const handleEditSettlement = useCallback(() => {
-    // TODO: Implement edit functionality
-    alert("Chill ah, this is not implemented yet!");
-  }, []);
 
   const getSubtitle = () => {
     switch (settlementRelation) {
@@ -159,11 +156,6 @@ const SettlementDetailsModal = ({
   useEffect(() => {
     if (!open) return;
 
-    mainButton.setParams({
-      text: "Edit",
-      isVisible: true,
-      isEnabled: true,
-    });
     secondaryButton.setParams({
       text: "Delete",
       isVisible: true,
@@ -173,7 +165,6 @@ const SettlementDetailsModal = ({
 
     return () => {
       secondaryButton.setParams({ isVisible: false, isEnabled: false });
-      mainButton.setParams({ isVisible: false, isEnabled: false });
     };
   }, [open, tDestructiveTextColor]);
 
@@ -182,13 +173,11 @@ const SettlementDetailsModal = ({
     if (!open) return;
 
     const offSecondaryButton = secondaryButton.onClick(handleDeleteSettlement);
-    const offMainButton = mainButton.onClick(handleEditSettlement);
 
     return () => {
       offSecondaryButton();
-      offMainButton();
     };
-  }, [handleDeleteSettlement, handleEditSettlement, open]);
+  }, [handleDeleteSettlement, open]);
 
   return (
     <Modal
