@@ -159,6 +159,13 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     });
 
     if (action === "delete-expense") {
+      mainButton.setParams({
+        isVisible: false,
+      });
+      secondaryButton.setParams({
+        isLoaderVisible: true,
+        isEnabled: false,
+      });
       try {
         await deleteExpenseMutation.mutateAsync({
           expenseId: expense.id,
@@ -167,6 +174,14 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       } catch (error) {
         console.error("Failed to delete expense:", error);
         alert("Failed to delete expense. Please try again later.");
+        mainButton.setParams({
+          isVisible: true,
+        });
+      } finally {
+        secondaryButton.setParams({
+          isLoaderVisible: false,
+          isEnabled: true,
+        });
       }
     }
   };
