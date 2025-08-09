@@ -5,6 +5,7 @@ import {
   themeParams,
   useSignal,
   popup,
+  hapticFeedback,
 } from "@telegram-apps/sdk-react";
 import {
   Caption,
@@ -187,6 +188,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   };
 
   const onEditExpense = async () => {
+    hapticFeedback.notificationOccurred("success");
     navigate({
       to: "edit-expense/$expenseId",
       params: { expenseId: expense.id },
@@ -194,6 +196,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         title: "✍️ Edit Expense",
         prevTab: selectedTab,
         prevCurrency: selectedCurrency || "SGD",
+        membersExpanded: Number(expenseDetails?.payer?.id) !== userId,
       },
     });
   };
