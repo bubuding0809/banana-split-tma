@@ -209,7 +209,7 @@ const ExpenseDetailsModal = ({
         </Modal.Header>
       }
     >
-      <div className="flex flex-col pb-5">
+      <div className="flex max-h-[70vh] flex-col overflow-y-auto pb-5">
         {/* Description */}
         <Section header="What was this for?" className="px-3">
           <Cell
