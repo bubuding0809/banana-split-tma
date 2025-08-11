@@ -9,6 +9,7 @@ const searchSchema = z.object({
   selectedCurrency: z.string().optional(),
   selectedExpense: z.string().optional(),
   showPayments: z.boolean().catch(true),
+  relatedOnly: z.boolean().catch(true),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId")({
