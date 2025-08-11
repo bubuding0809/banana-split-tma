@@ -19,7 +19,7 @@ function TmaIndexRoute() {
         to="/chat/$chatId"
         params={{ chatId: chatId.toString() }}
         search={{
-          title: "👥 Group",
+          title: "",
         }}
       />
     );

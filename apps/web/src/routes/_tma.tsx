@@ -95,11 +95,13 @@ function LayoutComponent() {
   return (
     <div id="wrap">
       <div id="content">
-        <div className={cn(isFullScreen && "h-24")}>
-          <div className="flex h-full items-center justify-center pt-12">
-            <Subheadline weight="1">{title}</Subheadline>
+        {(title || isFullScreen) && (
+          <div className={cn(isFullScreen && "h-24")}>
+            <div className="flex h-full items-center justify-center pt-12">
+              <Subheadline weight="1">{title}</Subheadline>
+            </div>
           </div>
-        </div>
+        )}
         <Outlet />
         <footer className="flex items-center justify-center pb-8 pt-4 text-sm text-gray-500"></footer>
       </div>

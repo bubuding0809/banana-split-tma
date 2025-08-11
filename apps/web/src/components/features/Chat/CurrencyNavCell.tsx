@@ -20,17 +20,21 @@ import {
   ButtonCell,
 } from "@telegram-apps/telegram-ui";
 import { ArrowLeftRight, RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
-const CurrencyNavList = () => {
+interface CurrencyNavCellProps {
+  modalOpen: boolean;
+  onModalOpen: (open: boolean) => void;
+}
+
+const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
   const { selectedCurrency } = routeApi.useSearch();
   const tUserData = useSignal(initData.user);
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const params = routeApi.useParams();
   const navigate = routeApi.useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
 
   const userId = tUserData?.id ?? 0;
   const chatId = Number(params.chatId);
@@ -199,7 +203,7 @@ const CurrencyNavList = () => {
         selectedTab: "balance",
       }),
     });
-    setModalOpen(false);
+    onModalOpen(false);
   };
 
   const handleConvertCurrency = () => {
@@ -231,7 +235,9 @@ const CurrencyNavList = () => {
         <Cell
           before={
             <Skeleton visible={getCurrenciesStatus === "pending"}>
-              <Title level="1">{selectedCurrencyInfo?.flagEmoji ?? "🌏"}</Title>
+              <span className="text-3xl">
+                {selectedCurrencyInfo?.flagEmoji ?? "🌏"}
+              </span>
             </Skeleton>
           }
           subtitle={
@@ -255,7 +261,7 @@ const CurrencyNavList = () => {
               <RefreshCw size={20} />
             </Info>
           }
-          onClick={() => setModalOpen(true)}
+          onClick={() => onModalOpen(true)}
         >
           <Skeleton visible={getCurrenciesStatus === "pending"}>
             {selectedCurrencyInfo?.name ?? "Singapore Dollar"}
@@ -278,7 +284,7 @@ const CurrencyNavList = () => {
 
       <Modal
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={onModalOpen}
         header={
           <Modal.Header
             before={
@@ -361,4 +367,4 @@ const CurrencyNavList = () => {
   );
 };
 
-export default CurrencyNavList;
+export default CurrencyNavCell;

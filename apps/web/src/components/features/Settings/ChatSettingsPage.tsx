@@ -110,13 +110,14 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   useEffect(() => {
     const offBackbutton = backButton.onClick(() => {
+      hapticFeedback.notificationOccurred("success");
       navigate({
         to: "..",
         search: (prev) => ({
           ...prev,
           selectedTab: prevTab,
           selectedCurrency: prevCurrency,
-          title: "👥 Group",
+          title: "",
         }),
       });
     });

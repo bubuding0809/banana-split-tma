@@ -150,7 +150,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           search: {
             selectedTab: prevTab,
             selectedCurrency: prevCurrency,
-            title: "👥 Group",
+            title: "",
           },
         });
       }

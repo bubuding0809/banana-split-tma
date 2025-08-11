@@ -6,11 +6,16 @@ import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
 
 import ChatExpenseCell from "./ChatExpenseCell";
 import { useSearch } from "@tanstack/react-router";
+import { InView } from "react-intersection-observer";
 
 interface ChatExpenseSegmentProps {
   chatId: number;
+  setSectionsInView: React.Dispatch<React.SetStateAction<string[]>>;
 }
-const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
+const ChatExpenseSegment = ({
+  chatId,
+  setSectionsInView,
+}: ChatExpenseSegmentProps) => {
   // * Hooks =======================================================================================
   const { selectedCurrency } = useSearch({
     from: "/_tma/chat/$chatId",
@@ -70,8 +75,16 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
     };
   }, [expenses]);
 
+  const handleSectionViewChange = (view: boolean, key: string) => {
+    if (view) {
+      setSectionsInView((prev) => [...prev, key]);
+    } else {
+      setSectionsInView((prev) => prev.filter((k) => k !== key));
+    }
+  };
+
   return (
-    <>
+    <div>
       {expenses?.length === 0 && (
         <Placeholder
           header="No expenses yet"
@@ -94,21 +107,25 @@ const ChatExpenseSegment = ({ chatId }: ChatExpenseSegmentProps) => {
         const dateDisplay = formatMonthYear(new Date(key));
 
         return (
-          <Section
+          <InView
             key={key}
-            header={
-              <div className="p-2">
-                <Subheadline weight="2">{dateDisplay}</Subheadline>
-              </div>
-            }
+            onChange={(view) => handleSectionViewChange(view, key)}
           >
-            {expenses.map((expense) => (
-              <ChatExpenseCell key={expense.id} expense={expense} />
-            ))}
-          </Section>
+            <Section
+              header={
+                <div className="p-2">
+                  <Subheadline weight="2">{dateDisplay}</Subheadline>
+                </div>
+              }
+            >
+              {expenses.map((expense) => (
+                <ChatExpenseCell key={expense.id} expense={expense} />
+              ))}
+            </Section>
+          </InView>
         );
       })}
-    </>
+    </div>
   );
 };
 
