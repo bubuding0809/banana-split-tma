@@ -1,5 +1,6 @@
 import { Placeholder, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { useMemo } from "react";
+import { initData, useSignal } from "@telegram-apps/sdk-react";
 
 import { trpc } from "@utils/trpc";
 import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
@@ -25,9 +26,11 @@ const ChatCombinedTransactionSegment = ({
   showPayments,
 }: ChatCombinedTransactionSegmentProps) => {
   // * Hooks =======================================================================================
-  const { selectedCurrency } = useSearch({
+  const { selectedCurrency, relatedOnly } = useSearch({
     from: "/_tma/chat/$chatId",
   });
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
 
   // * Queries =====================================================================================
   const { data: expenses, isLoading: isExpensesLoading } =
@@ -56,8 +59,26 @@ const ChatCombinedTransactionSegment = ({
 
   // Combine and group transactions by month buckets then sort them by date
   const { groupedTransactions, sortedKeys } = useMemo(() => {
+    // Helper function to check if a transaction is related to the current user
+    const isTransactionRelated = (
+      transaction: CombinedTransaction
+    ): boolean => {
+      if (transaction.type === "expense") {
+        // For expenses: user is related if they are the payer OR have shares
+        return (
+          transaction.payerId === userId ||
+          transaction.shares?.some((share) => share.userId === userId) ||
+          false
+        );
+      } else {
+        // For settlements: user is related if they are sender or receiver
+        return (
+          transaction.senderId === userId || transaction.receiverId === userId
+        );
+      }
+    };
     // Combine expenses and settlements into a single array with type indicators
-    const combinedTransactions: CombinedTransaction[] = [
+    let combinedTransactions: CombinedTransaction[] = [
       ...(expenses?.map((expense) => ({
         ...expense,
         type: "expense" as const,
@@ -69,6 +90,11 @@ const ChatCombinedTransactionSegment = ({
           })) || []
         : []),
     ];
+
+    // Filter by related transactions if relatedOnly is true
+    if (relatedOnly) {
+      combinedTransactions = combinedTransactions.filter(isTransactionRelated);
+    }
 
     // Group transactions by year - month
     const groupedTransactions: GroupedTransactions =
@@ -104,7 +130,7 @@ const ChatCombinedTransactionSegment = ({
       groupedTransactions,
       sortedKeys,
     };
-  }, [expenses, settlements, showPayments]);
+  }, [expenses, settlements, showPayments, relatedOnly, userId]);
 
   const handleSectionViewChange = (view: boolean, key: string) => {
     if (view) {

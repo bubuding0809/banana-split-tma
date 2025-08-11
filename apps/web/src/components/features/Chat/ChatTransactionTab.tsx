@@ -26,7 +26,7 @@ const ChatTransactionTab = ({
   filtersOpen,
   onFiltersOpen,
 }: ChatTransactionTabProps) => {
-  const { showPayments } = routeApi.useSearch();
+  const { showPayments, relatedOnly } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
   const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +35,18 @@ const ChatTransactionTab = ({
       search: (prev) => ({
         ...prev,
         showPayments: event.target.checked,
+      }),
+    });
+  };
+
+  const handleRelatedOnlyToggle = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        relatedOnly: event.target.checked,
       }),
     });
   };
@@ -64,6 +76,19 @@ const ChatTransactionTab = ({
           description="Hide or show payment records"
         >
           Show Payments
+        </Cell>
+        <Cell
+          before={
+            <span className="rounded-lg bg-blue-500 p-1">
+              <Text>👤</Text>
+            </span>
+          }
+          after={
+            <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+          }
+          description="Show only transactions you're involved in"
+        >
+          Related Only
         </Cell>
       </Section>
 
@@ -99,6 +124,23 @@ const ChatTransactionTab = ({
               description="Hide or show payment records"
             >
               Show Payments
+            </Cell>
+            <Cell
+              Component="label"
+              before={
+                <span className="rounded-lg bg-blue-500 p-1">
+                  <Text>👤</Text>
+                </span>
+              }
+              after={
+                <Switch
+                  checked={relatedOnly}
+                  onChange={handleRelatedOnlyToggle}
+                />
+              }
+              description="Show only transactions you're involved in"
+            >
+              Related Only
             </Cell>
           </Section>
         </div>
