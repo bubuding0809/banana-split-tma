@@ -19,6 +19,9 @@ export const getExpenseByChatHandler = async (
       chatId: input.chatId,
       ...(input.currency ? { currency: input.currency } : {}),
     },
+    include: {
+      shares: true,
+    },
   });
   return expenses.map((expense) => ({
     ...expense,
@@ -26,6 +29,11 @@ export const getExpenseByChatHandler = async (
     payerId: Number(expense.payerId),
     chatId: Number(expense.chatId),
     amount: Number(expense.amount),
+    shares: expense.shares.map((share) => ({
+      ...share,
+      userId: Number(share.userId),
+      amount: Number(share.amount),
+    })),
   }));
 };
 
