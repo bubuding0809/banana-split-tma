@@ -4,12 +4,11 @@ import {
   Section,
   Switch,
   Title,
-  Text,
 } from "@telegram-apps/telegram-ui";
 import ChatCombinedTransactionSegment from "./ChatCombinedTransactionSegment";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { getRouteApi } from "@tanstack/react-router";
-import { SlidersHorizontal } from "lucide-react";
+import { DollarSign, Link, SlidersHorizontal } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -51,6 +50,37 @@ const ChatTransactionTab = ({
     });
   };
 
+  const FilterCells = () => (
+    <>
+      <Cell
+        before={
+          <span className="rounded-lg bg-green-500 p-1.5">
+            <DollarSign size={20} color="white" />
+          </span>
+        }
+        after={
+          <Switch checked={showPayments} onChange={handlePaymentsToggle} />
+        }
+        description="Hide or show payment records"
+      >
+        Show Payments
+      </Cell>
+      <Cell
+        before={
+          <span className="rounded-lg bg-blue-500 p-1.5">
+            <Link size={20} color="white" />
+          </span>
+        }
+        after={
+          <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+        }
+        description="Show only related transactions"
+      >
+        Related Only
+      </Cell>
+    </>
+  );
+
   return (
     <>
       {/* Tranction filters section */}
@@ -64,32 +94,7 @@ const ChatTransactionTab = ({
           </Section.Header>
         }
       >
-        <Cell
-          before={
-            <span className="rounded-lg bg-green-500 p-1">
-              <Text>💰</Text>
-            </span>
-          }
-          after={
-            <Switch checked={showPayments} onChange={handlePaymentsToggle} />
-          }
-          description="Hide or show payment records"
-        >
-          Show Payments
-        </Cell>
-        <Cell
-          before={
-            <span className="rounded-lg bg-blue-500 p-1">
-              <Text>👤</Text>
-            </span>
-          }
-          after={
-            <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
-          }
-          description="Show only transactions you're involved in"
-        >
-          Related Only
-        </Cell>
+        <FilterCells />
       </Section>
 
       {/* Transaction filters modal */}
@@ -108,40 +113,7 @@ const ChatTransactionTab = ({
       >
         <div className="min-h-40 pb-10">
           <Section>
-            <Cell
-              Component="label"
-              before={
-                <span className="rounded-lg bg-green-500 p-1">
-                  <Text>💰</Text>
-                </span>
-              }
-              after={
-                <Switch
-                  checked={showPayments}
-                  onChange={handlePaymentsToggle}
-                />
-              }
-              description="Hide or show payment records"
-            >
-              Show Payments
-            </Cell>
-            <Cell
-              Component="label"
-              before={
-                <span className="rounded-lg bg-blue-500 p-1">
-                  <Text>👤</Text>
-                </span>
-              }
-              after={
-                <Switch
-                  checked={relatedOnly}
-                  onChange={handleRelatedOnlyToggle}
-                />
-              }
-              description="Show only transactions you're involved in"
-            >
-              Related Only
-            </Cell>
+            <FilterCells />
           </Section>
         </div>
       </Modal>
