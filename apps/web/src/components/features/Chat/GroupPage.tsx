@@ -33,7 +33,7 @@ import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
 import { useMemo, useRef, useState } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
-import { compareDatesDesc } from "@/utils/date";
+import { compareDatesDesc, formatMonthYear } from "@/utils/date";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -243,33 +243,34 @@ const GroupPage = () => {
       <Divider />
 
       <section className="flex flex-col gap-4 px-4">
-        <TabsList>
-          <TabsList.Item
-            onClick={() => handleSegmentChange("balance")}
-            selected={selectedTab === "balance"}
-          >
-            <div className="flex items-center justify-center gap-1">
-              <FileSpreadsheet size={16} />
-              <Text weight={selectedTab === "balance" ? "2" : "3"}>
-                Balances
-              </Text>
-            </div>
-          </TabsList.Item>
-          <TabsList.Item
-            onClick={() => handleSegmentChange("transaction")}
-            selected={selectedTab === "transaction"}
-          >
-            <div className="flex items-center justify-center gap-1">
-              <ArrowRightLeft size={16} />
-              <Text weight={selectedTab === "transaction" ? "2" : "3"}>
-                Transactions
-              </Text>
-            </div>
-          </TabsList.Item>
-        </TabsList>
+        <div ref={ref}>
+          <TabsList>
+            <TabsList.Item
+              onClick={() => handleSegmentChange("balance")}
+              selected={selectedTab === "balance"}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <FileSpreadsheet size={16} />
+                <Text weight={selectedTab === "balance" ? "2" : "3"}>
+                  Balances
+                </Text>
+              </div>
+            </TabsList.Item>
+            <TabsList.Item
+              onClick={() => handleSegmentChange("transaction")}
+              selected={selectedTab === "transaction"}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <ArrowRightLeft size={16} />
+                <Text weight={selectedTab === "transaction" ? "2" : "3"}>
+                  Transactions
+                </Text>
+              </div>
+            </TabsList.Item>
+          </TabsList>
+        </div>
 
         {/* Transaction banner */}
-        <div ref={ref} />
         <div
           className={cn(
             "fixed left-0 z-20 w-full shadow-lg",
@@ -299,7 +300,7 @@ const GroupPage = () => {
             description="Transactions"
             className="shadow-lg"
           >
-            {currentSection}
+            {formatMonthYear(new Date(currentSection ?? 0))}
           </Cell>
           <Divider />
         </div>

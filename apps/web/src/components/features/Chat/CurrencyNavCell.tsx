@@ -296,7 +296,7 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
         }
         className="pb-8"
       >
-        <div className="max-h-[78vh]">
+        <div className="max-h-[78vh] min-h-40 pb-10">
           <Section header="Pending currencies" className="px-3">
             {pendingCurrencies.map((currency) => (
               <Cell

@@ -1,12 +1,17 @@
 import {
+  Cell,
   Modal,
-  Placeholder,
-  SegmentedControl,
+  Section,
+  Switch,
   Title,
+  Text,
 } from "@telegram-apps/telegram-ui";
-import { useState } from "react";
-import ChatExpenseSegment from "./ChatExpenseSegment";
-import ChatSettlementSegment from "./ChatSettlementSegment";
+import ChatCombinedTransactionSegment from "./ChatCombinedTransactionSegment";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
+import { getRouteApi } from "@tanstack/react-router";
+import { SlidersHorizontal } from "lucide-react";
+
+const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 interface ChatTransactionTabProps {
   chatId: number;
@@ -21,36 +26,46 @@ const ChatTransactionTab = ({
   filtersOpen,
   onFiltersOpen,
 }: ChatTransactionTabProps) => {
-  const [selectedSegment, setSelectedSegment] = useState<
-    "expense" | "settlement"
-  >("expense");
+  const { showPayments } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+
+  const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        showPayments: event.target.checked,
+      }),
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-2">
-      <SegmentedControl>
-        <SegmentedControl.Item
-          onClick={() => setSelectedSegment("expense")}
-          selected={selectedSegment === "expense"}
+    <>
+      {/* Tranction filters section */}
+      <Section
+        header={
+          <Section.Header>
+            <div className="flex items-start gap-2">
+              <SlidersHorizontal size={14} />
+              <span>Filters</span>
+            </div>
+          </Section.Header>
+        }
+      >
+        <Cell
+          before={
+            <span className="rounded-lg bg-green-500 p-1">
+              <Text>💰</Text>
+            </span>
+          }
+          after={
+            <Switch checked={showPayments} onChange={handlePaymentsToggle} />
+          }
+          description="Hide or show payment records"
         >
-          💸 Expenses
-        </SegmentedControl.Item>
-        <SegmentedControl.Item
-          onClick={() => setSelectedSegment("settlement")}
-          selected={selectedSegment === "settlement"}
-        >
-          🤝 Payments
-        </SegmentedControl.Item>
-      </SegmentedControl>
-
-      {selectedSegment === "expense" && (
-        <ChatExpenseSegment
-          chatId={chatId}
-          setSectionsInView={setSectionsInView}
-        />
-      )}
-      {selectedSegment === "settlement" && (
-        <ChatSettlementSegment chatId={chatId} />
-      )}
+          Show Payments
+        </Cell>
+      </Section>
 
       {/* Transaction filters modal */}
       <Modal
@@ -66,24 +81,35 @@ const ChatTransactionTab = ({
         }
         onOpenChange={onFiltersOpen}
       >
-        <div className="min-h-40">
-          <Placeholder
-            header="Sorry, still working on it!"
-            description="You will be able to filter your transactions soon ..."
-          >
-            <img
-              alt="Telegram sticker"
-              src="https://xelene.me/telegram.gif"
-              style={{
-                display: "block",
-                height: "144px",
-                width: "144px",
-              }}
-            />
-          </Placeholder>
+        <div className="min-h-40 pb-10">
+          <Section>
+            <Cell
+              Component="label"
+              before={
+                <span className="rounded-lg bg-green-500 p-1">
+                  <Text>💰</Text>
+                </span>
+              }
+              after={
+                <Switch
+                  checked={showPayments}
+                  onChange={handlePaymentsToggle}
+                />
+              }
+              description="Hide or show payment records"
+            >
+              Show Payments
+            </Cell>
+          </Section>
         </div>
       </Modal>
-    </div>
+
+      <ChatCombinedTransactionSegment
+        chatId={chatId}
+        setSectionsInView={setSectionsInView}
+        showPayments={showPayments}
+      />
+    </>
   );
 };
 
