@@ -51,6 +51,7 @@ const FilterSection = ({
       Jump to date
     </ButtonCell>
     <Cell
+      Component="label"
       before={
         <span className="rounded-lg bg-green-500 p-1.5">
           <DollarSign size={20} color="white" />
@@ -62,6 +63,7 @@ const FilterSection = ({
       Show Payments
     </Cell>
     <Cell
+      Component="label"
       before={
         <span className="rounded-lg bg-blue-500 p-1.5">
           <Link size={20} color="white" />
@@ -181,6 +183,7 @@ const ChatTransactionTab = ({
       {/* Tranction filters section */}
       <div>
         <Cell
+          Component="label"
           before={
             <span className="rounded-lg bg-green-500 p-1.5">
               <DollarSign size={20} color="white" />
@@ -195,6 +198,7 @@ const ChatTransactionTab = ({
         </Cell>
         <Divider />
         <Cell
+          Component="label"
           before={
             <span className="rounded-lg bg-blue-500 p-1.5">
               <Link size={20} color="white" />
