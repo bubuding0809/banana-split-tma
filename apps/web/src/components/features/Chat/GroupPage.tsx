@@ -242,7 +242,7 @@ const GroupPage = () => {
       />
       <Divider />
 
-      <section className="flex flex-col gap-4 px-4">
+      <section className="flex flex-col">
         <div ref={ref}>
           <TabsList>
             <TabsList.Item

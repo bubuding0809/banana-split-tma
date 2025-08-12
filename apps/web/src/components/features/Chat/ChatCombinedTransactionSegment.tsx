@@ -110,49 +110,51 @@ const ChatCombinedTransactionSegment = ({
         </Placeholder>
       )}
 
-      {sortedKeys.map((key) => {
-        const transactions = groupedTransactions[key];
-        const dateDisplay = formatMonthYear(new Date(key));
+      <div className="px-4">
+        {sortedKeys.map((key) => {
+          const transactions = groupedTransactions[key];
+          const dateDisplay = formatMonthYear(new Date(key));
 
-        return (
-          <InView
-            key={key}
-            onChange={(view) => handleSectionViewChange(view, key)}
-          >
-            <div data-month-key={key}>
-              <Section
-                header={
-                  <div className="p-2">
-                    <Subheadline weight="2">{dateDisplay}</Subheadline>
-                  </div>
-                }
-              >
-                {transactions.map((transaction) => {
-                  if (transaction.type === "expense") {
-                    return (
-                      <div
-                        key={`expense-${transaction.id}`}
-                        data-transaction-id={transaction.id}
-                      >
-                        <ChatExpenseCell expense={transaction} />
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div
-                        key={`settlement-${transaction.id}`}
-                        data-transaction-id={transaction.id}
-                      >
-                        <ChatSettlementCell settlement={transaction} />
-                      </div>
-                    );
+          return (
+            <InView
+              key={key}
+              onChange={(view) => handleSectionViewChange(view, key)}
+            >
+              <div data-month-key={key}>
+                <Section
+                  header={
+                    <div className="p-2">
+                      <Subheadline weight="2">{dateDisplay}</Subheadline>
+                    </div>
                   }
-                })}
-              </Section>
-            </div>
-          </InView>
-        );
-      })}
+                >
+                  {transactions.map((transaction) => {
+                    if (transaction.type === "expense") {
+                      return (
+                        <div
+                          key={`expense-${transaction.id}`}
+                          data-transaction-id={transaction.id}
+                        >
+                          <ChatExpenseCell expense={transaction} />
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div
+                          key={`settlement-${transaction.id}`}
+                          data-transaction-id={transaction.id}
+                        >
+                          <ChatSettlementCell settlement={transaction} />
+                        </div>
+                      );
+                    }
+                  })}
+                </Section>
+              </div>
+            </InView>
+          );
+        })}
+      </div>
     </>
   );
 };
