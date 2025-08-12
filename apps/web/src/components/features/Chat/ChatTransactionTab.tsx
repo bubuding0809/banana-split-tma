@@ -232,7 +232,11 @@ const ChatTransactionTab = ({
                     }}
                   />
                 </IconButton>
-              ) : null
+              ) : (
+                <Title level="3" weight="1">
+                  Filters
+                </Title>
+              )
             }
             after={
               <Modal.Close>
@@ -256,7 +260,7 @@ const ChatTransactionTab = ({
             }
           >
             <Title level="3" weight="1">
-              {modalView === "filters" ? "Filters" : "Jump to date"}
+              {modalView === "filters" ? "" : "Jump to date"}
             </Title>
           </Modal.Header>
         }
