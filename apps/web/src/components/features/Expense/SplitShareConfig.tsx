@@ -14,6 +14,7 @@ import { cn } from "@utils/cn";
 import { useStore } from "@tanstack/react-form";
 import { useState } from "react";
 import { formatCurrencyWithCode, toDecimal, toNumber } from "@/utils/financial";
+import { ANIMATION_DURATIONS, CSS_CLASSES } from "@/constants/ui";
 
 const SplitShareConfig = withForm({
   ...formOpts,
@@ -49,7 +50,9 @@ const SplitShareConfig = withForm({
         () => {
           setBadgeAnimations((prev) => ({ ...prev, [userId]: "idle" }));
         },
-        type === "pop" ? 200 : 250
+        type === "pop"
+          ? ANIMATION_DURATIONS.BADGE_POP
+          : ANIMATION_DURATIONS.BADGE_SHAKE
       );
     };
 
@@ -75,7 +78,6 @@ const SplitShareConfig = withForm({
             field.handleChange(newSplits);
 
             if (shares === "0") {
-              console.log("Removing user from participants:", userId);
               form.setFieldValue("participants", (prev) => {
                 return prev.filter((p) => p !== userId);
               });
@@ -159,9 +161,9 @@ const SplitShareConfig = withForm({
                             "absolute -right-3 -top-1 z-10",
                             shares === "0" ? "invisible" : "",
                             badgeAnimations[memberId] === "pop" &&
-                              "animate-badge-pop",
+                              CSS_CLASSES.BADGE_POP,
                             badgeAnimations[memberId] === "shake" &&
-                              "animate-badge-shake"
+                              CSS_CLASSES.BADGE_SHAKE
                           )}
                         >
                           <Badge type="number">{shares}</Badge>

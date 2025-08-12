@@ -53,3 +53,17 @@ export const isSameMonthYear = (date1: Date, date2: Date): boolean => {
   const { month: month2, year: year2 } = getMonthYear(date2);
   return month1 === month2 && year1 === year2;
 };
+
+/**
+ * Format a date for jump-to-date display (e.g., "Mon, Jan 15")
+ */
+export const formatJumpToDate = (date: Date): string => {
+  return format(date, "EEE, MMM d");
+};
+
+/**
+ * Format a date as YYYY-MM-DD for keys
+ */
+export const formatDateKey = (date: Date): string => {
+  return format(date, "yyyy-MM-dd");
+};

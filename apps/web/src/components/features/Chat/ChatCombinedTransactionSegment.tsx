@@ -1,29 +1,34 @@
 import { Placeholder, Section, Subheadline } from "@telegram-apps/telegram-ui";
-import { useMemo } from "react";
+import { useEffect } from "react";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
 
 import { trpc } from "@utils/trpc";
-import { getMonthYear, compareDatesDesc, formatMonthYear } from "@utils/date";
+import { formatMonthYear } from "@utils/date";
 
 import ChatExpenseCell from "./ChatExpenseCell";
 import ChatSettlementCell from "./ChatSettlementCell";
 import { useSearch } from "@tanstack/react-router";
 import { InView } from "react-intersection-observer";
-import type {
-  CombinedTransaction,
-  GroupedTransactions,
-} from "@/types/transaction.types";
+import { useTransactionGrouping } from "@/hooks/useTransactionGrouping";
 
 interface ChatCombinedTransactionSegmentProps {
   chatId: number;
   setSectionsInView: React.Dispatch<React.SetStateAction<string[]>>;
   showPayments: boolean;
+  onAvailableDatesChange?: (
+    monthsData: {
+      monthKey: string;
+      monthDisplay: string;
+      dates: { key: string; display: string; transactionIds: string[] }[];
+    }[]
+  ) => void;
 }
 
 const ChatCombinedTransactionSegment = ({
   chatId,
   setSectionsInView,
   showPayments,
+  onAvailableDatesChange,
 }: ChatCombinedTransactionSegmentProps) => {
   // * Hooks =======================================================================================
   const { selectedCurrency, relatedOnly } = useSearch({
@@ -57,80 +62,22 @@ const ChatCombinedTransactionSegment = ({
 
   const isLoading = isExpensesLoading || isSettlementsLoading;
 
-  // Combine and group transactions by month buckets then sort them by date
-  const { groupedTransactions, sortedKeys } = useMemo(() => {
-    // Helper function to check if a transaction is related to the current user
-    const isTransactionRelated = (
-      transaction: CombinedTransaction
-    ): boolean => {
-      if (transaction.type === "expense") {
-        // For expenses: user is related if they are the payer OR have shares
-        return (
-          transaction.payerId === userId ||
-          transaction.shares?.some((share) => share.userId === userId) ||
-          false
-        );
-      } else {
-        // For settlements: user is related if they are sender or receiver
-        return (
-          transaction.senderId === userId || transaction.receiverId === userId
-        );
-      }
-    };
-    // Combine expenses and settlements into a single array with type indicators
-    let combinedTransactions: CombinedTransaction[] = [
-      ...(expenses?.map((expense) => ({
-        ...expense,
-        type: "expense" as const,
-      })) || []),
-      ...(showPayments
-        ? settlements?.map((settlement) => ({
-            ...settlement,
-            type: "settlement" as const,
-          })) || []
-        : []),
-    ];
+  // Use the extracted transaction grouping hook
+  const { groupedTransactions, sortedKeys, monthGroupedData } =
+    useTransactionGrouping({
+      expenses,
+      settlements,
+      showPayments,
+      relatedOnly,
+      userId,
+    });
 
-    // Filter by related transactions if relatedOnly is true
-    if (relatedOnly) {
-      combinedTransactions = combinedTransactions.filter(isTransactionRelated);
+  // Update available dates when they change
+  useEffect(() => {
+    if (onAvailableDatesChange && monthGroupedData.length > 0) {
+      onAvailableDatesChange(monthGroupedData);
     }
-
-    // Group transactions by year - month
-    const groupedTransactions: GroupedTransactions =
-      combinedTransactions.reduce((acc, curr) => {
-        const transactionDate = new Date(curr.createdAt);
-        const { month, year } = getMonthYear(transactionDate);
-
-        // Format: YYYY-MM (month is 0-indexed from getMonth)
-        const key = `${year}-${(month + 1).toString().padStart(2, "0")}`;
-
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-
-        acc[key].push(curr);
-
-        return acc;
-      }, {} as GroupedTransactions);
-
-    // Sort transactions within each group by date (descending)
-    Object.entries(groupedTransactions).forEach(([key, value]) => {
-      groupedTransactions[key] = value.sort((a, b) => {
-        return compareDatesDesc(new Date(a.createdAt), new Date(b.createdAt));
-      });
-    });
-
-    // Sort the keys (year-month) in descending order
-    const sortedKeys = Object.keys(groupedTransactions).sort((a, b) => {
-      return compareDatesDesc(new Date(a), new Date(b));
-    });
-
-    return {
-      groupedTransactions,
-      sortedKeys,
-    };
-  }, [expenses, settlements, showPayments, relatedOnly, userId]);
+  }, [monthGroupedData, onAvailableDatesChange]);
 
   const handleSectionViewChange = (view: boolean, key: string) => {
     if (view) {
@@ -172,31 +119,37 @@ const ChatCombinedTransactionSegment = ({
             key={key}
             onChange={(view) => handleSectionViewChange(view, key)}
           >
-            <Section
-              header={
-                <div className="p-2">
-                  <Subheadline weight="2">{dateDisplay}</Subheadline>
-                </div>
-              }
-            >
-              {transactions.map((transaction) => {
-                if (transaction.type === "expense") {
-                  return (
-                    <ChatExpenseCell
-                      key={`expense-${transaction.id}`}
-                      expense={transaction}
-                    />
-                  );
-                } else {
-                  return (
-                    <ChatSettlementCell
-                      key={`settlement-${transaction.id}`}
-                      settlement={transaction}
-                    />
-                  );
+            <div data-month-key={key}>
+              <Section
+                header={
+                  <div className="p-2">
+                    <Subheadline weight="2">{dateDisplay}</Subheadline>
+                  </div>
                 }
-              })}
-            </Section>
+              >
+                {transactions.map((transaction) => {
+                  if (transaction.type === "expense") {
+                    return (
+                      <div
+                        key={`expense-${transaction.id}`}
+                        data-transaction-id={transaction.id}
+                      >
+                        <ChatExpenseCell expense={transaction} />
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div
+                        key={`settlement-${transaction.id}`}
+                        data-transaction-id={transaction.id}
+                      >
+                        <ChatSettlementCell settlement={transaction} />
+                      </div>
+                    );
+                  }
+                })}
+              </Section>
+            </div>
           </InView>
         );
       })}
