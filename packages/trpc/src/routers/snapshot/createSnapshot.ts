@@ -4,6 +4,7 @@ import { Decimal } from "decimal.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
+  creatorId: z.number(),
   title: z.string().min(1, "Title is required").max(255, "Title too long"),
   description: z.string().optional(),
   expenseIds: z
@@ -18,9 +19,9 @@ const inputSchema = z.object({
 
 export const createSnapshotHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db,
-  userId: number
+  db: Db
 ) => {
+  console.log("Start createSnapshotHandler");
   // First verify all expenses exist and belong to the chat
   const expenses = await db.expense.findMany({
     where: {
@@ -54,10 +55,11 @@ export const createSnapshotHandler = async (
   }
 
   // Create the snapshot
+  console.log("Creating snapshot");
   const snapshot = await db.expenseSnapshot.create({
     data: {
       chatId: input.chatId,
-      creatorId: userId,
+      creatorId: input.creatorId,
       title: input.title,
       description: input.description,
       totalAmount: totalAmount.toDecimalPlaces(2),
@@ -108,5 +110,5 @@ export const createSnapshotHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
-    return createSnapshotHandler(input, ctx.db, Number(ctx.session.user!.id));
+    return createSnapshotHandler(input, ctx.db);
   });
