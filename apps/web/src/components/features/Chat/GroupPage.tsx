@@ -170,7 +170,7 @@ const GroupPage = () => {
       {isMobile && (
         <section
           ref={headerRefReal}
-          className="backdrop-blur-xs fixed left-0 top-0 z-20 flex w-full flex-col items-center justify-center gap-2 pt-[52px] shadow-lg"
+          className="fixed left-0 top-0 z-20 flex w-full flex-col items-center justify-center gap-2 pt-[52px] shadow"
           style={{
             backgroundColor: tSectionBgColor,
           }}
@@ -273,7 +273,7 @@ const GroupPage = () => {
         {/* Transaction banner */}
         <div
           className={cn(
-            "fixed left-0 z-20 w-full shadow-lg",
+            "fixed left-0 z-20 w-full shadow",
             inView ? "invisible" : "visible"
           )}
           style={{
@@ -298,7 +298,6 @@ const GroupPage = () => {
               </button>
             }
             description="Transactions"
-            className="shadow-lg"
           >
             {formatMonthYear(new Date(currentSection ?? 0))}
           </Cell>

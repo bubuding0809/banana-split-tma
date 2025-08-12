@@ -18,8 +18,9 @@ import {
   Placeholder,
   Section,
   ButtonCell,
+  IconButton,
 } from "@telegram-apps/telegram-ui";
-import { ArrowLeftRight, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, RefreshCw, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -33,6 +34,7 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
   const { selectedCurrency } = routeApi.useSearch();
   const tUserData = useSignal(initData.user);
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const params = routeApi.useParams();
   const navigate = routeApi.useNavigate();
 
@@ -291,6 +293,23 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
               <Title weight="2" level="3">
                 Currencies
               </Title>
+            }
+            after={
+              <Modal.Close>
+                <IconButton
+                  size="s"
+                  mode="gray"
+                  onClick={() => hapticFeedback.impactOccurred("light")}
+                >
+                  <X
+                    size={20}
+                    strokeWidth={3}
+                    style={{
+                      color: tSubtitleTextColor,
+                    }}
+                  />
+                </IconButton>
+              </Modal.Close>
             }
           />
         }

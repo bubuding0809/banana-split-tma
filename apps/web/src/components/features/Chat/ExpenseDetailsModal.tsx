@@ -2,6 +2,7 @@ import {
   Badge,
   Caption,
   Cell,
+  IconButton,
   Info,
   Modal,
   Section,
@@ -14,11 +15,16 @@ import { type inferRouterOutputs } from "@trpc/server";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { themeParams, useSignal } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
+import { X } from "lucide-react";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -111,6 +117,7 @@ const ExpenseDetailsModal = ({
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   const isPayerYou = Number(expense.payerId) === Number(userId);
   const memberFullName = isPayerYou
@@ -199,6 +206,23 @@ const ExpenseDetailsModal = ({
             <Title level="3" weight="1">
               Expense
             </Title>
+          }
+          after={
+            <Modal.Close>
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={() => hapticFeedback.impactOccurred("light")}
+              >
+                <X
+                  size={20}
+                  strokeWidth={3}
+                  style={{
+                    color: tSubtitleTextColor,
+                  }}
+                />
+              </IconButton>
+            </Modal.Close>
           }
         >
           <Badge type="number" mode="secondary" className={getSubtitleColor()}>

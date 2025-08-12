@@ -2,6 +2,7 @@ import {
   Badge,
   Caption,
   Cell,
+  IconButton,
   Info,
   Modal,
   Section,
@@ -26,6 +27,7 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatExpenseDate } from "@utils/date";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
+import { X } from "lucide-react";
 
 interface SettlementDetailsModalProps {
   open: boolean;
@@ -56,6 +58,7 @@ const SettlementDetailsModal = ({
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   const utils = trpc.useUtils();
 
@@ -189,6 +192,23 @@ const SettlementDetailsModal = ({
             <Title level="3" weight="1">
               Payment
             </Title>
+          }
+          after={
+            <Modal.Close>
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={() => hapticFeedback.impactOccurred("light")}
+              >
+                <X
+                  size={20}
+                  strokeWidth={3}
+                  style={{
+                    color: tSubtitleTextColor,
+                  }}
+                />
+              </IconButton>
+            </Modal.Close>
           }
         >
           <Badge type="number" mode="secondary" className={getSubtitleColor()}>
