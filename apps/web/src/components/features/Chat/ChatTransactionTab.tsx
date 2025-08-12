@@ -1,6 +1,7 @@
 import {
   ButtonCell,
   Cell,
+  Divider,
   IconButton,
   Modal,
   Section,
@@ -18,6 +19,7 @@ import {
 import { getRouteApi } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  CalendarArrowDown,
   CalendarArrowUp,
   DollarSign,
   Link,
@@ -176,23 +178,44 @@ const ChatTransactionTab = ({
   };
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       {/* Tranction filters section */}
-      <FilterSection
-        header={
-          <Section.Header>
-            <div className="flex items-start gap-2">
-              <SlidersHorizontal size={14} />
-              <span>Filters</span>
-            </div>
-          </Section.Header>
-        }
-        showPayments={showPayments}
-        relatedOnly={relatedOnly}
-        handlePaymentsToggle={handlePaymentsToggle}
-        handleRelatedOnlyToggle={handleRelatedOnlyToggle}
-        onJumpToDate={handleJumpToDateStandalone}
-      />
+      <div>
+        <Cell
+          before={
+            <span className="rounded-lg bg-green-500 p-1.5">
+              <DollarSign size={20} color="white" />
+            </span>
+          }
+          after={
+            <Switch checked={showPayments} onChange={handlePaymentsToggle} />
+          }
+          description="Hide or show payment records"
+        >
+          Show Payments
+        </Cell>
+        <Divider />
+        <Cell
+          before={
+            <span className="rounded-lg bg-blue-500 p-1.5">
+              <Link size={20} color="white" />
+            </span>
+          }
+          after={
+            <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+          }
+          description="Show only related transactions"
+        >
+          Related Only
+        </Cell>
+        <Divider />
+        <ButtonCell
+          before={<CalendarArrowDown size={20} />}
+          onClick={handleJumpToDateStandalone}
+        >
+          Jump to date
+        </ButtonCell>
+      </div>
 
       {/* Enhanced filters modal with content transitions */}
       <Modal
@@ -308,7 +331,7 @@ const ChatTransactionTab = ({
         showPayments={showPayments}
         onAvailableDatesChange={setMonthGroupedData}
       />
-    </>
+    </section>
   );
 };
 

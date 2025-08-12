@@ -40,7 +40,7 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
     });
 
   return (
-    <div className="flex flex-col gap-4">
+    <section className="mt-4 flex flex-col gap-4 px-4">
       <Section
         header={
           <Title weight="2" className="px-1 py-2" level="3">
@@ -125,7 +125,7 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
           []
         )}
       </Section>
-    </div>
+    </section>
   );
 };
 
