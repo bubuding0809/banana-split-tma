@@ -4,6 +4,7 @@ import {
   expenseRouter,
   expenseShareRouter,
   settlementRouter,
+  snapshotRouter,
   telegramRouter,
   userRouter,
 } from "./routers/index.js";
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
   expenseShare: expenseShareRouter,
   settlement: settlementRouter,
   currency: currencyRouter,
+  snapshot: snapshotRouter,
 });
 
 export type AppRouter = typeof appRouter;

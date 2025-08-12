@@ -5,3 +5,4 @@ export { telegramRouter } from "./telegram/index.js";
 export { userRouter } from "./user/index.js";
 export { settlementRouter } from "./settlement/index.js";
 export { currencyRouter } from "./currency/index.js";
+export { snapshotRouter } from "./snapshot/index.js";

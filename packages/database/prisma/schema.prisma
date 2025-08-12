@@ -18,35 +18,37 @@ enum ChatType {
 }
 
 model Chat {
-  id           BigInt       @id
-  title        String
-  photo        String       @default("https://xelene.me/telegram.gif")
-  type         ChatType
-  threadId     BigInt?
-  baseCurrency String       @default("SGD")
-  members      User[]
-  expenses     Expense[]
-  transfers    Settlement[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id              BigInt            @id
+  title           String
+  photo           String            @default("https://xelene.me/telegram.gif")
+  type            ChatType
+  threadId        BigInt?
+  baseCurrency    String            @default("SGD")
+  members         User[]
+  expenses        Expense[]
+  transfers       Settlement[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ExpenseSnapshot ExpenseSnapshot[]
 }
 
 model User {
-  id                BigInt         @id
-  firstName         String
-  lastName          String?
-  username          String?
-  phoneNumber       String?
-  phoneNumberRequested  Boolean        @default(false)
-  chats             Chat[]
-  createdExpenses   Expense[]      @relation("Creator")
-  paidExpenses      Expense[]      @relation("Payer")
-  involvedExpenses  Expense[]      @relation("Participants")
-  sentTransfers     Settlement[]   @relation("Sender")
-  receivedTransfers Settlement[]   @relation("Receiver")
-  expenseShares     ExpenseShare[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                   BigInt            @id
+  firstName            String
+  lastName             String?
+  username             String?
+  phoneNumber          String?
+  phoneNumberRequested Boolean           @default(false)
+  chats                Chat[]
+  createdExpenses      Expense[]         @relation("Creator")
+  paidExpenses         Expense[]         @relation("Payer")
+  involvedExpenses     Expense[]         @relation("Participants")
+  sentTransfers        Settlement[]      @relation("Sender")
+  receivedTransfers    Settlement[]      @relation("Receiver")
+  expenseShares        ExpenseShare[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  ExpenseSnapshot      ExpenseSnapshot[]
 }
 
 enum SplitMode {
@@ -57,22 +59,23 @@ enum SplitMode {
 }
 
 model Expense {
-  id           String         @id @default(uuid())
-  chat         Chat           @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  id           String            @id @default(uuid())
+  chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId       BigInt
-  date         DateTime       @default(now())
-  creator      User           @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  date         DateTime          @default(now())
+  creator      User              @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId    BigInt
-  payer        User           @relation("Payer", fields: [payerId], references: [id], onDelete: Cascade)
+  payer        User              @relation("Payer", fields: [payerId], references: [id], onDelete: Cascade)
   payerId      BigInt
   description  String
-  amount       Decimal        @db.Decimal(10, 2)
-  currency     String         @default("SGD")
+  amount       Decimal           @db.Decimal(10, 2)
+  currency     String            @default("SGD")
   splitMode    SplitMode
-  participants User[]         @relation("Participants")
+  participants User[]            @relation("Participants")
   shares       ExpenseShare[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  snapshots    ExpenseSnapshot[] @relation("SnapshotExpenses")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@index([chatId]) // Optimizes queries filtering/aggregating expenses by chat
   @@index([creatorId]) // Improves performance when looking up expenses created by a specific user
@@ -122,4 +125,22 @@ model CurrencyRate {
   @@unique([baseCurrency, targetCurrency])
   @@index([baseCurrency, targetCurrency])
   @@index([updatedAt])
+}
+
+model ExpenseSnapshot {
+  id          String    @id @default(uuid())
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId      BigInt
+  creator     User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId   BigInt
+  title       String
+  description String?
+  expenses    Expense[] @relation("SnapshotExpenses")
+  totalAmount Decimal   @db.Decimal(10, 2)
+  currency    String    @default("SGD")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([chatId]) // Optimizes queries filtering snapshots by chat
+  @@index([creatorId]) // Improves performance when looking up snapshots created by a user
 }
