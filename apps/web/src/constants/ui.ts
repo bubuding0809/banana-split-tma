@@ -4,7 +4,7 @@
 
 export const ANIMATION_DURATIONS = {
   /** Duration for transaction highlight animation (in milliseconds) */
-  HIGHLIGHT: 1000,
+  HIGHLIGHT: 1500,
   /** Duration for badge pop animation (in milliseconds) */
   BADGE_POP: 200,
   /** Duration for badge shake animation (in milliseconds) */

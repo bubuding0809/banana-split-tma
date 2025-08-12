@@ -1,4 +1,5 @@
-import { Section, Cell } from "@telegram-apps/telegram-ui";
+import { Section, Cell, Navigation, Badge } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 
 interface DateData {
   key: string;
@@ -22,29 +23,42 @@ const DateSelector = ({
   onDateSelect,
 }: DateSelectorProps) => {
   return (
-    <Section>
+    <Section header="Choose via a month">
       {monthGroupedData.length > 0 ? (
-        monthGroupedData.map(({ monthKey, monthDisplay, dates }) => (
-          <Cell
-            key={monthKey}
-            after={
-              <select
-                defaultValue=""
-                onChange={(e) => onDateSelect(e.target.value)}
-                className="appearance-none focus:outline-none"
-              >
-                <option value="">Select date...</option>
-                {dates.map(({ key, display }) => (
-                  <option key={key} value={key}>
-                    {display}
-                  </option>
-                ))}
-              </select>
-            }
-          >
-            {monthDisplay}
-          </Cell>
-        ))
+        monthGroupedData.map(({ monthKey, monthDisplay, dates }) => {
+          return (
+            <Cell
+              Component="label"
+              key={monthKey}
+              htmlFor={`select-${monthKey}`}
+              after={
+                <div className="relative">
+                  <select
+                    id={`select-${monthKey}`}
+                    onChange={(e) => {
+                      onDateSelect(e.target.value);
+                      hapticFeedback.impactOccurred("medium");
+                    }}
+                    className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                  >
+                    <option>Select a date</option>
+                    {dates.map(({ key, display }) => (
+                      <option key={key} value={key}>
+                        {display}
+                      </option>
+                    ))}
+                  </select>
+
+                  <Navigation>
+                    <Badge type="number">{dates.length}</Badge>
+                  </Navigation>
+                </div>
+              }
+            >
+              {monthDisplay}
+            </Cell>
+          );
+        })
       ) : (
         <Cell>No months available</Cell>
       )}
