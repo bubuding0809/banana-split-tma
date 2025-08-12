@@ -34,6 +34,7 @@ import {
   KeyboardOff,
   Plus,
   UserCog,
+  X,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { formatCurrencyWithCode, toDecimal, toNumber } from "@/utils/financial";
@@ -486,6 +487,23 @@ const SplitExactConfig = withForm({
                     <Title level="3" weight="1">
                       Participants
                     </Title>
+                  }
+                  after={
+                    <Modal.Close>
+                      <IconButton
+                        size="s"
+                        mode="gray"
+                        onClick={() => hapticFeedback.impactOccurred("light")}
+                      >
+                        <X
+                          size={20}
+                          strokeWidth={3}
+                          style={{
+                            color: tSubtitleTextColor,
+                          }}
+                        />
+                      </IconButton>
+                    </Modal.Close>
                   }
                 />
               }

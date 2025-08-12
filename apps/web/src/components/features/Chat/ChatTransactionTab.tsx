@@ -1,5 +1,6 @@
 import {
   Cell,
+  IconButton,
   Modal,
   Section,
   SectionProps,
@@ -7,9 +8,13 @@ import {
   Title,
 } from "@telegram-apps/telegram-ui";
 import ChatCombinedTransactionSegment from "./ChatCombinedTransactionSegment";
-import { hapticFeedback } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { getRouteApi } from "@tanstack/react-router";
-import { DollarSign, Link, SlidersHorizontal } from "lucide-react";
+import { DollarSign, Link, SlidersHorizontal, X } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -68,6 +73,7 @@ const ChatTransactionTab = ({
   filtersOpen,
   onFiltersOpen,
 }: ChatTransactionTabProps) => {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const { showPayments, relatedOnly } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
@@ -120,6 +126,23 @@ const ChatTransactionTab = ({
               <Title level="3" weight="1">
                 Filters
               </Title>
+            }
+            after={
+              <Modal.Close>
+                <IconButton
+                  size="s"
+                  mode="gray"
+                  onClick={() => hapticFeedback.impactOccurred("light")}
+                >
+                  <X
+                    size={20}
+                    strokeWidth={3}
+                    style={{
+                      color: tSubtitleTextColor,
+                    }}
+                  />
+                </IconButton>
+              </Modal.Close>
             }
           />
         }
