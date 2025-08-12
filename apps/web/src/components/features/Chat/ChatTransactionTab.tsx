@@ -2,6 +2,7 @@ import {
   Cell,
   Modal,
   Section,
+  SectionProps,
   Switch,
   Title,
 } from "@telegram-apps/telegram-ui";
@@ -11,6 +12,48 @@ import { getRouteApi } from "@tanstack/react-router";
 import { DollarSign, Link, SlidersHorizontal } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
+
+interface FilterSectionProps extends SectionProps {
+  showPayments: boolean;
+  relatedOnly: boolean;
+  handlePaymentsToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleRelatedOnlyToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const FilterSection = ({
+  header,
+  showPayments,
+  relatedOnly,
+  handlePaymentsToggle,
+  handleRelatedOnlyToggle,
+}: FilterSectionProps) => (
+  <Section header={header}>
+    <Cell
+      before={
+        <span className="rounded-lg bg-green-500 p-1.5">
+          <DollarSign size={20} color="white" />
+        </span>
+      }
+      after={<Switch checked={showPayments} onChange={handlePaymentsToggle} />}
+      description="Hide or show payment records"
+    >
+      Show Payments
+    </Cell>
+    <Cell
+      before={
+        <span className="rounded-lg bg-blue-500 p-1.5">
+          <Link size={20} color="white" />
+        </span>
+      }
+      after={
+        <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+      }
+      description="Show only related transactions"
+    >
+      Related Only
+    </Cell>
+  </Section>
+);
 
 interface ChatTransactionTabProps {
   chatId: number;
@@ -50,41 +93,10 @@ const ChatTransactionTab = ({
     });
   };
 
-  const FilterCells = () => (
-    <>
-      <Cell
-        before={
-          <span className="rounded-lg bg-green-500 p-1.5">
-            <DollarSign size={20} color="white" />
-          </span>
-        }
-        after={
-          <Switch checked={showPayments} onChange={handlePaymentsToggle} />
-        }
-        description="Hide or show payment records"
-      >
-        Show Payments
-      </Cell>
-      <Cell
-        before={
-          <span className="rounded-lg bg-blue-500 p-1.5">
-            <Link size={20} color="white" />
-          </span>
-        }
-        after={
-          <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
-        }
-        description="Show only related transactions"
-      >
-        Related Only
-      </Cell>
-    </>
-  );
-
   return (
     <>
       {/* Tranction filters section */}
-      <Section
+      <FilterSection
         header={
           <Section.Header>
             <div className="flex items-start gap-2">
@@ -93,9 +105,11 @@ const ChatTransactionTab = ({
             </div>
           </Section.Header>
         }
-      >
-        <FilterCells />
-      </Section>
+        showPayments={showPayments}
+        relatedOnly={relatedOnly}
+        handlePaymentsToggle={handlePaymentsToggle}
+        handleRelatedOnlyToggle={handleRelatedOnlyToggle}
+      />
 
       {/* Transaction filters modal */}
       <Modal
@@ -112,9 +126,12 @@ const ChatTransactionTab = ({
         onOpenChange={onFiltersOpen}
       >
         <div className="min-h-40 pb-10">
-          <Section>
-            <FilterCells />
-          </Section>
+          <FilterSection
+            showPayments={showPayments}
+            relatedOnly={relatedOnly}
+            handlePaymentsToggle={handlePaymentsToggle}
+            handleRelatedOnlyToggle={handleRelatedOnlyToggle}
+          />
         </div>
       </Modal>
 
