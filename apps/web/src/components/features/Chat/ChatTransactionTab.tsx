@@ -23,7 +23,6 @@ import {
   CalendarArrowUp,
   DollarSign,
   Link,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { useState } from "react";
