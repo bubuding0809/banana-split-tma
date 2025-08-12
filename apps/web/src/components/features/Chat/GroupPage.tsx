@@ -16,12 +16,14 @@ import {
   Spinner,
   TabsList,
   Skeleton,
+  IconButton,
 } from "@telegram-apps/telegram-ui";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
 import {
   ArrowRightLeft,
   ChevronRight,
+  ChevronUp,
   FileSpreadsheet,
   Plus,
 } from "lucide-react";
@@ -43,8 +45,9 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const headerRefReal = useRef<HTMLElement>(null);
   const { ref, inView } = useInView();
+  const headerRefReal = useRef<HTMLElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const navigate = routeApi.useNavigate();
   const tUserData = useSignal(initData.user);
   const tStartParams = useStartParams();
@@ -91,6 +94,14 @@ const GroupPage = () => {
         prevCurrency: selectedCurrency,
         title: "⚙️ Group Settings",
       },
+    });
+  };
+
+  const handleScrollToTop = () => {
+    hapticFeedback.impactOccurred("light");
+    topRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
     });
   };
 
@@ -141,6 +152,9 @@ const GroupPage = () => {
 
   return (
     <main className="flex flex-col gap-2.5 pb-4">
+      {/* Used to scroll screen to top */}
+      <div ref={topRef} />
+
       <section ref={headerRef} className="pt-2">
         <Cell
           onClick={handleSettingsClick}
@@ -315,6 +329,25 @@ const GroupPage = () => {
           />
         )}
       </section>
+
+      {/* Scroll to top button */}
+      <div
+        className={cn(
+          "fixed bottom-10 right-5 transition-all duration-300",
+          !inView ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      >
+        <IconButton
+          size="s"
+          onClick={handleScrollToTop}
+          style={{
+            backgroundColor: tButtonColor,
+            color: tButtonTextColor,
+          }}
+        >
+          <ChevronUp />
+        </IconButton>
+      </div>
     </main>
   );
 };
