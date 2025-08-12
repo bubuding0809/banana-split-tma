@@ -50,7 +50,7 @@ export const getSnapshotDetailsHandler = async (
       ...snapshot.chat,
       id: Number(snapshot.chat.id),
     },
-    expenses: snapshot.expenses.map((expense: any) => ({
+    expenses: snapshot.expenses.map((expense) => ({
       ...expense,
       chatId: Number(expense.chatId),
       creatorId: Number(expense.creatorId),
@@ -64,7 +64,7 @@ export const getSnapshotDetailsHandler = async (
         ...expense.creator,
         id: Number(expense.creator.id),
       },
-      shares: expense.shares.map((share: any) => ({
+      shares: expense.shares.map((share) => ({
         ...share,
         userId: Number(share.userId),
         amount: share.amount ? Number(share.amount) : null,
