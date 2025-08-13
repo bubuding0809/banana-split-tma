@@ -21,11 +21,12 @@ import {
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
 import {
+  Aperture,
   ArrowRightLeft,
-  ChevronRight,
   ChevronUp,
   FileSpreadsheet,
   Plus,
+  Settings,
 } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
@@ -191,8 +192,8 @@ const GroupPage = () => {
         >
           <div
             className={cn(
-              "flex items-center gap-2 rounded-full p-1 transition-transform",
-              headerInView ? "-translate-y-20" : "translate-y-0"
+              "flex items-center gap-2 rounded-full p-1 pe-2 transition-transform",
+              headerInView ? "-translate-y-40" : "translate-y-0"
             )}
             style={{
               backgroundColor: tSecondaryBgColor,
@@ -205,7 +206,7 @@ const GroupPage = () => {
                 ? tChatData?.title
                 : "Private Chat"}
             </Caption>
-            <ChevronRight />
+            <Settings size={18} />
           </div>
 
           <Text
@@ -330,23 +331,44 @@ const GroupPage = () => {
         )}
       </section>
 
-      {/* Scroll to top button */}
       <div
         className={cn(
-          "fixed bottom-10 right-5 transition-all duration-300",
-          !inView ? "opacity-100" : "pointer-events-none opacity-0"
+          "fixed bottom-10 right-5 flex flex-col gap-2 rounded-full p-1 shadow transition-transform",
+          selectedTab === "transaction" ? "translate-x-0" : "translate-x-20"
         )}
+        style={{
+          backgroundColor: tSecondaryBgColor,
+        }}
       >
-        <IconButton
-          size="s"
-          onClick={handleScrollToTop}
-          style={{
-            backgroundColor: tButtonColor,
-            color: tButtonTextColor,
+        {!inView && (
+          <IconButton size="s" onClick={handleScrollToTop} mode="gray">
+            <ChevronUp />
+          </IconButton>
+        )}
+
+        {/* Snapshots */}
+        <Link
+          onClick={() => hapticFeedback.impactOccurred("light")}
+          to="/chat/$chatId/snapshots"
+          params={{
+            chatId: chatId.toString(),
+          }}
+          search={{
+            selectedCurrency: selectedCurrency || "SGD",
+            title: "📸 Snapshots",
           }}
         >
-          <ChevronUp />
-        </IconButton>
+          {/* Scroll to top button */}
+          <IconButton
+            size="s"
+            style={{
+              backgroundColor: tButtonColor,
+              color: tButtonTextColor,
+            }}
+          >
+            <Aperture />
+          </IconButton>
+        </Link>
       </div>
     </main>
   );

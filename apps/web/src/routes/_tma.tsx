@@ -103,7 +103,6 @@ function LayoutComponent() {
           </div>
         )}
         <Outlet />
-        <footer className="flex items-center justify-center pb-8 pt-4 text-sm text-gray-500"></footer>
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ export const getSnapshotsHandler = async (
           amount: true,
           currency: true,
           description: true,
+          createdAt: true,
         },
       },
     },
