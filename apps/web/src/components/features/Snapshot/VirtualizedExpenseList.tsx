@@ -208,6 +208,7 @@ const VirtualizedExpenseList = ({
             checked={expenses.every((expense) =>
               selectedExpenseIds.includes(expense.id)
             )}
+            onChange={handleSelectAll}
           />
         }
         onClick={handleSelectAll}
