@@ -7,6 +7,7 @@ import {
   Info,
   Selectable,
   Placeholder,
+  Button,
 } from "@telegram-apps/telegram-ui";
 import { useEffect } from "react";
 import { trpc } from "@/utils/trpc";
@@ -16,12 +17,13 @@ import {
   backButton,
   mainButton,
   initData,
-  viewport,
+  themeParams,
 } from "@telegram-apps/sdk-react";
 import { z } from "zod";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import VirtualizedExpenseList from "./VirtualizedExpenseList";
+import { Plus } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/create-snapshot");
 
@@ -45,8 +47,8 @@ const CreateSnapshotPage = ({
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const navigate = routeApi.useNavigate();
-  const insets = useSignal(viewport.stableHeight);
-  console.log(insets);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
 
   const userId = tUserData?.id ?? 0;
 
@@ -225,6 +227,32 @@ const CreateSnapshotPage = ({
           <Placeholder
             header={`No expenses found for ${selectedCurrency}`}
             description="Go and create some first"
+            action={
+              <Link
+                to="/chat/$chatId/add-expense"
+                params={{
+                  chatId: chatId.toString(),
+                }}
+                search={(prev) => ({
+                  ...prev,
+                  prevCurrency: selectedCurrency,
+                  title: "+ Add expense",
+                })}
+                className="w-full"
+              >
+                <Button
+                  before={<Plus />}
+                  stretched
+                  mode="filled"
+                  style={{
+                    backgroundColor: tButtonColor,
+                    color: tButtonTextColor,
+                  }}
+                >
+                  Add Expense
+                </Button>
+              </Link>
+            }
           >
             <img
               alt="Telegram sticker"
