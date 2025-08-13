@@ -179,8 +179,8 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
               </span>
             }
             after={
-              <Info type="text" subtitle="Spent" className="text-nowrap">
-                $ 12.53
+              <Info type="text" subtitle="Expenses" className="text-nowrap">
+                {snapshot.expenses.length}
               </Info>
             }
             description={getExpenseDateRange(snapshot.expenses)}
