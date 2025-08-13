@@ -61,8 +61,6 @@ export const createSnapshotHandler = async (
       chatId: input.chatId,
       creatorId: input.creatorId,
       title: input.title,
-      description: input.description,
-      totalAmount: totalAmount.toDecimalPlaces(2),
       currency: input.currency,
       expenses: {
         connect: input.expenseIds.map((id) => ({ id })),
@@ -83,7 +81,6 @@ export const createSnapshotHandler = async (
     ...snapshot,
     chatId: Number(snapshot.chatId),
     creatorId: Number(snapshot.creatorId),
-    totalAmount: Number(snapshot.totalAmount),
     creator: {
       ...snapshot.creator,
       id: Number(snapshot.creator.id),

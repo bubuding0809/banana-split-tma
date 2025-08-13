@@ -128,18 +128,16 @@ model CurrencyRate {
 }
 
 model ExpenseSnapshot {
-  id          String    @id @default(uuid())
-  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  chatId      BigInt
-  creator     User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  creatorId   BigInt
-  title       String
-  description String?
-  expenses    Expense[] @relation("SnapshotExpenses")
-  totalAmount Decimal   @db.Decimal(10, 2)
-  currency    String    @default("SGD")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId    BigInt
+  creator   User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId BigInt
+  title     String
+  expenses  Expense[] @relation("SnapshotExpenses")
+  currency  String    @default("SGD")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([chatId]) // Optimizes queries filtering snapshots by chat
   @@index([creatorId]) // Improves performance when looking up snapshots created by a user

@@ -39,7 +39,6 @@ export const getSnapshotsHandler = async (
     ...snapshot,
     chatId: Number(snapshot.chatId),
     creatorId: Number(snapshot.creatorId),
-    totalAmount: Number(snapshot.totalAmount),
     creator: {
       ...snapshot.creator,
       id: Number(snapshot.creator.id),
