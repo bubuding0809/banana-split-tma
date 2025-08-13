@@ -9,6 +9,7 @@ import type {
   CombinedTransaction,
   GroupedTransactions,
 } from "@/types/transaction.types";
+import type { RouterOutputs } from "@dko/trpc";
 
 /**
  * Check if a transaction is related to the current user
@@ -148,6 +149,71 @@ export const buildDateMap = (
       key,
       display: data.display,
       transactionIds: data.transactionIds,
+    }))
+    .sort((a, b) => compareDatesDesc(new Date(a.key), new Date(b.key)));
+
+  // Group dates by months
+  const monthMap = new Map<
+    string,
+    { display: string; dates: typeof allDates }
+  >();
+
+  allDates.forEach((date) => {
+    const monthKey = date.key.substring(0, 7); // YYYY-MM
+    const monthDisplay = formatMonthYear(new Date(monthKey + "-01"));
+
+    if (!monthMap.has(monthKey)) {
+      monthMap.set(monthKey, { display: monthDisplay, dates: [] });
+    }
+    monthMap.get(monthKey)!.dates.push(date);
+  });
+
+  // Convert to array and sort months by date (most recent first)
+  return Array.from(monthMap.entries())
+    .map(([monthKey, data]) => ({
+      monthKey,
+      monthDisplay: data.display,
+      dates: data.dates, // Already sorted above
+    }))
+    .sort((a, b) =>
+      compareDatesDesc(new Date(a.monthKey), new Date(b.monthKey))
+    );
+};
+
+/**
+ * Build a date map for expense jump-to-date functionality
+ */
+export const buildExpenseDateMap = (
+  expenses: RouterOutputs["expense"]["getExpenseByChat"]
+): {
+  monthKey: string;
+  monthDisplay: string;
+  dates: { key: string; display: string; expenseIds: string[] }[];
+}[] => {
+  const dateMap = new Map<string, { display: string; expenseIds: string[] }>();
+
+  // Sort expenses by date (most recent first) to ensure correct expenseIds ordering
+  const sortedExpenses = expenses.sort((a, b) =>
+    compareDatesDesc(new Date(a.createdAt), new Date(b.createdAt))
+  );
+
+  // Group by date and collect expense IDs (now in correct order)
+  sortedExpenses.forEach((expense) => {
+    const dateKey = formatDateKey(new Date(expense.createdAt));
+    const dateDisplay = formatJumpToDate(new Date(expense.createdAt));
+
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, { display: dateDisplay, expenseIds: [] });
+    }
+    dateMap.get(dateKey)!.expenseIds.push(expense.id);
+  });
+
+  // Convert to array of dates
+  const allDates = Array.from(dateMap.entries())
+    .map(([key, data]) => ({
+      key,
+      display: data.display,
+      expenseIds: data.expenseIds,
     }))
     .sort((a, b) => compareDatesDesc(new Date(a.key), new Date(b.key)));
 
