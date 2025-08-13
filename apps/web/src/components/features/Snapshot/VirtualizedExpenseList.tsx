@@ -205,10 +205,10 @@ const VirtualizedExpenseList = ({
       <ButtonCell
         before={
           <Checkbox
+            onClick={(e) => e.stopPropagation()}
             checked={expenses.every((expense) =>
               selectedExpenseIds.includes(expense.id)
             )}
-            onChange={handleSelectAll}
           />
         }
         onClick={handleSelectAll}
