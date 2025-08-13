@@ -156,7 +156,7 @@ const GroupPage = () => {
       {/* Used to scroll screen to top */}
       <div ref={topRef} />
 
-      <section ref={headerRef} className="pt-2">
+      <section ref={headerRef}>
         <Cell
           onClick={handleSettingsClick}
           className="px-0"
