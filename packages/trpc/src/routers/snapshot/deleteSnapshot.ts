@@ -7,8 +7,7 @@ const inputSchema = z.object({
 
 export const deleteSnapshotHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db,
-  userId: number
+  db: Db
 ) => {
   // First check if the snapshot exists and belongs to the user
   const snapshot = await db.expenseSnapshot.findUnique({
@@ -25,10 +24,6 @@ export const deleteSnapshotHandler = async (
     throw new Error("Snapshot not found");
   }
 
-  if (Number(snapshot.creatorId) !== userId) {
-    throw new Error("You can only delete your own snapshots");
-  }
-
   // Delete the snapshot (expenses will be disconnected automatically)
   await db.expenseSnapshot.delete({
     where: {
@@ -42,5 +37,5 @@ export const deleteSnapshotHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteSnapshotHandler(input, ctx.db, Number(ctx.session.user!.id));
+    return deleteSnapshotHandler(input, ctx.db);
   });
