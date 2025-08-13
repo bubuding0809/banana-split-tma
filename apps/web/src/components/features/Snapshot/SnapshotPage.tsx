@@ -5,11 +5,9 @@ import {
   Skeleton,
   Placeholder,
   Button,
-  ButtonCell,
   Info,
   Title,
   Navigation,
-  Badge,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { Aperture, Plus } from "lucide-react";
@@ -60,7 +58,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
     chatId,
     currency: selectedCurrency,
   });
-  const { data: supportedCurrencies, status: supportedCurrenciesStatus } =
+  const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
 
   const selectedCurrencyDetails = supportedCurrencies?.find(
