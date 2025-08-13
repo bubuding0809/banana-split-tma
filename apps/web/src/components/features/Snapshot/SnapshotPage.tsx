@@ -7,6 +7,9 @@ import {
   Button,
   ButtonCell,
   Info,
+  Title,
+  Navigation,
+  Badge,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { Aperture, Plus } from "lucide-react";
@@ -57,6 +60,12 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
     chatId,
     currency: selectedCurrency,
   });
+  const { data: supportedCurrencies, status: supportedCurrenciesStatus } =
+    trpc.currency.getSupportedCurrencies.useQuery({});
+
+  const selectedCurrencyDetails = supportedCurrencies?.find(
+    (c) => c.code === selectedCurrency
+  );
 
   useEffect(() => {
     backButton.show();
@@ -116,6 +125,9 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
   if (!snapshots || snapshots.length === 0) {
     return (
       <Section>
+        <Cell before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}>
+          {selectedCurrencyDetails?.name}
+        </Cell>
         <Placeholder
           description="Create snapshots of your expenses to see how much you spent"
           action={
@@ -124,6 +136,10 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
               params={{
                 chatId: chatId.toString(),
               }}
+              search={(prev) => ({
+                ...prev,
+                selectedCurrency,
+              })}
               className="w-full"
             >
               <Button
@@ -157,18 +173,28 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
   return (
     <>
       <Section>
-        <Link
-          to="/chat/$chatId/create-snapshot"
-          params={{
-            chatId: chatId.toString(),
-          }}
-          search={(prev) => ({
-            ...prev,
-            selectedCurrency,
-          })}
+        <Cell
+          before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}
+          after={
+            <Navigation>
+              <Link
+                to="/chat/$chatId/create-snapshot"
+                params={{
+                  chatId: chatId.toString(),
+                }}
+                search={(prev) => ({
+                  ...prev,
+                  selectedCurrency,
+                })}
+              >
+                Add snapshot
+              </Link>
+            </Navigation>
+          }
         >
-          <ButtonCell before={<Plus />}>Add Snapshot</ButtonCell>
-        </Link>
+          {selectedCurrencyDetails?.name}
+        </Cell>
+
         {snapshots.map((snapshot) => (
           <Cell
             key={snapshot.id}
