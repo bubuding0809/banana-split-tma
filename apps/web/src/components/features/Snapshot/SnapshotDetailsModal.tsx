@@ -167,7 +167,7 @@ const SnapshotDetailsModal = ({
   if (snapShotDetailsStatus === "pending") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
-        <div className="px-4 py-6">
+        <div className="h-[70vh]">
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} visible>
@@ -183,29 +183,31 @@ const SnapshotDetailsModal = ({
   if (snapShotDetailsStatus === "error") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
-        <Placeholder
-          header="Something went wrong loading snapshot"
-          description="You can try again later or reload the page now"
-          action={
-            <Button
-              stretched
-              before={<RefreshCcw />}
-              onClick={() => window.location.reload()}
-            >
-              Reload
-            </Button>
-          }
-        >
-          <img
-            alt="Telegram sticker"
-            src="https://xelene.me/telegram.gif"
-            style={{
-              display: "block",
-              height: "144px",
-              width: "144px",
-            }}
-          />
-        </Placeholder>
+        <div className="h-[70vh]">
+          <Placeholder
+            header="Something went wrong loading snapshot"
+            description="You can try again later or reload the page now"
+            action={
+              <Button
+                stretched
+                before={<RefreshCcw />}
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </Button>
+            }
+          >
+            <img
+              alt="Telegram sticker"
+              src="https://xelene.me/telegram.gif"
+              style={{
+                display: "block",
+                height: "144px",
+                width: "144px",
+              }}
+            />
+          </Placeholder>
+        </div>
       </Modal>
     );
   }
