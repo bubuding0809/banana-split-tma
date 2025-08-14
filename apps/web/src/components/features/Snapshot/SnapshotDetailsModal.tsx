@@ -242,12 +242,13 @@ const SnapshotDetailsModal = ({
         {/* Header Information */}
         <Section>
           <Cell
+            subhead={`By ${snapShotDetails.creator.firstName}`}
             before={
               <ChatMemberAvatar userId={snapShotDetails.creator.id} size={48} />
             }
             after={
               <Info type="text" subtitle="Created">
-                {format(new Date(snapShotDetails.createdAt), "dd/mm/yy")}
+                {format(new Date(snapShotDetails.createdAt), "dd/MM/yy")}
               </Info>
             }
             subtitle={`${snapShotDetails.expenses.length} expenses`}
