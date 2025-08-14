@@ -11,11 +11,18 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { Aperture, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SnapshotDetailsModal from "./SnapshotDetailsModal";
-import { backButton, themeParams, useSignal } from "@telegram-apps/sdk-react";
+import {
+  backButton,
+  initData,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { formatExpenseDateShort } from "@/utils/date";
+import { RouterOutputs } from "@dko/trpc";
+import { formatCurrencyWithCode } from "@/utils/financial";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots");
 
@@ -42,7 +49,7 @@ const getExpenseDateRange = (
 
 interface SnapshotPageProps {
   chatId: number;
-  selectedCurrency?: string;
+  selectedCurrency: string;
 }
 
 const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
@@ -194,23 +201,12 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
         </Cell>
 
         {snapshots.map((snapshot) => (
-          <Cell
+          <SnapshotCell
             key={snapshot.id}
-            onClick={() => handleSnapshotClick(snapshot.id)}
-            before={
-              <span className="rounded-lg bg-blue-500 p-1.5">
-                <Aperture size={20} />
-              </span>
-            }
-            after={
-              <Info type="text" subtitle="Expenses" className="text-nowrap">
-                {snapshot.expenses.length}
-              </Info>
-            }
-            description={getExpenseDateRange(snapshot.expenses)}
-          >
-            <Text weight="2">{snapshot.title}</Text>
-          </Cell>
+            snapshot={snapshot}
+            onClick={handleSnapshotClick}
+            selectedCurrency={selectedCurrency}
+          />
         ))}
       </Section>
 
@@ -225,6 +221,66 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
         />
       )}
     </>
+  );
+};
+
+const SnapshotCell = ({
+  snapshot,
+  onClick,
+  selectedCurrency,
+}: {
+  snapshot: RouterOutputs["snapshot"]["getByChat"][number];
+  onClick: (id: string) => void;
+  selectedCurrency: string;
+}) => {
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
+
+  const { data: snapShotDetails, status: snapShotDetailsStatus } =
+    trpc.snapshot.getDetails.useQuery({
+      snapshotId: snapshot.id,
+    });
+
+  // Calculate total damage for the main user (net sum of user's share amounts)
+  const userShareTotal = useMemo(() => {
+    if (!snapShotDetails) return 0;
+
+    return snapShotDetails.expenses.reduce(
+      (accExpense, currExpense) =>
+        accExpense +
+        currExpense.shares.reduce((accShare, currShare) => {
+          if (currShare.userId !== userId) {
+            return accShare;
+          } else {
+            return accShare + (currShare.amount ?? 0);
+          }
+        }, 0),
+      0
+    );
+  }, [snapShotDetails, userId]);
+
+  return (
+    <Cell
+      key={snapshot.id}
+      onClick={() => onClick(snapshot.id)}
+      before={
+        <span className="rounded-lg bg-blue-500 p-1.5">
+          <Aperture size={20} />
+        </span>
+      }
+      after={
+        <Info type="text" subtitle={`${snapshot.expenses.length} Expenses`}>
+          <Skeleton visible={snapShotDetailsStatus === "pending"}>
+            <Text weight="3" className="text-red-600">
+              {formatCurrencyWithCode(userShareTotal, selectedCurrency)}
+            </Text>
+          </Skeleton>
+        </Info>
+      }
+      description={getExpenseDateRange(snapshot.expenses)}
+    >
+      <Text weight="2">{snapshot.title}</Text>
+    </Cell>
   );
 };
 
