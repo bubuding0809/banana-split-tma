@@ -178,27 +178,23 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
   return (
     <>
       <Section>
-        <Cell
-          before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}
-          after={
-            <Navigation>
-              <Link
-                to="/chat/$chatId/create-snapshot"
-                params={{
-                  chatId: chatId.toString(),
-                }}
-                search={(prev) => ({
-                  ...prev,
-                  selectedCurrency,
-                })}
-              >
-                Add snapshot
-              </Link>
-            </Navigation>
-          }
+        <Link
+          to="/chat/$chatId/create-snapshot"
+          params={{
+            chatId: chatId.toString(),
+          }}
+          search={(prev) => ({
+            ...prev,
+            selectedCurrency,
+          })}
         >
-          {selectedCurrencyDetails?.name}
-        </Cell>
+          <Cell
+            before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}
+            after={<Navigation>Add snapshot</Navigation>}
+          >
+            {selectedCurrencyDetails?.name}
+          </Cell>
+        </Link>
 
         {snapshots.map((snapshot) => (
           <SnapshotCell
