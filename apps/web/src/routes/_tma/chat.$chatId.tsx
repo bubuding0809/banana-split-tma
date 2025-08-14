@@ -6,7 +6,7 @@ import { GroupPage } from "@components/features";
 
 const searchSchema = z.object({
   selectedTab: z.enum(["balance", "transaction"]).catch("balance"),
-  selectedCurrency: z.string().optional(),
+  selectedCurrency: z.string().catch("SGD"),
   selectedExpense: z.string().optional(),
   showPayments: z.boolean().catch(true),
   relatedOnly: z.boolean().catch(true),
