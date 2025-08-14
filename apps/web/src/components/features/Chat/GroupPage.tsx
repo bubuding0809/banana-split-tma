@@ -46,7 +46,8 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const { ref, inView } = useInView();
+  const { ref: tabListRef, inView } = useInView();
+  const tabListRefReal = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const navigate = routeApi.useNavigate();
@@ -152,9 +153,9 @@ const GroupPage = () => {
   }
 
   return (
-    <main className="flex flex-col gap-2.5 pb-4">
+    <main className="flex flex-col gap-2.5">
       {/* Used to scroll screen to top */}
-      <div ref={topRef} />
+      <div ref={topRef} className="scroll-mt-24" />
 
       <section ref={headerRef}>
         <Cell
@@ -257,11 +258,25 @@ const GroupPage = () => {
       />
       <Divider />
 
-      <section className="flex flex-col">
-        <div ref={ref}>
+      <section
+        className="flex h-screen flex-col pb-16"
+        style={{
+          height: `calc(100vh - ${headerRefReal.current?.clientHeight ?? 0}px)`,
+        }}
+      >
+        {/* Tab list */}
+        <div
+          ref={(node) => {
+            tabListRef(node);
+            tabListRefReal.current = node;
+          }}
+        >
           <TabsList>
             <TabsList.Item
-              onClick={() => handleSegmentChange("balance")}
+              onClick={() => {
+                handleSegmentChange("balance");
+                handleScrollToTop();
+              }}
               selected={selectedTab === "balance"}
             >
               <div className="flex items-center justify-center gap-1">
@@ -272,7 +287,13 @@ const GroupPage = () => {
               </div>
             </TabsList.Item>
             <TabsList.Item
-              onClick={() => handleSegmentChange("transaction")}
+              onClick={() => {
+                handleSegmentChange("transaction");
+                tabListRefReal.current?.scrollIntoView({
+                  behavior: "smooth",
+                  inline: "start",
+                });
+              }}
               selected={selectedTab === "transaction"}
             >
               <div className="flex items-center justify-center gap-1">

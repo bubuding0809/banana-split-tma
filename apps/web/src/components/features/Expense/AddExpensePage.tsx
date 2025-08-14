@@ -237,7 +237,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const CurrentFormComponent = FORM_STEPS.at(currentFormStep)?.component;
 
   return (
-    <div className="flex flex-col gap-2.5 pb-4">
+    <div className="flex flex-col gap-2.5 pb-16">
       {/* Form steps */}
       <section className="flex w-full flex-col items-center justify-center px-4">
         <Steps
