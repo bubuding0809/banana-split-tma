@@ -288,6 +288,10 @@ const SnapshotDetailsModal = ({
         <Section header="Included Expenses" className="mt-4">
           {snapShotDetails.expenses.map((expense) => (
             <Cell
+              className={cn(
+                !expense.shares.find((s) => s.userId === userId) &&
+                  "bg-neutral-100 dark:bg-neutral-700"
+              )}
               key={expense.id}
               before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
               subhead={
