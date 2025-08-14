@@ -21,7 +21,7 @@ function SnapshotsPage() {
     <div className="p-4">
       <SnapShotPage
         chatId={Number(chatId)}
-        selectedCurrency={selectedCurrency}
+        selectedCurrency={selectedCurrency ?? "SGD"}
       />
     </div>
   );

@@ -8,6 +8,8 @@ import {
   IconButton,
   Skeleton,
   Info,
+  Placeholder,
+  Button,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import {
@@ -18,11 +20,11 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import { X, FileText, User, TrendingDown } from "lucide-react";
+import { X, FileText, User, TrendingDown, RefreshCcw } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDateShort } from "@/utils/date";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useMemo } from "react";
 
 interface SnapshotDetailsModalProps {
   snapshotId: string;
@@ -35,17 +37,18 @@ const SnapshotDetailsModal = ({
   open,
   onOpenChange,
 }: SnapshotDetailsModalProps) => {
+  const trpcUtils = trpc.useUtils();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const tUserData = useSignal(initData.user);
-
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
   );
 
-  const trpcUtils = trpc.useUtils();
+  const userId = tUserData?.id ?? 0;
 
+  // * Effects =====================================================================================
   // Cleanup secondary button when the component unmounts
   useEffect(() => {
     return () => {
@@ -58,15 +61,18 @@ const SnapshotDetailsModal = ({
     };
   }, []);
 
-  const { data: snapshot, isLoading } = trpc.snapshot.getDetails.useQuery(
-    {
-      snapshotId,
-    },
-    {
-      enabled: open,
-    }
-  );
+  // * Queries =====================================================================================
+  const { data: snapShotDetails, status: snapShotDetailsStatus } =
+    trpc.snapshot.getDetails.useQuery(
+      {
+        snapshotId,
+      },
+      {
+        enabled: open,
+      }
+    );
 
+  // * Mutations ===================================================================================
   const deleteSnapshotMutation = trpc.snapshot.delete.useMutation({
     onSuccess: () => {
       trpcUtils.snapshot.getByChat.invalidate();
@@ -79,6 +85,7 @@ const SnapshotDetailsModal = ({
     },
   });
 
+  // * Handlers ====================================================================================
   const handleDelete = useCallback(async () => {
     const action = await popup.open.ifAvailable({
       title: "Delete Snapshot?",
@@ -139,7 +146,25 @@ const SnapshotDetailsModal = ({
     onOpenChange(open);
   };
 
-  if (isLoading || !snapshot) {
+  // Calculate total damage for the main user (net sum of user's share amounts)
+  const userShareTotal = useMemo(() => {
+    if (!snapShotDetails) return 0;
+
+    return snapShotDetails.expenses.reduce(
+      (accExpense, currExpense) =>
+        accExpense +
+        currExpense.shares.reduce((accShare, currShare) => {
+          if (currShare.userId !== userId) {
+            return accShare;
+          } else {
+            return accShare + (currShare.amount ?? 0);
+          }
+        }, 0),
+      0
+    );
+  }, [snapShotDetails, userId]);
+
+  if (snapShotDetailsStatus === "pending") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
         <div className="px-4 py-6">
@@ -155,59 +180,34 @@ const SnapshotDetailsModal = ({
     );
   }
 
-  // Calculate participant summary
-  const participantSummary = new Map<
-    number,
-    {
-      name: string;
-      totalPaid: number;
-      totalOwed: number;
-    }
-  >();
-
-  snapshot.expenses.forEach((expense) => {
-    const payerId = expense.payerId;
-    const payerName = expense.payer.firstName;
-
-    if (!participantSummary.has(payerId)) {
-      participantSummary.set(payerId, {
-        name: payerName,
-        totalPaid: 0,
-        totalOwed: 0,
-      });
-    }
-
-    const payerSummary = participantSummary.get(payerId)!;
-    payerSummary.totalPaid += expense.amount;
-
-    // Add amounts owed by each participant
-    expense.shares.forEach((share) => {
-      if (share.amount && share.userId !== payerId) {
-        if (!participantSummary.has(share.userId)) {
-          participantSummary.set(share.userId, {
-            name: share.user.firstName,
-            totalPaid: 0,
-            totalOwed: 0,
-          });
-        }
-        const borrowerSummary = participantSummary.get(share.userId)!;
-        borrowerSummary.totalOwed += share.amount;
-      }
-    });
-  });
-
-  // Calculate total damage for the main user (net sum of share amounts)
-  const mainUserId = tUserData?.id;
-  let totalDamageForMainUser = 0;
-
-  if (mainUserId) {
-    snapshot.expenses.forEach((expense) => {
-      expense.shares.forEach((share) => {
-        if (share.userId === mainUserId && share.amount) {
-          totalDamageForMainUser += share.amount;
-        }
-      });
-    });
+  if (snapShotDetailsStatus === "error") {
+    return (
+      <Modal open={open} onOpenChange={handleOpenChange}>
+        <Placeholder
+          header="Something went wrong loading snapshot"
+          description="You can try again later or reload the page now"
+          action={
+            <Button
+              stretched
+              before={<RefreshCcw />}
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </Button>
+          }
+        >
+          <img
+            alt="Telegram sticker"
+            src="https://xelene.me/telegram.gif"
+            style={{
+              display: "block",
+              height: "144px",
+              width: "144px",
+            }}
+          />
+        </Placeholder>
+      </Modal>
+    );
   }
 
   return (
@@ -246,7 +246,7 @@ const SnapshotDetailsModal = ({
             }
           >
             <Text weight="3" className="text-lg">
-              {snapshot.title}
+              {snapShotDetails.title}
             </Text>
           </Cell>
 
@@ -254,16 +254,16 @@ const SnapshotDetailsModal = ({
             before={<User size={16} className="text-gray-400" />}
             after={
               <Caption>
-                {new Date(snapshot.createdAt).toLocaleDateString()}
+                {new Date(snapShotDetails.createdAt).toLocaleDateString()}
               </Caption>
             }
           >
-            <Caption>Created by {snapshot.creator.firstName}</Caption>
+            <Caption>Created by {snapShotDetails.creator.firstName}</Caption>
           </Cell>
         </Section>
 
         {/* Total Damage for Main User */}
-        {mainUserId && totalDamageForMainUser > 0 && (
+        {userId && userShareTotal > 0 && (
           <Section header="Your Total Damage" className="mt-4">
             <Cell
               before={
@@ -274,8 +274,8 @@ const SnapshotDetailsModal = ({
               after={
                 <Text weight="3" className="text-lg text-red-600">
                   {formatCurrencyWithCode(
-                    totalDamageForMainUser,
-                    snapshot.currency
+                    userShareTotal,
+                    snapShotDetails.currency
                   )}
                 </Text>
               }
@@ -286,61 +286,9 @@ const SnapshotDetailsModal = ({
           </Section>
         )}
 
-        {/* Participant Breakdown */}
-        <Section header="Participant Summary" className="mt-4">
-          {Array.from(participantSummary.entries()).map(([userId, summary]) => {
-            const netAmount = summary.totalPaid - summary.totalOwed;
-            return (
-              <Cell
-                key={userId}
-                before={<ChatMemberAvatar userId={userId} size={40} />}
-                description={
-                  <Caption>
-                    Paid:{" "}
-                    {formatCurrencyWithCode(
-                      summary.totalPaid,
-                      snapshot.currency
-                    )}
-                    {summary.totalOwed > 0 && (
-                      <>
-                        {" "}
-                        • Owes:{" "}
-                        {formatCurrencyWithCode(
-                          summary.totalOwed,
-                          snapshot.currency
-                        )}
-                      </>
-                    )}
-                  </Caption>
-                }
-                after={
-                  <Info
-                    type="text"
-                    subtitle={netAmount >= 0 ? "To receive" : "To pay"}
-                  >
-                    <Text
-                      weight="2"
-                      className={
-                        netAmount >= 0 ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {formatCurrencyWithCode(
-                        Math.abs(netAmount),
-                        snapshot.currency
-                      )}
-                    </Text>
-                  </Info>
-                }
-              >
-                <Text weight="2">{summary.name}</Text>
-              </Cell>
-            );
-          })}
-        </Section>
-
         {/* Expenses List */}
         <Section header="Included Expenses" className="mt-4">
-          {snapshot.expenses.map((expense) => (
+          {snapShotDetails.expenses.map((expense) => (
             <Cell
               key={expense.id}
               before={<ChatMemberAvatar userId={expense.payerId} size={48} />}

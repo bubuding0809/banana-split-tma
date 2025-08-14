@@ -23,7 +23,7 @@ import { z } from "zod";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import VirtualizedExpenseList from "./VirtualizedExpenseList";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCcw } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/create-snapshot");
 
@@ -194,6 +194,15 @@ const CreateSnapshotPage = ({
           <Placeholder
             header="Something went wrong loading expenses"
             description="You can try again later or reload the page now"
+            action={
+              <Button
+                stretched
+                before={<RefreshCcw />}
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </Button>
+            }
           >
             <img
               alt="Telegram sticker"
