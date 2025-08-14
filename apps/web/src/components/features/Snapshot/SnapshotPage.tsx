@@ -36,8 +36,8 @@ const getExpenseDateRange = (
   const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 
-  const startDateStr = format(minDate, "do MMM yy");
-  const endDateStr = format(maxDate, "do MMM yy");
+  const startDateStr = format(minDate, "d MMM yyyy");
+  const endDateStr = format(maxDate, "d MMM yyyy");
 
   // If all expenses are on the same day, show only one date
   if (startDateStr === endDateStr) {

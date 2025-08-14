@@ -25,6 +25,8 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDateShort } from "@/utils/date";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { useCallback, useRef, useEffect, useMemo } from "react";
+import { format } from "date-fns";
+import { cn } from "@/utils/cn";
 
 interface SnapshotDetailsModalProps {
   snapshotId: string;
@@ -242,31 +244,24 @@ const SnapshotDetailsModal = ({
         <Section>
           <Cell
             before={
-              <span className="rounded-lg bg-purple-500 p-1.5">
-                <FileText size={20} color="white" />
-              </span>
+              <ChatMemberAvatar userId={snapShotDetails.creator.id} size={48} />
             }
+            after={
+              <Info type="text" subtitle="Created">
+                {format(new Date(snapShotDetails.createdAt), "dd/mm/yy")}
+              </Info>
+            }
+            subtitle={`${snapShotDetails.expenses.length} expenses`}
           >
-            <Text weight="3" className="text-lg">
+            <Text weight="2" className="text-lg">
               {snapShotDetails.title}
             </Text>
-          </Cell>
-
-          <Cell
-            before={<User size={16} className="text-gray-400" />}
-            after={
-              <Caption>
-                {new Date(snapShotDetails.createdAt).toLocaleDateString()}
-              </Caption>
-            }
-          >
-            <Caption>Created by {snapShotDetails.creator.firstName}</Caption>
           </Cell>
         </Section>
 
         {/* Total Damage for Main User */}
         {userId && userShareTotal > 0 && (
-          <Section header="Your Total Damage" className="mt-4">
+          <Section header="How much did you spend?" className="mt-4">
             <Cell
               before={
                 <span className="rounded-lg bg-red-500 p-1.5">
@@ -274,16 +269,18 @@ const SnapshotDetailsModal = ({
                 </span>
               }
               after={
-                <Text weight="3" className="text-lg text-red-600">
-                  {formatCurrencyWithCode(
-                    userShareTotal,
-                    snapShotDetails.currency
-                  )}
-                </Text>
+                <Info type="text" subtitle="Total">
+                  <Text weight="3" className="text-lg text-red-600">
+                    {formatCurrencyWithCode(
+                      userShareTotal,
+                      snapShotDetails.currency
+                    )}
+                  </Text>
+                </Info>
               }
-              description="Total damage among expenses"
+              description="Net sum of your expense shares"
             >
-              <Text weight="2">Amount you spent</Text>
+              <Text weight="3">You spent</Text>
             </Cell>
           </Section>
         )}
@@ -306,16 +303,26 @@ const SnapshotDetailsModal = ({
                     <Info type="text">
                       <div className="flex flex-col items-end gap-1.5">
                         <Caption className="w-max" weight="2">
-                          {formatExpenseDateShort(new Date(expense.createdAt))}
+                          {format(new Date(expense.createdAt), "d MMM yyyy")}
                         </Caption>
-                        <Text weight="3">
+                        <Text
+                          weight="3"
+                          className={cn(
+                            expense.shares.find((s) => s.userId === userId)
+                              ? "text-red-600"
+                              : "textgray-600"
+                          )}
+                        >
                           {formatCurrencyWithCode(
-                            expense.amount,
+                            expense.shares.find((s) => s.userId === userId)
+                              ?.amount,
                             expense.currency
                           )}
                         </Text>
                         <Caption className="w-max">
-                          {expense.shares.length} participants
+                          {expense.shares.find((s) => s.userId === userId)
+                            ? "Share"
+                            : "Unrelated"}
                         </Caption>
                       </div>
                     </Info>
