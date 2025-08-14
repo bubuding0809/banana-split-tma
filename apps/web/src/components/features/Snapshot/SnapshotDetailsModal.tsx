@@ -20,9 +20,8 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import { X, FileText, User, TrendingDown, RefreshCcw } from "lucide-react";
+import { X, TrendingDown, RefreshCcw } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { formatExpenseDateShort } from "@/utils/date";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { useCallback, useRef, useEffect, useMemo } from "react";
 import { format } from "date-fns";
