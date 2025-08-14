@@ -20,9 +20,9 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { formatExpenseDateShort } from "@/utils/date";
 import { RouterOutputs } from "@dko/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
+import { format } from "date-fns";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots");
 
@@ -36,8 +36,8 @@ const getExpenseDateRange = (
   const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 
-  const startDateStr = formatExpenseDateShort(minDate);
-  const endDateStr = formatExpenseDateShort(maxDate);
+  const startDateStr = format(minDate, "do MMM yy");
+  const endDateStr = format(maxDate, "do MMM yy");
 
   // If all expenses are on the same day, show only one date
   if (startDateStr === endDateStr) {
