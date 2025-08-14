@@ -4,7 +4,7 @@ import { z } from "zod";
 import SnapShotPage from "@/components/features/Snapshot/SnapshotPage";
 
 const searchSchema = z.object({
-  selectedCurrency: z.string().optional(),
+  selectedCurrency: z.string().catch("SGD"),
   title: z.string().optional(),
 });
 
@@ -21,7 +21,7 @@ function SnapshotsPage() {
     <div className="p-4">
       <SnapShotPage
         chatId={Number(chatId)}
-        selectedCurrency={selectedCurrency ?? "SGD"}
+        selectedCurrency={selectedCurrency}
       />
     </div>
   );

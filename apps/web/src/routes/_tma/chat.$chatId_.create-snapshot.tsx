@@ -6,7 +6,7 @@ import CreateSnapshotPage from "@/components/features/Snapshot/CreateSnapshotPag
 
 const searchSchema = z.object({
   selectedExpenseIds: z.array(z.string()).catch([]),
-  selectedCurrency: z.string().optional(),
+  selectedCurrency: z.string().catch("SGD"),
   prevTab: z.enum(["balance", "transaction"]).catch("transaction"),
   title: z.string().optional(),
 });
