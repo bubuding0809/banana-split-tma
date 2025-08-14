@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import SnapshotDetailsModal from "./SnapshotDetailsModal";
 import {
   backButton,
+  hapticFeedback,
   initData,
   themeParams,
   useSignal,
@@ -187,6 +188,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
             ...prev,
             selectedCurrency,
           })}
+          onClick={() => hapticFeedback.notificationOccurred("success")}
         >
           <Cell
             before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}
