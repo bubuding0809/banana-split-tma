@@ -10,7 +10,7 @@ import {
   Navigation,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
-import { Aperture, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import SnapshotDetailsModal from "./SnapshotDetailsModal";
 import {
@@ -263,11 +263,6 @@ const SnapshotCell = ({
     <Cell
       key={snapshot.id}
       onClick={() => onClick(snapshot.id)}
-      before={
-        <span className="rounded-lg bg-blue-500 p-1.5">
-          <Aperture size={20} />
-        </span>
-      }
       after={
         <Info type="text" subtitle={`${snapshot.expenses.length} Expenses`}>
           <Skeleton visible={snapShotDetailsStatus === "pending"}>
