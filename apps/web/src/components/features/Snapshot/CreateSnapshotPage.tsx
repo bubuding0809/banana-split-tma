@@ -172,6 +172,7 @@ const CreateSnapshotPage = ({
         {(field) => (
           <Section header="Give your snapshot a title">
             <Input
+              autoFocus
               placeholder="e.g. Staycay in Melbourne"
               value={field.state.value}
               onBlur={field.handleBlur}
