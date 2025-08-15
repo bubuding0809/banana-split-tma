@@ -153,36 +153,11 @@ const GroupPage = () => {
   }
 
   return (
-    <main className="flex flex-col gap-2.5">
+    <main className="flex flex-col">
       {/* Used to scroll screen to top */}
       <div ref={topRef} className="scroll-mt-24" />
 
-      <section ref={headerRef}>
-        <Cell
-          onClick={handleSettingsClick}
-          className="px-0"
-          after={
-            <Navigation>
-              <Skeleton visible={isDChatDataLoading}>Settings</Skeleton>
-            </Navigation>
-          }
-          before={
-            <Avatar size={48} src={tChatData?.photoUrl?.toString()}>
-              ⏳
-            </Avatar>
-          }
-          subtitle={
-            <Skeleton visible={isDChatDataLoading}>
-              {tChatData?.type ?? "supergroup"}
-            </Skeleton>
-          }
-        >
-          <Skeleton visible={isDChatDataLoading}>
-            {dchatData?.title ?? "bananasplitz"}
-          </Skeleton>
-        </Cell>
-      </section>
-
+      {/* Small group settings header for mobile */}
       {isMobile && (
         <section
           ref={headerRefReal}
@@ -224,8 +199,46 @@ const GroupPage = () => {
         </section>
       )}
 
+      {/* Group settings cells*/}
+      <div ref={headerRef} className="py-1">
+        <Cell
+          onClick={handleSettingsClick}
+          after={
+            <Navigation>
+              <Skeleton visible={isDChatDataLoading}>Settings</Skeleton>
+            </Navigation>
+          }
+          before={
+            <Avatar size={48} src={tChatData?.photoUrl?.toString()}>
+              ⏳
+            </Avatar>
+          }
+          subtitle={
+            <Skeleton visible={isDChatDataLoading}>
+              {tChatData?.type ?? "supergroup"}
+            </Skeleton>
+          }
+        >
+          <Skeleton visible={isDChatDataLoading}>
+            {dchatData?.title ?? "bananasplitz"}
+          </Skeleton>
+        </Cell>
+      </div>
+
+      <Divider />
+
+      <div>
+        <CurrencyNavCell
+          modalOpen={currencyModalOpen}
+          onModalOpen={setCurrencyModalOpen}
+        />
+      </div>
+
+      <Divider />
+
+      {/* Main action button */}
       <Link
-        className="px-4"
+        className="p-4"
         onClick={() => hapticFeedback.impactOccurred("light")}
         to="/chat/$chatId/add-expense"
         params={{
@@ -251,15 +264,8 @@ const GroupPage = () => {
         </Button>
       </Link>
 
-      <Divider />
-      <CurrencyNavCell
-        modalOpen={currencyModalOpen}
-        onModalOpen={setCurrencyModalOpen}
-      />
-      <Divider />
-
       <section
-        className="flex h-screen flex-col pb-16"
+        className="flex h-screen flex-col pb-16 pt-1"
         style={{
           height: `calc(100vh - ${headerRefReal.current?.clientHeight ?? 0}px)`,
         }}
@@ -304,6 +310,7 @@ const GroupPage = () => {
               </div>
             </TabsList.Item>
           </TabsList>
+          <Divider />
         </div>
 
         {/* Transaction banner */}
