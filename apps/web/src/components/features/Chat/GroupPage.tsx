@@ -46,8 +46,8 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const { ref: filterRef, inView } = useInView();
-  const filterRefReal = useRef<HTMLDivElement>(null);
+  const { ref: transactionTopRef, inView } = useInView();
+  const transactionTopRefReal = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -110,7 +110,7 @@ const GroupPage = () => {
 
   const handleScrollToTransactionTop = () => {
     hapticFeedback.impactOccurred("light");
-    filterRefReal.current?.scrollIntoView({
+    transactionTopRefReal.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -363,8 +363,8 @@ const GroupPage = () => {
 
             <div
               ref={(n) => {
-                filterRef(n);
-                filterRefReal.current = n;
+                transactionTopRef(n);
+                transactionTopRefReal.current = n;
               }}
             />
 
