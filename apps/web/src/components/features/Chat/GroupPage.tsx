@@ -46,8 +46,9 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const { ref: tabListRef, inView } = useInView();
-  const tabListRefReal = useRef<HTMLDivElement>(null);
+  const { ref: filterRef, inView } = useInView();
+  const filterRefReal = useRef<HTMLDivElement>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const navigate = routeApi.useNavigate();
@@ -99,9 +100,17 @@ const GroupPage = () => {
     });
   };
 
-  const handleScrollToTop = () => {
+  const handleScrollToScreenTop = () => {
     hapticFeedback.impactOccurred("light");
     topRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const handleScrollToTransactionTop = () => {
+    hapticFeedback.impactOccurred("light");
+    filterRefReal.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -153,7 +162,7 @@ const GroupPage = () => {
   }
 
   return (
-    <main className="flex flex-col">
+    <main className="no-scrollbar flex flex-col">
       {/* Used to scroll screen to top */}
       <div ref={topRef} className="scroll-mt-24" />
 
@@ -265,24 +274,18 @@ const GroupPage = () => {
       </Link>
 
       <section
-        className="flex h-screen flex-col bg-neutral-50 pb-16 pt-1 dark:bg-neutral-900/20"
+        className="flex h-screen flex-col bg-neutral-50 pt-1 dark:bg-neutral-900/20"
         style={{
           height: `calc(100vh - ${headerRefReal.current?.clientHeight ?? 0}px)`,
         }}
       >
         {/* Tab list */}
-        <div
-          ref={(node) => {
-            tabListRef(node);
-            tabListRefReal.current = node;
-          }}
-          className="px-4"
-        >
+        <div className="px-4" ref={tabListRef}>
           <TabsList>
             <TabsList.Item
               onClick={() => {
                 handleSegmentChange("balance");
-                handleScrollToTop();
+                handleScrollToScreenTop();
               }}
               selected={selectedTab === "balance"}
             >
@@ -296,7 +299,7 @@ const GroupPage = () => {
             <TabsList.Item
               onClick={() => {
                 handleSegmentChange("transaction");
-                tabListRefReal.current?.scrollIntoView({
+                tabListRef.current?.scrollIntoView({
                   behavior: "smooth",
                   inline: "start",
                 });
@@ -312,51 +315,66 @@ const GroupPage = () => {
             </TabsList.Item>
           </TabsList>
         </div>
-        <Divider />
 
-        {/* Transaction banner */}
-        <div
-          className={cn(
-            "fixed left-0 z-20 w-full shadow",
-            inView ? "invisible" : "visible"
-          )}
-          style={{
-            top: isMobile
-              ? `${headerRefReal.current?.getBoundingClientRect().height}px`
-              : 0,
-            backgroundColor: tSectionBgColor,
-          }}
-        >
-          <Cell
-            before={
-              <button
-                className="text-3xl"
-                onClick={() => setCurrencyModalOpen(true)}
-              >
-                {selectedCurrencyInfo?.flagEmoji ?? "🌏"}
-              </button>
-            }
-            after={
-              <button onClick={() => setTransactionFilterOpen(true)}>
-                <Navigation>Filters</Navigation>
-              </button>
-            }
-            description="Transactions"
-          >
-            {formatMonthYear(new Date(currentSection ?? 0))}
-          </Cell>
-          <Divider />
-        </div>
+        <Divider />
 
         {/* Render selected tab */}
         {selectedTab === "balance" && <ChatBalanceTab chatId={chatId} />}
         {selectedTab === "transaction" && (
-          <ChatTransactionTab
-            chatId={chatId}
-            filtersOpen={transctionFilterOpen}
-            onFiltersOpen={setTransactionFilterOpen}
-            setSectionsInView={setSectionsInView}
-          />
+          <div
+            className="relative flex-1 overflow-y-auto"
+            style={{
+              height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
+            }}
+          >
+            {/* Transaction banner */}
+            <div
+              className={cn(
+                "fixed left-0 z-20 w-full shadow",
+                inView ? "invisible" : "visible"
+              )}
+              style={{
+                top: isMobile
+                  ? `${headerRefReal.current?.getBoundingClientRect().height}px`
+                  : 0,
+                backgroundColor: tSectionBgColor,
+              }}
+            >
+              <Cell
+                before={
+                  <button
+                    className="text-3xl"
+                    onClick={() => setCurrencyModalOpen(true)}
+                  >
+                    {selectedCurrencyInfo?.flagEmoji ?? "🌏"}
+                  </button>
+                }
+                after={
+                  <button onClick={() => setTransactionFilterOpen(true)}>
+                    <Navigation>Filters</Navigation>
+                  </button>
+                }
+                description="Transactions"
+              >
+                {formatMonthYear(new Date(currentSection ?? 0))}
+              </Cell>
+              <Divider />
+            </div>
+
+            <div
+              ref={(n) => {
+                filterRef(n);
+                filterRefReal.current = n;
+              }}
+            />
+
+            <ChatTransactionTab
+              chatId={chatId}
+              filtersOpen={transctionFilterOpen}
+              onFiltersOpen={setTransactionFilterOpen}
+              setSectionsInView={setSectionsInView}
+            />
+          </div>
         )}
       </section>
 
@@ -370,7 +388,11 @@ const GroupPage = () => {
         }}
       >
         {!inView && (
-          <IconButton size="s" onClick={handleScrollToTop} mode="gray">
+          <IconButton
+            size="s"
+            onClick={handleScrollToTransactionTop}
+            mode="gray"
+          >
             <ChevronUp />
           </IconButton>
         )}
