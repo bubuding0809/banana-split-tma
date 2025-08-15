@@ -265,7 +265,7 @@ const GroupPage = () => {
       </Link>
 
       <section
-        className="flex h-screen flex-col pb-16 pt-1"
+        className="flex h-screen flex-col bg-neutral-50 pb-16 pt-1 dark:bg-neutral-900/20"
         style={{
           height: `calc(100vh - ${headerRefReal.current?.clientHeight ?? 0}px)`,
         }}
@@ -276,6 +276,7 @@ const GroupPage = () => {
             tabListRef(node);
             tabListRefReal.current = node;
           }}
+          className="px-4"
         >
           <TabsList>
             <TabsList.Item
@@ -310,8 +311,8 @@ const GroupPage = () => {
               </div>
             </TabsList.Item>
           </TabsList>
-          <Divider />
         </div>
+        <Divider />
 
         {/* Transaction banner */}
         <div
