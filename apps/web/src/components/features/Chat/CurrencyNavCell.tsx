@@ -20,7 +20,7 @@ import {
   ButtonCell,
   IconButton,
 } from "@telegram-apps/telegram-ui";
-import { ArrowLeftRight, RefreshCw, X } from "lucide-react";
+import { ArrowUpDown, ChevronsUpDown, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -233,18 +233,13 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
 
   return (
     <>
-      <div className="px-2">
+      <div className="py-1">
         <Cell
           before={
             <Skeleton visible={getCurrenciesStatus === "pending"}>
               <span className="text-3xl">
                 {selectedCurrencyInfo?.flagEmoji ?? "🌏"}
               </span>
-            </Skeleton>
-          }
-          subtitle={
-            <Skeleton visible={getCurrenciesStatus === "pending"}>
-              {selectedCurrencyInfo?.code ?? "SGD"}
             </Skeleton>
           }
           after={
@@ -260,7 +255,7 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
                 </AvatarStackTruncated>
               }
             >
-              <RefreshCw size={20} />
+              <ChevronsUpDown size={20} />
             </Info>
           }
           onClick={() => onModalOpen(true)}
@@ -274,7 +269,7 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
           chatData?.baseCurrency &&
           selectedCurrency !== chatData.baseCurrency && (
             <ButtonCell
-              before={<ArrowLeftRight />}
+              before={<ArrowUpDown size={20} />}
               onClick={handleConvertCurrency}
             >
               {convertCurrencyMutation.isPending
