@@ -215,7 +215,7 @@ const GroupPage = () => {
           }
           subtitle={
             <Skeleton visible={isDChatDataLoading}>
-              {tChatData?.type ?? "supergroup"}
+              {dchatData?.members.length ?? 0} members
             </Skeleton>
           }
         >
