@@ -10,10 +10,14 @@ import {
 } from "react";
 import {
   Caption,
+  Cell,
   Divider,
+  Info,
   Placeholder,
   Section,
+  Skeleton,
   Subheadline,
+  Text,
 } from "@telegram-apps/telegram-ui";
 import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { trpc } from "@utils/trpc";
@@ -23,6 +27,7 @@ import ChatSettlementCell from "./ChatSettlementCell";
 import { useSearch } from "@tanstack/react-router";
 import { useTransactionGrouping } from "@/hooks/useTransactionGrouping";
 import { CombinedTransaction } from "@/types/transaction.types";
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface VirtualizedCombinedTransactionSegmentProps {
   chatId: number;
@@ -193,6 +198,63 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
   // Check if both arrays are empty (not loading and no data)
   const hasNoTransactions =
     !isLoading && (expenses?.length || 0) + (settlements?.length || 0) === 0;
+
+  if (isLoading) {
+    return (
+      <ul className="p-2">
+        <div className="p-2">
+          <Skeleton visible>
+            <Text>Loading</Text>
+          </Skeleton>
+        </div>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <>
+            <Cell
+              key={i}
+              before={<ChatMemberAvatar userId={398} size={48} />}
+              subhead={
+                <Skeleton visible>
+                  <Caption weight="1" level="1">
+                    Loading
+                  </Caption>
+                </Skeleton>
+              }
+              description={
+                <Skeleton visible>
+                  <Caption weight="1" level="2">
+                    Loading
+                  </Caption>
+                </Skeleton>
+              }
+              after={
+                <Info
+                  avatarStack={
+                    <Skeleton visible>
+                      <Info type="text">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <Caption className="w-max" weight="2">
+                            Loading
+                          </Caption>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xl">💰</span>
+                            <span className="pe-0.5">▶︎</span>
+                          </div>
+                        </div>
+                      </Info>
+                    </Skeleton>
+                  }
+                  type="avatarStack"
+                />
+              }
+            >
+              <Skeleton visible>Loading</Skeleton>
+            </Cell>
+            <Divider />
+          </>
+        ))}
+      </ul>
+    );
+  }
 
   if (hasNoTransactions) {
     return (
