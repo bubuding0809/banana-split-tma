@@ -96,18 +96,6 @@ export const getSimplifiedDebtsHandler = async (
     }
   }
 
-  // Verify conservation of money principle (sum should be close to zero)
-  const totalBalance = Array.from(memberBalances.values()).reduce(
-    (sum, balance) => sum + balance,
-    0
-  );
-
-  // Debug logging in development
-  if (process.env.NODE_ENV === "development") {
-    console.log("Total balance after calculation:", totalBalance);
-    console.log("Member balances:", Array.from(memberBalances.entries()));
-  }
-
   // Count original debt relationships (non-zero balances)
   let originalDebtCount = 0;
   for (const [, balance] of memberBalances) {
@@ -119,22 +107,8 @@ export const getSimplifiedDebtsHandler = async (
   // Simplify debts
   const simplifiedDebts = simplifyDebts(memberBalances);
 
-  // Validate the simplification with comprehensive debugging
-  const isValid = validateDebtSimplification(memberBalances, simplifiedDebts);
-  if (!isValid) {
-    console.error("❌ Debt simplification validation failed");
-    console.error("Total balance check:", totalBalance);
-    console.error("Original balances:", Array.from(memberBalances.entries()));
-    console.error("Simplified debts:", simplifiedDebts);
-
-    // For now, let's allow the response to go through even if validation fails
-    // This will help us debug what's happening
-    console.warn(
-      "⚠️ Proceeding despite validation failure for debugging purposes"
-    );
-  } else {
-    console.log("✅ Debt simplification validation passed");
-  }
+  // Validate the simplification
+  validateDebtSimplification(memberBalances, simplifiedDebts);
 
   // Calculate transaction reduction
   const transactionReduction = calculateTransactionReduction(
