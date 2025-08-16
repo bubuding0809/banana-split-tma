@@ -31,7 +31,7 @@ import {
   Link as LucideLink,
   SlidersHorizontal,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
@@ -100,7 +100,7 @@ interface ChatTransactionTabProps {
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedCurrency } = routeApi.useSearch();
+  const { selectedCurrency, selectedExpense } = routeApi.useSearch();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tSecondaryBackgroundColor = useSignal(
     themeParams.secondaryBackgroundColor
@@ -130,6 +130,16 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout | undefined;
+    if (selectedExpense) {
+      timeout = setTimeout(() => {
+        virtualizedRef.current?.scrollToTransaction(selectedExpense ?? "");
+      }, 100);
+    }
+    return () => clearTimeout(timeout);
+  }, [selectedExpense]);
 
   const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     hapticFeedback.selectionChanged();

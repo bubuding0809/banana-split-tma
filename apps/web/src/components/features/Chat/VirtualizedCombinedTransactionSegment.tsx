@@ -173,7 +173,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       // Scroll to the transaction using virtualizer
       virtualizer.scrollToIndex(index, {
         align: "start",
-        behavior: "smooth",
+        behavior: "auto",
       });
 
       return true;
