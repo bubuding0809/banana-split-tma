@@ -16,27 +16,18 @@ import {
   Spinner,
   TabsList,
   Skeleton,
-  IconButton,
 } from "@telegram-apps/telegram-ui";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
-import {
-  Aperture,
-  ArrowRightLeft,
-  ChevronUp,
-  FileSpreadsheet,
-  Plus,
-  Settings,
-} from "lucide-react";
+import { ArrowRightLeft, FileSpreadsheet, Plus, Settings } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
 import CurrencyNavCell from "./CurrencyNavCell";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
-import { compareDatesDesc, formatMonthYear } from "@/utils/date";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -46,7 +37,6 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const { ref: transactionTopRef, inView } = useInView();
   const transactionTopRefReal = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
@@ -62,16 +52,13 @@ const GroupPage = () => {
 
   // * State =======================================================================================
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
-  const [sectionsInView, setSectionsInView] = useState<string[]>([]);
-  const [transctionFilterOpen, setTransactionFilterOpen] = useState(false);
 
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
   const chatId = tStartParams?.chat_id ?? 0;
 
   // * Queries =====================================================================================
-  const { data: supportedCurrencies } =
-    trpc.currency.getSupportedCurrencies.useQuery({});
+
   const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId });
   const { data: dchatData, isLoading: isDChatDataLoading } =
     trpc.chat.getChat.useQuery({
@@ -108,14 +95,6 @@ const GroupPage = () => {
     });
   };
 
-  const handleScrollToTransactionTop = () => {
-    hapticFeedback.impactOccurred("light");
-    transactionTopRefReal.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
   // Ensure user is a member of the chat
   const { isPending: isEnsuringChatMember, data: ensureChatMemberData } =
     useEnsureChatMember(
@@ -125,21 +104,6 @@ const GroupPage = () => {
       },
       { enabled: userId !== 0 && chatId !== 0 }
     );
-
-  const selectedCurrencyInfo = useMemo(() => {
-    if (!supportedCurrencies || !selectedCurrency) {
-      return null;
-    }
-    return supportedCurrencies.find(
-      (currency) => currency.code === selectedCurrency
-    );
-  }, [supportedCurrencies, selectedCurrency]);
-
-  const currentSection = useMemo(() => {
-    return sectionsInView
-      .sort((a, b) => compareDatesDesc(new Date(a), new Date(b)))
-      .at(0);
-  }, [sectionsInView]);
 
   if (isDChatDataLoading) {
     return (
@@ -327,100 +291,12 @@ const GroupPage = () => {
               height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
             }}
           >
-            {/* Transaction banner */}
-            <div
-              className={cn(
-                "fixed left-0 z-20 w-full shadow",
-                inView ? "invisible" : "visible"
-              )}
-              style={{
-                top: isMobile
-                  ? `${headerRefReal.current?.getBoundingClientRect().height}px`
-                  : 0,
-                backgroundColor: tSectionBgColor,
-              }}
-            >
-              <Cell
-                before={
-                  <button
-                    className="text-3xl"
-                    onClick={() => setCurrencyModalOpen(true)}
-                  >
-                    {selectedCurrencyInfo?.flagEmoji ?? "🌏"}
-                  </button>
-                }
-                after={
-                  <button onClick={() => setTransactionFilterOpen(true)}>
-                    <Navigation>Filters</Navigation>
-                  </button>
-                }
-                description="Transactions"
-              >
-                {formatMonthYear(new Date(currentSection ?? 0))}
-              </Cell>
-              <Divider />
-            </div>
+            <div ref={transactionTopRefReal} />
 
-            <div
-              ref={(n) => {
-                transactionTopRef(n);
-                transactionTopRefReal.current = n;
-              }}
-            />
-
-            <ChatTransactionTab
-              chatId={chatId}
-              filtersOpen={transctionFilterOpen}
-              onFiltersOpen={setTransactionFilterOpen}
-              setSectionsInView={setSectionsInView}
-            />
+            <ChatTransactionTab chatId={chatId} />
           </div>
         )}
       </section>
-
-      <div
-        className={cn(
-          "fixed bottom-10 right-5 flex flex-col gap-2 rounded-full p-1 shadow transition-transform",
-          selectedTab === "transaction" ? "translate-x-0" : "translate-x-20"
-        )}
-        style={{
-          backgroundColor: tSecondaryBgColor,
-        }}
-      >
-        {!inView && (
-          <IconButton
-            size="s"
-            onClick={handleScrollToTransactionTop}
-            mode="gray"
-          >
-            <ChevronUp />
-          </IconButton>
-        )}
-
-        {/* Snapshots */}
-        <Link
-          onClick={() => hapticFeedback.impactOccurred("light")}
-          to="/chat/$chatId/snapshots"
-          params={{
-            chatId: chatId.toString(),
-          }}
-          search={{
-            selectedCurrency: selectedCurrency || "SGD",
-            title: "📸 Snapshots",
-          }}
-        >
-          {/* Scroll to top button */}
-          <IconButton
-            size="s"
-            style={{
-              backgroundColor: tButtonColor,
-              color: tButtonTextColor,
-            }}
-          >
-            <Aperture />
-          </IconButton>
-        </Link>
-      </div>
     </main>
   );
 };

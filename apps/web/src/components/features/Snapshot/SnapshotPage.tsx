@@ -82,6 +82,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
           ...prev,
           selectedTab: "transaction",
           selectedCurrency,
+          title: "",
         }),
       });
     });

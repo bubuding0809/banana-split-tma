@@ -11,7 +11,7 @@ export const formatExpenseDate = (date: Date): string => {
  * Format a date for short display (used in expense cells)
  */
 export const formatExpenseDateShort = (date: Date): string => {
-  return format(date, "MMM d");
+  return format(date, "do MMM");
 };
 
 /**

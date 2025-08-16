@@ -1,32 +1,39 @@
 import {
+  Badge,
   ButtonCell,
   Cell,
   Divider,
   IconButton,
   Modal,
+  Navigation,
   Section,
   SectionProps,
+  Skeleton,
   Switch,
   Title,
 } from "@telegram-apps/telegram-ui";
-import ChatCombinedTransactionSegment from "./ChatCombinedTransactionSegment";
+import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
 import {
   hapticFeedback,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import {
+  Aperture,
   ArrowLeft,
-  CalendarArrowDown,
   CalendarArrowUp,
   DollarSign,
-  Link,
   X,
+  Link as LucideLink,
+  SlidersHorizontal,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
+import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
+import { trpc } from "@/utils/trpc";
+import { formatMonthYear } from "@/utils/date";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -66,7 +73,7 @@ const FilterSection = ({
       Component="label"
       before={
         <span className="rounded-lg bg-blue-500 p-1.5">
-          <Link size={20} color="white" />
+          <LucideLink size={20} color="white" />
         </span>
       }
       after={
@@ -81,17 +88,10 @@ const FilterSection = ({
 
 interface ChatTransactionTabProps {
   chatId: number;
-  setSectionsInView: React.Dispatch<React.SetStateAction<string[]>>;
-  filtersOpen: boolean;
-  onFiltersOpen: (open: boolean) => void;
 }
 
-const ChatTransactionTab = ({
-  chatId,
-  setSectionsInView,
-  filtersOpen,
-  onFiltersOpen,
-}: ChatTransactionTabProps) => {
+const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
+  const { selectedCurrency } = routeApi.useSearch();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const { showPayments, relatedOnly } = routeApi.useSearch();
@@ -108,8 +108,17 @@ const ChatTransactionTab = ({
       dates: { key: string; display: string; transactionIds: string[] }[];
     }[]
   >([]);
+  const [sectionsInView, setSectionsInView] = useState<string[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const { data: snapShots, status: snapShotsStatus } =
+    trpc.snapshot.getByChat.useQuery({
+      chatId,
+      currency: selectedCurrency,
+    });
 
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
+  const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
   const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     hapticFeedback.selectionChanged();
@@ -134,10 +143,10 @@ const ChatTransactionTab = ({
   };
 
   // For main FilterSection (outside modal) - opens standalone modal
-  const handleJumpToDateStandalone = () => {
-    hapticFeedback.impactOccurred("light");
-    setJumpToDateModalOpen(true);
-  };
+  // const handleJumpToDateStandalone = () => {
+  //   hapticFeedback.impactOccurred("light");
+  //   setJumpToDateModalOpen(true);
+  // };
 
   // For modal FilterSection (inside modal) - transitions modal content
   const handleJumpToDateTransition = () => {
@@ -150,7 +159,7 @@ const ChatTransactionTab = ({
     setModalView("filters");
   };
 
-  const handleDateSelect = (dateKey: string) => {
+  const handleDateSelect = async (dateKey: string) => {
     if (!dateKey) return;
 
     // Find the transaction IDs for this date across all months
@@ -163,7 +172,7 @@ const ChatTransactionTab = ({
       if (selectedDate) break;
     }
 
-    if (!selectedDate) return;
+    if (!selectedDate || selectedDate.transactionIds.length === 0) return;
 
     hapticFeedback.selectionChanged();
 
@@ -171,53 +180,77 @@ const ChatTransactionTab = ({
     if (jumpToDateModalOpen) {
       setJumpToDateModalOpen(false);
     } else {
-      onFiltersOpen(false);
+      setFiltersOpen(false);
     }
 
-    // Highlight all transactions for the selected date with scroll to first
-    highlightTransactions(selectedDate.transactionIds, true);
+    // Use virtual scrolling if available, otherwise fallback to DOM scrolling
+    const firstTransactionId = selectedDate.transactionIds[0];
+    const scrollSuccess =
+      await virtualizedRef.current?.scrollToTransaction(firstTransactionId);
+
+    if (scrollSuccess) {
+      // Wait for virtual elements to be rendered, then highlight
+      setTimeout(() => {
+        highlightTransactions(selectedDate!.transactionIds, false);
+        setSectionsInView([selectedDate.key]);
+      }, 800);
+    } else {
+      // Fallback to original highlighting with scroll
+      highlightTransactions(selectedDate.transactionIds, true);
+    }
   };
 
+  const currentSection = useMemo(() => {
+    return sectionsInView.at(0) || monthGroupedData[0]?.monthKey;
+  }, [monthGroupedData, sectionsInView]);
+
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex h-full flex-col">
       {/* Tranction filters section */}
-      <div>
-        <Cell
-          Component="label"
-          before={
-            <span className="rounded-lg bg-green-500 p-1.5">
-              <DollarSign size={20} color="white" />
-            </span>
-          }
-          after={
-            <Switch checked={showPayments} onChange={handlePaymentsToggle} />
-          }
-          description="Hide or show payment records"
+      <div className="shadow">
+        <Link
+          onClick={() => hapticFeedback.impactOccurred("light")}
+          to="/chat/$chatId/snapshots"
+          params={{
+            chatId: chatId.toString(),
+          }}
+          search={{
+            selectedCurrency: selectedCurrency || "SGD",
+            title: "📸 Snapshots",
+          }}
         >
-          Show Payments
-        </Cell>
+          <Cell
+            Component="label"
+            before={
+              <span className="rounded-lg bg-red-600 p-1.5">
+                <Aperture size={20} color="white" />
+              </span>
+            }
+            after={
+              <Skeleton visible={snapShotsStatus === "pending"}>
+                <Navigation>
+                  <Badge type="number">{snapShots?.length}</Badge>
+                </Navigation>
+              </Skeleton>
+            }
+            description="See what you spent here"
+          >
+            Snapshots
+          </Cell>
+        </Link>
         <Divider />
         <Cell
-          Component="label"
-          before={
-            <span className="rounded-lg bg-blue-500 p-1.5">
-              <Link size={20} color="white" />
-            </span>
-          }
+          Component={"label"}
+          before={<SlidersHorizontal size={20} color="white" />}
           after={
-            <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+            <button onClick={() => setFiltersOpen(true)}>
+              <Navigation>Filters</Navigation>
+            </button>
           }
-          description="Show only related transactions"
         >
-          Related Only
+          {formatMonthYear(new Date(currentSection ?? 0))}
         </Cell>
         <Divider />
-        <ButtonCell
-          before={<CalendarArrowDown size={20} />}
-          onClick={handleJumpToDateStandalone}
-        >
-          Jump to date
-        </ButtonCell>
       </div>
 
       {/* Enhanced filters modal with content transitions */}
@@ -272,7 +305,7 @@ const ChatTransactionTab = ({
           if (!open) {
             setModalView("filters"); // Reset view when modal closes
           }
-          onFiltersOpen(open);
+          setFiltersOpen(open);
         }}
       >
         <div className="min-h-64 pb-10">
@@ -332,7 +365,8 @@ const ChatTransactionTab = ({
         </div>
       </Modal>
 
-      <ChatCombinedTransactionSegment
+      <VirtualizedCombinedTransactionSegment
+        ref={virtualizedRef}
         chatId={chatId}
         setSectionsInView={setSectionsInView}
         showPayments={showPayments}
