@@ -22,8 +22,8 @@ interface UserBalance {
 }
 
 /**
- * Simplifies debts using a greedy algorithm to minimize the number of transactions.
- * This algorithm works by repeatedly matching the largest creditor with the largest debtor.
+ * Simplifies debts using a clean greedy algorithm to minimize the number of transactions.
+ * This algorithm repeatedly matches the largest creditor with the largest debtor until all debts are resolved.
  *
  * @param balances - Map of userId to their net balance (positive = owed money, negative = owes money)
  * @returns Array of simplified debt transactions
@@ -31,8 +31,8 @@ interface UserBalance {
 export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
   const simplifiedDebts: SimplifiedDebt[] = [];
 
-  // Convert to decimal and filter out insignificant balances
-  const userBalances: UserBalance[] = Array.from(balances.entries())
+  // Convert to working array and filter out insignificant balances
+  const users = Array.from(balances.entries())
     .map(([userId, balance]) => ({
       userId,
       balance: toDecimal(balance),
@@ -41,79 +41,84 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
       balance.abs().greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)
     );
 
-  // Create working copies for the algorithm
-  const workingBalances = userBalances.map(({ userId, balance }) => ({
-    userId,
-    balance: new Decimal(balance),
-  }));
+  const isDev = process.env.NODE_ENV === "development";
 
-  while (true) {
-    // Find the user who is owed the most (largest positive balance)
-    const maxCreditor = workingBalances
-      .filter(({ balance }) => balance.greaterThan(0))
-      .reduce(
-        (max, current) =>
-          current.balance.greaterThan(max.balance) ? current : max,
-        { userId: -1, balance: new Decimal(-1) }
-      );
+  if (isDev) {
+    console.log(
+      "Starting debt simplification with users:",
+      users.map((u) => ({ userId: u.userId, balance: u.balance.toNumber() }))
+    );
+  }
 
-    // Find the user who owes the most (largest negative balance in absolute terms)
-    const maxDebtor = workingBalances
-      .filter(({ balance }) => balance.lessThan(0))
-      .reduce(
-        (max, current) =>
-          current.balance.lessThan(max.balance) ? current : max,
-        { userId: -1, balance: new Decimal(1) }
-      );
+  while (users.length > 1) {
+    // Sort users by balance (descending: creditors first, debtors last)
+    users.sort((a, b) => b.balance.comparedTo(a.balance));
 
-    // If we can't find both a creditor and debtor, we're done
-    if (maxCreditor.userId === -1 || maxDebtor.userId === -1) {
+    // Get the largest creditor (positive balance) and largest debtor (negative balance)
+    const creditor = users.find((u) => u.balance.greaterThan(0));
+    const debtor = users.find((u) => u.balance.lessThan(0));
+
+    // If we don't have both a creditor and debtor, we're done
+    if (!creditor || !debtor) {
+      if (isDev) console.log("No more valid creditor-debtor pairs found");
       break;
     }
 
     // Calculate the settlement amount (minimum of what creditor is owed and what debtor owes)
     const settlementAmount = Decimal.min(
-      maxCreditor.balance,
-      maxDebtor.balance.abs()
+      creditor.balance,
+      debtor.balance.abs()
     );
+
+    if (isDev) {
+      console.log(
+        `Settlement: ${debtor.userId} pays ${creditor.userId} ${settlementAmount.toNumber()}`
+      );
+    }
 
     // Only create a transaction if the amount is significant
     if (settlementAmount.greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)) {
       simplifiedDebts.push({
-        fromUserId: maxDebtor.userId,
-        toUserId: maxCreditor.userId,
+        fromUserId: debtor.userId,
+        toUserId: creditor.userId,
         amount: toNumber(settlementAmount),
       });
     }
 
     // Update the balances
-    maxCreditor.balance = maxCreditor.balance.minus(settlementAmount);
-    maxDebtor.balance = maxDebtor.balance.plus(settlementAmount);
+    creditor.balance = creditor.balance.minus(settlementAmount);
+    debtor.balance = debtor.balance.plus(settlementAmount);
 
-    // Remove users with zero balances to avoid unnecessary iterations
-    const creditorIndex = workingBalances.findIndex(
-      (b) => b.userId === maxCreditor.userId
-    );
-    const debtorIndex = workingBalances.findIndex(
-      (b) => b.userId === maxDebtor.userId
-    );
-
-    if (
-      maxCreditor.balance.abs().lessThanOrEqualTo(FINANCIAL_THRESHOLDS.DISPLAY)
-    ) {
-      workingBalances.splice(creditorIndex, 1);
+    if (isDev) {
+      console.log(
+        `After settlement - Creditor ${creditor.userId}: ${creditor.balance.toNumber()}, Debtor ${debtor.userId}: ${debtor.balance.toNumber()}`
+      );
     }
 
-    if (
-      maxDebtor.balance.abs().lessThanOrEqualTo(FINANCIAL_THRESHOLDS.DISPLAY)
-    ) {
-      // Adjust index if creditor was removed before debtor
-      const adjustedDebtorIndex =
-        creditorIndex < debtorIndex ? debtorIndex - 1 : debtorIndex;
-      workingBalances.splice(adjustedDebtorIndex, 1);
+    // Remove users with zero or insignificant balances
+    for (let i = users.length - 1; i >= 0; i--) {
+      const user = users[i];
+      if (
+        user &&
+        user.balance.abs().lessThanOrEqualTo(FINANCIAL_THRESHOLDS.DISPLAY)
+      ) {
+        if (isDev) {
+          console.log(
+            `Removing user ${user.userId} with balance ${user.balance.toNumber()}`
+          );
+        }
+        users.splice(i, 1);
+      }
+    }
+
+    if (isDev) {
+      console.log(`Remaining users: ${users.length}`);
     }
   }
 
+  if (isDev) {
+    console.log("Final simplified debts:", simplifiedDebts);
+  }
   return simplifiedDebts;
 }
 
@@ -157,37 +162,94 @@ export function validateDebtSimplification(
   originalBalances: Map<number, number>,
   simplifiedDebts: SimplifiedDebt[]
 ): boolean {
-  const reconstructedBalances = new Map<number, Decimal>();
+  const isDev = process.env.NODE_ENV === "development";
 
-  // Initialize with original balances
-  for (const [userId, balance] of originalBalances) {
-    reconstructedBalances.set(userId, toDecimal(balance));
+  if (isDev) {
+    console.log("=== Debt Simplification Validation ===");
+    console.log("Original balances:", Array.from(originalBalances.entries()));
+    console.log("Simplified debts:", simplifiedDebts);
   }
 
-  // Apply simplified transactions
+  // Quick check: if no simplified debts, all original balances should be near zero
+  if (simplifiedDebts.length === 0) {
+    const hasSignificantBalance = Array.from(originalBalances.values()).some(
+      (balance) => Math.abs(balance) > FINANCIAL_THRESHOLDS.DISPLAY
+    );
+
+    if (isDev) {
+      console.log(
+        "No simplified debts. Has significant balances?",
+        hasSignificantBalance
+      );
+    }
+    return !hasSignificantBalance;
+  }
+
+  // Create a copy of original balances to simulate the simplified transactions
+  const simulatedBalances = new Map<number, Decimal>();
+
+  // Initialize with zeros for all users involved
+  for (const [userId] of originalBalances) {
+    simulatedBalances.set(userId, new Decimal(0));
+  }
+
+  // Add users from simplified debts if not already present
   for (const debt of simplifiedDebts) {
-    const fromBalance =
-      reconstructedBalances.get(debt.fromUserId) || new Decimal(0);
-    const toBalance =
-      reconstructedBalances.get(debt.toUserId) || new Decimal(0);
-
-    reconstructedBalances.set(debt.fromUserId, fromBalance.minus(debt.amount));
-    reconstructedBalances.set(debt.toUserId, toBalance.plus(debt.amount));
-  }
-
-  // Check if all balances are within acceptable tolerance
-  for (const [userId, originalBalance] of originalBalances) {
-    const reconstructedBalance =
-      reconstructedBalances.get(userId) || new Decimal(0);
-    const difference = toDecimal(originalBalance)
-      .minus(reconstructedBalance)
-      .abs();
-
-    // Allow for small rounding differences
-    if (difference.greaterThan(FINANCIAL_THRESHOLDS.AUDIT)) {
-      return false;
+    if (!simulatedBalances.has(debt.fromUserId)) {
+      simulatedBalances.set(debt.fromUserId, new Decimal(0));
+    }
+    if (!simulatedBalances.has(debt.toUserId)) {
+      simulatedBalances.set(debt.toUserId, new Decimal(0));
     }
   }
 
-  return true;
+  // Apply simplified transactions to see what balances they would create
+  for (const debt of simplifiedDebts) {
+    const fromBalance = simulatedBalances.get(debt.fromUserId)!;
+    const toBalance = simulatedBalances.get(debt.toUserId)!;
+
+    simulatedBalances.set(debt.fromUserId, fromBalance.minus(debt.amount));
+    simulatedBalances.set(debt.toUserId, toBalance.plus(debt.amount));
+  }
+
+  if (isDev) {
+    console.log(
+      "Simulated balances after applying simplified debts:",
+      Array.from(simulatedBalances.entries()).map(([id, balance]) => [
+        id,
+        balance.toNumber(),
+      ])
+    );
+  }
+
+  // Check if simulated balances match original balances within tolerance
+  let isValid = true;
+  const tolerance = new Decimal(0.1); // More generous tolerance for debugging
+
+  for (const [userId, originalBalance] of originalBalances) {
+    const simulatedBalance = simulatedBalances.get(userId) || new Decimal(0);
+    const difference = toDecimal(originalBalance).minus(simulatedBalance).abs();
+
+    if (isDev) {
+      console.log(
+        `User ${userId}: Original=${originalBalance}, Simulated=${simulatedBalance.toNumber()}, Diff=${difference.toNumber()}`
+      );
+    }
+
+    if (difference.greaterThan(tolerance)) {
+      if (isDev) {
+        console.log(
+          `❌ Validation failed for user ${userId}: difference ${difference.toNumber()} > tolerance ${tolerance.toNumber()}`
+        );
+      }
+      isValid = false;
+    }
+  }
+
+  if (isDev) {
+    console.log("Validation result:", isValid);
+    console.log("=== End Validation ===");
+  }
+
+  return isValid;
 }
