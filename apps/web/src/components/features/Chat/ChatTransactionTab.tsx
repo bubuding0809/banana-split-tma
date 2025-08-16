@@ -102,6 +102,9 @@ interface ChatTransactionTabProps {
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const { selectedCurrency } = routeApi.useSearch();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tSecondaryBackgroundColor = useSignal(
+    themeParams.secondaryBackgroundColor
+  );
   const tButtonColor = useSignal(themeParams.buttonColor);
   const { showPayments, relatedOnly } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
@@ -256,17 +259,25 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
               <Text className="text-neutral-500">No filters applied</Text>
             )}
             {showPayments && (
-              <div className="flex items-center gap-1.5 rounded-full p-1 pe-3 dark:bg-neutral-700">
+              <div
+                className="flex items-center gap-1.5 rounded-full p-1 pe-3"
+                style={{
+                  backgroundColor: tSecondaryBackgroundColor,
+                }}
+              >
                 <div className="rounded-full bg-green-500 p-1.5">
                   <DollarSign size={14} color="white" />
                 </div>
-                <Caption weight="2" className="">
-                  Payments
-                </Caption>
+                <Caption weight="2">Payments</Caption>
               </div>
             )}
             {relatedOnly && (
-              <div className="flex items-center gap-1.5 rounded-full p-1 pe-3 dark:bg-neutral-700">
+              <div
+                className="flex items-center gap-1.5 rounded-full p-1 pe-3"
+                style={{
+                  backgroundColor: tSecondaryBackgroundColor,
+                }}
+              >
                 <div className="rounded-full bg-blue-500 p-1.5">
                   <LucideLink size={14} color="white" />
                 </div>
