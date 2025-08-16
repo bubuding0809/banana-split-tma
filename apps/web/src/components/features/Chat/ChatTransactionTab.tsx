@@ -11,6 +11,8 @@ import {
   Skeleton,
   Switch,
   Title,
+  Text,
+  Caption,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
@@ -29,11 +31,10 @@ import {
   Link as LucideLink,
   SlidersHorizontal,
 } from "lucide-react";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
-import { formatMonthYear } from "@/utils/date";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -65,9 +66,13 @@ const FilterSection = ({
         </span>
       }
       after={<Switch checked={showPayments} onChange={handlePaymentsToggle} />}
-      description="Hide or show payment records"
+      description={
+        <Caption className="text-wrap">
+          Include user payments in the transaction list
+        </Caption>
+      }
     >
-      Show Payments
+      Payments
     </Cell>
     <Cell
       Component="label"
@@ -79,9 +84,13 @@ const FilterSection = ({
       after={
         <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
       }
-      description="Show only related transactions"
+      description={
+        <Caption className="text-wrap">
+          Display only transactions that are related to you
+        </Caption>
+      }
     >
-      Related Only
+      Related
     </Cell>
   </Section>
 );
@@ -108,7 +117,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       dates: { key: string; display: string; transactionIds: string[] }[];
     }[]
   >([]);
-  const [sectionsInView, setSectionsInView] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: snapShots, status: snapShotsStatus } =
@@ -192,17 +200,12 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       // Wait for virtual elements to be rendered, then highlight
       setTimeout(() => {
         highlightTransactions(selectedDate!.transactionIds, false);
-        setSectionsInView([selectedDate.key]);
       }, 800);
     } else {
       // Fallback to original highlighting with scroll
       highlightTransactions(selectedDate.transactionIds, true);
     }
   };
-
-  const currentSection = useMemo(() => {
-    return sectionsInView.at(0) || monthGroupedData[0]?.monthKey;
-  }, [monthGroupedData, sectionsInView]);
 
   return (
     <section className="flex h-full flex-col">
@@ -233,7 +236,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 </Navigation>
               </Skeleton>
             }
-            description="See what you spent here"
+            description="See what you have spent"
           >
             Snapshots
           </Cell>
@@ -241,14 +244,36 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         <Divider />
         <Cell
           Component={"label"}
-          before={<SlidersHorizontal size={20} color="white" />}
+          before={<SlidersHorizontal size={20} />}
           after={
-            <button onClick={() => setFiltersOpen(true)}>
+            <button className="w-max" onClick={() => setFiltersOpen(true)}>
               <Navigation>Filters</Navigation>
             </button>
           }
         >
-          {formatMonthYear(new Date(currentSection ?? 0))}
+          <div className="flex gap-2 overflow-auto">
+            {[showPayments, relatedOnly].every((bool) => !bool) && (
+              <Text className="text-neutral-500">No filters applied</Text>
+            )}
+            {showPayments && (
+              <div className="flex items-center gap-1.5 rounded-full p-1 pe-3 dark:bg-neutral-700">
+                <div className="rounded-full bg-green-500 p-1.5">
+                  <DollarSign size={14} color="white" />
+                </div>
+                <Caption weight="2" className="">
+                  Payments
+                </Caption>
+              </div>
+            )}
+            {relatedOnly && (
+              <div className="flex items-center gap-1.5 rounded-full p-1 pe-3 dark:bg-neutral-700">
+                <div className="rounded-full bg-blue-500 p-1.5">
+                  <LucideLink size={14} color="white" />
+                </div>
+                <Caption weight="2">Related</Caption>
+              </div>
+            )}
+          </div>
         </Cell>
         <Divider />
       </div>
@@ -368,7 +393,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       <VirtualizedCombinedTransactionSegment
         ref={virtualizedRef}
         chatId={chatId}
-        setSectionsInView={setSectionsInView}
         showPayments={showPayments}
         onAvailableDatesChange={setMonthGroupedData}
       />

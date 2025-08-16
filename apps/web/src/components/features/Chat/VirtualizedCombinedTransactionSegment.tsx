@@ -21,13 +21,11 @@ import { formatMonthYear } from "@utils/date";
 import ChatExpenseCell from "./ChatExpenseCell";
 import ChatSettlementCell from "./ChatSettlementCell";
 import { useSearch } from "@tanstack/react-router";
-import { InView } from "react-intersection-observer";
 import { useTransactionGrouping } from "@/hooks/useTransactionGrouping";
 import { CombinedTransaction } from "@/types/transaction.types";
 
 interface VirtualizedCombinedTransactionSegmentProps {
   chatId: number;
-  setSectionsInView: React.Dispatch<React.SetStateAction<string[]>>;
   showPayments: boolean;
   onAvailableDatesChange?: (
     monthsData: {
@@ -54,267 +52,240 @@ type VirtualListItem =
 const VirtualizedCombinedTransactionSegment = forwardRef<
   VirtualizedCombinedTransactionSegmentRef,
   VirtualizedCombinedTransactionSegmentProps
->(
-  (
-    { chatId, setSectionsInView, showPayments, onAvailableDatesChange },
-    ref
-  ) => {
-    const { selectedCurrency, relatedOnly } = useSearch({
-      from: "/_tma/chat/$chatId",
-    });
-    const parentRef = useRef<HTMLDivElement>(null);
-    const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
-    const tUserData = useSignal(initData.user);
-    const userId = tUserData?.id ?? 0;
+>(({ chatId, showPayments, onAvailableDatesChange }, ref) => {
+  const { selectedCurrency, relatedOnly } = useSearch({
+    from: "/_tma/chat/$chatId",
+  });
+  const parentRef = useRef<HTMLDivElement>(null);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
 
-    // * Queries =====================================================================================
-    const { data: expenses, isLoading: isExpensesLoading } =
-      trpc.expense.getExpenseByChat.useQuery(
-        {
-          chatId,
-          currency: selectedCurrency,
-        },
-        {
-          enabled: !!selectedCurrency,
-        }
-      );
-
-    const { data: settlements, isLoading: isSettlementsLoading } =
-      trpc.settlement.getSettlementByChat.useQuery(
-        {
-          chatId,
-          currency: selectedCurrency,
-        },
-        {
-          enabled: !!selectedCurrency,
-        }
-      );
-
-    const isLoading = isExpensesLoading || isSettlementsLoading;
-
-    // Use the extracted transaction grouping hook
-    const { groupedTransactions, sortedKeys, monthGroupedData } =
-      useTransactionGrouping({
-        expenses,
-        settlements,
-        showPayments,
-        relatedOnly,
-        userId,
-      });
-
-    // Update available dates when they change
-    useEffect(() => {
-      if (onAvailableDatesChange && monthGroupedData.length > 0) {
-        onAvailableDatesChange(monthGroupedData);
+  // * Queries =====================================================================================
+  const { data: expenses, isLoading: isExpensesLoading } =
+    trpc.expense.getExpenseByChat.useQuery(
+      {
+        chatId,
+        currency: selectedCurrency,
+      },
+      {
+        enabled: !!selectedCurrency,
       }
-    }, [monthGroupedData, onAvailableDatesChange]);
+    );
 
-    // Flatten grouped transactions into virtual list items
-    const virtualItems = useMemo((): VirtualListItem[] => {
-      const items: VirtualListItem[] = [];
-
-      sortedKeys.forEach((key) => {
-        const transactions = groupedTransactions[key];
-        const dateDisplay = formatMonthYear(new Date(key));
-
-        // Add header
-        items.push({
-          type: "header",
-          key: `header-${key}`,
-          dateDisplay,
-        });
-
-        // Add transactions
-        transactions.forEach((transaction) => {
-          items.push({
-            type: "transaction",
-            key: `transaction-${transaction.type}-${transaction.id}`,
-            transaction,
-            monthKey: key,
-          });
-        });
-      });
-
-      return items;
-    }, [sortedKeys, groupedTransactions]);
-
-    // Create virtualizer with dynamic sizing
-    const virtualizer = useVirtualizer({
-      count: virtualItems.length,
-      getScrollElement: () => parentRef.current,
-      estimateSize: (index) => {
-        const item = virtualItems[index];
-        if (!item) return 80;
-
-        // Headers are smaller
-        if (item.type === "header") return 60;
-
-        // Transactions have base height + account for content
-        return 80;
+  const { data: settlements, isLoading: isSettlementsLoading } =
+    trpc.settlement.getSettlementByChat.useQuery(
+      {
+        chatId,
+        currency: selectedCurrency,
       },
-      overscan: 5,
-      getItemKey: (index) => virtualItems[index]?.key ?? index,
+      {
+        enabled: !!selectedCurrency,
+      }
+    );
+
+  const isLoading = isExpensesLoading || isSettlementsLoading;
+
+  // Use the extracted transaction grouping hook
+  const { groupedTransactions, sortedKeys, monthGroupedData } =
+    useTransactionGrouping({
+      expenses,
+      settlements,
+      showPayments,
+      relatedOnly,
+      userId,
     });
 
-    // Stable callback for InView onChange to prevent recreation on each render
-    const handleSectionViewChange = useCallback(
-      (view: boolean, monthKey: string) => {
-        if (view) {
-          setSectionsInView((prev) => [monthKey, ...prev]);
-        } else {
-          setSectionsInView((prev) =>
-            prev.length > 1 && prev[0] === monthKey ? prev.slice(0, -1) : prev
-          );
-        }
-      },
-      [setSectionsInView]
-    );
-
-    // Utility function to find virtual item index from transaction ID
-    const findTransactionIndex = useCallback(
-      (transactionId: string): number => {
-        return virtualItems.findIndex(
-          (item) =>
-            item.type === "transaction" && item.transaction.id === transactionId
-        );
-      },
-      [virtualItems]
-    );
-
-    // Virtual scrolling method exposed via ref
-    const scrollToTransaction = useCallback(
-      async (transactionId: string): Promise<boolean> => {
-        const index = findTransactionIndex(transactionId);
-
-        if (index === -1) {
-          return false;
-        }
-
-        // Scroll to the transaction using virtualizer
-        virtualizer.scrollToIndex(index, {
-          align: "start",
-          behavior: "smooth",
-        });
-
-        return true;
-      },
-      [virtualizer, findTransactionIndex]
-    );
-
-    // Expose methods via ref
-    useImperativeHandle(
-      ref,
-      () => ({
-        scrollToTransaction,
-      }),
-      [scrollToTransaction]
-    );
-
-    // Check if both arrays are empty (not loading and no data)
-    const hasNoTransactions =
-      !isLoading && (expenses?.length || 0) + (settlements?.length || 0) === 0;
-
-    if (hasNoTransactions) {
-      return (
-        <Placeholder
-          className="h-full"
-          header="No transactions yet"
-          description="Created expenses and settlements will appear here"
-        >
-          <img
-            alt="Telegram sticker"
-            src="https://xelene.me/telegram.gif"
-            style={{
-              display: "block",
-              height: "144px",
-              width: "144px",
-            }}
-          />
-        </Placeholder>
-      );
+  // Update available dates when they change
+  useEffect(() => {
+    if (onAvailableDatesChange && monthGroupedData.length > 0) {
+      onAvailableDatesChange(monthGroupedData);
     }
+  }, [monthGroupedData, onAvailableDatesChange]);
 
+  // Flatten grouped transactions into virtual list items
+  const virtualItems = useMemo((): VirtualListItem[] => {
+    const items: VirtualListItem[] = [];
+
+    sortedKeys.forEach((key) => {
+      const transactions = groupedTransactions[key];
+      const dateDisplay = formatMonthYear(new Date(key));
+
+      // Add header
+      items.push({
+        type: "header",
+        key: `header-${key}`,
+        dateDisplay,
+      });
+
+      // Add transactions
+      transactions.forEach((transaction) => {
+        items.push({
+          type: "transaction",
+          key: `transaction-${transaction.type}-${transaction.id}`,
+          transaction,
+          monthKey: key,
+        });
+      });
+    });
+
+    return items;
+  }, [sortedKeys, groupedTransactions]);
+
+  // Create virtualizer with dynamic sizing
+  const virtualizer = useVirtualizer({
+    count: virtualItems.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (index) => {
+      const item = virtualItems[index];
+      if (!item) return 80;
+
+      // Headers are smaller
+      if (item.type === "header") return 60;
+
+      // Transactions have base height + account for content
+      return 80;
+    },
+    overscan: 5,
+    getItemKey: (index) => virtualItems[index]?.key ?? index,
+  });
+
+  // Utility function to find virtual item index from transaction ID
+  const findTransactionIndex = useCallback(
+    (transactionId: string): number => {
+      return virtualItems.findIndex(
+        (item) =>
+          item.type === "transaction" && item.transaction.id === transactionId
+      );
+    },
+    [virtualItems]
+  );
+
+  // Virtual scrolling method exposed via ref
+  const scrollToTransaction = useCallback(
+    async (transactionId: string): Promise<boolean> => {
+      const index = findTransactionIndex(transactionId);
+
+      if (index === -1) {
+        return false;
+      }
+
+      // Scroll to the transaction using virtualizer
+      virtualizer.scrollToIndex(index, {
+        align: "start",
+        behavior: "smooth",
+      });
+
+      return true;
+    },
+    [virtualizer, findTransactionIndex]
+  );
+
+  // Expose methods via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToTransaction,
+    }),
+    [scrollToTransaction]
+  );
+
+  // Check if both arrays are empty (not loading and no data)
+  const hasNoTransactions =
+    !isLoading && (expenses?.length || 0) + (settlements?.length || 0) === 0;
+
+  if (hasNoTransactions) {
     return (
-      <div
-        ref={parentRef}
-        className="h-full overflow-auto p-2 shadow-inner"
-        style={{
-          contain: "strict",
-          scrollbarWidth: "thin",
-        }}
+      <Placeholder
+        className="h-full"
+        header="No transactions yet"
+        description="Created expenses and settlements will appear here"
       >
-        <div
+        <img
+          alt="Telegram sticker"
+          src="https://xelene.me/telegram.gif"
           style={{
-            height: virtualizer.getTotalSize(),
-            width: "100%",
-            position: "relative",
+            display: "block",
+            height: "144px",
+            width: "144px",
           }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const item = virtualItems[virtualItem.index];
-            if (!item) return null;
-
-            return (
-              <div
-                key={virtualItem.key}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                {item.type === "header" ? (
-                  <InView
-                    onChange={(view) => {
-                      // Extract month key from header key
-                      const monthKey = item.key.replace("header-", "");
-                      handleSectionViewChange(view, monthKey);
-                    }}
-                    className="mt-2"
-                  >
-                    <div data-month-key={item.key.replace("header-", "")}>
-                      <Section
-                        header={
-                          <div className="p-2 px-4">
-                            <Subheadline weight="2">
-                              {item.dateDisplay}
-                            </Subheadline>
-                          </div>
-                        }
-                      />
-                    </div>
-                  </InView>
-                ) : (
-                  <>
-                    <Divider />
-                    <VirtualTransactionItem
-                      transaction={item.transaction}
-                      monthKey={item.monthKey}
-                    />
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <Divider />
-        <footer className="flex h-16 items-center justify-center">
-          <Caption
-            style={{
-              color: tSubtitleTextColor,
-            }}
-          >
-            Thats all the transactions!
-          </Caption>
-        </footer>
-      </div>
+        />
+      </Placeholder>
     );
   }
-);
+
+  return (
+    <div
+      ref={parentRef}
+      className="h-full overflow-auto p-2 shadow-inner"
+      style={{
+        contain: "strict",
+        scrollbarWidth: "thin",
+      }}
+    >
+      <div
+        style={{
+          height: virtualizer.getTotalSize(),
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualItem) => {
+          const item = virtualItems[virtualItem.index];
+          if (!item) return null;
+
+          return (
+            <div
+              key={virtualItem.key}
+              data-index={virtualItem.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              {item.type === "header" ? (
+                <div
+                  className="mt-2"
+                  data-month-key={item.key.replace("header-", "")}
+                >
+                  <Section
+                    header={
+                      <div className="p-2 px-4">
+                        <Subheadline weight="2">{item.dateDisplay}</Subheadline>
+                      </div>
+                    }
+                  />
+                </div>
+              ) : (
+                <>
+                  <Divider />
+                  <VirtualTransactionItem
+                    transaction={item.transaction}
+                    monthKey={item.monthKey}
+                  />
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <Divider />
+      <footer className="flex h-16 items-center justify-center">
+        <Caption
+          style={{
+            color: tSubtitleTextColor,
+          }}
+        >
+          Thats all the transactions!
+        </Caption>
+      </footer>
+    </div>
+  );
+});
 
 VirtualizedCombinedTransactionSegment.displayName =
   "VirtualizedCombinedTransactionSegment";
