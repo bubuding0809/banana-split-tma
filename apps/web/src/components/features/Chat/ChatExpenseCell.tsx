@@ -15,7 +15,7 @@ import {
   Text,
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
@@ -50,6 +50,14 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   );
 
   const userId = tUserData?.id ?? 0;
+
+  // * Effects =====================================================================================
+  useEffect(() => {
+    return () => {
+      offMainButtonClickRef.current?.();
+      offSecondaryButtonClickRef.current?.();
+    };
+  }, []);
 
   // * Queries =====================================================================================
   const { data: expenseDetails, isLoading: isExpenseDetailsLoading } =
