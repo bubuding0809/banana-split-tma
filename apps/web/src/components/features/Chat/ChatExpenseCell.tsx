@@ -15,7 +15,7 @@ import {
   Text,
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
@@ -50,23 +50,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   );
 
   const userId = tUserData?.id ?? 0;
-
-  // Cleanup main and secondary buttons when the component unmounts
-  useEffect(() => {
-    return () => {
-      mainButton.setParams({
-        isVisible: false,
-        isEnabled: false,
-      });
-      secondaryButton.setParams({
-        isVisible: false,
-        isEnabled: false,
-      });
-
-      offMainButtonClickRef.current?.();
-      offSecondaryButtonClickRef.current?.();
-    };
-  }, []);
 
   // * Queries =====================================================================================
   const { data: expenseDetails, isLoading: isExpenseDetailsLoading } =
@@ -340,7 +323,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         member={member}
         isMemberLoading={isMemberLoading}
         expenseDetails={expenseDetails}
-        isExpenseDetailsLoading={isExpenseDetailsLoading}
         userId={userId}
       />
     </>

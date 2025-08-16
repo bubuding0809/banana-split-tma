@@ -101,7 +101,6 @@ interface ExpenseDetailsModalProps {
   expenseDetails:
     | inferRouterOutputs<AppRouter>["expense"]["getExpenseDetails"]
     | undefined;
-  isExpenseDetailsLoading: boolean;
   userId: number;
 }
 
