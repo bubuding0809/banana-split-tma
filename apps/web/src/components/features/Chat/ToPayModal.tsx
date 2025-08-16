@@ -72,6 +72,10 @@ const ToPayModal = ({
           chatId,
           userId,
         });
+        trpcUtils.chat.getSimplifiedDebts.invalidate({
+          chatId,
+          currency: selectedCurrency ?? "SGD",
+        });
       },
     }
   );

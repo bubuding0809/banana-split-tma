@@ -27,9 +27,14 @@ interface ChatBalanceCellProps {
   >["members"][0] & {
     balance: number;
   };
+  isSimplified?: boolean;
 }
 
-const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
+const ChatBalanceCell = ({
+  chatId,
+  member,
+  isSimplified = false,
+}: ChatBalanceCellProps) => {
   // * Hooks ======================================================================================
   const tUserData = useSignal(initData.user);
   const { selectedCurrency } = routeApi.useSearch();
@@ -63,16 +68,26 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
     });
 
   const { data: netBalance, status: netBalanceStatus } =
-    trpc.chat.getNetShare.useQuery({
-      mainUserId: userId,
-      targetUserId: member.id,
-      chatId,
-      currency: selectedCurrency ?? "SGD",
-    });
+    trpc.chat.getNetShare.useQuery(
+      {
+        mainUserId: userId,
+        targetUserId: member.id,
+        chatId,
+        currency: selectedCurrency ?? "SGD",
+      },
+      {
+        enabled: !isSimplified,
+      }
+    );
+
+  // * Computed Values =============================================================================
+  // Use member.balance when in simplified mode, otherwise use netBalance from query
+  const effectiveBalance = isSimplified ? member.balance : netBalance;
+  const effectiveBalanceStatus = isSimplified ? "success" : netBalanceStatus;
 
   // * Handlers ====================================================================================
   const handleCellClick = () => {
-    if (netBalance === undefined) {
+    if (effectiveBalance === undefined) {
       return hapticFeedback.notificationOccurred.ifAvailable("error");
     }
     hapticFeedback.selectionChanged.ifAvailable();
@@ -81,39 +96,41 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
   };
 
   const BalanceModal =
-    netBalanceStatus === "success"
-      ? netBalance > 0
+    effectiveBalanceStatus === "success" && effectiveBalance !== undefined
+      ? effectiveBalance > 0
         ? ToReceiveModal
         : ToPayModal
       : null;
 
   const convertedBalance = useMemo(() => {
-    if (conversionRateData && netBalance !== undefined) {
-      return toDecimal(netBalance)
+    if (conversionRateData && effectiveBalance !== undefined) {
+      return toDecimal(effectiveBalance)
         .dividedBy(conversionRateData.rate)
         .toNumber();
     }
-    return netBalance;
-  }, [conversionRateData, netBalance]);
+    return effectiveBalance;
+  }, [conversionRateData, effectiveBalance]);
 
   const balanceLabel = (() => {
-    if (netBalanceStatus === "pending") {
+    if (effectiveBalanceStatus === "pending") {
       return "Loading...";
     }
-    if (netBalanceStatus === "error") {
+    if (effectiveBalanceStatus === "error") {
       return "Error";
     }
-    return getBalanceLabel(netBalance);
+    return getBalanceLabel(effectiveBalance);
   })();
 
   const balanceAction = (() => {
-    if (netBalanceStatus === "pending") {
+    if (effectiveBalanceStatus === "pending") {
       return "Loading...";
     }
-    if (netBalanceStatus === "error") {
+    if (effectiveBalanceStatus === "error") {
       return "Error";
     }
-    return netBalance > 0 ? "Remind" : "Settle";
+    return effectiveBalance !== undefined && effectiveBalance > 0
+      ? "Remind"
+      : "Settle";
   })();
 
   return (
@@ -138,11 +155,11 @@ const ChatBalanceCell = ({ chatId, member }: ChatBalanceCellProps) => {
         }
       >
         <Skeleton
-          visible={netBalanceStatus === "pending"}
+          visible={effectiveBalanceStatus === "pending"}
           className="flex flex-col gap-1"
         >
-          <Text className={cn(getBalanceColorClass(netBalance))}>
-            {formatCurrencyWithCode(netBalance, selectedCurrency)}
+          <Text className={cn(getBalanceColorClass(effectiveBalance))}>
+            {formatCurrencyWithCode(effectiveBalance, selectedCurrency)}
           </Text>
         </Skeleton>
       </Cell>
