@@ -76,7 +76,7 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
     if (!newValue) {
       // If disabling, confirm with the user
       const id = await popup.open.ifAvailable({
-        title: "Disable debt simplification?",
+        title: "⚠️ Disable debt simplification?",
         message:
           "Reverting to individual debts might complicate the group's balances, make sure to have consulted with the group before proceeding.",
         buttons: [
@@ -96,9 +96,9 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
     } else {
       // If enabling, confirm with the user
       const id = await popup.open.ifAvailable({
-        title: "Enable debt simplification?",
+        title: "🪄 Enable debt simplification?",
         message:
-          "This will combine all debts into a simplified format, reducing the number of transactions.",
+          "We will peform some magic to reduce the number of payments you have to make, while ensuring the net balances remain the same.",
         buttons: [
           {
             type: "ok",
