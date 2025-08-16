@@ -26,7 +26,7 @@ import ChatTransactionTab from "./ChatTransactionTab";
 import CurrencyNavCell from "./CurrencyNavCell";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -34,12 +34,6 @@ const routeApi = getRouteApi("/_tma/chat/$chatId");
 const GroupPage = () => {
   // * Hooks =======================================================================================
   const { selectedTab, selectedCurrency } = routeApi.useSearch();
-  const { ref: headerRef, inView: headerInView } = useInView({
-    rootMargin: "80px",
-  });
-  const tabListRef = useRef<HTMLDivElement>(null);
-  const headerRefReal = useRef<HTMLElement>(null);
-  const topRef = useRef<HTMLDivElement>(null);
   const navigate = routeApi.useNavigate();
   const tUserData = useSignal(initData.user);
   const tStartParams = useStartParams();
@@ -49,6 +43,14 @@ const GroupPage = () => {
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
   const isMobile = useIsMobile();
 
+  const { ref: headerRef, inView: headerInView } = useInView({
+    rootMargin: "80px",
+  });
+  const firstLoadDoneRef = useRef(false);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const headerRefReal = useRef<HTMLElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+
   // * State =======================================================================================
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
 
@@ -56,15 +58,35 @@ const GroupPage = () => {
   const userId = tUserData?.id ?? 0;
   const chatId = tStartParams?.chat_id ?? 0;
 
-  // * Queries =====================================================================================
+  // * Effects =====================================================================================
+  useEffect(() => {
+    const isFirstLoadDone = firstLoadDoneRef.current;
+    const timeout = setTimeout(() => {
+      if (
+        selectedTab === "transaction" &&
+        tabListRef.current &&
+        !isFirstLoadDone
+      ) {
+        tabListRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest",
+        });
+      }
+      firstLoadDoneRef.current = true;
+    }, 100);
 
+    return () => clearTimeout(timeout);
+  }, [selectedTab]);
+
+  // * Queries =====================================================================================
   const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId });
   const { data: dchatData, isLoading: isDChatDataLoading } =
     trpc.chat.getChat.useQuery({
       chatId,
     });
 
-  const handleSegmentChange = (tab: typeof selectedTab) => {
+  const handleTabChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
     navigate({
       search: (prev) => ({
@@ -247,7 +269,7 @@ const GroupPage = () => {
           <TabsList>
             <TabsList.Item
               onClick={() => {
-                handleSegmentChange("balance");
+                handleTabChange("balance");
                 handleScrollToScreenTop();
               }}
               selected={selectedTab === "balance"}
@@ -261,10 +283,11 @@ const GroupPage = () => {
             </TabsList.Item>
             <TabsList.Item
               onClick={() => {
-                handleSegmentChange("transaction");
+                handleTabChange("transaction");
                 tabListRef.current?.scrollIntoView({
                   behavior: "smooth",
-                  inline: "start",
+                  block: "start",
+                  inline: "nearest",
                 });
               }}
               selected={selectedTab === "transaction"}
