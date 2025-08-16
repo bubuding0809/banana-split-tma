@@ -100,15 +100,16 @@ interface ChatTransactionTabProps {
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedCurrency, selectedExpense } = routeApi.useSearch();
+  const { selectedCurrency, selectedExpense, showPayments, relatedOnly } =
+    routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tSecondaryBackgroundColor = useSignal(
     themeParams.secondaryBackgroundColor
   );
   const tButtonColor = useSignal(themeParams.buttonColor);
-  const { showPayments, relatedOnly } = routeApi.useSearch();
-  const navigate = routeApi.useNavigate();
 
+  const firstLoadDoneRef = useRef(false);
   const [modalView, setModalView] = useState<"filters" | "jumpToDate">(
     "filters"
   );
@@ -132,12 +133,14 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout | undefined;
-    if (selectedExpense) {
-      timeout = setTimeout(() => {
-        virtualizedRef.current?.scrollToTransaction(selectedExpense ?? "");
-      }, 100);
-    }
+    const isFirstLoadDone = firstLoadDoneRef.current;
+    const timeout = setTimeout(() => {
+      if (selectedExpense && virtualizedRef.current && !isFirstLoadDone) {
+        virtualizedRef.current.scrollToTransaction(selectedExpense);
+      }
+      firstLoadDoneRef.current = true;
+    }, 100);
+
     return () => clearTimeout(timeout);
   }, [selectedExpense]);
 

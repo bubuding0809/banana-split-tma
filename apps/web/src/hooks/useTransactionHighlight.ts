@@ -32,7 +32,7 @@ export const useTransactionHighlight = (
     // Remove highlight classes from all transaction elements
     document.querySelectorAll("[data-transaction-id]").forEach((el) => {
       const element = el as HTMLElement;
-      element.classList.remove(...CSS_CLASSES.HIGHLIGHT);
+      element.classList.remove(...CSS_CLASSES.SCROLLTO_HIGHLIGHT);
       element.style.outlineColor = "";
     });
   };
@@ -96,7 +96,7 @@ export const useTransactionHighlight = (
         highlightedElements.push(element);
 
         // Add highlight animation classes
-        element.classList.add(...CSS_CLASSES.HIGHLIGHT);
+        element.classList.add(...CSS_CLASSES.SCROLLTO_HIGHLIGHT);
 
         // Set dynamic outline color from Telegram theme
         (element as HTMLElement).style.outlineColor =
@@ -122,7 +122,7 @@ export const useTransactionHighlight = (
     if (highlightedElements.length > 0) {
       highlightTimeoutRef.current = setTimeout(() => {
         highlightedElements.forEach((element) => {
-          element.classList.remove(...CSS_CLASSES.HIGHLIGHT);
+          element.classList.remove(...CSS_CLASSES.SCROLLTO_HIGHLIGHT);
           (element as HTMLElement).style.outlineColor = "";
         });
         highlightTimeoutRef.current = null;
