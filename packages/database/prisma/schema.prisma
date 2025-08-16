@@ -18,18 +18,19 @@ enum ChatType {
 }
 
 model Chat {
-  id              BigInt            @id
-  title           String
-  photo           String            @default("https://xelene.me/telegram.gif")
-  type            ChatType
-  threadId        BigInt?
-  baseCurrency    String            @default("SGD")
-  members         User[]
-  expenses        Expense[]
-  transfers       Settlement[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  ExpenseSnapshot ExpenseSnapshot[]
+  id                         BigInt            @id
+  title                      String
+  photo                      String            @default("https://xelene.me/telegram.gif")
+  type                       ChatType
+  threadId                   BigInt?
+  baseCurrency               String            @default("SGD")
+  debtSimplificationEnabled  Boolean           @default(false)
+  members                    User[]
+  expenses                   Expense[]
+  transfers                  Settlement[]
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+  ExpenseSnapshot            ExpenseSnapshot[]
 }
 
 model User {
