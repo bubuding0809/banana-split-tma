@@ -41,15 +41,6 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
       balance.abs().greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)
     );
 
-  const isDev = process.env.NODE_ENV === "development";
-
-  if (isDev) {
-    console.log(
-      "Starting debt simplification with users:",
-      users.map((u) => ({ userId: u.userId, balance: u.balance.toNumber() }))
-    );
-  }
-
   while (users.length > 1) {
     // Sort users by balance (descending: creditors first, debtors last)
     users.sort((a, b) => b.balance.comparedTo(a.balance));
@@ -60,7 +51,6 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
 
     // If we don't have both a creditor and debtor, we're done
     if (!creditor || !debtor) {
-      if (isDev) console.log("No more valid creditor-debtor pairs found");
       break;
     }
 
@@ -69,12 +59,6 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
       creditor.balance,
       debtor.balance.abs()
     );
-
-    if (isDev) {
-      console.log(
-        `Settlement: ${debtor.userId} pays ${creditor.userId} ${settlementAmount.toNumber()}`
-      );
-    }
 
     // Only create a transaction if the amount is significant
     if (settlementAmount.greaterThan(FINANCIAL_THRESHOLDS.DISPLAY)) {
@@ -89,12 +73,6 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
     creditor.balance = creditor.balance.minus(settlementAmount);
     debtor.balance = debtor.balance.plus(settlementAmount);
 
-    if (isDev) {
-      console.log(
-        `After settlement - Creditor ${creditor.userId}: ${creditor.balance.toNumber()}, Debtor ${debtor.userId}: ${debtor.balance.toNumber()}`
-      );
-    }
-
     // Remove users with zero or insignificant balances
     for (let i = users.length - 1; i >= 0; i--) {
       const user = users[i];
@@ -102,22 +80,9 @@ export function simplifyDebts(balances: Map<number, number>): SimplifiedDebt[] {
         user &&
         user.balance.abs().lessThanOrEqualTo(FINANCIAL_THRESHOLDS.DISPLAY)
       ) {
-        if (isDev) {
-          console.log(
-            `Removing user ${user.userId} with balance ${user.balance.toNumber()}`
-          );
-        }
         users.splice(i, 1);
       }
     }
-
-    if (isDev) {
-      console.log(`Remaining users: ${users.length}`);
-    }
-  }
-
-  if (isDev) {
-    console.log("Final simplified debts:", simplifiedDebts);
   }
   return simplifiedDebts;
 }
@@ -162,26 +127,11 @@ export function validateDebtSimplification(
   originalBalances: Map<number, number>,
   simplifiedDebts: SimplifiedDebt[]
 ): boolean {
-  const isDev = process.env.NODE_ENV === "development";
-
-  if (isDev) {
-    console.log("=== Debt Simplification Validation ===");
-    console.log("Original balances:", Array.from(originalBalances.entries()));
-    console.log("Simplified debts:", simplifiedDebts);
-  }
-
   // Quick check: if no simplified debts, all original balances should be near zero
   if (simplifiedDebts.length === 0) {
     const hasSignificantBalance = Array.from(originalBalances.values()).some(
       (balance) => Math.abs(balance) > FINANCIAL_THRESHOLDS.DISPLAY
     );
-
-    if (isDev) {
-      console.log(
-        "No simplified debts. Has significant balances?",
-        hasSignificantBalance
-      );
-    }
     return !hasSignificantBalance;
   }
 
@@ -212,44 +162,17 @@ export function validateDebtSimplification(
     simulatedBalances.set(debt.toUserId, toBalance.plus(debt.amount));
   }
 
-  if (isDev) {
-    console.log(
-      "Simulated balances after applying simplified debts:",
-      Array.from(simulatedBalances.entries()).map(([id, balance]) => [
-        id,
-        balance.toNumber(),
-      ])
-    );
-  }
-
   // Check if simulated balances match original balances within tolerance
-  let isValid = true;
-  const tolerance = new Decimal(0.1); // More generous tolerance for debugging
+  const tolerance = new Decimal(0.1);
 
   for (const [userId, originalBalance] of originalBalances) {
     const simulatedBalance = simulatedBalances.get(userId) || new Decimal(0);
     const difference = toDecimal(originalBalance).minus(simulatedBalance).abs();
 
-    if (isDev) {
-      console.log(
-        `User ${userId}: Original=${originalBalance}, Simulated=${simulatedBalance.toNumber()}, Diff=${difference.toNumber()}`
-      );
-    }
-
     if (difference.greaterThan(tolerance)) {
-      if (isDev) {
-        console.log(
-          `❌ Validation failed for user ${userId}: difference ${difference.toNumber()} > tolerance ${tolerance.toNumber()}`
-        );
-      }
-      isValid = false;
+      return false;
     }
   }
 
-  if (isDev) {
-    console.log("Validation result:", isValid);
-    console.log("=== End Validation ===");
-  }
-
-  return isValid;
+  return true;
 }
