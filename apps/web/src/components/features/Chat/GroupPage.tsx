@@ -37,7 +37,6 @@ const GroupPage = () => {
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
-  const transactionTopRefReal = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -291,8 +290,6 @@ const GroupPage = () => {
               height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
             }}
           >
-            <div ref={transactionTopRefReal} />
-
             <ChatTransactionTab chatId={chatId} />
           </div>
         )}
