@@ -1,4 +1,9 @@
-import { initData, themeParams, useSignal } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  initData,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { Caption, Cell, Info, Skeleton } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
@@ -9,6 +14,8 @@ import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import SettlementDetailsModal from "./SettlementDetailsModal";
 import { useSearch } from "@tanstack/react-router";
+import { cn } from "@/utils/cn";
+import { CSS_CLASSES } from "@/constants/ui";
 
 interface ChatSettlementCellProps {
   settlement: inferRouterOutputs<AppRouter>["settlement"]["getSettlementByChat"][number];
@@ -21,6 +28,8 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
   });
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
+
+  const [highlighted, setHighlighted] = useState(false);
 
   // * Queries =====================================================================================
   const { data: senderMember, isLoading: isSenderLoading } =
@@ -106,9 +115,27 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
     isReceiverLoading,
   ]);
 
+  const onOpenChange = (open: boolean) => {
+    if (open) {
+      setHighlighted(true);
+    } else {
+      setTimeout(() => {
+        setHighlighted(false);
+      }, 150);
+    }
+    setIsModalOpen(open);
+  };
+
   return (
     <>
       <Cell
+        className={cn("transition", {
+          [CSS_CLASSES.SELECT_HIGHLIGHT]: highlighted,
+        })}
+        onClick={() => {
+          setIsModalOpen(true);
+          hapticFeedback.selectionChanged();
+        }}
         before={<ChatMemberAvatar userId={senderId} size={48} />}
         subhead={
           <Skeleton visible={displayInfo.isLoading}>
@@ -157,14 +184,13 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
             type="avatarStack"
           />
         }
-        onClick={() => setIsModalOpen(true)}
       >
         {formatCurrencyWithCode(amount, selectedCurrency)}
       </Cell>
 
       <SettlementDetailsModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={onOpenChange}
         settlement={settlement}
         senderMember={senderMember}
         receiverMember={receiverMember}

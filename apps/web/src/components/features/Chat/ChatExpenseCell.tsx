@@ -24,6 +24,8 @@ import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { getRouteApi } from "@tanstack/react-router";
+import { cn } from "@/utils/cn";
+import { CSS_CLASSES } from "@/constants/ui";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -32,22 +34,25 @@ interface ChatExpenseCellProps {
 }
 
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
+  const { payerId, chatId } = expense;
+
   const { selectedCurrency, selectedTab, selectedExpense } =
     routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-
-  const { payerId, chatId } = expense;
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
+
   const [modalOpen, setModalOpen] = useState(
     () => expense?.id === selectedExpense
   );
+  const [highlighted, setHighlighted] = useState(false);
   const offMainButtonClickRef = useRef<VoidFunction | undefined>(undefined);
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
   );
+  const cellRef = useRef<HTMLDivElement>(null);
 
   const userId = tUserData?.id ?? 0;
 
@@ -195,6 +200,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   // * Handlers ====================================================================================
   const handleModalOpenChange = (open: boolean) => {
     if (open) {
+      setHighlighted(true);
       navigate({
         search: (prev) => ({
           ...prev,
@@ -218,6 +224,9 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       offSecondaryButtonClickRef.current =
         secondaryButton.onClick(onDeleteExpense);
     } else {
+      setTimeout(() => {
+        setHighlighted(false);
+      }, 150);
       navigate({
         search: (prev) => ({
           ...prev,
@@ -242,10 +251,19 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     setModalOpen(open);
   };
 
+  const handleCellClick = () => {
+    setModalOpen(true);
+    hapticFeedback.selectionChanged();
+  };
+
   return (
     <>
       <Cell
-        onClick={() => setModalOpen(true)}
+        className={cn("transition", {
+          [CSS_CLASSES.SELECT_HIGHLIGHT]: highlighted,
+        })}
+        ref={cellRef}
+        onClick={handleCellClick}
         before={<ChatMemberAvatar userId={payerId} size={48} />}
         subhead={
           <Skeleton visible={isMemberLoading}>

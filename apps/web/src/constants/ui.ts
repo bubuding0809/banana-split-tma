@@ -23,7 +23,8 @@ export const FALLBACK_COLORS = {
 
 export const CSS_CLASSES = {
   /** Animation classes for transaction highlighting */
-  HIGHLIGHT: ["animate-pulse", "outline"],
+  SCROLLTO_HIGHLIGHT: ["animate-pulse", "outline"],
+  SELECT_HIGHLIGHT: "bg-blue-50 dark:bg-blue-950",
   /** Animation classes for badge animations */
   BADGE_POP: "animate-badge-pop",
   BADGE_SHAKE: "animate-badge-shake",
