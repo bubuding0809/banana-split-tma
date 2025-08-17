@@ -3,6 +3,7 @@ import {
   mainButton,
   themeParams,
   useSignal,
+  initData,
 } from "@telegram-apps/sdk-react";
 import {
   Button,
@@ -13,14 +14,16 @@ import {
   Subheadline,
   Textarea,
   LargeTitle,
+  Avatar,
 } from "@telegram-apps/telegram-ui";
 import { ArrowUp, ChevronRight, Currency } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
 
 import FieldInfo from "@components/ui/FieldInfo";
 import AmountInput from "@components/ui/AmountInput";
+import CurrencySelectionModal from "@components/ui/CurrencySelectionModal";
 import { Decimal } from "decimal.js";
 
 import { expenseFormSchema } from "./AddExpenseForm.type";
@@ -44,14 +47,18 @@ const AmountFormStep = withForm({
   },
   render: function Render({ form, isLastStep, step, navigate, chatId }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+    const tUserData = useSignal(initData.user);
     const { expenseCurrency } = useStore(form.store, (state) => ({
       expenseCurrency: state.values.currency,
     }));
+
+    const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
 
     const { data: dChatData } = trpc.chat.getChat.useQuery({
       chatId: Number(chatId),
     });
     const displayCurrency = dChatData?.baseCurrency || "SGD";
+    const userId = tUserData?.id ?? 0;
 
     const amountInputRef = useRef<HTMLInputElement>(null);
     const descriptionFieldRef = useRef<HTMLInputElement>(null);
@@ -154,6 +161,16 @@ const AmountFormStep = withForm({
         (check) => check.kind === "max"
       )?.value;
 
+    // Get flag URL for selected currency
+    const getFlagUrl = (countryCode: string): string => {
+      const normalizedCode = countryCode.toLowerCase();
+      return `https://hatscripts.github.io/circle-flags/flags/${normalizedCode}.svg`;
+    };
+
+    const selectedCurrencyInfo = supportedCurrencies?.find(
+      (c) => c.code === expenseCurrency
+    );
+
     return (
       <div className="flex flex-col gap-4">
         {/* Amount */}
@@ -178,30 +195,53 @@ const AmountFormStep = withForm({
                 {/* Currency Selection */}
                 <form.AppField name="currency">
                   {(field) => (
-                    <Cell
-                      Component="label"
-                      before={<Currency />}
-                      after={
-                        <div className="flex items-center">
-                          <select
-                            value={expenseCurrency}
-                            onChange={(e) => {
-                              field.handleChange(e.target.value);
-                            }}
-                            className="appearance-none focus:outline-none"
-                          >
-                            {supportedCurrencies?.map((currency) => (
-                              <option key={currency.code} value={currency.code}>
-                                {currency.flagEmoji} {currency.code}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronRight size={20} />
-                        </div>
-                      }
-                    >
-                      Expensed in
-                    </Cell>
+                    <>
+                      <Cell
+                        before={
+                          selectedCurrencyInfo?.countryCode ? (
+                            <Avatar size={24}>
+                              <img
+                                src={getFlagUrl(
+                                  selectedCurrencyInfo.countryCode
+                                )}
+                                alt={`${selectedCurrencyInfo.name} flag`}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  if (target.parentElement) {
+                                    target.parentElement.textContent =
+                                      selectedCurrencyInfo?.flagEmoji || "🌐";
+                                  }
+                                }}
+                              />
+                            </Avatar>
+                          ) : (
+                            <Currency />
+                          )
+                        }
+                        after={<ChevronRight size={20} />}
+                        onClick={() => setCurrencyModalOpen(true)}
+                      >
+                        {selectedCurrencyInfo?.name || "Expensed in"}
+                      </Cell>
+
+                      <CurrencySelectionModal
+                        open={currencyModalOpen}
+                        onOpenChange={setCurrencyModalOpen}
+                        selectedCurrency={expenseCurrency}
+                        onCurrencySelect={field.handleChange}
+                        userId={userId}
+                        chatId={Number(chatId)}
+                        featuredCurrencies={[displayCurrency, "SGD"].filter(
+                          (code, index, arr) => arr.indexOf(code) === index
+                        )}
+                      />
+                    </>
                   )}
                 </form.AppField>
 
@@ -215,7 +255,7 @@ const AmountFormStep = withForm({
                     <LargeTitle style={{ color: tSubtitleTextColor }}>
                       {supportedCurrencies?.find(
                         (c) => c.code === expenseCurrency
-                      )?.symbol || "$"}
+                      )?.code || "SGD"}
                     </LargeTitle>
                   }
                   placeholder="0.00"
