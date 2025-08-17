@@ -27,7 +27,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { getRouteApi } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
-import { Link } from "lucide-react";
+import { Link, Link2Off } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -287,7 +287,14 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
             </Badge>
           ) : undefined
         }
-        description={expense.description}
+        description={
+          <>
+            on{" "}
+            <Caption weight="2" level="1">
+              {expenseDetails?.description}
+            </Caption>
+          </>
+        }
         after={
           <Info
             avatarStack={
@@ -322,7 +329,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             </Text>
                           );
                         case "unrelated":
-                          return <Text weight="3">~</Text>;
+                          return <Link2Off size={16} className="my-0.5" />;
                         default:
                           return null;
                       }
