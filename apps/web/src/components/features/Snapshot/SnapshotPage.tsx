@@ -76,6 +76,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
   useEffect(() => {
     backButton.show();
     const offBackButton = backButton.onClick(() => {
+      hapticFeedback.notificationOccurred("success");
       navigate({
         to: "..",
         search: (prev) => ({
