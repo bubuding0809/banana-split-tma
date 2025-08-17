@@ -260,7 +260,11 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         <Divider />
         <Cell
           Component={"label"}
-          before={<SlidersHorizontal size={20} />}
+          before={
+            <span className="rounded-lg bg-slate-400 p-1.5 dark:bg-slate-700">
+              <SlidersHorizontal size={20} color="white" />
+            </span>
+          }
           after={
             <button className="w-max" onClick={() => setFiltersOpen(true)}>
               <Navigation>Filters</Navigation>
