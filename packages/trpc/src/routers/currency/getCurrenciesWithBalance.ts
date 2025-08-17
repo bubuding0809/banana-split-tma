@@ -29,6 +29,7 @@ export const outputSchema = z.array(
         balance: z.number(),
       })
     ),
+    lastCreatedAt: z.date(),
   })
 );
 
@@ -77,24 +78,50 @@ export const getCurrenciesWithBalanceHandler = async (
 
     const usedCurrenciesWithBalanceInfo = await Promise.all(
       filteredCurrencies.map(async (currency) => {
-        const [debtors, creditors] = await Promise.all([
-          getDebtorsHandler(
-            {
-              chatId: Number(input.chatId),
-              userId: Number(input.userId),
-              currency: currency.code,
-            },
-            db
-          ),
-          getCreditorsHandler(
-            {
-              chatId: Number(input.chatId),
-              userId: Number(input.userId),
-              currency: currency.code,
-            },
-            db
-          ),
-        ]);
+        const [debtors, creditors, latestExpense, latestSettlement] =
+          await Promise.all([
+            getDebtorsHandler(
+              {
+                chatId: Number(input.chatId),
+                userId: Number(input.userId),
+                currency: currency.code,
+              },
+              db
+            ),
+            getCreditorsHandler(
+              {
+                chatId: Number(input.chatId),
+                userId: Number(input.userId),
+                currency: currency.code,
+              },
+              db
+            ),
+            db.expense.findFirst({
+              where: {
+                chatId: input.chatId,
+                currency: currency.code,
+              },
+              orderBy: { createdAt: "desc" },
+              select: { createdAt: true },
+            }),
+            db.settlement.findFirst({
+              where: {
+                chatId: input.chatId,
+                currency: currency.code,
+              },
+              orderBy: { createdAt: "desc" },
+              select: { createdAt: true },
+            }),
+          ]);
+
+        // Get the most recent createdAt from either expenses or settlements
+        const lastCreatedAt = new Date(
+          Math.max(
+            latestExpense?.createdAt?.getTime() || 0,
+            latestSettlement?.createdAt?.getTime() || 0
+          )
+        );
+
         return {
           currency: {
             code: currency.code,
@@ -109,11 +136,15 @@ export const getCurrenciesWithBalanceHandler = async (
             id: Number(creditor.id),
             balance: creditor.balance,
           })),
+          lastCreatedAt,
         };
       })
     );
 
-    return usedCurrenciesWithBalanceInfo;
+    // Sort by lastCreatedAt in descending order (most recent first)
+    return usedCurrenciesWithBalanceInfo.sort(
+      (a, b) => b.lastCreatedAt.getTime() - a.lastCreatedAt.getTime()
+    );
   } catch (error) {
     if (error instanceof TRPCError) {
       throw error;
