@@ -122,6 +122,7 @@ export const CURRENCY_DATABASE = {
     symbol: "AED",
     symbol_native: "د.إ",
     flag: "🇦🇪",
+    countryCode: "AE",
   },
   AUD: {
     code: "AUD",
@@ -132,6 +133,7 @@ export const CURRENCY_DATABASE = {
     symbol: "AU$",
     symbol_native: "$",
     flag: "🇦🇺",
+    countryCode: "AU",
   },
   BRL: {
     code: "BRL",
@@ -142,6 +144,7 @@ export const CURRENCY_DATABASE = {
     symbol: "R$",
     symbol_native: "R$",
     flag: "🇧🇷",
+    countryCode: "BR",
   },
   CAD: {
     code: "CAD",
@@ -152,6 +155,7 @@ export const CURRENCY_DATABASE = {
     symbol: "CA$",
     symbol_native: "$",
     flag: "🇨🇦",
+    countryCode: "CA",
   },
   CHF: {
     code: "CHF",
@@ -162,6 +166,7 @@ export const CURRENCY_DATABASE = {
     symbol: "CHF",
     symbol_native: "CHF",
     flag: "🇨🇭",
+    countryCode: "CH",
   },
   CNY: {
     code: "CNY",
@@ -172,6 +177,7 @@ export const CURRENCY_DATABASE = {
     symbol: "CN¥",
     symbol_native: "CN¥",
     flag: "🇨🇳",
+    countryCode: "CN",
   },
   DKK: {
     code: "DKK",
@@ -182,6 +188,7 @@ export const CURRENCY_DATABASE = {
     symbol: "Dkr",
     symbol_native: "kr",
     flag: "🇩🇰",
+    countryCode: "DK",
   },
   EUR: {
     code: "EUR",
@@ -192,6 +199,7 @@ export const CURRENCY_DATABASE = {
     symbol: "€",
     symbol_native: "€",
     flag: "🇪🇺",
+    countryCode: "EU",
   },
   GBP: {
     code: "GBP",
@@ -202,6 +210,7 @@ export const CURRENCY_DATABASE = {
     symbol: "£",
     symbol_native: "£",
     flag: "🇬🇧",
+    countryCode: "GB",
   },
   HKD: {
     code: "HKD",
@@ -212,6 +221,7 @@ export const CURRENCY_DATABASE = {
     symbol: "HK$",
     symbol_native: "$",
     flag: "🇭🇰",
+    countryCode: "HK",
   },
   IDR: {
     code: "IDR",
@@ -222,6 +232,7 @@ export const CURRENCY_DATABASE = {
     symbol: "Rp",
     symbol_native: "Rp",
     flag: "🇮🇩",
+    countryCode: "ID",
   },
   INR: {
     code: "INR",
@@ -232,6 +243,7 @@ export const CURRENCY_DATABASE = {
     symbol: "Rs",
     symbol_native: "টকা",
     flag: "🇮🇳",
+    countryCode: "IN",
   },
   JPY: {
     code: "JPY",
@@ -242,6 +254,7 @@ export const CURRENCY_DATABASE = {
     symbol: "¥",
     symbol_native: "￥",
     flag: "🇯🇵",
+    countryCode: "JP",
   },
   KRW: {
     code: "KRW",
@@ -252,6 +265,7 @@ export const CURRENCY_DATABASE = {
     symbol: "₩",
     symbol_native: "₩",
     flag: "🇰🇷",
+    countryCode: "KR",
   },
   KZT: {
     code: "KZT",
@@ -262,6 +276,7 @@ export const CURRENCY_DATABASE = {
     symbol: "KZT",
     symbol_native: "тңг.",
     flag: "🇰🇿",
+    countryCode: "KZ",
   },
   MXN: {
     code: "MXN",
@@ -272,6 +287,7 @@ export const CURRENCY_DATABASE = {
     symbol: "MX$",
     symbol_native: "$",
     flag: "🇲🇽",
+    countryCode: "MX",
   },
   MYR: {
     code: "MYR",
@@ -282,6 +298,7 @@ export const CURRENCY_DATABASE = {
     symbol: "RM",
     symbol_native: "RM",
     flag: "🇲🇾",
+    countryCode: "MY",
   },
   NOK: {
     code: "NOK",
@@ -292,6 +309,7 @@ export const CURRENCY_DATABASE = {
     symbol: "Nkr",
     symbol_native: "kr",
     flag: "🇳🇴",
+    countryCode: "NO",
   },
   NZD: {
     code: "NZD",
@@ -302,6 +320,7 @@ export const CURRENCY_DATABASE = {
     symbol: "NZ$",
     symbol_native: "$",
     flag: "🇳🇿",
+    countryCode: "NZ",
   },
   PHP: {
     code: "PHP",
@@ -312,6 +331,7 @@ export const CURRENCY_DATABASE = {
     symbol: "₱",
     symbol_native: "₱",
     flag: "🇵🇭",
+    countryCode: "PH",
   },
   PLN: {
     code: "PLN",
@@ -322,6 +342,7 @@ export const CURRENCY_DATABASE = {
     symbol: "zł",
     symbol_native: "zł",
     flag: "🇵🇱",
+    countryCode: "PL",
   },
   RUB: {
     code: "RUB",
@@ -332,6 +353,7 @@ export const CURRENCY_DATABASE = {
     symbol: "RUB",
     symbol_native: "руб.",
     flag: "🇷🇺",
+    countryCode: "RU",
   },
   SAR: {
     code: "SAR",
@@ -342,6 +364,7 @@ export const CURRENCY_DATABASE = {
     symbol: "SR",
     symbol_native: "ر.س.‏",
     flag: "🇸🇦",
+    countryCode: "SA",
   },
   SEK: {
     code: "SEK",
@@ -352,6 +375,7 @@ export const CURRENCY_DATABASE = {
     symbol: "Skr",
     symbol_native: "kr",
     flag: "🇸🇪",
+    countryCode: "SE",
   },
   SGD: {
     code: "SGD",
@@ -362,6 +386,7 @@ export const CURRENCY_DATABASE = {
     symbol: "S$",
     symbol_native: "$",
     flag: "🇸🇬",
+    countryCode: "SG",
   },
   THB: {
     code: "THB",
@@ -372,6 +397,7 @@ export const CURRENCY_DATABASE = {
     symbol: "฿",
     symbol_native: "฿",
     flag: "🇹🇭",
+    countryCode: "TH",
   },
   TRY: {
     code: "TRY",
@@ -382,6 +408,7 @@ export const CURRENCY_DATABASE = {
     symbol: "TL",
     symbol_native: "TL",
     flag: "🇹🇷",
+    countryCode: "TR",
   },
   TWD: {
     code: "TWD",
@@ -392,6 +419,7 @@ export const CURRENCY_DATABASE = {
     symbol: "NT$",
     symbol_native: "NT$",
     flag: "🇹🇼",
+    countryCode: "TW",
   },
   USD: {
     code: "USD",
@@ -402,6 +430,7 @@ export const CURRENCY_DATABASE = {
     symbol: "$",
     symbol_native: "$",
     flag: "🇺🇸",
+    countryCode: "US",
   },
   VND: {
     code: "VND",
@@ -412,6 +441,7 @@ export const CURRENCY_DATABASE = {
     symbol: "₫",
     symbol_native: "₫",
     flag: "🇻🇳",
+    countryCode: "VN",
   },
   ZAR: {
     code: "ZAR",
@@ -422,6 +452,7 @@ export const CURRENCY_DATABASE = {
     symbol: "R",
     symbol_native: "R",
     flag: "🇿🇦",
+    countryCode: "ZA",
   },
 } as const;
 
