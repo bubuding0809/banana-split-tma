@@ -13,7 +13,6 @@ import {
   Title,
   Text,
   Caption,
-  Info,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
