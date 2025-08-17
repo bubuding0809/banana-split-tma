@@ -226,7 +226,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   return (
     <section className="flex h-full flex-col">
       {/* Tranction filters section */}
-      <div className="shadow">
+      <div className="shadow-xs">
         <Link
           onClick={() => hapticFeedback.impactOccurred("light")}
           to="/chat/$chatId/snapshots"
