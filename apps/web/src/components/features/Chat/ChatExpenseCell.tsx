@@ -8,6 +8,7 @@ import {
   hapticFeedback,
 } from "@telegram-apps/sdk-react";
 import {
+  Badge,
   Caption,
   Cell,
   Info,
@@ -26,6 +27,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { getRouteApi } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
+import { Link } from "lucide-react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
@@ -277,6 +279,13 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
               {expenseRelation === "payer" ? "You" : memberFullName} spent
             </Caption>
           </Skeleton>
+        }
+        titleBadge={
+          expenseRelation !== "unrelated" ? (
+            <Badge type="number">
+              <Link size={10} />
+            </Badge>
+          ) : undefined
         }
         description={expense.description}
         after={

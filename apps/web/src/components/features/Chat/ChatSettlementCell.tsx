@@ -4,7 +4,14 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Caption, Cell, Info, Skeleton } from "@telegram-apps/telegram-ui";
+import {
+  Avatar,
+  Badge,
+  Caption,
+  Cell,
+  Info,
+  Skeleton,
+} from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
 import { trpc } from "@utils/trpc";
@@ -16,6 +23,7 @@ import SettlementDetailsModal from "./SettlementDetailsModal";
 import { useSearch } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
+import { ArrowRight, DollarSign, Link } from "lucide-react";
 
 interface ChatSettlementCellProps {
   settlement: inferRouterOutputs<AppRouter>["settlement"]["getSettlementByChat"][number];
@@ -136,7 +144,20 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
           setIsModalOpen(true);
           hapticFeedback.selectionChanged();
         }}
-        before={<ChatMemberAvatar userId={senderId} size={48} />}
+        before={
+          <Avatar size={48}>
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-green-500">
+              <DollarSign size={24} />
+            </div>
+          </Avatar>
+        }
+        titleBadge={
+          settlementRelation !== "unrelated" ? (
+            <Badge type="number">
+              <Link size={10} />
+            </Badge>
+          ) : undefined
+        }
         subhead={
           <Skeleton visible={displayInfo.isLoading}>
             <Caption
@@ -173,9 +194,9 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
                   <Caption className="w-max" weight="2">
                     {formatExpenseDateShort(new Date(settlement.createdAt))}
                   </Caption>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xl">💰</span>
-                    <span className="pe-0.5">▶︎</span>
+                  <div className="flex items-center gap-2">
+                    <ChatMemberAvatar userId={senderId} size={28} />
+                    <ArrowRight size={20} />
                     <ChatMemberAvatar userId={receiverId} size={28} />
                   </div>
                 </div>
