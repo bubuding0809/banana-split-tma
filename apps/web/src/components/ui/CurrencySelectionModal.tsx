@@ -130,12 +130,10 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
       // Recently used currencies
       const recentlyUsed = showRecentlyUsed
         ? currenciesWithBalance
-            ?.filter(
-              ({ creditors, debtors, currency }) =>
-                !featuredCurrencies.includes(currency.code) &&
-                (creditors.length > 0 || debtors.length > 0)
+            ?.slice(0, maxRecentlyUsed)
+            .filter(
+              ({ currency }) => !featuredCurrencies.includes(currency.code)
             )
-            .slice(0, maxRecentlyUsed)
             .map(({ currency }) => {
               const fullCurrencyInfo = supportedCurrencies.find(
                 (c) => c.code === currency.code
