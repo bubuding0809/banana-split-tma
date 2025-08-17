@@ -17,6 +17,7 @@ export const outputSchema = z.array(
     name_plural: z.string(),
     decimal_digits: z.number(),
     flagEmoji: z.string(),
+    countryCode: z.string(),
     hasRate: z.boolean().optional(),
     lastUpdated: z.date().optional(),
   })
@@ -70,6 +71,7 @@ export const getSupportedCurrenciesHandler = async (
       name_plural: currency.name_plural,
       decimal_digits: currency.decimal_digits,
       flagEmoji: currency.flag,
+      countryCode: currency.countryCode,
       ...(includeRates && {
         hasRate: ratesMap.has(currency.code),
         lastUpdated: ratesMap.get(currency.code)?.lastUpdated,
