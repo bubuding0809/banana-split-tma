@@ -147,7 +147,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         before={
           <Avatar size={48}>
             <div className="flex h-full w-full items-center justify-center rounded-full bg-green-500">
-              <DollarSign size={24} />
+              <DollarSign size={24} color="white" />
             </div>
           </Avatar>
         }
