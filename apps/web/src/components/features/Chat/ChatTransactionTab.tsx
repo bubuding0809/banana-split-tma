@@ -13,6 +13,7 @@ import {
   Title,
   Text,
   Caption,
+  Info,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
@@ -30,6 +31,7 @@ import {
   X,
   Link as LucideLink,
   SlidersHorizontal,
+  ChevronsUpDown,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
@@ -267,13 +269,13 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           }
           after={
             <button className="w-max" onClick={() => setFiltersOpen(true)}>
-              <Navigation>Filters</Navigation>
+              <ChevronsUpDown size={20} color="gray" />
             </button>
           }
         >
           <div className="flex gap-2 overflow-auto">
             {[showPayments, relatedOnly].every((bool) => !bool) && (
-              <Text className="text-neutral-500">No filters applied</Text>
+              <Text className="py-1 text-neutral-500">No filters applied</Text>
             )}
             {showPayments && (
               <div
