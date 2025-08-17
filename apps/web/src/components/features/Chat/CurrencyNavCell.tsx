@@ -1,26 +1,16 @@
 import AvatarStackTruncated from "@/components/ui/AvatarStackTruncated";
+import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import { trpc } from "@/utils/trpc";
 import { getRouteApi } from "@tanstack/react-router";
-import {
-  hapticFeedback,
-  initData,
-  themeParams,
-  useSignal,
-} from "@telegram-apps/sdk-react";
+import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
 import {
   Avatar,
   Cell,
   Info,
-  Modal,
-  Title,
-  Radio,
   Skeleton,
-  Placeholder,
-  Section,
   ButtonCell,
-  IconButton,
 } from "@telegram-apps/telegram-ui";
-import { ArrowUpDown, ChevronsUpDown, X } from "lucide-react";
+import { ArrowUpDown, ChevronsUpDown } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
@@ -33,8 +23,6 @@ interface CurrencyNavCellProps {
 const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
   const { selectedCurrency } = routeApi.useSearch();
   const tUserData = useSignal(initData.user);
-  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const params = routeApi.useParams();
   const navigate = routeApi.useNavigate();
 
@@ -96,48 +84,6 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
       (currency) => currency.code === chatData.baseCurrency
     );
   }, [chatData, supportedCurrencies]);
-
-  // Currencies with pending debts or collectables
-  const pendingCurrencies = useMemo(() => {
-    if (!currenciesWithBalance) {
-      return [];
-    }
-
-    return [
-      ...(baseCurrency
-        ? [
-            {
-              code: baseCurrency.code,
-              name: baseCurrency.name,
-              flagEmoji: baseCurrency.flagEmoji,
-            },
-          ]
-        : []),
-      ...currenciesWithBalance
-        .filter(
-          ({ creditors, debtors }) => creditors.length > 0 || debtors.length > 0
-        )
-        .filter(({ currency }) => currency.code !== chatData?.baseCurrency)
-        .map(({ currency }) => ({
-          code: currency.code,
-          name: currency.name,
-          flagEmoji: currency.flagEmoji,
-        })),
-    ];
-  }, [baseCurrency, chatData?.baseCurrency, currenciesWithBalance]);
-
-  // Currencies without any debts or collectables
-  const settledCurrencies = useMemo(() => {
-    if (!currenciesWithBalance) {
-      return [];
-    }
-    return currenciesWithBalance
-      .filter(({ currency }) => currency.code !== chatData?.baseCurrency)
-      .filter(
-        ({ creditors, debtors }) =>
-          creditors.length === 0 && debtors.length === 0
-      );
-  }, [chatData?.baseCurrency, currenciesWithBalance]);
 
   // Avatar stack should show all currencies with history, excluding the selected currency
   const avatarStackCurrencies = useMemo(() => {
@@ -279,104 +225,18 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
           )}
       </div>
 
-      <Modal
+      <CurrencySelectionModal
         open={modalOpen}
         onOpenChange={onModalOpen}
-        header={
-          <Modal.Header
-            before={
-              <Title weight="2" level="3">
-                Currencies
-              </Title>
-            }
-            after={
-              <Modal.Close>
-                <IconButton
-                  size="s"
-                  mode="gray"
-                  onClick={() => hapticFeedback.impactOccurred("light")}
-                >
-                  <X
-                    size={20}
-                    strokeWidth={3}
-                    style={{
-                      color: tSubtitleTextColor,
-                    }}
-                  />
-                </IconButton>
-              </Modal.Close>
-            }
-          />
-        }
-        className="pb-8"
-      >
-        <div className="max-h-[78vh] min-h-40 pb-10">
-          <Section header="Pending currencies" className="px-3">
-            {pendingCurrencies.map((currency) => (
-              <Cell
-                Component="label"
-                key={currency.code}
-                before={<Title level="1">{currency.flagEmoji}</Title>}
-                subtitle={currency.code}
-                after={
-                  <Radio
-                    value={currency.code}
-                    checked={selectedCurrency === currency.code}
-                    onChange={(e) => handleCurrencyChange(e.target.value)}
-                  />
-                }
-                style={{
-                  backgroundColor: tSectionBgColor,
-                }}
-              >
-                {currency.name}
-              </Cell>
-            ))}
-          </Section>
-
-          {settledCurrencies?.length ? (
-            <Section header="Settled currencies" className="px-3">
-              {settledCurrencies.map(({ currency }) => (
-                <Cell
-                  Component="label"
-                  key={currency.code}
-                  before={<Title level="1">{currency.flagEmoji}</Title>}
-                  subtitle={currency.code}
-                  after={
-                    <Radio
-                      value={currency.code}
-                      checked={selectedCurrency === currency.code}
-                      onChange={(e) => handleCurrencyChange(e.target.value)}
-                    />
-                  }
-                  style={{
-                    backgroundColor: tSectionBgColor,
-                  }}
-                >
-                  {currency.name}
-                </Cell>
-              ))}
-            </Section>
-          ) : null}
-
-          {(!currenciesWithBalance || currenciesWithBalance.length === 0) && (
-            <Placeholder
-              header="No other currencies available"
-              description="Create expenses in other currencies to see them here"
-            >
-              <img
-                alt="Telegram sticker"
-                src="https://xelene.me/telegram.gif"
-                style={{
-                  display: "block",
-                  height: "144px",
-                  width: "144px",
-                }}
-              />
-            </Placeholder>
-          )}
-        </div>
-      </Modal>
+        selectedCurrency={selectedCurrency}
+        onCurrencySelect={handleCurrencyChange}
+        userId={userId}
+        chatId={chatId}
+        featuredCurrencies={[chatData?.baseCurrency || "SGD"].filter(
+          (code, index, arr) => arr.indexOf(code) === index
+        )}
+        showRecentlyUsed={true}
+      />
     </>
   );
 };
