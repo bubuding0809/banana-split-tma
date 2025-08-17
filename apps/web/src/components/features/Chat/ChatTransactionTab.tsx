@@ -279,9 +279,11 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 }}
               >
                 <div className="rounded-full bg-green-500 p-1.5">
-                  <DollarSign size={14} color="white" />
+                  <DollarSign size={12} color="white" />
                 </div>
-                <Caption weight="2">Payments</Caption>
+                <Caption weight="2" level="2">
+                  Payments
+                </Caption>
               </div>
             )}
             {relatedOnly && (
@@ -292,9 +294,11 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 }}
               >
                 <div className="rounded-full bg-blue-500 p-1.5">
-                  <LucideLink size={14} color="white" />
+                  <LucideLink size={12} color="white" />
                 </div>
-                <Caption weight="2">Related</Caption>
+                <Caption weight="2" level="2">
+                  Related Only
+                </Caption>
               </div>
             )}
           </div>
