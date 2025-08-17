@@ -68,11 +68,11 @@ const FilterSection = ({
       after={<Switch checked={showPayments} onChange={handlePaymentsToggle} />}
       description={
         <Caption className="text-wrap">
-          Include user payments in the transaction list
+          Include payments in the transaction list
         </Caption>
       }
     >
-      Payments
+      Include Payments
     </Cell>
     <Cell
       Component="label"
@@ -86,11 +86,11 @@ const FilterSection = ({
       }
       description={
         <Caption className="text-wrap">
-          Display only transactions that are related to you
+          Show only transactions that involve you
         </Caption>
       }
     >
-      Related
+      Show Related Only
     </Cell>
   </Section>
 );
