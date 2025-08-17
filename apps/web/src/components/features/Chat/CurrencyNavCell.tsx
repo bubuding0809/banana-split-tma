@@ -236,6 +236,8 @@ const CurrencyNavCell = ({ modalOpen, onModalOpen }: CurrencyNavCellProps) => {
           (code, index, arr) => arr.indexOf(code) === index
         )}
         showRecentlyUsed={true}
+        showOthers={false}
+        footerMessage="Thats all the currencies currently used in this group!"
       />
     </>
   );
