@@ -140,7 +140,6 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       },
       {
         onSuccess: ({ baseCurrency }) => {
-          hapticFeedback.notificationOccurred("success");
           navigate({
             search: (prev) => ({
               ...prev,
