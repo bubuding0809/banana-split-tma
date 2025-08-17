@@ -216,7 +216,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       // Wait for virtual elements to be rendered, then highlight
       setTimeout(() => {
         highlightTransactions(selectedDate!.transactionIds, false);
-      }, 1000);
+      }, 100);
     } else {
       // Fallback to original highlighting with scroll
       highlightTransactions(selectedDate.transactionIds, true);
