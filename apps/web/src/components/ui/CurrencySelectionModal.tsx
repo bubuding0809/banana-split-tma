@@ -57,6 +57,15 @@ interface CurrencySelectionModalProps {
    * Chat ID for fetching recently used currencies
    */
   chatId?: number;
+  /**
+   * Whether to show other currencies section
+   * @default true
+   */
+  showOthers?: boolean;
+  /**
+   * Footer message to display at the bottom
+   */
+  footerMessage?: string;
 }
 
 const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
@@ -66,9 +75,11 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
   onCurrencySelect,
   featuredCurrencies = ["USD", "SGD"],
   showRecentlyUsed = true,
+  showOthers = true,
   maxRecentlyUsed = 6,
   userId,
   chatId,
+  footerMessage = `That’s all the currencies we support for now!`,
 }) => {
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
@@ -247,7 +258,7 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
         )}
 
         {/* All other currencies */}
-        {allCurrenciesSection.length > 0 && (
+        {showOthers && allCurrenciesSection.length > 0 && (
           <Section
             header={
               featuredSection.length > 0 || recentlyUsedSection.length > 0
@@ -274,9 +285,7 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
             }}
             className="text-center"
           >
-            That&apos;s all the currencies we support for now!
-            <br />
-            Let us know if you need more.
+            {footerMessage}
           </Caption>
         </footer>
       </div>
