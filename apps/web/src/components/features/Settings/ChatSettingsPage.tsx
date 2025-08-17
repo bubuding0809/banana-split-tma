@@ -7,6 +7,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
+  Avatar,
   ButtonCell,
   Cell,
   Navigation,
@@ -14,9 +15,10 @@ import {
   Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { DollarSign, Phone, X } from "lucide-react";
+import { ChevronsUpDown, Phone, X } from "lucide-react";
 import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
+import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -32,6 +34,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   const tUserData = useSignal(initData.user);
   const { requestContactInfo, isSupported } = useRequestContact();
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
 
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
@@ -191,9 +194,23 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
     }
   }, [userId, updateUserMutation]);
 
+  // Helper function to get flag URL
+  const getFlagUrl = (countryCode: string): string => {
+    const normalizedCode = countryCode.toLowerCase();
+    return `https://hatscripts.github.io/circle-flags/flags/${normalizedCode}.svg`;
+  };
+
+  // Get current currency info
+  const currentCurrencyInfo = supportedCurrencies?.find(
+    (currency) => currency.code === dChatData?.baseCurrency
+  );
+
   return (
     <main className="px-3">
-      <Section header="Personal Information">
+      <Section
+        header="Personal Information"
+        footer="Used to help with repayments via 3rd party services."
+      >
         <Cell
           onClick={() => !userData?.phoneNumber && handleAddPhoneNumber()}
           before={<Phone size={20} />}
@@ -227,37 +244,52 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         )}
       </Section>
 
-      <Section header="Currency">
+      <Section
+        header="Base Currency"
+        footer="This is the main currency used in the group which is used as the base for other currencies to convert to."
+      >
         <Cell
-          before={<DollarSign size={20} />}
-          Component="label"
-          after={
-            <Navigation>
-              <Skeleton
-                visible={
-                  dChatDataStatus === "pending" ||
-                  supportedCurrenciesStatus === "pending"
-                }
-              >
-                <select
-                  value={dChatData?.baseCurrency}
-                  className="appearance-none focus:outline-none"
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                >
-                  {supportedCurrencies?.map((currency) => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.flagEmoji} {currency.code}
-                    </option>
-                  ))}
-                </select>
-              </Skeleton>
-            </Navigation>
+          before={
+            <Avatar
+              size={40}
+              src={getFlagUrl(currentCurrencyInfo?.countryCode || "SGD")}
+            >
+              {currentCurrencyInfo?.flagEmoji || "🌏"}
+            </Avatar>
           }
-          multiline
+          subtitle={
+            <Skeleton
+              visible={
+                dChatDataStatus === "pending" ||
+                supportedCurrenciesStatus === "pending"
+              }
+            >
+              {currentCurrencyInfo?.code || "Loading..."}
+            </Skeleton>
+          }
+          after={<ChevronsUpDown size={20} color="gray" />}
+          onClick={() => setCurrencyModalOpen(true)}
         >
-          Default Currency
+          <Skeleton
+            visible={
+              dChatDataStatus === "pending" ||
+              supportedCurrenciesStatus === "pending"
+            }
+          >
+            {currentCurrencyInfo?.name || "Default Currency"}
+          </Skeleton>
         </Cell>
       </Section>
+
+      <CurrencySelectionModal
+        open={currencyModalOpen}
+        onOpenChange={setCurrencyModalOpen}
+        selectedCurrency={dChatData?.baseCurrency}
+        onCurrencySelect={handleCurrencyChange}
+        featuredCurrencies={[dChatData?.baseCurrency || "SGD"]}
+        showRecentlyUsed={false}
+        showOthers={true}
+      />
     </main>
   );
 };
