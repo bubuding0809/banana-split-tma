@@ -79,7 +79,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
       case "sender":
         return {
           primaryText: "You paid",
-          secondaryText: `to ${receiverFullName}`,
+          secondaryText: receiverFullName,
           avatarUserId: receiverId,
           amountColor: "text-red-600", // Money sent out
           statusText: "Sent",
@@ -88,7 +88,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
       case "receiver":
         return {
           primaryText: `${senderFullName} paid`,
-          secondaryText: "to you",
+          secondaryText: "you",
           avatarUserId: senderId,
           amountColor: "text-green-600", // Money received
           statusText: "Received",
@@ -96,8 +96,8 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         };
       case "unrelated":
         return {
-          primaryText: `${senderFullName} settled`,
-          secondaryText: `with ${receiverFullName}`,
+          primaryText: `${senderFullName} paid`,
+          secondaryText: `to ${receiverFullName}`,
           avatarUserId: senderId,
           amountColor: "text-gray-600", // Neutral
           statusText: "Settlement",
@@ -174,9 +174,17 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
         }
         description={
           <Skeleton visible={displayInfo.isLoading}>
+            <span
+              style={{
+                color:
+                  settlementRelation === "receiver" ? tButtonColor : undefined,
+              }}
+            >
+              to{" "}
+            </span>
             <Caption
-              weight="1"
-              level="2"
+              weight="2"
+              level="1"
               style={{
                 color:
                   settlementRelation === "receiver" ? tButtonColor : undefined,
