@@ -97,7 +97,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
       case "unrelated":
         return {
           primaryText: `${senderFullName} paid`,
-          secondaryText: `to ${receiverFullName}`,
+          secondaryText: receiverFullName,
           avatarUserId: senderId,
           amountColor: "text-gray-600", // Neutral
           statusText: "Settlement",
