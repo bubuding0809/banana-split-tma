@@ -24,7 +24,7 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
 import { Link, Link2Off } from "lucide-react";
@@ -38,6 +38,7 @@ interface ChatExpenseCellProps {
 const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
 
+  const router = useRouter();
   const { selectedCurrency, selectedTab, selectedExpense } =
     routeApi.useSearch();
   const navigate = routeApi.useNavigate();
@@ -222,6 +223,17 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         textColor: tDesctructiveTextColor,
       });
 
+      router.preloadRoute({
+        to: "/chat/$chatId/edit-expense/$expenseId",
+        params: { expenseId: expense.id, chatId: chatId.toString() },
+        search: {
+          title: "✍️ Edit Expense",
+          prevTab: selectedTab,
+          prevCurrency: selectedCurrency || "SGD",
+          membersExpanded: Number(expenseDetails?.payer?.id) !== userId,
+        },
+      });
+
       offMainButtonClickRef.current = mainButton.onClick(onEditExpense);
       offSecondaryButtonClickRef.current =
         secondaryButton.onClick(onDeleteExpense);
@@ -229,6 +241,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       setTimeout(() => {
         setHighlighted(false);
       }, 150);
+
       navigate({
         search: (prev) => ({
           ...prev,
