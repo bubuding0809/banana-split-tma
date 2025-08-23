@@ -181,8 +181,6 @@ export const sendGroupReminderMessageHandler = async (
       const creditorMember = memberMap.get(creditor.creditorId);
       if (!creditorMember) return;
 
-      const creditorName =
-        creditorMember.username || creditorMember.firstName || "Unknown";
       const formattedAmount = escapeMarkdown(
         formatCurrencyWithCode(creditor.amount, creditor.currency),
         2
@@ -190,7 +188,7 @@ export const sendGroupReminderMessageHandler = async (
       const prefix = index === creditors.length - 1 ? "└" : "├";
 
       messageLines.push(
-        `${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
+        `${prefix} Owes ${escapeMarkdown(creditorMember.firstName, 2)}: ${formattedAmount}`
       );
     });
   }
