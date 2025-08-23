@@ -160,28 +160,13 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   // Format the message
-  let messageLines = ["⏰ *Looks like there are still pending debts here\\!*"];
+  let messageLines = ["📢 *Pending debts\\!*"];
 
   for (const [debtorId, creditors] of debtsByDebtor.entries()) {
     const debtor = memberMap.get(debtorId);
     if (!debtor) continue;
 
-    // Create user mention for debtor
-    let debtorMention: string;
-    try {
-      debtorMention = mentionMarkdown(
-        debtorId,
-        debtor.username || debtor.firstName || "Unknown",
-        2
-      );
-    } catch (error) {
-      debtorMention = escapeMarkdown(
-        debtor.username || debtor.firstName || "Unknown",
-        2
-      );
-    }
-
-    messageLines.push(`\n${debtorMention}`);
+    messageLines.push(`\n${escapeMarkdown(debtor.firstName, 2)}`);
 
     // Sort creditors by name for consistent ordering
     creditors.sort((a, b) => {
