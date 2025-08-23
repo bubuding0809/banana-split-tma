@@ -280,7 +280,7 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
               isSimplified={isSimplified}
             />
           ))}
-          {displayDebtors.length === 0 ? (
+          {displayDebtors.length === 0 && displayDebtorStatus !== "pending" ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 💁 No one owes you
@@ -327,7 +327,8 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
               isSimplified={isSimplified}
             />
           ))}
-          {displayCreditors.length === 0 ? (
+          {displayCreditors.length === 0 &&
+          displayCreditorStatus !== "pending" ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 🔥 You are all settled
