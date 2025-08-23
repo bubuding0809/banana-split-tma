@@ -200,7 +200,7 @@ export const sendGroupReminderMessageHandler = async (
         formatCurrencyWithCode(creditor.amount, creditor.currency),
         2
       );
-      const prefix = index === creditors.length - 1 ? "└" : "├";
+      const prefix = index === creditors.length - 1 ? "┗" : "┣";
 
       messageLines.push(
         `${prefix} Owes ${escapeMarkdown(creditorMember.firstName, 2)}: ${formattedAmount}`
