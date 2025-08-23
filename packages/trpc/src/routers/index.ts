@@ -1,3 +1,4 @@
+export { awsRouter } from "./aws/index.js";
 export { chatRouter } from "./chat/index.js";
 export { expenseRouter } from "./expense/index.js";
 export { expenseShareRouter } from "./expenseShare/index.js";

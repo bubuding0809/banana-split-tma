@@ -1,4 +1,5 @@
 import {
+  awsRouter,
   chatRouter,
   currencyRouter,
   expenseRouter,
@@ -11,6 +12,7 @@ import {
 import { createTRPCRouter } from "./trpc.js";
 
 export const appRouter = createTRPCRouter({
+  aws: awsRouter,
   chat: chatRouter,
   user: userRouter,
   telegram: telegramRouter,
