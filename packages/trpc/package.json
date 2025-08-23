@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.873.0",
+    "@aws-sdk/client-scheduler": "^3.873.0",
     "@dko/database": "workspace:*",
     "@telegram-apps/init-data-node": "^2.0.10",
     "@trpc/server": "^11.0.0",
