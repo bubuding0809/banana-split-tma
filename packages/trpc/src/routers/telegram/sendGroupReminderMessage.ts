@@ -187,7 +187,7 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   // Format the message
-  let messageLines = ["⏰ *Looks like there are still pending debts here\\!"];
+  let messageLines = ["⏰ *Looks like there are still pending debts here\\!*"];
 
   for (const [debtorId, creditors] of debtsByDebtor.entries()) {
     const debtor = memberMap.get(debtorId);
@@ -232,7 +232,7 @@ export const sendGroupReminderMessageHandler = async (
       const prefix = index === creditors.length - 1 ? "└" : "├";
 
       messageLines.push(
-        `${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
+        `> ${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
       );
     });
   }
