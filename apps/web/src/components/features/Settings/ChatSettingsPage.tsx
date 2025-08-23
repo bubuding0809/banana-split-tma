@@ -245,7 +245,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
       <Section
         header="Base Currency"
-        footer="This is the main currency used in the group which is used as the base for other currencies to convert to."
+        footer="The main currency which other can be converted to."
       >
         <Cell
           before={
