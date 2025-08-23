@@ -2,8 +2,13 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
 import { Telegram } from "telegraf";
-import { escapeMarkdown, mentionMarkdown } from "../../utils/telegram.js";
+import {
+  escapeMarkdown,
+  mentionMarkdown,
+  createDeepLinkedUrl,
+} from "../../utils/telegram.js";
 import { formatCurrencyWithCode } from "../../utils/financial.js";
+import { inlineKeyboard } from "telegraf/markup";
 import { getChatHandler } from "../chat/getChat.js";
 import { getSimplifiedDebtsHandler } from "../chat/getSimplifiedDebts.js";
 import { getNetShareHandler } from "../expenseShare/getNetShare.js";
@@ -232,12 +237,26 @@ export const sendGroupReminderMessageHandler = async (
       const prefix = index === creditors.length - 1 ? "└" : "├";
 
       messageLines.push(
-        `> ${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
+        `${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
       );
     });
   }
 
   const messageContent = messageLines.join("\n");
+
+  // Create deep link to mini app
+  const chatContext = {
+    chat_id: chatIdNumber,
+    chat_type: "g",
+  };
+  const base64EncodedChatContext = btoa(JSON.stringify(chatContext));
+  const botInfo = await teleBot.getMe();
+  const deepLink = createDeepLinkedUrl(
+    botInfo.username,
+    base64EncodedChatContext,
+    "app"
+  );
+  const keyboard = inlineKeyboard([{ text: "View Debts 💰", url: deepLink }]);
 
   try {
     const sentMessage = await teleBot.sendMessage(
@@ -246,6 +265,7 @@ export const sendGroupReminderMessageHandler = async (
       {
         parse_mode: "MarkdownV2",
         message_thread_id: chat.threadId || undefined,
+        ...keyboard,
       }
     );
 
