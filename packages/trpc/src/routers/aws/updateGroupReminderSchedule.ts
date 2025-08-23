@@ -1,7 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { SchedulerClient } from "@aws-sdk/client-scheduler";
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
 import { protectedProcedure } from "../../trpc.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
 import {
@@ -12,12 +10,10 @@ import {
   validateUpdateFields,
   mergeScheduleUpdate,
 } from "./utils/groupReminderUtils.js";
+import { getSchedulerClient } from "./utils/schedulerClient.js";
 
-const AWS_REGION = process.env.AWS_REGION!;
-const AWS_ROLE_ARN = process.env.AWS_ROLE_ARN!;
 const AWS_GROUP_REMINDER_LAMBDA_ARN =
   process.env.AWS_GROUP_REMINDER_LAMBDA_ARN!;
-const IS_VERCEL_RUNTIME = process.env.VERCEL === "1";
 
 // Valid days of the week
 const DAYS_OF_WEEK = [
@@ -55,16 +51,6 @@ const COMMON_TIMEZONES = [
   "Asia/Seoul",
   "Asia/Taipei",
 ];
-
-// Initialize the EventBridge Scheduler Client
-const schedulerClient = new SchedulerClient({
-  ...(IS_VERCEL_RUNTIME && {
-    credentials: awsCredentialsProvider({
-      roleArn: AWS_ROLE_ARN,
-    }),
-    region: AWS_REGION,
-  }),
-});
 
 export const inputSchema = z
   .object({
@@ -150,6 +136,7 @@ export const updateGroupReminderScheduleHandler = async (
     const { chatId, dayOfWeek, time, timezone, description, enabled } = input;
 
     // Get existing schedule
+    const schedulerClient = getSchedulerClient();
     const existingSchedule = await getGroupReminderSchedule(
       schedulerClient,
       chatId

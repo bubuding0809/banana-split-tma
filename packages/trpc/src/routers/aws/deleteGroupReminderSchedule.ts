@@ -1,7 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { SchedulerClient } from "@aws-sdk/client-scheduler";
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
 import { protectedProcedure } from "../../trpc.js";
 import {
   generateGroupReminderScheduleName,
@@ -9,20 +7,7 @@ import {
   getGroupReminderSchedule,
   deleteGroupReminderSchedule as deleteScheduleUtil,
 } from "./utils/groupReminderUtils.js";
-
-const AWS_REGION = process.env.AWS_REGION!;
-const AWS_ROLE_ARN = process.env.AWS_ROLE_ARN!;
-const IS_VERCEL_RUNTIME = process.env.VERCEL === "1";
-
-// Initialize the EventBridge Scheduler Client
-const schedulerClient = new SchedulerClient({
-  ...(IS_VERCEL_RUNTIME && {
-    credentials: awsCredentialsProvider({
-      roleArn: AWS_ROLE_ARN,
-    }),
-    region: AWS_REGION,
-  }),
-});
+import { getSchedulerClient } from "./utils/schedulerClient.js";
 
 export const inputSchema = z.object({
   chatId: z
@@ -68,6 +53,7 @@ export const deleteGroupReminderScheduleHandler = async (
     const { chatId } = input;
 
     // Get existing schedule details before deletion (for response information)
+    const schedulerClient = getSchedulerClient();
     const existingSchedule = await getGroupReminderSchedule(
       schedulerClient,
       chatId

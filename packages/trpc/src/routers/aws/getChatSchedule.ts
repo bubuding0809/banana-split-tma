@@ -1,15 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { SchedulerClient } from "@aws-sdk/client-scheduler";
 import { protectedProcedure } from "../../trpc.js";
 import {
   getGroupReminderSchedule,
   validateChatId,
 } from "./utils/groupReminderUtils.js";
-
-const schedulerClient = new SchedulerClient({
-  region: process.env.AWS_REGION || "ap-southeast-1",
-});
+import { getSchedulerClient } from "./utils/schedulerClient.js";
 
 export const inputSchema = z.object({
   chatId: z
@@ -57,6 +53,7 @@ export const getChatScheduleHandler = async (
     const { chatId } = input;
 
     // Get existing schedule from AWS EventBridge Scheduler
+    const schedulerClient = getSchedulerClient();
     const schedule = await getGroupReminderSchedule(schedulerClient, chatId);
 
     if (!schedule) {
