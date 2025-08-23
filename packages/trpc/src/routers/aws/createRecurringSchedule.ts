@@ -4,9 +4,7 @@ import {
   CreateScheduleCommand,
   CreateScheduleInput,
   GetScheduleCommand,
-  SchedulerClient,
 } from "@aws-sdk/client-scheduler";
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
 import { protectedProcedure } from "../../trpc.js";
 import { parseScheduleExpression } from "./utils/scheduleParser.js";
 import {
@@ -14,22 +12,10 @@ import {
   validateLambdaPayload,
   createLambdaTarget,
 } from "./utils/lambdaValidator.js";
+import { getSchedulerClient, AWS_REGION } from "./utils/schedulerClient.js";
 
-const AWS_REGION = process.env.AWS_REGION!;
-const AWS_ROLE_ARN = process.env.AWS_ROLE_ARN!;
 const AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN =
   process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN!;
-const IS_VERCEL_RUNTIME = process.env.VERCEL === "1";
-
-// Initialize the EventBridge Scheduler Client
-const schedulerClient = new SchedulerClient({
-  ...(IS_VERCEL_RUNTIME && {
-    credentials: awsCredentialsProvider({
-      roleArn: AWS_ROLE_ARN,
-    }),
-    region: AWS_REGION,
-  }),
-});
 
 export const inputSchema = z.object({
   scheduleName: z
@@ -197,6 +183,7 @@ export const createRecurringScheduleHandler = async (
 
     // Create the schedule
     const createCommand = new CreateScheduleCommand(scheduleInput);
+    const schedulerClient = getSchedulerClient();
     const result = await schedulerClient.send(createCommand);
 
     // Get the created schedule details
