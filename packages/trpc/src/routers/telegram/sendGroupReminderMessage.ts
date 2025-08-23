@@ -187,9 +187,7 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   // Format the message
-  let messageLines = [
-    "⏰ *Looks like there are still pending debts to be settled here*\n",
-  ];
+  let messageLines = ["⏰ *Looks like there are still pending debts here!"];
 
   for (const [debtorId, creditors] of debtsByDebtor.entries()) {
     const debtor = memberMap.get(debtorId);
@@ -232,10 +230,9 @@ export const sendGroupReminderMessageHandler = async (
         2
       );
       const prefix = index === creditors.length - 1 ? "└" : "├";
-      const emoji = Math.random() > 0.5 ? " 💬" : ""; // Random emoji like in screenshot
 
       messageLines.push(
-        `${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}${emoji}`
+        `${prefix} Owes ${escapeMarkdown(creditorName, 2)}: ${formattedAmount}`
       );
     });
   }
