@@ -11,7 +11,7 @@ import { formatCurrencyWithCode } from "../../utils/financial.js";
 import { inlineKeyboard } from "telegraf/markup";
 import { getChatHandler } from "../chat/getChat.js";
 import { getSimplifiedDebtsHandler } from "../chat/getSimplifiedDebts.js";
-import { getNetShareHandler } from "../expenseShare/getNetShare.js";
+import { getBulkChatDebtsHandler } from "../chat/getBulkChatDebts.js";
 import { getMembersHandler } from "../chat/getMembers.js";
 import { getCurrenciesWithBalanceHandler } from "../currency/getCurrenciesWithBalance.js";
 
@@ -51,8 +51,15 @@ export const sendGroupReminderMessageHandler = async (
     });
   }
 
-  // Get chat details including threadId and debtSimplificationEnabled
-  const chat = await getChatHandler({ chatId: chatIdNumber }, db);
+  // Parallel fetch of initial data for better performance
+  const [chat, currenciesWithBalance, members] = await Promise.all([
+    getChatHandler({ chatId: chatIdNumber }, db),
+    getCurrenciesWithBalanceHandler(
+      { userId: BigInt(0), chatId: BigInt(chatIdNumber) }, // Use dummy userId since we want all currencies
+      db
+    ),
+    getMembersHandler({ chatId: chatIdNumber }, db),
+  ]);
 
   if (!chat) {
     throw new TRPCError({
@@ -60,12 +67,6 @@ export const sendGroupReminderMessageHandler = async (
       message: `Chat not found: ${input.chatId}`,
     });
   }
-
-  // Get currencies used in this chat
-  const currenciesWithBalance = await getCurrenciesWithBalanceHandler(
-    { userId: BigInt(0), chatId: BigInt(chatIdNumber) }, // Use dummy userId since we want all currencies
-    db
-  );
 
   if (currenciesWithBalance.length === 0) {
     return {
@@ -75,9 +76,6 @@ export const sendGroupReminderMessageHandler = async (
       reason: "No currencies with balances found in chat",
     };
   }
-
-  // Get chat members for name resolution
-  const members = await getMembersHandler({ chatId: chatIdNumber }, db);
 
   if (!members || members.length === 0) {
     return {
@@ -99,70 +97,40 @@ export const sendGroupReminderMessageHandler = async (
 
   // Conditional debt fetching based on debtSimplificationEnabled
   if (chat.debtSimplificationEnabled) {
-    // Use simplified debts
-    for (const currencyInfo of currenciesWithBalance) {
-      const simplifiedDebts = await getSimplifiedDebtsHandler(
-        { chatId: chatIdNumber, currency: currencyInfo.currency.code },
-        db
-      );
+    // Use simplified debts with parallel processing
+    const currencies = currenciesWithBalance.map((c) => c.currency.code);
+    const simplifiedDebtsResults = await Promise.all(
+      currencies.map((currency) =>
+        getSimplifiedDebtsHandler({ chatId: chatIdNumber, currency }, db)
+      )
+    );
 
-      for (const debt of simplifiedDebts.simplifiedDebts) {
+    // Process all simplified debts results
+    simplifiedDebtsResults.forEach((result, index) => {
+      const currency = currencies[index];
+      if (!currency) return;
+
+      for (const debt of result.simplifiedDebts) {
         if (debt.amount > 0.01) {
           // Only include significant amounts
           debtSummary.push({
             debtorId: debt.fromUserId,
             creditorId: debt.toUserId,
             amount: debt.amount,
-            currency: currencyInfo.currency.code,
+            currency,
           });
         }
       }
-    }
+    });
   } else {
-    // Use normal debts - calculate net shares between all member pairs
-    for (const currencyInfo of currenciesWithBalance) {
-      for (let i = 0; i < members.length; i++) {
-        for (let j = i + 1; j < members.length; j++) {
-          const member1 = members[i];
-          const member2 = members[j];
-          if (!member1 || !member2) continue;
+    // Use bulk debt calculation - MUCH faster than individual queries
+    const currencies = currenciesWithBalance.map((c) => c.currency.code);
+    const bulkDebtsResult = await getBulkChatDebtsHandler(
+      { chatId: chatIdNumber, currencies },
+      db
+    );
 
-          const member1Id = Number(member1.id);
-          const member2Id = Number(member2.id);
-
-          const netShare = await getNetShareHandler(
-            {
-              mainUserId: member1Id,
-              targetUserId: member2Id,
-              chatId: chatIdNumber,
-              currency: currencyInfo.currency.code,
-            },
-            db
-          );
-
-          if (Math.abs(netShare) > 0.01) {
-            // Only include significant amounts
-            if (netShare > 0) {
-              // member2 owes member1
-              debtSummary.push({
-                debtorId: member2Id,
-                creditorId: member1Id,
-                amount: netShare,
-                currency: currencyInfo.currency.code,
-              });
-            } else {
-              // member1 owes member2
-              debtSummary.push({
-                debtorId: member1Id,
-                creditorId: member2Id,
-                amount: Math.abs(netShare),
-                currency: currencyInfo.currency.code,
-              });
-            }
-          }
-        }
-      }
-    }
+    debtSummary = bulkDebtsResult.debts;
   }
 
   if (debtSummary.length === 0) {
