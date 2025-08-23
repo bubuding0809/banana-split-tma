@@ -1,0 +1,115 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { SchedulerClient } from "@aws-sdk/client-scheduler";
+import { protectedProcedure } from "../../trpc.js";
+import {
+  getGroupReminderSchedule,
+  validateChatId,
+} from "./utils/groupReminderUtils.js";
+
+const schedulerClient = new SchedulerClient({
+  region: process.env.AWS_REGION || "ap-southeast-1",
+});
+
+export const inputSchema = z.object({
+  chatId: z
+    .string()
+    .min(1, "Chat ID is required")
+    .refine(
+      validateChatId,
+      "Invalid Telegram chat ID format. Must be a numeric string (can be negative for groups)"
+    ),
+});
+
+export const outputSchema = z.object({
+  exists: z.boolean().describe("Whether a schedule exists for this chat"),
+  schedule: z
+    .object({
+      scheduleName: z.string().describe("Auto-generated schedule name"),
+      chatId: z.string().describe("Telegram chat ID"),
+      dayOfWeek: z
+        .string()
+        .optional()
+        .describe("Day of the week for reminders"),
+      time: z.string().optional().describe("Time for the reminder"),
+      timezone: z.string().describe("Timezone for the schedule"),
+      description: z.string().optional().describe("Schedule description"),
+      enabled: z.boolean().describe("Whether the schedule is enabled"),
+      scheduleExpression: z.string().describe("AWS schedule expression"),
+      scheduleArn: z.string().optional().describe("ARN of the schedule"),
+      createdDate: z
+        .date()
+        .optional()
+        .describe("Date when schedule was created"),
+      lastModifiedDate: z
+        .date()
+        .optional()
+        .describe("Date when schedule was last modified"),
+    })
+    .optional()
+    .describe("Schedule details (null if no schedule exists)"),
+});
+
+export const getChatScheduleHandler = async (
+  input: z.infer<typeof inputSchema>
+) => {
+  try {
+    const { chatId } = input;
+
+    // Get existing schedule from AWS EventBridge Scheduler
+    const schedule = await getGroupReminderSchedule(schedulerClient, chatId);
+
+    if (!schedule) {
+      return {
+        exists: false,
+        schedule: undefined,
+      };
+    }
+
+    return {
+      exists: true,
+      schedule: {
+        scheduleName: schedule.scheduleName,
+        chatId: schedule.chatId,
+        dayOfWeek: schedule.dayOfWeek,
+        time: schedule.time,
+        timezone: schedule.timezone || "UTC",
+        description: schedule.description,
+        enabled: schedule.enabled,
+        scheduleExpression: schedule.scheduleExpression,
+        scheduleArn: schedule.scheduleArn,
+        createdDate: schedule.createdDate,
+        lastModifiedDate: schedule.lastModifiedDate,
+      },
+    };
+  } catch (error) {
+    // Re-throw TRPCErrors as-is
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+
+    // Handle AWS and other errors
+    console.error("Failed to get chat schedule:", error);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Failed to get chat schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+  }
+};
+
+export default protectedProcedure
+  .meta({
+    openapi: {
+      method: "GET",
+      path: "/aws/group-reminder/schedule/{chatId}",
+      tags: ["aws", "reminders"],
+      summary: "Get group reminder schedule for chat",
+      description:
+        "Retrieves the current group reminder schedule configuration for a Telegram chat, including schedule details needed for settings UI",
+    },
+  })
+  .input(inputSchema)
+  .output(outputSchema)
+  .query(async ({ input }) => {
+    return getChatScheduleHandler(input);
+  });
