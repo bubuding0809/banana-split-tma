@@ -181,7 +181,7 @@ export const sendGroupReminderMessageHandler = async (
       );
     }
 
-    messageLines.push(`\n${debtorMention}`);
+    messageLines.push(`\n🙇 ${debtorMention}`);
 
     // Sort creditors by name for consistent ordering
     creditors.sort((a, b) => {
