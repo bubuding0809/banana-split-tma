@@ -4,6 +4,7 @@ import createRecurringSchedule from "./createRecurringSchedule.js";
 import createGroupReminderSchedule from "./createGroupReminderSchedule.js";
 import updateGroupReminderSchedule from "./updateGroupReminderSchedule.js";
 import deleteGroupReminderSchedule from "./deleteGroupReminderSchedule.js";
+import getChatSchedule from "./getChatSchedule.js";
 
 export const awsRouter = createTRPCRouter({
   eventbridgeSanityCheck,
@@ -11,4 +12,5 @@ export const awsRouter = createTRPCRouter({
   createGroupReminderSchedule,
   updateGroupReminderSchedule,
   deleteGroupReminderSchedule,
+  getChatSchedule,
 });
