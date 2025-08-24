@@ -26,6 +26,34 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
 
+  apps/admin:
+    dependencies:
+      "@dko/trpc":
+        specifier: workspace:*
+        version: link:../../packages/trpc
+      "@trpc/client":
+        specifier: ^11.0.0
+        version: 11.0.0(@trpc/server@11.0.0(typescript@5.8.2))(typescript@5.8.2)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.5.0
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      "@types/node":
+        specifier: ^22.10.5
+        version: 22.13.10
+      tsx:
+        specifier: ^4.7.1
+        version: 4.19.3
+      typescript:
+        specifier: 5.8.2
+        version: 5.8.2
+
   apps/lambda:
     dependencies:
       "@dko/trpc":
