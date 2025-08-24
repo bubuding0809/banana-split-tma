@@ -208,6 +208,12 @@ export const sendGroupReminderMessageHandler = async (
     });
   }
 
+  if (chat.debtSimplificationEnabled) {
+    messageLines.push(
+      "\n>Debts simplification is enabled\\. What you see is the minimal set of debts to settle among members\\."
+    );
+  }
+
   const messageContent = messageLines.join("\n");
 
   // Create deep link to mini app
