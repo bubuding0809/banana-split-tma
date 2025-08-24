@@ -138,7 +138,7 @@ export const sendGroupReminderMessageHandler = async (
       messageId: null,
       success: true,
       timestamp: new Date(),
-      reason: "No pending debts found in chat",
+      reason: "No outstanding debts",
     };
   }
 
@@ -160,7 +160,7 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   // Format the message
-  let messageLines = ["⏰ *Unpaid debts\\!*"];
+  let messageLines = ["⏰ *Outstanding debts*"];
 
   for (const [debtorId, creditors] of debtsByDebtor.entries()) {
     const debtor = memberMap.get(debtorId);
