@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { ChatType } from "@dko/database";
+import { createGroupReminderScheduleHandler } from "../aws/createGroupReminderSchedule.js";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -43,7 +44,7 @@ export const createChatHandler = async (
       });
     }
 
-    return db.chat.create({
+    const chat = await db.chat.create({
       data: {
         id: input.chatId,
         title: input.chatTitle,
@@ -51,6 +52,8 @@ export const createChatHandler = async (
         ...(input.chatPhoto && { photo: input.chatPhoto }),
       },
     });
+
+    return chat;
   } catch (error) {
     if (error instanceof TRPCError) {
       throw error;
@@ -71,6 +74,19 @@ export const createChatHandler = async (
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create chat",
     });
+  } finally {
+    // Create a default group reminder schedule for the chat
+    try {
+      await createGroupReminderScheduleHandler({
+        chatId: input.chatId.toString(),
+        dayOfWeek: "sunday",
+        time: "9:00pm",
+        timezone: "Asia/Singapore",
+        enabled: true,
+      });
+    } catch (error) {
+      console.error("Failed to create group reminder schedule:", error);
+    }
   }
 };
 
