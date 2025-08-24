@@ -87,17 +87,21 @@ export const inputSchema = z.object({
         .min(0, "Maximum retry attempts must be 0 or greater")
         .max(185, "Maximum retry attempts must be 185 or less")
         .optional()
-        .default(3)
+        .catch(3)
         .describe("Maximum number of retry attempts for failed invocations"),
       MaximumEventAgeInSeconds: z
         .number()
         .min(60, "Maximum event age must be at least 60 seconds")
         .max(86400, "Maximum event age must be 86400 seconds or less")
         .optional()
-        .default(3600)
+        .catch(3600)
         .describe("Maximum age of the event in seconds"),
     })
     .optional()
+    .catch({
+      MaximumRetryAttempts: 3,
+      MaximumEventAgeInSeconds: 60 * 60 * 24,
+    })
     .describe("Retry policy configuration"),
 });
 
