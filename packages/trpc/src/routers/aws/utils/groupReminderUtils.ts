@@ -54,6 +54,151 @@ export function validateChatId(chatId: string): boolean {
 }
 
 /**
+ * Mapping from AWS EventBridge cron day codes to day names
+ */
+const CRON_TO_DAY: Record<string, string> = {
+  SUN: "sunday",
+  MON: "monday",
+  TUE: "tuesday",
+  WED: "wednesday",
+  THU: "thursday",
+  FRI: "friday",
+  SAT: "saturday",
+};
+
+/**
+ * Converts 24-hour time to 12-hour format with AM/PM
+ */
+function formatTime24To12(hour: number, minute: number): string {
+  let period = "am";
+  let displayHour = hour;
+
+  if (hour === 0) {
+    displayHour = 12;
+  } else if (hour === 12) {
+    period = "pm";
+  } else if (hour > 12) {
+    displayHour = hour - 12;
+    period = "pm";
+  }
+
+  if (minute === 0) {
+    return `${displayHour}${period}`;
+  }
+
+  return `${displayHour}:${minute.toString().padStart(2, "0")}${period}`;
+}
+
+/**
+ * Parses AWS EventBridge cron expression to extract day of week and time
+ * Cron format: cron(minute hour day-of-month month day-of-week year)
+ * Example: "cron(30 14 ? * WED *)" -> { dayOfWeek: "wednesday", time: "2:30pm" }
+ */
+function parseCronExpression(cronExpression: string): {
+  dayOfWeek?: string;
+  time?: string;
+} {
+  try {
+    // Remove "cron(" prefix and ")" suffix, then split by whitespace
+    const cronMatch = cronExpression.match(/^cron\((.+)\)$/);
+    if (!cronMatch || !cronMatch[1]) return {};
+
+    const parts = cronMatch[1].split(/\s+/);
+    if (parts.length !== 6) return {};
+
+    const [minute, hour, , , dayOfWeek] = parts;
+
+    // Check that we have the required parts
+    if (!minute || !hour || !dayOfWeek) return {};
+
+    // Parse time from minute and hour
+    const minuteNum = parseInt(minute, 10);
+    const hourNum = parseInt(hour, 10);
+
+    if (
+      isNaN(minuteNum) ||
+      isNaN(hourNum) ||
+      hourNum < 0 ||
+      hourNum > 23 ||
+      minuteNum < 0 ||
+      minuteNum > 59
+    ) {
+      return {};
+    }
+
+    const time = formatTime24To12(hourNum, minuteNum);
+
+    // Parse day of week
+    const dayName = CRON_TO_DAY[dayOfWeek.toUpperCase()];
+
+    return {
+      dayOfWeek: dayName,
+      time,
+    };
+  } catch (error) {
+    console.warn("Failed to parse cron expression:", cronExpression, error);
+    return {};
+  }
+}
+
+/**
+ * Parses human-readable schedule expression to extract day of week and time
+ * Example: "weekly on monday at 9:00am" -> { dayOfWeek: "monday", time: "9:00am" }
+ */
+function parseHumanReadableExpression(expression: string): {
+  dayOfWeek?: string;
+  time?: string;
+} {
+  try {
+    const expr = expression.toLowerCase().trim();
+
+    // Match "weekly on [day] at [time]" pattern
+    const weeklyMatch = expr.match(
+      /^weekly(?:\s+on\s+(\w+))?(?:\s+at\s+(.+))?$/
+    );
+    if (weeklyMatch) {
+      return {
+        dayOfWeek: weeklyMatch[1] || undefined,
+        time: weeklyMatch[2] || undefined,
+      };
+    }
+
+    return {};
+  } catch (error) {
+    console.warn(
+      "Failed to parse human-readable expression:",
+      expression,
+      error
+    );
+    return {};
+  }
+}
+
+/**
+ * Extracts schedule details from various expression formats
+ * Tries multiple parsing strategies in order of preference
+ */
+export function extractScheduleDetails(scheduleExpression?: string): {
+  dayOfWeek?: string;
+  time?: string;
+} {
+  // Default fallback values
+  const defaults = { dayOfWeek: undefined, time: undefined };
+
+  // Try to parse from the main schedule expression first (AWS cron format)
+  if (scheduleExpression) {
+    if (scheduleExpression.startsWith("cron(")) {
+      const cronResult = parseCronExpression(scheduleExpression);
+      if (cronResult.dayOfWeek && cronResult.time) {
+        return cronResult;
+      }
+    }
+  }
+
+  return defaults;
+}
+
+/**
  * Retrieves existing group reminder schedule details from AWS EventBridge Scheduler
  */
 export async function getGroupReminderSchedule(
@@ -75,13 +220,12 @@ export async function getGroupReminderSchedule(
       return null;
     }
 
-    // Parse schedule expression to extract day/time info (best effort)
-    let dayOfWeek: string | undefined;
-    let time: string | undefined;
-
-    // Try to parse human-readable info from description or use defaults
+    // Extract schedule details from available information
     const description = response.Description || "";
     const scheduleExpression = response.ScheduleExpression || "";
+
+    // Parse schedule expression to extract day/time info
+    const { dayOfWeek, time } = extractScheduleDetails(scheduleExpression);
 
     return {
       scheduleName,
