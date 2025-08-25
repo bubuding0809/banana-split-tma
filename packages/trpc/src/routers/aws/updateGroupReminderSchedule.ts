@@ -4,7 +4,6 @@ import { protectedProcedure } from "../../trpc.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
 import {
   generateGroupReminderScheduleName,
-  validateChatId,
   getGroupReminderSchedule,
   deleteGroupReminderSchedule,
   validateUpdateFields,
@@ -54,13 +53,7 @@ const COMMON_TIMEZONES = [
 
 export const inputSchema = z
   .object({
-    chatId: z
-      .string()
-      .min(1, "Chat ID is required")
-      .refine(
-        validateChatId,
-        "Invalid Telegram chat ID format. Must be a numeric string (can be negative for groups)"
-      ),
+    chatId: z.number(),
 
     dayOfWeek: z
       .enum(DAYS_OF_WEEK)
@@ -108,7 +101,7 @@ export const outputSchema = z.object({
   scheduleArn: z.string().describe("ARN of the updated schedule"),
   scheduleName: z.string().describe("Schedule name"),
   scheduleExpression: z.string().describe("Updated schedule expression"),
-  chatId: z.string().describe("Telegram chat ID for the group"),
+  chatId: z.number().describe("Telegram chat ID for the group"),
   dayOfWeek: z.string().describe("Current day of the week for reminders"),
   time: z.string().describe("Current time for the reminder"),
   timezone: z.string().describe("Current timezone for the schedule"),
@@ -117,7 +110,7 @@ export const outputSchema = z.object({
       arn: z.string().describe("GroupReminderLambda ARN"),
       payload: z
         .object({
-          chatId: z.string().describe("Chat ID sent to Lambda"),
+          chatId: z.number().describe("Chat ID sent to Lambda"),
         })
         .describe("Payload sent to Lambda function"),
     })

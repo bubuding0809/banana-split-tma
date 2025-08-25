@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
 import {
   generateGroupReminderScheduleName,
-  validateChatId,
   getGroupReminderSchedule,
   deleteGroupReminderSchedule as deleteScheduleUtil,
 } from "./utils/groupReminderUtils.js";
@@ -11,17 +10,12 @@ import { getSchedulerClient } from "./utils/schedulerClient.js";
 
 export const inputSchema = z.object({
   chatId: z
-    .string()
-    .min(1, "Chat ID is required")
-    .refine(
-      validateChatId,
-      "Invalid Telegram chat ID format. Must be a numeric string (can be negative for groups)"
-    )
+    .number()
     .describe("Telegram chat ID to identify the schedule to delete"),
 });
 
 export const outputSchema = z.object({
-  chatId: z.string().describe("Telegram chat ID of the deleted schedule"),
+  chatId: z.number().describe("Telegram chat ID of the deleted schedule"),
   scheduleName: z.string().describe("Name of the deleted schedule"),
   deleted: z.boolean().describe("Confirmation that the schedule was deleted"),
   deletedDate: z.date().describe("Date when the schedule was deleted"),

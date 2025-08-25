@@ -16,11 +16,11 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
 
   // Queries
   const { data: scheduleData, status: scheduleStatus } =
-    trpc.aws.getChatSchedule.useQuery({ chatId: chatId.toString() });
+    trpc.aws.getChatSchedule.useQuery({ chatId });
 
   const updateMutation = trpc.aws.updateGroupReminderSchedule.useMutation({
     onSuccess: () => {
-      trpcUtils.aws.getChatSchedule.invalidate({ chatId: chatId.toString() });
+      trpcUtils.aws.getChatSchedule.invalidate({ chatId });
     },
     onError: (error) => {
       console.error("Failed to update reminder:", error);
@@ -35,7 +35,7 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
 
       // Update only the enabled field
       updateMutation.mutate({
-        chatId: chatId.toString(),
+        chatId,
         enabled,
       });
     },

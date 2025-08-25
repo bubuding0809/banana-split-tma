@@ -11,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 
 export interface GroupReminderScheduleDetails {
   scheduleName: string;
-  chatId: string;
+  chatId: number;
   dayOfWeek: string;
   time: string;
   timezone: string;
@@ -27,30 +27,10 @@ export interface GroupReminderScheduleDetails {
  * Generates a standardized schedule name for group reminders
  * Format: group-reminder-{normalizedChatId}
  */
-export function generateGroupReminderScheduleName(chatId: string): string {
+export function generateGroupReminderScheduleName(chatId: number): string {
   // Normalize chatId by removing negative sign and any non-numeric chars for name
-  const normalizedChatId = chatId.replace(/[^0-9]/g, "");
+  const normalizedChatId = Math.abs(chatId).toString();
   return `group-reminder-${normalizedChatId}`;
-}
-
-/**
- * Validates Telegram Chat ID format
- * Telegram chat IDs can be positive (private/group) or negative (supergroup/channel)
- */
-export function validateChatId(chatId: string): boolean {
-  // Must be a numeric string, can be negative
-  const numericPattern = /^-?\d+$/;
-
-  if (!numericPattern.test(chatId)) {
-    return false;
-  }
-
-  const numValue = parseInt(chatId, 10);
-
-  // Telegram chat IDs have reasonable bounds
-  // Private chats: positive integers
-  // Groups/supergroups: negative integers (usually very large)
-  return Math.abs(numValue) > 0 && Math.abs(numValue) <= 9999999999999; // ~10^13 limit
 }
 
 /**
@@ -203,7 +183,7 @@ export function extractScheduleDetails(scheduleExpression?: string): {
  */
 export async function getGroupReminderSchedule(
   schedulerClient: SchedulerClient,
-  chatId: string,
+  chatId: number,
   scheduleGroup: string = "default"
 ): Promise<GroupReminderScheduleDetails | null> {
   try {
@@ -260,7 +240,7 @@ export async function getGroupReminderSchedule(
  */
 export async function deleteGroupReminderSchedule(
   schedulerClient: SchedulerClient,
-  chatId: string,
+  chatId: number,
   scheduleGroup: string = "default"
 ): Promise<boolean> {
   try {
