@@ -207,10 +207,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   return (
     <main className="px-3">
-      <Section
-        header="Base Currency"
-        footer="The main currency which other can be converted to."
-      >
+      <Section header="Currencies">
         <Cell
           before={
             <Avatar
@@ -244,10 +241,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         </Cell>
       </Section>
 
-      <Section
-        header="Personal Information"
-        footer="Used to help with repayments via 3rd party services."
-      >
+      <Section header="Personal Information">
         <Cell
           onClick={() => !userData?.phoneNumber && handleAddPhoneNumber()}
           before={<Phone size={20} />}
