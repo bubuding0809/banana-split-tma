@@ -47,10 +47,7 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
 
   return (
     <>
-      <Section
-        header="Recurring Reminders"
-        footer="Automatically send reminders to the group to settle outstanding debts."
-      >
+      <Section header="Notifications">
         {/* Status and Toggle */}
         <Cell
           Component="label"
@@ -69,7 +66,7 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
             />
           }
         >
-          Reminders
+          Recurring Reminders
         </Cell>
 
         {/* Schedule Configuration */}
@@ -80,7 +77,8 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
             disabled={isLoading}
             subtitle={scheduleData?.timezone}
           >
-            {`Every ${scheduleData?.dayOfWeek}, ${scheduleData?.time}`}
+            Every <span className="capitalize">{scheduleData?.dayOfWeek}</span>,
+            at <span>{scheduleData?.time}</span>
           </Cell>
         )}
       </Section>
