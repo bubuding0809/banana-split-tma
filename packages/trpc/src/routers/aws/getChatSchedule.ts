@@ -1,26 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
-import {
-  getGroupReminderSchedule,
-  validateChatId,
-} from "./utils/groupReminderUtils.js";
+import { getGroupReminderSchedule } from "./utils/groupReminderUtils.js";
 import { getSchedulerClient } from "./utils/schedulerClient.js";
 
 export const inputSchema = z.object({
-  chatId: z
-    .string()
-    .min(1, "Chat ID is required")
-    .refine(
-      validateChatId,
-      "Invalid Telegram chat ID format. Must be a numeric string (can be negative for groups)"
-    ),
+  chatId: z.number().describe("Telegram chat ID"),
 });
 
 export const outputSchema = z
   .object({
     scheduleName: z.string().describe("Auto-generated schedule name"),
-    chatId: z.string().describe("Telegram chat ID"),
+    chatId: z.number().describe("Telegram chat ID"),
     dayOfWeek: z.string().optional().describe("Day of the week for reminders"),
     time: z.string().optional().describe("Time for the reminder"),
     timezone: z.string().describe("Timezone for the schedule"),

@@ -22,7 +22,7 @@ const main = async () => {
         if (error.data.code === "CONFLICT") {
           console.log(`Schedule already exists for chat ${id}, skipping.`);
           await trpcClient.aws.updateGroupReminderSchedule.mutate({
-            chatId: id.toString(),
+            chatId: id,
             dayOfWeek: "sunday",
             time: "9:00pm",
             timezone: "Asia/Singapore",
