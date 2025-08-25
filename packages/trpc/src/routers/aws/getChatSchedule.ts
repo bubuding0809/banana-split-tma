@@ -17,34 +17,25 @@ export const inputSchema = z.object({
     ),
 });
 
-export const outputSchema = z.object({
-  exists: z.boolean().describe("Whether a schedule exists for this chat"),
-  schedule: z
-    .object({
-      scheduleName: z.string().describe("Auto-generated schedule name"),
-      chatId: z.string().describe("Telegram chat ID"),
-      dayOfWeek: z
-        .string()
-        .optional()
-        .describe("Day of the week for reminders"),
-      time: z.string().optional().describe("Time for the reminder"),
-      timezone: z.string().describe("Timezone for the schedule"),
-      description: z.string().optional().describe("Schedule description"),
-      enabled: z.boolean().describe("Whether the schedule is enabled"),
-      scheduleExpression: z.string().describe("AWS schedule expression"),
-      scheduleArn: z.string().optional().describe("ARN of the schedule"),
-      createdDate: z
-        .date()
-        .optional()
-        .describe("Date when schedule was created"),
-      lastModifiedDate: z
-        .date()
-        .optional()
-        .describe("Date when schedule was last modified"),
-    })
-    .optional()
-    .describe("Schedule details (null if no schedule exists)"),
-});
+export const outputSchema = z
+  .object({
+    scheduleName: z.string().describe("Auto-generated schedule name"),
+    chatId: z.string().describe("Telegram chat ID"),
+    dayOfWeek: z.string().optional().describe("Day of the week for reminders"),
+    time: z.string().optional().describe("Time for the reminder"),
+    timezone: z.string().describe("Timezone for the schedule"),
+    description: z.string().optional().describe("Schedule description"),
+    enabled: z.boolean().describe("Whether the schedule is enabled"),
+    scheduleExpression: z.string().describe("AWS schedule expression"),
+    scheduleArn: z.string().optional().describe("ARN of the schedule"),
+    createdDate: z.date().optional().describe("Date when schedule was created"),
+    lastModifiedDate: z
+      .date()
+      .optional()
+      .describe("Date when schedule was last modified"),
+  })
+  .nullable()
+  .describe("Schedule details (null if no schedule exists)");
 
 export const getChatScheduleHandler = async (
   input: z.infer<typeof inputSchema>
@@ -55,30 +46,7 @@ export const getChatScheduleHandler = async (
     // Get existing schedule from AWS EventBridge Scheduler
     const schedulerClient = getSchedulerClient();
     const schedule = await getGroupReminderSchedule(schedulerClient, chatId);
-
-    if (!schedule) {
-      return {
-        exists: false,
-        schedule: undefined,
-      };
-    }
-
-    return {
-      exists: true,
-      schedule: {
-        scheduleName: schedule.scheduleName,
-        chatId: schedule.chatId,
-        dayOfWeek: schedule.dayOfWeek,
-        time: schedule.time,
-        timezone: schedule.timezone || "UTC",
-        description: schedule.description,
-        enabled: schedule.enabled,
-        scheduleExpression: schedule.scheduleExpression,
-        scheduleArn: schedule.scheduleArn,
-        createdDate: schedule.createdDate,
-        lastModifiedDate: schedule.lastModifiedDate,
-      },
-    };
+    return schedule;
   } catch (error) {
     // Re-throw TRPCErrors as-is
     if (error instanceof TRPCError) {

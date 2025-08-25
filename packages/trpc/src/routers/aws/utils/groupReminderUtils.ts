@@ -12,9 +12,9 @@ import { TRPCError } from "@trpc/server";
 export interface GroupReminderScheduleDetails {
   scheduleName: string;
   chatId: string;
-  dayOfWeek?: string;
-  time?: string;
-  timezone?: string;
+  dayOfWeek: string;
+  time: string;
+  timezone: string;
   description?: string;
   enabled: boolean;
   scheduleExpression: string;
@@ -226,6 +226,13 @@ export async function getGroupReminderSchedule(
 
     // Parse schedule expression to extract day/time info
     const { dayOfWeek, time } = extractScheduleDetails(scheduleExpression);
+    if (!dayOfWeek || !time) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Failed to parse schedule expression for chat ID: ${chatId}`,
+      });
+    }
+    dayOfWeek;
 
     return {
       scheduleName,
