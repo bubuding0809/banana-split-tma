@@ -69,7 +69,7 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
             />
           }
         >
-          {scheduleData?.enabled ? "Reminders Enabled" : "Reminders Disabled"}
+          Reminders
         </Cell>
 
         {/* Schedule Configuration */}
