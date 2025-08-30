@@ -1,7 +1,13 @@
 import React, { useCallback } from "react";
 import { trpc } from "@/utils/trpc";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
-import { Cell, Navigation, Switch, Section } from "@telegram-apps/telegram-ui";
+import {
+  Cell,
+  Navigation,
+  Switch,
+  Section,
+  Skeleton,
+} from "@telegram-apps/telegram-ui";
 import { BellRing, BellOff } from "lucide-react";
 
 interface RecurringRemindersSectionProps {
@@ -50,6 +56,7 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
       <Section header="Notifications">
         {/* Status and Toggle */}
         <Cell
+          disabled={scheduleStatus === "pending"}
           Component="label"
           before={
             scheduleData?.enabled ? (
@@ -59,18 +66,20 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
             )
           }
           after={
-            <Switch
-              checked={scheduleData?.enabled}
-              onChange={(e) => handleToggleEnabled(e.target.checked)}
-              disabled={isLoading}
-            />
+            <Skeleton visible={scheduleStatus === "pending"}>
+              <Switch
+                checked={scheduleData?.enabled}
+                onChange={(e) => handleToggleEnabled(e.target.checked)}
+                disabled={isLoading}
+              />
+            </Skeleton>
           }
         >
           Recurring Reminders
         </Cell>
 
         {/* Schedule Configuration */}
-        {scheduleData?.enabled && (
+        {scheduleData?.enabled ? (
           <Cell
             onClick={() => alert("Coming soon!")}
             after={<Navigation>Edit</Navigation>}
@@ -80,6 +89,8 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
             Every <span className="capitalize">{scheduleData?.dayOfWeek}</span>,
             at <span>{scheduleData?.time}</span>
           </Cell>
+        ) : (
+          []
         )}
       </Section>
     </>
