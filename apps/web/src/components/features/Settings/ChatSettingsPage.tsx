@@ -19,6 +19,7 @@ import { ChevronsUpDown, Phone, X } from "lucide-react";
 import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
+import RecurringRemindersSection from "./RecurringRemindersSection";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -206,10 +207,41 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   return (
     <main className="px-3">
-      <Section
-        header="Personal Information"
-        footer="Used to help with repayments via 3rd party services."
-      >
+      <Section header="Currencies">
+        <Cell
+          before={
+            <Avatar
+              size={40}
+              src={getFlagUrl(currentCurrencyInfo?.countryCode || "SGD")}
+            >
+              {currentCurrencyInfo?.flagEmoji || "🌏"}
+            </Avatar>
+          }
+          subtitle={
+            <Skeleton
+              visible={
+                dChatDataStatus === "pending" ||
+                supportedCurrenciesStatus === "pending"
+              }
+            >
+              {currentCurrencyInfo?.code || "Loading..."}
+            </Skeleton>
+          }
+          after={<ChevronsUpDown size={20} color="gray" />}
+          onClick={() => setCurrencyModalOpen(true)}
+        >
+          <Skeleton
+            visible={
+              dChatDataStatus === "pending" ||
+              supportedCurrenciesStatus === "pending"
+            }
+          >
+            {currentCurrencyInfo?.name || "Default Currency"}
+          </Skeleton>
+        </Cell>
+      </Section>
+
+      <Section header="Personal Information">
         <Cell
           onClick={() => !userData?.phoneNumber && handleAddPhoneNumber()}
           before={<Phone size={20} />}
@@ -243,42 +275,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         )}
       </Section>
 
-      <Section
-        header="Base Currency"
-        footer="The main currency which other can be converted to."
-      >
-        <Cell
-          before={
-            <Avatar
-              size={40}
-              src={getFlagUrl(currentCurrencyInfo?.countryCode || "SGD")}
-            >
-              {currentCurrencyInfo?.flagEmoji || "🌏"}
-            </Avatar>
-          }
-          subtitle={
-            <Skeleton
-              visible={
-                dChatDataStatus === "pending" ||
-                supportedCurrenciesStatus === "pending"
-              }
-            >
-              {currentCurrencyInfo?.code || "Loading..."}
-            </Skeleton>
-          }
-          after={<ChevronsUpDown size={20} color="gray" />}
-          onClick={() => setCurrencyModalOpen(true)}
-        >
-          <Skeleton
-            visible={
-              dChatDataStatus === "pending" ||
-              supportedCurrenciesStatus === "pending"
-            }
-          >
-            {currentCurrencyInfo?.name || "Default Currency"}
-          </Skeleton>
-        </Cell>
-      </Section>
+      <RecurringRemindersSection chatId={chatId} />
 
       <CurrencySelectionModal
         open={currencyModalOpen}
