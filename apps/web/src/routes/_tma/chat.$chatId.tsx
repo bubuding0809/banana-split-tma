@@ -26,7 +26,8 @@ function ChatIdRoute() {
   const chatId = Number(chat_id ?? 0);
 
   // Validate chat existence and handle errors
-  const { status: dChatDataStatus } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: dChatData, status: dChatDataStatus } =
+    trpc.chat.getChat.useQuery({ chatId });
 
   if (dChatDataStatus === "pending") {
     return (
@@ -37,7 +38,7 @@ function ChatIdRoute() {
     );
   }
 
-  if (dChatDataStatus === "error") {
+  if (dChatDataStatus === "error" || dChatData === undefined) {
     return <InvalidGroupScreen />;
   }
 
