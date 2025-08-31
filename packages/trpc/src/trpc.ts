@@ -141,7 +141,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     });
   }
 
-  console.info(`Authenticated via ${authType}`);
   if (authType === "telegram") {
     console.info(
       `Authenticated user: ${user?.id} (${user?.username || "no username"})`
