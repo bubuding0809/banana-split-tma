@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { TRPCError } from "@trpc/server";
 
 const inputSchema = z.object({ chatId: z.number() });
 
@@ -11,6 +12,10 @@ export const getChatHandler = async (
     where: { id: input.chatId },
     include: { members: true },
   });
+
+  if (!chat) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Chat not found" });
+  }
 
   return {
     ...chat,
