@@ -5,7 +5,7 @@ const InvalidGroupScreen = () => {
     <div className="flex h-[80vh] flex-col items-center justify-center p-4">
       <Placeholder
         header="Group not found"
-        description={`This group might have been migrated or deleted. Ask the bot for a new app link via /start@${import.meta.env.VITE_TELEGRAM_BOT_USERNAME}`}
+        description={`This group might have been migrated or deleted. Ask the bot for a new app link via /start@${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK.split("/").pop()}`}
       >
         <img
           alt="Telegram sticker"
