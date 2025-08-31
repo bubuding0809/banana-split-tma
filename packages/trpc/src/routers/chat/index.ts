@@ -10,6 +10,7 @@ import getDebtors from "./getDebtors.js";
 import getMembers from "./getMembers.js";
 import getSimplifiedDebts from "./getSimplifiedDebts.js";
 import hasMember from "./hasMember.js";
+import migrateChat from "./migrateChat.js";
 import removeMember from "./removeMember.js";
 import updateChat from "./updateChat.js";
 
@@ -18,6 +19,7 @@ export const chatRouter = createTRPCRouter({
   getChat,
   getAllChats,
   updateChat,
+  migrateChat,
   addMember,
   removeMember,
   getMembers,

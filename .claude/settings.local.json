@@ -18,7 +18,10 @@
       "Bash(pnpm build:*)",
       "Bash(git commit:*)",
       "Bash(mv:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.prisma.io)"
     ],
     "deny": []
   }

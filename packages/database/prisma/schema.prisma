@@ -61,7 +61,7 @@ enum SplitMode {
 
 model Expense {
   id           String            @id @default(uuid())
-  chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   chatId       BigInt
   date         DateTime          @default(now())
   creator      User              @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
@@ -97,7 +97,7 @@ model ExpenseShare {
 
 model Settlement {
   id          String   @id @default(uuid())
-  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   chatId      BigInt
   date        DateTime @default(now())
   sender      User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -130,7 +130,7 @@ model CurrencyRate {
 
 model ExpenseSnapshot {
   id        String    @id @default(uuid())
-  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   chatId    BigInt
   creator   User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId BigInt
