@@ -108,11 +108,7 @@ export const outputSchema = z.object({
   lambdaTarget: z
     .object({
       arn: z.string().describe("GroupReminderLambda ARN"),
-      payload: z
-        .object({
-          chatId: z.number().describe("Chat ID sent to Lambda"),
-        })
-        .describe("Payload sent to Lambda function"),
+      payload: z.string().describe("Payload sent to Lambda function"),
     })
     .describe("Lambda target configuration"),
   state: z
@@ -156,7 +152,7 @@ export const updateGroupReminderScheduleHandler = async (
 
     // Create standardized payload for GroupReminderLambda
     const lambdaPayload = {
-      chatId: chatId,
+      chatId: chatId.toString(),
     };
 
     // Delete existing schedule first
@@ -185,7 +181,7 @@ export const updateGroupReminderScheduleHandler = async (
       timezone: mergedConfig.timezone,
       lambdaTarget: {
         arn: AWS_GROUP_REMINDER_LAMBDA_ARN,
-        payload: lambdaPayload,
+        payload: JSON.stringify(lambdaPayload),
       },
       state: result.state,
       updatedDate: new Date(),
