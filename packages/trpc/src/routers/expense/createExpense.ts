@@ -20,13 +20,7 @@ export const inputSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(60, "Description too long"),
-  amount: z
-    .number()
-    .positive("Amount must be positive")
-    .max(
-      FINANCIAL_THRESHOLDS.MAX_EXPENSE,
-      `Amount cannot exceed ${FINANCIAL_THRESHOLDS.MAX_EXPENSE.toLocaleString()}`
-    ),
+  amount: z.number().positive("Amount must be positive"),
   currency: z
     .string()
     .optional()
@@ -39,13 +33,7 @@ export const inputSchema = z.object({
     .array(
       z.object({
         userId: z.number().transform((val) => BigInt(val)),
-        amount: z
-          .number()
-          .positive("Split amount must be positive")
-          .max(
-            FINANCIAL_THRESHOLDS.MAX_EXPENSE,
-            `Split amount cannot exceed ${FINANCIAL_THRESHOLDS.MAX_EXPENSE.toLocaleString()}`
-          ),
+        amount: z.number().positive("Split amount must be positive"),
       })
     )
     .optional(),
