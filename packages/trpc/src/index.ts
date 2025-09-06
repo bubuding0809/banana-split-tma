@@ -5,7 +5,6 @@ import type { AppRouter } from "./root.js";
 import { appRouter } from "./root.js";
 import { withCreateTRPCContext } from "./trpc.js";
 import { openApiDocument } from "./openapi.js";
-import { FINANCIAL_THRESHOLDS } from "./utils/financial.js";
 
 /**
  * Inference helpers for input types
@@ -23,11 +22,5 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  **/
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export {
-  appRouter,
-  trpcExpress,
-  withCreateTRPCContext,
-  openApiDocument,
-  FINANCIAL_THRESHOLDS,
-};
+export { appRouter, trpcExpress, withCreateTRPCContext, openApiDocument };
 export type { AppRouter, RouterInputs, RouterOutputs };
