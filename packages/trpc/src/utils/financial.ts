@@ -16,6 +16,8 @@ export const FINANCIAL_THRESHOLDS = {
   SETTLEMENT: 1.0,
   /** Audit trail threshold for tracking all amounts */
   AUDIT: 0.001,
+  /** Maximum expense amount allowed by database schema: Decimal(12,2) */
+  MAX_EXPENSE: 9_999_999_999.99,
 } as const;
 
 /**
