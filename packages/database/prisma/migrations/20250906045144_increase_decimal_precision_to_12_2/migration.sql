@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Expense" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "ExpenseShare" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "Settlement" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(12,2);

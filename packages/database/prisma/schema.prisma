@@ -69,7 +69,7 @@ model Expense {
   payer        User              @relation("Payer", fields: [payerId], references: [id], onDelete: Cascade)
   payerId      BigInt
   description  String
-  amount       Decimal           @db.Decimal(10, 2)
+  amount       Decimal           @db.Decimal(12, 2)
   currency     String            @default("SGD")
   splitMode    SplitMode
   participants User[]            @relation("Participants")
@@ -88,7 +88,7 @@ model ExpenseShare {
   expenseId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    BigInt
-  amount    Decimal? @db.Decimal(10, 2)
+  amount    Decimal? @db.Decimal(12, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -104,7 +104,7 @@ model Settlement {
   senderId    BigInt
   receiver    User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
   receiverId  BigInt
-  amount      Decimal  @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(12, 2)
   currency    String   @default("SGD")
   description String?
   createdAt   DateTime @default(now())
