@@ -1,6 +1,13 @@
 import { useStartParams, withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-import { Modal, Chip, Text, Cell, Caption } from "@telegram-apps/telegram-ui";
+import {
+  Modal,
+  Chip,
+  Text,
+  Cell,
+  Caption,
+  Divider,
+} from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import FieldInfo from "@/components/ui/FieldInfo";
@@ -32,6 +39,7 @@ const SplitShareFooter = withForm({
           backgroundColor: tSectionBgColor,
         }}
       >
+        <Divider />
         <Cell
           subtitle={
             <form.Subscribe

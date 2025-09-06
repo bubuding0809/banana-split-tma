@@ -285,7 +285,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   // Show loading state while fetching expense data
   if (isExpenseLoading) {
     return (
-      <div className="flex flex-col gap-2.5 pb-4">
+      <div className="flex flex-col gap-2.5 pb-16">
         <section className="flex w-full flex-col items-center justify-center px-4">
           <div className="mb-4 h-4 w-full animate-pulse rounded bg-gray-200"></div>
           <div className="h-8 w-full animate-pulse rounded bg-gray-200"></div>
@@ -295,7 +295,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   }
 
   return (
-    <div className="flex flex-col gap-2.5 pb-4">
+    <div className="flex flex-col gap-2.5 pb-16">
       {/* Form steps */}
       <section className="flex w-full flex-col items-center justify-center px-4">
         <Steps

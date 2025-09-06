@@ -1,6 +1,6 @@
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
-import { Caption, Cell, Text, Info } from "@telegram-apps/telegram-ui";
+import { Caption, Cell, Text, Info, Divider } from "@telegram-apps/telegram-ui";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { toDecimal, toNumber, formatCurrencyWithCode } from "@/utils/financial";
 
@@ -20,6 +20,7 @@ const SplitEqualFooter = withForm({
           backgroundColor: tSectionBgColor,
         }}
       >
+        <Divider />
         <Cell
           after={
             <form.Subscribe
