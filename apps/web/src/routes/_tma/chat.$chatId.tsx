@@ -43,5 +43,5 @@ function ChatIdRoute() {
   }
 
   // Render the main GroupPage component
-  return <GroupPage />;
+  return <GroupPage chatData={dChatData} />;
 }

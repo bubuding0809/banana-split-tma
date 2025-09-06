@@ -15,7 +15,6 @@ import {
   Text,
   Spinner,
   TabsList,
-  Skeleton,
 } from "@telegram-apps/telegram-ui";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
@@ -28,10 +27,15 @@ import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
 import { useEffect, useRef, useState } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
+import { RouterOutputs } from "@dko/trpc";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
-const GroupPage = () => {
+interface GroupPageProps {
+  chatData: RouterOutputs["chat"]["getChat"];
+}
+
+const GroupPage = ({ chatData }: GroupPageProps) => {
   // * Hooks =======================================================================================
   const { selectedTab, selectedCurrency } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
@@ -80,11 +84,9 @@ const GroupPage = () => {
   }, [selectedTab]);
 
   // * Queries =====================================================================================
-  const { data: tChatData } = trpc.telegram.getChat.useQuery({ chatId });
-  const { data: dchatData, isLoading: isDChatDataLoading } =
-    trpc.chat.getChat.useQuery({
-      chatId,
-    });
+  const { data: tChatData } = trpc.telegram.getChat.useQuery({
+    chatId,
+  });
 
   const handleTabChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
@@ -125,15 +127,6 @@ const GroupPage = () => {
       },
       { enabled: userId !== 0 && chatId !== 0 }
     );
-
-  if (isDChatDataLoading) {
-    return (
-      <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
-        <Spinner size="l" />
-        <Caption weight="1">Preparing bananas</Caption>
-      </main>
-    );
-  }
 
   if (isEnsuringChatMember) {
     return (
@@ -197,25 +190,18 @@ const GroupPage = () => {
       <div ref={headerRef} className="py-1">
         <Cell
           onClick={handleSettingsClick}
-          after={
-            <Navigation>
-              <Skeleton visible={isDChatDataLoading}>Settings</Skeleton>
-            </Navigation>
-          }
+          after={<Navigation className="text-nowrap">Settings</Navigation>}
           before={
-            <Avatar size={48} src={tChatData?.photoUrl?.toString()}>
+            <Avatar
+              size={48}
+              src={tChatData?.photoUrl?.toString() ?? chatData.photo}
+            >
               ⏳
             </Avatar>
           }
-          subtitle={
-            <Skeleton visible={isDChatDataLoading}>
-              {dchatData?.members.length ?? 0} members
-            </Skeleton>
-          }
+          subtitle={`${chatData.members.length} members`}
         >
-          <Skeleton visible={isDChatDataLoading}>
-            {dchatData?.title ?? "bananasplitz"}
-          </Skeleton>
+          {chatData.title}
         </Cell>
       </div>
 
