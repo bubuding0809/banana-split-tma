@@ -8,12 +8,13 @@ export const getUserProfilePhotoUrlHandler = async (
   input: z.infer<typeof inputSchema>,
   teleBot: Telegram
 ) => {
-  const { photos } = await teleBot.getUserProfilePhotos(input.userId);
-  const targetPhoto = photos.at(0)?.at(0);
-  if (!targetPhoto) {
-    return null;
-  }
-  return teleBot.getFileLink(targetPhoto.file_id);
+  return null;
+  // const { photos } = await teleBot.getUserProfilePhotos(input.userId);
+  // const targetPhoto = photos.at(0)?.at(0);
+  // if (!targetPhoto) {
+  //   return null;
+  // }
+  // return teleBot.getFileLink(targetPhoto.file_id);
 };
 
 export default protectedProcedure
