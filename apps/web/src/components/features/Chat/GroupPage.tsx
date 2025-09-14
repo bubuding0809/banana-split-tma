@@ -291,17 +291,17 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
         <Divider />
 
         {/* Render selected tab */}
-        {selectedTab === "balance" && <ChatBalanceTab chatId={chatId} />}
-        {selectedTab === "transaction" && (
-          <div
-            className="relative flex-1 overflow-y-auto"
-            style={{
-              height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
-            }}
-          >
+        <div
+          className="relative flex-1 overflow-y-auto"
+          style={{
+            height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
+          }}
+        >
+          {selectedTab === "balance" && <ChatBalanceTab chatId={chatId} />}
+          {selectedTab === "transaction" && (
             <ChatTransactionTab chatId={chatId} />
-          </div>
-        )}
+          )}
+        </div>
       </section>
     </main>
   );
