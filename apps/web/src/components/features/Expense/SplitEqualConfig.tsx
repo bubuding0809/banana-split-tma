@@ -11,6 +11,7 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import FieldInfo from "@/components/ui/FieldInfo";
 import { toDecimal, formatCurrencyWithCode } from "@/utils/financial";
 import { useStore } from "@tanstack/react-form";
+import { useEffect } from "react";
 
 const SplitEqualConfig = withForm({
   ...formOpts,
@@ -32,6 +33,15 @@ const SplitEqualConfig = withForm({
     const payerData = chatMembers?.find(
       (member) => member.id === BigInt(form.state.values.payee)
     );
+
+    useEffect(() => {
+      if (chatMembers && form.state.values.participants.length === 0) {
+        const allParticipantIds = chatMembers.map((member) =>
+          Number(member.id).toString()
+        );
+        form.setFieldValue("participants", allParticipantIds);
+      }
+    }, [chatMembers, form]);
 
     return (
       <form.AppField name="participants">
