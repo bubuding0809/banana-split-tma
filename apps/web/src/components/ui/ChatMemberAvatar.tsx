@@ -17,7 +17,7 @@ const ChatMemberAvatar = ({ userId, size = 24 }: ChatMemberProps) => {
       <Avatar size={size}>{getAnimalAvatarEmoji(userId.toString())}</Avatar>
     );
   }
-  return <Avatar src={photoUrl.toString()} size={size} />;
+  return <Avatar src={photoUrl} size={size} />;
 };
 
 export default ChatMemberAvatar;
