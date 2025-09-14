@@ -215,7 +215,7 @@ const ChatBalanceTab = ({ chatId }: ChatBalanceTabProps) => {
     : getCreditorStatus;
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2 pb-8">
       <div>
         <Cell
           Component="label"
