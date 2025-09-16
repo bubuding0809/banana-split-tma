@@ -91,60 +91,65 @@ export const convertCurrencyBulkHandler = async (
     let totalSettlementsAmount = 0;
 
     // Perform conversion in a transaction
-    await db.$transaction(async (tx) => {
-      // Convert expenses
-      for (const expense of expensesToConvert) {
-        const originalAmount = new Decimal(expense.amount.toString());
-        const convertedAmount = originalAmount.mul(rate);
-        totalExpensesAmount += toNumber(originalAmount);
+    await db.$transaction(
+      async (tx) => {
+        // Convert expenses
+        for (const expense of expensesToConvert) {
+          const originalAmount = new Decimal(expense.amount.toString());
+          const convertedAmount = originalAmount.mul(rate);
+          totalExpensesAmount += toNumber(originalAmount);
 
-        // Update expense
-        await tx.expense.update({
-          where: { id: expense.id },
-          data: {
-            amount: convertedAmount,
-            currency: toCurrency,
-          },
-        });
+          // Update expense
+          await tx.expense.update({
+            where: { id: expense.id },
+            data: {
+              amount: convertedAmount,
+              currency: toCurrency,
+            },
+          });
 
-        // Update expense shares if they exist
-        if (expense.shares.length > 0) {
-          for (const share of expense.shares) {
-            if (share.amount) {
-              const originalShareAmount = new Decimal(share.amount.toString());
-              const convertedShareAmount = originalShareAmount.mul(rate);
+          // Update expense shares if they exist
+          if (expense.shares.length > 0) {
+            for (const share of expense.shares) {
+              if (share.amount) {
+                const originalShareAmount = new Decimal(
+                  share.amount.toString()
+                );
+                const convertedShareAmount = originalShareAmount.mul(rate);
 
-              await tx.expenseShare.update({
-                where: {
-                  expenseId_userId: {
-                    expenseId: share.expenseId,
-                    userId: share.userId,
+                await tx.expenseShare.update({
+                  where: {
+                    expenseId_userId: {
+                      expenseId: share.expenseId,
+                      userId: share.userId,
+                    },
                   },
-                },
-                data: {
-                  amount: convertedShareAmount,
-                },
-              });
+                  data: {
+                    amount: convertedShareAmount,
+                  },
+                });
+              }
             }
           }
         }
-      }
 
-      // Convert settlements
-      for (const settlement of settlementsToConvert) {
-        const originalAmount = new Decimal(settlement.amount.toString());
-        const convertedAmount = originalAmount.mul(rate);
-        totalSettlementsAmount += toNumber(originalAmount);
+        // Convert settlements
+        for (const settlement of settlementsToConvert) {
+          const originalAmount = new Decimal(settlement.amount.toString());
+          const convertedAmount = originalAmount.mul(rate);
+          totalSettlementsAmount += toNumber(originalAmount);
 
-        await tx.settlement.update({
-          where: { id: settlement.id },
-          data: {
-            amount: convertedAmount,
-            currency: toCurrency,
-          },
-        });
-      }
-    });
+          await tx.settlement.update({
+            where: { id: settlement.id },
+            data: {
+              amount: convertedAmount,
+              currency: toCurrency,
+            },
+          });
+        }
+      },
+      { timeout: 15000 }
+    );
 
     return {
       convertedExpenses: expensesToConvert.length,
