@@ -1,0 +1,35 @@
+import { z } from "zod";
+import { Db, protectedProcedure } from "../../trpc.js";
+
+const inputSchema = z.object({
+  chatId: z.number(),
+});
+
+export const getAllSettlementsByChatHandler = async (
+  input: z.infer<typeof inputSchema>,
+  db: Db
+) => {
+  const settlements = await db.settlement.findMany({
+    where: {
+      chatId: input.chatId,
+      // No currency filtering - return all settlements regardless of currency
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return settlements.map((settlement) => ({
+    ...settlement,
+    senderId: Number(settlement.senderId),
+    receiverId: Number(settlement.receiverId),
+    chatId: Number(settlement.chatId),
+    amount: Number(settlement.amount),
+  }));
+};
+
+export default protectedProcedure
+  .input(inputSchema)
+  .query(async ({ input, ctx }) => {
+    return getAllSettlementsByChatHandler(input, ctx.db);
+  });
