@@ -16,6 +16,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
+import { getFlagUrl } from "@/utils/emoji";
 
 interface CurrencySelectionModalProps {
   /**
@@ -99,13 +100,6 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
         enabled: showRecentlyUsed && !!userId && !!chatId,
       }
     );
-
-  // Generate flag URL from country code
-  const getFlagUrl = (countryCode: string): string => {
-    // Handle special cases
-    const normalizedCode = countryCode.toLowerCase();
-    return `https://hatscripts.github.io/circle-flags/flags/${normalizedCode}.svg`;
-  };
 
   // Organize currencies into sections
   const { featuredSection, recentlyUsedSection, allCurrenciesSection } =

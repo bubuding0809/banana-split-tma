@@ -99,3 +99,10 @@ export const getAnimalAvatarEmoji = (str: string) => {
   const index = Math.abs(hash) % ANIMAL_EMOJIS.length;
   return ANIMAL_EMOJIS.at(index) ?? "🙉";
 };
+
+// Generate flag URL from country code
+export const getFlagUrl = (countryCode: string): string => {
+  // Handle special cases
+  const normalizedCode = countryCode.toLowerCase();
+  return `https://hatscripts.github.io/circle-flags/flags/${normalizedCode}.svg`;
+};
