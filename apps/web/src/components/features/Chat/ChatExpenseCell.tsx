@@ -279,7 +279,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         })}
         ref={cellRef}
         onClick={handleCellClick}
-        before={<ChatMemberAvatar userId={payerId} size={48} />}
+        before={<ChatMemberAvatar userId={payerId} size={40} />}
         subhead={
           <Skeleton visible={isMemberLoading}>
             <Caption
