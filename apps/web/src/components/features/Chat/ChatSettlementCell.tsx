@@ -145,7 +145,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
           hapticFeedback.selectionChanged();
         }}
         before={
-          <Avatar size={48}>
+          <Avatar size={40}>
             <div className="flex h-full w-full items-center justify-center rounded-full bg-green-500">
               <DollarSign size={24} color="white" />
             </div>
