@@ -162,6 +162,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         chatId,
       });
       trpcUtils.expense.getAllExpensesByChat.invalidate({ chatId });
+      trpcUtils.settlement.getAllSettlementsByChat.invalidate({ chatId });
       hapticFeedback.notificationOccurred("success");
     },
     onError: (error) => {
