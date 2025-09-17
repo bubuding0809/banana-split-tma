@@ -10,11 +10,6 @@ const inputSchema = z.object({
   expenseIds: z
     .array(z.string().uuid())
     .min(1, "At least one expense must be selected"),
-  currency: z
-    .string()
-    .min(3)
-    .max(3, { message: "Currency code must be 3 characters long" })
-    .default("SGD"),
 });
 
 export const createSnapshotHandler = async (
@@ -39,20 +34,8 @@ export const createSnapshotHandler = async (
     );
   }
 
-  // Calculate total amount across all expenses in the specified currency
-  // For now, we'll assume same currency - proper currency conversion can be added later
-  let totalAmount = new Decimal(0);
-
-  for (const expense of expenses) {
-    // Convert to target currency if needed (simplified for now)
-    if (expense.currency === input.currency) {
-      totalAmount = totalAmount.plus(expense.amount.toString());
-    } else {
-      // For now, just use the expense amount as-is
-      // TODO: Implement proper currency conversion using CurrencyRate model
-      totalAmount = totalAmount.plus(expense.amount.toString());
-    }
-  }
+  // No longer need to calculate total amount since we support multicurrency
+  // Individual expense amounts are preserved in their original currencies
 
   // Create the snapshot
   console.log("Creating snapshot");
@@ -61,7 +44,7 @@ export const createSnapshotHandler = async (
       chatId: input.chatId,
       creatorId: input.creatorId,
       title: input.title,
-      currency: input.currency,
+      // Remove currency field - snapshots now support multicurrency expenses
       expenses: {
         connect: input.expenseIds.map((id) => ({ id })),
       },

@@ -1,29 +1,30 @@
 import {
-  Badge,
   ButtonCell,
   Cell,
   Divider,
   IconButton,
   Modal,
-  Navigation,
   Section,
   SectionProps,
-  Skeleton,
   Switch,
   Title,
   Text,
   Caption,
+  Info,
+  AvatarStack,
+  Avatar,
+  Blockquote,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
 import {
   hapticFeedback,
+  initData,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import {
-  Aperture,
   ArrowLeft,
   CalendarArrowUp,
   DollarSign,
@@ -31,8 +32,10 @@ import {
   Link as LucideLink,
   SlidersHorizontal,
   ChevronsUpDown,
+  ArrowLeftRight,
+  LoaderCircle,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
@@ -101,14 +104,17 @@ interface ChatTransactionTabProps {
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedCurrency, selectedExpense, showPayments, relatedOnly } =
-    routeApi.useSearch();
+  const { selectedExpense, showPayments, relatedOnly } = routeApi.useSearch();
+  const tUserData = useSignal(initData.user);
   const navigate = routeApi.useNavigate();
+  const trpcUtils = trpc.useUtils();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tSecondaryBackgroundColor = useSignal(
     themeParams.secondaryBackgroundColor
   );
   const tButtonColor = useSignal(themeParams.buttonColor);
+
+  const userId = tUserData?.id ?? 0;
 
   const firstLoadDoneRef = useRef(false);
   const [modalView, setModalView] = useState<"filters" | "jumpToDate">(
@@ -124,12 +130,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   >([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const { data: snapShots, status: snapShotsStatus } =
-    trpc.snapshot.getByChat.useQuery({
-      chatId,
-      currency: selectedCurrency,
-    });
-
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
@@ -144,6 +144,31 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
     return () => clearTimeout(timeout);
   }, [selectedExpense]);
+
+  // * Queries ==================================================================================
+  const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: currencieswithBalance, status: currenciesWithBalanceStatus } =
+    trpc.currency.getCurrenciesWithBalance.useQuery({
+      userId,
+      chatId,
+    });
+
+  // * Mutations ==================================================================================
+  const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
+    onSuccess: () => {
+      // Refetch currencies to update balances
+      trpcUtils.currency.getCurrenciesWithBalance.invalidate({
+        userId,
+        chatId,
+      });
+      trpcUtils.expense.getAllExpensesByChat.invalidate({ chatId });
+      hapticFeedback.notificationOccurred("success");
+    },
+    onError: (error) => {
+      hapticFeedback.notificationOccurred("error");
+      alert(`❌ Conversion failed: ${error.message}`);
+    },
+  });
 
   const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     hapticFeedback.selectionChanged();
@@ -224,41 +249,45 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     }
   };
 
+  const handleConvertCurrency = (fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) {
+      return;
+    }
+
+    const shouldConvert = confirm(
+      `⚠️ Convert all ${fromCurrency} transactions to ${toCurrency}?\n\nThis action cannot be undone. All expenses and settlements in ${fromCurrency} will be converted to ${toCurrency} using current exchange rates.`
+    );
+
+    if (shouldConvert) {
+      convertCurrencyMutation.mutate({
+        chatId,
+        fromCurrency,
+        toCurrency,
+        userId,
+      });
+    }
+  };
+
+  const foreignCurrencies = useMemo(() => {
+    if (currenciesWithBalanceStatus !== "success" || !currencieswithBalance) {
+      return [];
+    }
+    if (!dChatData?.baseCurrency) {
+      return [];
+    }
+    return currencieswithBalance.filter(
+      ({ currency }) => currency.code !== dChatData.baseCurrency
+    );
+  }, [
+    currenciesWithBalanceStatus,
+    currencieswithBalance,
+    dChatData?.baseCurrency,
+  ]);
+
   return (
     <section className="flex h-full flex-col">
       {/* Tranction filters section */}
       <div className="shadow-xs">
-        <Link
-          onClick={() => hapticFeedback.impactOccurred("light")}
-          to="/chat/$chatId/snapshots"
-          params={{
-            chatId: chatId.toString(),
-          }}
-          search={{
-            selectedCurrency: selectedCurrency || "SGD",
-            title: "📸 Snapshots",
-          }}
-        >
-          <Cell
-            Component="label"
-            before={
-              <span className="rounded-lg bg-red-600 p-1.5">
-                <Aperture size={20} color="white" />
-              </span>
-            }
-            after={
-              <Skeleton visible={snapShotsStatus === "pending"}>
-                <Navigation>
-                  <Badge type="number">{snapShots?.length}</Badge>
-                </Navigation>
-              </Skeleton>
-            }
-            description="See what you have spent"
-          >
-            Snapshots
-          </Cell>
-        </Link>
-        <Divider />
         <Cell
           Component={"label"}
           before={
@@ -308,6 +337,105 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             )}
           </div>
         </Cell>
+        <Divider />
+
+        {foreignCurrencies.length > 0 && (
+          <Modal
+            dismissible={!convertCurrencyMutation.isPending}
+            open={convertCurrencyMutation.isPending || undefined}
+            header={
+              <Modal.Header
+                before={
+                  <Title level="2" weight="1">
+                    Convert currencies
+                  </Title>
+                }
+                after={
+                  <Modal.Close>
+                    <IconButton
+                      size="s"
+                      mode="gray"
+                      onClick={() => hapticFeedback.impactOccurred("light")}
+                    >
+                      <X
+                        size={20}
+                        strokeWidth={3}
+                        style={{
+                          color: tSubtitleTextColor,
+                        }}
+                      />
+                    </IconButton>
+                  </Modal.Close>
+                }
+              ></Modal.Header>
+            }
+            trigger={
+              <Cell
+                Component={"label"}
+                before={
+                  <span className="rounded-lg bg-teal-400 p-1.5 dark:bg-teal-700">
+                    <ArrowLeftRight size={20} color="white" />
+                  </span>
+                }
+                after={
+                  <Info
+                    type="avatarStack"
+                    avatarStack={
+                      <AvatarStack>
+                        {foreignCurrencies.map((c) => (
+                          <Avatar key={c.currency.code} size={28}>
+                            {c.currency.flagEmoji}
+                          </Avatar>
+                        ))}
+                      </AvatarStack>
+                    }
+                  >
+                    <ChevronsUpDown size={20} />
+                  </Info>
+                }
+              >
+                Convert currencies
+              </Cell>
+            }
+          >
+            <div className="flex max-h-[70vh] min-h-40 flex-col gap-y-2 pb-20">
+              <div className="px-4">
+                <Blockquote>
+                  {`Expenses and payments made in foreign currencies can be
+                  converted to your base currency (${dChatData?.baseCurrency ?? "SGD"}) to consolidate
+                  transactions`}
+                </Blockquote>
+              </div>
+              <Section>
+                {foreignCurrencies.map((c) => (
+                  <Cell
+                    disabled={convertCurrencyMutation.isPending}
+                    onClick={() =>
+                      handleConvertCurrency(
+                        c.currency.code,
+                        dChatData?.baseCurrency ?? "SGD"
+                      )
+                    }
+                    key={c.currency.code}
+                    Component={"label"}
+                    before={<Text>{c.currency.flagEmoji}</Text>}
+                    after={
+                      convertCurrencyMutation.isPending ? (
+                        <LoaderCircle size={20} className="animate-spin" />
+                      ) : (
+                        <ArrowLeftRight size={20} />
+                      )
+                    }
+                  >
+                    {convertCurrencyMutation.isPending
+                      ? "Converting..."
+                      : `Convert all ${c.currency.code} to ${dChatData?.baseCurrency}`}
+                  </Cell>
+                ))}
+              </Section>
+            </div>
+          </Modal>
+        )}
         <Divider />
       </div>
 

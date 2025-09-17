@@ -58,7 +58,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
   VirtualizedCombinedTransactionSegmentRef,
   VirtualizedCombinedTransactionSegmentProps
 >(({ chatId, showPayments, onAvailableDatesChange }, ref) => {
-  const { selectedCurrency, relatedOnly } = useSearch({
+  const { relatedOnly } = useSearch({
     from: "/_tma/chat/$chatId",
   });
   const parentRef = useRef<HTMLDivElement>(null);
@@ -68,26 +68,14 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
 
   // * Queries =====================================================================================
   const { data: expenses, isLoading: isExpensesLoading } =
-    trpc.expense.getExpenseByChat.useQuery(
-      {
-        chatId,
-        currency: selectedCurrency,
-      },
-      {
-        enabled: !!selectedCurrency,
-      }
-    );
+    trpc.expense.getAllExpensesByChat.useQuery({
+      chatId,
+    });
 
   const { data: settlements, isLoading: isSettlementsLoading } =
-    trpc.settlement.getSettlementByChat.useQuery(
-      {
-        chatId,
-        currency: selectedCurrency,
-      },
-      {
-        enabled: !!selectedCurrency,
-      }
-    );
+    trpc.settlement.getAllSettlementsByChat.useQuery({
+      chatId,
+    });
 
   const isLoading = isExpensesLoading || isSettlementsLoading;
 

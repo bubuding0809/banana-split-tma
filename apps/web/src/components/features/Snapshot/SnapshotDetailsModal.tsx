@@ -73,6 +73,40 @@ const SnapshotDetailsModal = ({
       }
     );
 
+  const { data: chatData } = trpc.chat.getChat.useQuery(
+    {
+      chatId: snapShotDetails?.chatId ?? 0,
+    },
+    {
+      enabled: open && !!snapShotDetails?.chatId,
+    }
+  );
+  const baseCurrency = chatData?.baseCurrency ?? "SGD";
+
+  // Extract unique currencies that differ from base currency for conversion
+  const uniqueForeignCurrencies = useMemo(() => {
+    if (!snapShotDetails || !baseCurrency) return [];
+    const currencies = new Set(
+      snapShotDetails.expenses.map((expense) => expense.currency)
+    );
+    // Only currencies that differ from base currency need conversion
+    return Array.from(currencies).filter(
+      (currency) => currency !== baseCurrency
+    );
+  }, [snapShotDetails, baseCurrency]);
+
+  // Query conversion rates for all foreign currencies using bulk endpoint
+  const { data: multipleRatesData, status: multipleRatesStatus } =
+    trpc.currency.getMultipleRates.useQuery(
+      {
+        baseCurrency: baseCurrency ?? "SGD",
+        targetCurrencies: uniqueForeignCurrencies,
+      },
+      {
+        enabled: open && !!baseCurrency && uniqueForeignCurrencies.length > 0,
+      }
+    );
+
   // * Mutations ===================================================================================
   const deleteSnapshotMutation = trpc.snapshot.delete.useMutation({
     onSuccess: () => {
@@ -148,22 +182,49 @@ const SnapshotDetailsModal = ({
   };
 
   // Calculate total damage for the main user (net sum of user's share amounts)
+  // with proper currency conversion to base currency
   const userShareTotal = useMemo(() => {
-    if (!snapShotDetails) return 0;
+    if (!snapShotDetails || !baseCurrency) return 0;
 
-    return snapShotDetails.expenses.reduce(
-      (accExpense, currExpense) =>
+    // Check if conversion rates are loaded (for foreign currencies)
+    if (
+      uniqueForeignCurrencies.length > 0 &&
+      multipleRatesStatus !== "success"
+    ) {
+      return null; // Return null to indicate loading state
+    }
+
+    // Use the rates from the bulk query
+    const rateMap = multipleRatesData?.rates || {};
+
+    return snapShotDetails.expenses.reduce((accExpense, currExpense) => {
+      return (
         accExpense +
         currExpense.shares.reduce((accShare, currShare) => {
-          if (currShare.userId !== userId) {
-            return accShare;
+          if (currShare.userId !== userId) return accShare;
+
+          const shareAmount = currShare.amount ?? 0;
+          const expenseCurrency = currExpense.currency;
+
+          // Convert to base currency if needed
+          if (expenseCurrency === baseCurrency) {
+            return accShare + shareAmount;
           } else {
-            return accShare + (currShare.amount ?? 0);
+            const rateInfo = rateMap[expenseCurrency];
+            if (!rateInfo) return accShare; // Skip if rate not available
+            return accShare + shareAmount / rateInfo.rate; // Convert to base currency
           }
-        }, 0),
-      0
-    );
-  }, [snapShotDetails, userId]);
+        }, 0)
+      );
+    }, 0);
+  }, [
+    snapShotDetails,
+    userId,
+    baseCurrency,
+    uniqueForeignCurrencies.length,
+    multipleRatesStatus,
+    multipleRatesData?.rates,
+  ]);
 
   if (snapShotDetailsStatus === "pending") {
     return (
@@ -260,30 +321,37 @@ const SnapshotDetailsModal = ({
         </Section>
 
         {/* Total Damage for Main User */}
-        {userId && userShareTotal > 0 && (
-          <Section header="How much did you spend?" className="mt-4">
-            <Cell
-              before={
-                <span className="rounded-lg bg-red-500 p-1.5">
-                  <TrendingDown size={20} color="white" />
-                </span>
-              }
-              after={
-                <Info type="text" subtitle="Total">
-                  <Text weight="3" className="text-lg text-red-600">
-                    {formatCurrencyWithCode(
-                      userShareTotal,
-                      snapShotDetails.currency
+        {userId &&
+          (userShareTotal === null ||
+            (userShareTotal !== null && userShareTotal > 0)) && (
+            <Section header="How much did you spend?" className="mt-4">
+              <Cell
+                before={
+                  <span className="rounded-lg bg-red-500 p-1.5">
+                    <TrendingDown size={20} color="white" />
+                  </span>
+                }
+                after={
+                  <Info type="text" subtitle="Total">
+                    {userShareTotal === null ? (
+                      <Skeleton visible>
+                        <Text weight="3" className="text-lg text-red-600">
+                          Loading...
+                        </Text>
+                      </Skeleton>
+                    ) : (
+                      <Text weight="3" className="text-lg text-red-600">
+                        {formatCurrencyWithCode(userShareTotal, baseCurrency)}
+                      </Text>
                     )}
-                  </Text>
-                </Info>
-              }
-              description="Net sum of your expense shares"
-            >
-              <Text weight="3">You spent</Text>
-            </Cell>
-          </Section>
-        )}
+                  </Info>
+                }
+                description="Net sum of your expense shares"
+              >
+                <Text weight="3">You spent</Text>
+              </Cell>
+            </Section>
+          )}
 
         {/* Expenses List */}
         <Section header="Included Expenses" className="mt-4">

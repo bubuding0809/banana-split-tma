@@ -4,28 +4,38 @@ import {
   initData,
   themeParams,
   useSignal,
+  popup,
 } from "@telegram-apps/sdk-react";
 import {
   Avatar,
+  Badge,
   Button,
   Caption,
   Cell,
   Divider,
   Navigation,
   Text,
+  Skeleton,
   Spinner,
   TabsList,
+  Switch,
 } from "@telegram-apps/telegram-ui";
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
-import { ArrowRightLeft, FileSpreadsheet, Plus, Settings } from "lucide-react";
+import {
+  Aperture,
+  ArrowRightLeft,
+  FileSpreadsheet,
+  Plus,
+  Settings,
+  WandSparkles,
+} from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
-import CurrencyNavCell from "./CurrencyNavCell";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
 import { RouterOutputs } from "@dko/trpc";
 
@@ -37,7 +47,7 @@ interface GroupPageProps {
 
 const GroupPage = ({ chatData }: GroupPageProps) => {
   // * Hooks =======================================================================================
-  const { selectedTab, selectedCurrency } = routeApi.useSearch();
+  const { selectedTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const tUserData = useSignal(initData.user);
   const tStartParams = useStartParams();
@@ -47,6 +57,91 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
   const isMobile = useIsMobile();
 
+  // * Variables ===================================================================================
+  const isSimplified = chatData?.debtSimplificationEnabled ?? false;
+
+  // * Mutations ===================================================================================
+  const utils = trpc.useUtils();
+  const updateChatMutation = trpc.chat.updateChat.useMutation({
+    onMutate: () => {
+      // Optimistically update the chat data
+      utils.chat.getChat.cancel({ chatId });
+      utils.chat.getChat.setData({ chatId }, (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          debtSimplificationEnabled: !isSimplified,
+        };
+      });
+    },
+    onSettled: () => {
+      utils.chat.getChat.invalidate({ chatId });
+    },
+    onError: (error) => {
+      console.error("Error updating chat debt simplification", error.message);
+      popup.open({
+        title: "🚨 Error",
+        message:
+          "Something went wrong updating debt simplification, please try again later.",
+      });
+    },
+  });
+
+  // * Handlers ====================================================================================
+  const handleSimplificationToggle = async () => {
+    const newValue = !isSimplified;
+
+    if (!newValue) {
+      // If disabling, confirm with the user
+      const id = await popup.open.ifAvailable({
+        title: "⚠️ Disable debt simplification?",
+        message:
+          "Reverting to individual debts might complicate the group's balances, make sure to have consulted with the group before proceeding.",
+        buttons: [
+          {
+            type: "ok",
+            id: "ok",
+          },
+          {
+            type: "cancel",
+          },
+        ],
+      });
+
+      if (id !== "ok") {
+        return;
+      }
+    } else {
+      // If enabling, confirm with the user
+      const id = await popup.open.ifAvailable({
+        title: "🪄 Enable debt simplification?",
+        message:
+          "We will peform some magic to reduce the number of payments you have to make, while ensuring the net balances remain the same.",
+        buttons: [
+          {
+            type: "ok",
+            id: "ok",
+          },
+          {
+            type: "cancel",
+          },
+        ],
+      });
+
+      if (id !== "ok") {
+        return;
+      }
+    }
+
+    updateChatMutation.mutate({
+      chatId,
+      debtSimplificationEnabled: newValue,
+    });
+
+    // Provide haptic feedback
+    hapticFeedback.notificationOccurred("success");
+  };
+
   const { ref: headerRef, inView: headerInView } = useInView({
     rootMargin: "80px",
   });
@@ -54,9 +149,6 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   const tabListRef = useRef<HTMLDivElement>(null);
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
-
-  // * State =======================================================================================
-  const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
 
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
@@ -88,6 +180,11 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
     chatId,
   });
 
+  const { data: snapShots, status: snapShotsStatus } =
+    trpc.snapshot.getByChat.useQuery({
+      chatId,
+    });
+
   const handleTabChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
     navigate({
@@ -104,7 +201,6 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
       to: `settings`,
       search: {
         prevTab: selectedTab,
-        prevCurrency: selectedCurrency,
         title: "⚙️ Group Settings",
       },
     });
@@ -207,12 +303,63 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
 
       <Divider />
 
-      <div>
-        <CurrencyNavCell
-          modalOpen={currencyModalOpen}
-          onModalOpen={setCurrencyModalOpen}
-        />
-      </div>
+      {/* Snapshots link */}
+      <Link
+        onClick={() => hapticFeedback.impactOccurred("light")}
+        to="/chat/$chatId/snapshots"
+        params={{
+          chatId: chatId.toString(),
+        }}
+        search={{
+          title: "📸 Snapshots",
+        }}
+      >
+        <Cell
+          Component="label"
+          before={
+            <span className="rounded-lg bg-red-600 p-1.5">
+              <Aperture size={20} color="white" />
+            </span>
+          }
+          after={
+            <Skeleton visible={snapShotsStatus === "pending"}>
+              <Navigation>
+                <Badge type="number">{snapShots?.length}</Badge>
+              </Navigation>
+            </Skeleton>
+          }
+          description="See what you have spent"
+        >
+          Snapshots
+        </Cell>
+      </Link>
+
+      <Divider />
+
+      {/* Simplify debts toggle */}
+      <Cell
+        Component="label"
+        before={
+          <span
+            className="rounded-lg p-1.5"
+            style={{
+              backgroundColor: tButtonColor,
+            }}
+          >
+            <WandSparkles size={20} color="white" />
+          </span>
+        }
+        after={
+          <Switch
+            checked={isSimplified}
+            onChange={handleSimplificationToggle}
+          />
+        }
+        description="Combine debts to simplify payments"
+        onClick={handleSimplificationToggle}
+      >
+        Simplify debts
+      </Cell>
 
       <Divider />
 
@@ -226,7 +373,6 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
         }}
         search={{
           prevTab: selectedTab,
-          prevCurrency: selectedCurrency || "SGD",
           title: "+ Add expense",
         }}
       >
@@ -297,7 +443,9 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
             height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
           }}
         >
-          {selectedTab === "balance" && <ChatBalanceTab chatId={chatId} />}
+          {selectedTab === "balance" && (
+            <ChatBalanceTab chatId={chatId} isSimplified={isSimplified} />
+          )}
           {selectedTab === "transaction" && (
             <ChatTransactionTab chatId={chatId} />
           )}

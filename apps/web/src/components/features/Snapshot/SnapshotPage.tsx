@@ -6,12 +6,11 @@ import {
   Placeholder,
   Button,
   Info,
-  Title,
   Navigation,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
-import { Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Aperture, Plus } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import SnapshotDetailsModal from "./SnapshotDetailsModal";
 import {
   backButton,
@@ -24,6 +23,37 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { RouterOutputs } from "@dko/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { format } from "date-fns";
+
+// Component to handle individual currency conversion without hooks-in-map anti-pattern
+interface CurrencyConverterProps {
+  currency: string;
+  baseCurrency: string;
+  onRateLoaded: (currency: string, rate: number | undefined) => void;
+}
+
+const CurrencyConverter = ({
+  currency,
+  baseCurrency,
+  onRateLoaded,
+}: CurrencyConverterProps) => {
+  const { data, status } = trpc.currency.getCurrentRate.useQuery(
+    {
+      baseCurrency,
+      targetCurrency: currency,
+    },
+    {
+      enabled: !!baseCurrency && currency !== baseCurrency,
+    }
+  );
+
+  useEffect(() => {
+    if (status === "success") {
+      onRateLoaded(currency, data?.rate);
+    }
+  }, [currency, data?.rate, status, onRateLoaded]);
+
+  return null; // This component only handles data fetching
+};
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots");
 
@@ -50,10 +80,9 @@ const getExpenseDateRange = (
 
 interface SnapshotPageProps {
   chatId: number;
-  selectedCurrency: string;
 }
 
-const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
+const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   const navigate = routeApi.useNavigate();
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
@@ -64,14 +93,12 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
 
   const { data: snapshots, isLoading } = trpc.snapshot.getByChat.useQuery({
     chatId,
-    currency: selectedCurrency,
   });
-  const { data: supportedCurrencies } =
-    trpc.currency.getSupportedCurrencies.useQuery({});
 
-  const selectedCurrencyDetails = supportedCurrencies?.find(
-    (c) => c.code === selectedCurrency
-  );
+  const { data: chatData } = trpc.chat.getChat.useQuery({
+    chatId,
+  });
+  const baseCurrency = chatData?.baseCurrency ?? "SGD";
 
   useEffect(() => {
     backButton.show();
@@ -82,7 +109,6 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
         search: (prev) => ({
           ...prev,
           selectedTab: "transaction",
-          selectedCurrency,
           title: "",
         }),
       });
@@ -91,7 +117,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
       backButton.hide();
       offBackButton();
     };
-  }, [navigate, selectedCurrency]);
+  }, [navigate]);
 
   const handleSnapshotClick = (snapshotId: string) => {
     setSelectedSnapshotId(snapshotId);
@@ -133,8 +159,14 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
   if (!snapshots || snapshots.length === 0) {
     return (
       <Section>
-        <Cell before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}>
-          {selectedCurrencyDetails?.name}
+        <Cell
+          before={
+            <span className="rounded-lg bg-red-600 p-1.5">
+              <Aperture size={20} color="white" />
+            </span>
+          }
+        >
+          Snapshots
         </Cell>
         <Placeholder
           description="Create snapshots of your expenses to see how much you spent"
@@ -146,7 +178,6 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
               }}
               search={(prev) => ({
                 ...prev,
-                selectedCurrency,
               })}
               className="w-full"
             >
@@ -188,15 +219,18 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
           }}
           search={(prev) => ({
             ...prev,
-            selectedCurrency,
           })}
           onClick={() => hapticFeedback.notificationOccurred("success")}
         >
           <Cell
-            before={<Title>{selectedCurrencyDetails?.flagEmoji}</Title>}
+            before={
+              <span className="rounded-lg bg-red-600 p-1.5">
+                <Aperture size={20} color="white" />
+              </span>
+            }
             after={<Navigation>Add snapshot</Navigation>}
           >
-            {selectedCurrencyDetails?.name}
+            Snapshots
           </Cell>
         </Link>
 
@@ -205,7 +239,7 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
             key={snapshot.id}
             snapshot={snapshot}
             onClick={handleSnapshotClick}
-            selectedCurrency={selectedCurrency}
+            baseCurrency={baseCurrency}
           />
         ))}
       </Section>
@@ -227,11 +261,11 @@ const SnapshotPage = ({ chatId, selectedCurrency }: SnapshotPageProps) => {
 const SnapshotCell = ({
   snapshot,
   onClick,
-  selectedCurrency,
+  baseCurrency,
 }: {
   snapshot: RouterOutputs["snapshot"]["getByChat"][number];
   onClick: (id: string) => void;
-  selectedCurrency: string;
+  baseCurrency: string;
 }) => {
   const tUserData = useSignal(initData.user);
   const userId = tUserData?.id ?? 0;
@@ -241,41 +275,109 @@ const SnapshotCell = ({
       snapshotId: snapshot.id,
     });
 
-  // Calculate total damage for the main user (net sum of user's share amounts)
-  const userShareTotal = useMemo(() => {
-    if (!snapShotDetails) return 0;
+  // Extract unique currencies that differ from base currency for conversion
+  const uniqueForeignCurrencies = useMemo(() => {
+    if (!snapShotDetails || !baseCurrency) return [];
+    const currencies = new Set(
+      snapShotDetails.expenses.map((expense) => expense.currency)
+    );
+    // Only currencies that differ from base currency need conversion
+    return Array.from(currencies).filter(
+      (currency) => currency !== baseCurrency
+    );
+  }, [snapShotDetails, baseCurrency]);
 
-    return snapShotDetails.expenses.reduce(
-      (accExpense, currExpense) =>
+  // State to track conversion rates
+  const [conversionRates, setConversionRates] = useState<Map<string, number>>(
+    new Map()
+  );
+
+  // Handle rate updates from CurrencyConverter components
+  const handleRateLoaded = useCallback(
+    (currency: string, rate: number | undefined) => {
+      if (rate !== undefined) {
+        setConversionRates((prev) => new Map(prev.set(currency, rate)));
+      }
+    },
+    []
+  );
+
+  // Calculate total damage for the main user (net sum of user's share amounts)
+  // with proper currency conversion to base currency
+  const userShareTotal = useMemo(() => {
+    if (!snapShotDetails || !baseCurrency) return 0;
+
+    // Check if all conversion rates are loaded
+    const allRatesLoaded = uniqueForeignCurrencies.every((currency) =>
+      conversionRates.has(currency)
+    );
+    if (uniqueForeignCurrencies.length > 0 && !allRatesLoaded) {
+      return null; // Return null to indicate loading state
+    }
+
+    return snapShotDetails.expenses.reduce((accExpense, currExpense) => {
+      return (
         accExpense +
         currExpense.shares.reduce((accShare, currShare) => {
-          if (currShare.userId !== userId) {
-            return accShare;
+          if (currShare.userId !== userId) return accShare;
+
+          const shareAmount = currShare.amount ?? 0;
+          const expenseCurrency = currExpense.currency;
+
+          // Convert to base currency if needed
+          if (expenseCurrency === baseCurrency) {
+            return accShare + shareAmount;
           } else {
-            return accShare + (currShare.amount ?? 0);
+            const rate = conversionRates.get(expenseCurrency);
+            if (!rate) return accShare; // Skip if rate not available
+            return accShare + shareAmount / rate; // Convert to base currency
           }
-        }, 0),
-      0
-    );
-  }, [snapShotDetails, userId]);
+        }, 0)
+      );
+    }, 0);
+  }, [
+    snapShotDetails,
+    userId,
+    baseCurrency,
+    uniqueForeignCurrencies,
+    conversionRates,
+  ]);
 
   return (
-    <Cell
-      key={snapshot.id}
-      onClick={() => onClick(snapshot.id)}
-      after={
-        <Info type="text" subtitle={`${snapshot.expenses.length} Expenses`}>
-          <Skeleton visible={snapShotDetailsStatus === "pending"}>
-            <Text weight="3" className="text-red-600">
-              {formatCurrencyWithCode(userShareTotal, selectedCurrency)}
-            </Text>
-          </Skeleton>
-        </Info>
-      }
-      description={getExpenseDateRange(snapshot.expenses)}
-    >
-      <Text weight="2">{snapshot.title}</Text>
-    </Cell>
+    <>
+      {/* CurrencyConverter components for each unique foreign currency */}
+      {uniqueForeignCurrencies.map((currency) => (
+        <CurrencyConverter
+          key={currency}
+          currency={currency}
+          baseCurrency={baseCurrency}
+          onRateLoaded={handleRateLoaded}
+        />
+      ))}
+
+      <Cell
+        key={snapshot.id}
+        onClick={() => onClick(snapshot.id)}
+        after={
+          <Info type="text" subtitle={`${snapshot.expenses.length} Expenses`}>
+            <Skeleton
+              visible={
+                snapShotDetailsStatus === "pending" || userShareTotal === null
+              }
+            >
+              <Text weight="3" className="text-red-600">
+                {userShareTotal === null
+                  ? "Loading..."
+                  : formatCurrencyWithCode(userShareTotal, baseCurrency)}
+              </Text>
+            </Skeleton>
+          </Info>
+        }
+        description={getExpenseDateRange(snapshot.expenses)}
+      >
+        <Text weight="2">{snapshot.title}</Text>
+      </Cell>
+    </>
   );
 };
 

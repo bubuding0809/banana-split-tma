@@ -29,7 +29,7 @@ const routeApi = getRouteApi("/_tma/chat/$chatId_/settings");
 
 const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   // * Hooks =======================================================================================
-  const { prevCurrency, prevTab } = routeApi.useSearch();
+  const { prevTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
@@ -120,7 +120,6 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         search: (prev) => ({
           ...prev,
           selectedTab: prevTab,
-          selectedCurrency: prevCurrency,
           title: "",
         }),
       });
@@ -128,7 +127,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
     return () => {
       offBackbutton();
     };
-  }, [navigate, prevCurrency, prevTab]);
+  }, [navigate, prevTab]);
 
   // * Handlers ====================================================================================
   const handleCurrencyChange = (currencyCode: string) => {
@@ -140,14 +139,6 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         baseCurrency: currencyCode,
       },
       {
-        onSuccess: ({ baseCurrency }) => {
-          navigate({
-            search: (prev) => ({
-              ...prev,
-              prevCurrency: baseCurrency,
-            }),
-          });
-        },
         onError: () => {
           alert(`Something went wrong, try again later.`);
           hapticFeedback.notificationOccurred("error");

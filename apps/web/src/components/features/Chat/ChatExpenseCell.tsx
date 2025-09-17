@@ -39,8 +39,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
 
   const router = useRouter();
-  const { selectedCurrency, selectedTab, selectedExpense } =
-    routeApi.useSearch();
+  const { selectedTab, selectedExpense } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
@@ -72,18 +71,18 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     trpc.expense.getExpenseDetails.useQuery({
       expenseId: expense.id,
     });
-
-  //* Queries ======================================================================================
   const { data: member, isLoading: isMemberLoading } =
     trpc.telegram.getChatMember.useQuery({
       chatId,
       userId: payerId,
     });
+  const { data: supportedCurrencies } =
+    trpc.currency.getSupportedCurrencies.useQuery({});
 
   //* Mutations ====================================================================================
   const deleteExpenseMutation = trpc.expense.deleteExpense.useMutation({
     onSuccess: () => {
-      trpcUtils.expense.getExpenseByChat.invalidate({
+      trpcUtils.expense.getAllExpensesByChat.invalidate({
         chatId,
       });
       trpcUtils.currency.getCurrenciesWithBalance.invalidate({
@@ -194,7 +193,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       search: {
         title: "✍️ Edit Expense",
         prevTab: selectedTab,
-        prevCurrency: selectedCurrency || "SGD",
         membersExpanded: Number(expenseDetails?.payer?.id) !== userId,
       },
     });
@@ -229,7 +227,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         search: {
           title: "✍️ Edit Expense",
           prevTab: selectedTab,
-          prevCurrency: selectedCurrency || "SGD",
           membersExpanded: Number(expenseDetails?.payer?.id) !== userId,
         },
       });
@@ -279,7 +276,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         })}
         ref={cellRef}
         onClick={handleCellClick}
-        before={<ChatMemberAvatar userId={payerId} size={40} />}
+        before={<ChatMemberAvatar userId={payerId} size={28} />}
         subhead={
           <Skeleton visible={isMemberLoading}>
             <Caption
@@ -291,14 +288,12 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
             >
               {expenseRelation === "payer" ? "You" : memberFullName} spent
             </Caption>
+            {expenseRelation !== "unrelated" && (
+              <Badge type="number">
+                <Link size={10} />
+              </Badge>
+            )}
           </Skeleton>
-        }
-        titleBadge={
-          expenseRelation !== "unrelated" ? (
-            <Badge type="number">
-              <Link size={10} />
-            </Badge>
-          ) : undefined
         }
         description={
           <>
@@ -326,7 +321,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="3" className="text-green-600">
                               {formatCurrencyWithCode(
                                 lentAmount,
-                                selectedCurrency
+                                expense.currency
                               )}
                             </Text>
                           );
@@ -337,7 +332,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
                             <Text weight="3" className="text-red-600">
                               {formatCurrencyWithCode(
                                 borrowedAmount,
-                                selectedCurrency
+                                expense.currency
                               )}
                             </Text>
                           );
@@ -369,7 +364,11 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
           />
         }
       >
-        {formatCurrencyWithCode(expense.amount, selectedCurrency)}
+        {
+          supportedCurrencies?.find((c) => c.code === expense.currency)
+            ?.flagEmoji
+        }{" "}
+        {formatCurrencyWithCode(expense.amount, expense.currency)}
       </Cell>
       <ExpenseDetailsModal
         open={modalOpen}

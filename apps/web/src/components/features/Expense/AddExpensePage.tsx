@@ -45,7 +45,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
-  const { prevTab, prevCurrency, currentFormStep } = routeApi.useSearch();
+  const { prevTab, currentFormStep } = routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
 
@@ -63,7 +63,6 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     defaultValues: {
       ...formOpts.defaultValues,
       payee: userId.toString(),
-      currency: prevCurrency,
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({
@@ -149,7 +148,6 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           to: "..",
           search: {
             selectedTab: prevTab,
-            selectedCurrency: prevCurrency,
             title: "",
           },
         });
@@ -166,7 +164,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, navigate, prevCurrency, prevTab]);
+  }, [chatId, currentFormStep, navigate, prevTab]);
 
   // Show main button on mount
   useEffect(() => {

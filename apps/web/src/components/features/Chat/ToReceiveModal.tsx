@@ -19,7 +19,6 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
-import { useSearch } from "@tanstack/react-router";
 
 interface ToReceiveModalProps {
   modalOpen: boolean;
@@ -28,6 +27,8 @@ interface ToReceiveModalProps {
     balance: number;
   };
   convertedBalance?: number;
+  currency: string;
+  nested?: boolean;
 }
 
 const ToReceiveModal = ({
@@ -35,13 +36,12 @@ const ToReceiveModal = ({
   modalOpen,
   member,
   convertedBalance,
+  currency,
+  nested = false,
 }: ToReceiveModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
@@ -51,10 +51,10 @@ const ToReceiveModal = ({
     trpc.currency.getCurrentRate.useQuery(
       {
         baseCurrency: dChatData?.baseCurrency ?? "SGD",
-        targetCurrency: selectedCurrency ?? "SGD",
+        targetCurrency: currency ?? "SGD",
       },
       {
-        enabled: !!dChatData?.baseCurrency && !!selectedCurrency,
+        enabled: !!dChatData?.baseCurrency && !!currency,
       }
     );
 
@@ -66,17 +66,16 @@ const ToReceiveModal = ({
   const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
     {
       onSuccess: () => {
-        trpcUtils.chat.getDebtors.invalidate({
+        trpcUtils.chat.getDebtorsMultiCurrency.invalidate({
           chatId,
           userId,
         });
-        trpcUtils.chat.getCreditors.invalidate({
+        trpcUtils.chat.getCreditorsMultiCurrency.invalidate({
           chatId,
           userId,
         });
-        trpcUtils.chat.getSimplifiedDebts.invalidate({
+        trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({
           chatId,
-          currency: selectedCurrency ?? "SGD",
         });
       },
     }
@@ -84,14 +83,14 @@ const ToReceiveModal = ({
 
   const handleSendReminder = useCallback(async () => {
     if (!tUserData?.firstName) {
-      popup.open({
+      popup.open.ifAvailable({
         message: "Unable to send reminder. User data not available.",
       });
       return;
     }
 
     try {
-      mainButton.setParams.ifAvailable({
+      secondaryButton.setParams.ifAvailable({
         isLoaderVisible: true,
         isEnabled: false,
       });
@@ -102,7 +101,7 @@ const ToReceiveModal = ({
         debtorUsername: member.username || undefined,
         creditorName: tUserData.firstName,
         amount: absAmountLent,
-        currency: selectedCurrency,
+        currency: currency,
         threadId: dChatData?.threadId ? Number(dChatData.threadId) : undefined,
       });
 
@@ -111,41 +110,41 @@ const ToReceiveModal = ({
     } catch (error) {
       hapticFeedback.notificationOccurred.ifAvailable("error");
       console.error("Error sending reminder:", error);
-      popup.open({
+      popup.open.ifAvailable({
         message: "Failed to send reminder. Please try again later.",
       });
     } finally {
-      mainButton.setParams({
+      secondaryButton.setParams.ifAvailable({
         isLoaderVisible: false,
         isEnabled: true,
       });
     }
   }, [
-    absAmountLent,
-    chatId,
-    dChatData?.threadId,
-    member.firstName,
-    member.id,
-    member.username,
-    onOpenChange,
-    selectedCurrency,
-    sendDebtReminderMutation,
     tUserData?.firstName,
+    sendDebtReminderMutation,
+    chatId,
+    member.id,
+    member.firstName,
+    member.username,
+    absAmountLent,
+    currency,
+    dChatData?.threadId,
+    onOpenChange,
   ]);
 
   const handleSettleDebt = useCallback(async () => {
     if (!tUserData?.firstName) {
-      popup.open({
+      popup.open.ifAvailable({
         message: "Unable to settle debt. User data not available.",
       });
       return;
     }
 
-    secondaryButton.setParams.ifAvailable({
+    mainButton.setParams.ifAvailable({
       isLoaderVisible: true,
       isEnabled: false,
     });
-    mainButton.setParams.ifAvailable({
+    secondaryButton.setParams.ifAvailable({
       isEnabled: false,
     });
     try {
@@ -155,7 +154,7 @@ const ToReceiveModal = ({
         senderId: member.id, // debtor is the sender
         receiverId: userId, // creditor is the receiver
         chatId,
-        currency: selectedCurrency,
+        currency,
         sendNotification: true,
         creditorName: tUserData.firstName,
         creditorUsername: tUserData.username || undefined,
@@ -168,15 +167,15 @@ const ToReceiveModal = ({
     } catch (error) {
       hapticFeedback.notificationOccurred.ifAvailable("error");
       console.error("Error settling debt:", error);
-      popup.open({
+      popup.open.ifAvailable({
         message: "Failed to settle debt. Please try again later.",
       });
     } finally {
-      secondaryButton.setParams.ifAvailable({
+      mainButton.setParams.ifAvailable({
         isLoaderVisible: false,
         isEnabled: true,
       });
-      mainButton.setParams.ifAvailable({
+      secondaryButton.setParams.ifAvailable({
         isEnabled: true,
       });
     }
@@ -189,32 +188,22 @@ const ToReceiveModal = ({
     member.firstName,
     userId,
     chatId,
-    selectedCurrency,
+    currency,
     onOpenChange,
     dChatData?.threadId,
   ]);
 
-  // Set button parameters when modal opens
+  // Set secondary button parameters when modal opens
   useEffect(() => {
     if (!modalOpen) return;
 
-    mainButton.setParams.ifAvailable({
+    secondaryButton.setParams.ifAvailable({
       text: "Remind 💬",
       isEnabled: true,
       isVisible: true,
     });
 
-    secondaryButton.setParams.ifAvailable({
-      text: "Settled ✅",
-      isEnabled: true,
-      isVisible: true,
-    });
-
     return () => {
-      mainButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-      });
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
@@ -222,31 +211,56 @@ const ToReceiveModal = ({
     };
   }, [modalOpen]);
 
-  // Attach button handlers
+  // Set up main button when modal opens
   useEffect(() => {
     if (!modalOpen) return;
 
-    const offMainButtonClick =
-      mainButton.onClick.ifAvailable(handleSendReminder);
-    const offSecondaryButtonClick =
-      secondaryButton.onClick.ifAvailable(handleSettleDebt);
+    mainButton.setParams.ifAvailable({
+      isVisible: true,
+      isEnabled: true,
+      text: "Settled ✅",
+    });
+
+    return () => {
+      mainButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+    };
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const offMainButtonClick = mainButton.onClick.ifAvailable(handleSettleDebt);
 
     return () => {
       offMainButtonClick?.();
+    };
+  }, [handleSettleDebt, modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const offSecondaryButtonClick =
+      secondaryButton.onClick.ifAvailable(handleSendReminder);
+
+    return () => {
       offSecondaryButtonClick?.();
     };
-  }, [handleSendReminder, handleSettleDebt, modalOpen]);
+  }, [handleSendReminder, modalOpen]);
 
   return (
     <Modal
-      header={<Modal.Header>Send reminder?</Modal.Header>}
+      header={<Modal.Header></Modal.Header>}
       open={modalOpen}
+      nested={nested}
       onOpenChange={onOpenChange}
     >
       <div>
         <Placeholder
           description={
-            selectedCurrency !== dChatData?.baseCurrency ? (
+            currency !== dChatData?.baseCurrency ? (
               <div className="flex flex-col items-center gap-2">
                 <Text>
                   or $
@@ -258,7 +272,7 @@ const ToReceiveModal = ({
                 <Skeleton visible={conversionRateStatus === "pending"}>
                   <Badge type="number">
                     1 {dChatData?.baseCurrency} ≈{" "}
-                    {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
+                    {conversionRateData?.rate.toFixed(2)} {currency}
                   </Badge>
                 </Skeleton>
               </div>
@@ -268,7 +282,7 @@ const ToReceiveModal = ({
             <>
               {member.firstName} owes you{" "}
               <span className="text-green-500">
-                {formatCurrencyWithCode(absAmountLent, selectedCurrency)}
+                {formatCurrencyWithCode(absAmountLent, currency)}
               </span>
             </>
           }

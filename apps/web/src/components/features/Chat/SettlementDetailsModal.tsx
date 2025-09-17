@@ -84,7 +84,7 @@ const SettlementDetailsModal = ({
   const deleteSettlementMutation = trpc.settlement.deleteSettlement.useMutation(
     {
       onSuccess: () => {
-        utils.settlement.getSettlementByChat.invalidate({
+        utils.settlement.getAllSettlementsByChat.invalidate({
           chatId: settlement.chatId,
         });
         utils.currency.getCurrenciesWithBalance.invalidate({

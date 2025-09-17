@@ -6,7 +6,6 @@ import CreateSnapshotPage from "@/components/features/Snapshot/CreateSnapshotPag
 
 const searchSchema = z.object({
   selectedExpenseIds: z.array(z.string()).catch([]),
-  selectedCurrency: z.string().catch("SGD"),
   prevTab: z.enum(["balance", "transaction"]).catch("transaction"),
   title: z.string().optional(),
 });
@@ -18,13 +17,7 @@ export const Route = createFileRoute("/_tma/chat/$chatId_/create-snapshot")({
 
 function RouteComponent() {
   const { chatId } = Route.useParams();
-  const { selectedCurrency, prevTab } = Route.useSearch();
+  const { prevTab } = Route.useSearch();
 
-  return (
-    <CreateSnapshotPage
-      chatId={Number(chatId)}
-      selectedCurrency={selectedCurrency || "SGD"}
-      prevTab={prevTab}
-    />
-  );
+  return <CreateSnapshotPage chatId={Number(chatId)} prevTab={prevTab} />;
 }
