@@ -304,6 +304,7 @@ const MultiCurrencyBalanceModal = ({
     if (openedEntry === null && modalOpen) {
       mainButton.setParams.ifAvailable({
         isVisible: true,
+        isEnabled: true,
         text: "Settle All ✅",
       });
     }
