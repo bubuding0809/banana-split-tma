@@ -4,7 +4,6 @@ import { z } from "zod";
 import SnapShotPage from "@/components/features/Snapshot/SnapshotPage";
 
 const searchSchema = z.object({
-  selectedCurrency: z.string().catch("SGD"),
   title: z.string().optional(),
 });
 
@@ -15,14 +14,10 @@ export const Route = createFileRoute("/_tma/chat/$chatId_/snapshots")({
 
 function SnapshotsPage() {
   const { chatId } = Route.useParams();
-  const { selectedCurrency } = Route.useSearch();
 
   return (
     <div className="p-4">
-      <SnapShotPage
-        chatId={Number(chatId)}
-        selectedCurrency={selectedCurrency}
-      />
+      <SnapShotPage chatId={Number(chatId)} />
     </div>
   );
 }

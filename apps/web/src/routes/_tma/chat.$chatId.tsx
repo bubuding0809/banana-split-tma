@@ -10,7 +10,6 @@ import { Caption, Spinner } from "@telegram-apps/telegram-ui";
 
 const searchSchema = z.object({
   selectedTab: z.enum(["balance", "transaction"]).catch("balance"),
-  selectedCurrency: z.string().optional(),
   selectedExpense: z.string().optional(),
   showPayments: z.boolean().catch(true),
   relatedOnly: z.boolean().catch(true),

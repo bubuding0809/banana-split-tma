@@ -19,7 +19,6 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
-import { useSearch } from "@tanstack/react-router";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -28,6 +27,8 @@ interface ToPayModalProps {
     balance: number;
   };
   convertedBalance?: number;
+  currency: string;
+  nested?: boolean;
 }
 
 const ToPayModal = ({
@@ -35,13 +36,12 @@ const ToPayModal = ({
   modalOpen,
   member,
   convertedBalance,
+  currency,
+  nested = false,
 }: ToPayModalProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const startParams = useStartParams();
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
@@ -51,10 +51,10 @@ const ToPayModal = ({
     trpc.currency.getCurrentRate.useQuery(
       {
         baseCurrency: dChatData?.baseCurrency ?? "SGD",
-        targetCurrency: selectedCurrency ?? "SGD",
+        targetCurrency: currency ?? "SGD",
       },
       {
-        enabled: !!dChatData?.baseCurrency && !!selectedCurrency,
+        enabled: !!dChatData?.baseCurrency && !!currency,
       }
     );
   const { data: memberData } = trpc.user.getUser.useQuery({
@@ -64,17 +64,16 @@ const ToPayModal = ({
   const createSettlementMutation = trpc.settlement.createSettlement.useMutation(
     {
       onSuccess: () => {
-        trpcUtils.chat.getDebtors.invalidate({
+        trpcUtils.chat.getDebtorsMultiCurrency.invalidate({
           chatId,
           userId,
         });
-        trpcUtils.chat.getCreditors.invalidate({
+        trpcUtils.chat.getCreditorsMultiCurrency.invalidate({
           chatId,
           userId,
         });
-        trpcUtils.chat.getSimplifiedDebts.invalidate({
+        trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({
           chatId,
-          currency: selectedCurrency ?? "SGD",
         });
       },
     }
@@ -102,7 +101,7 @@ const ToPayModal = ({
         senderId: userId, // debtor (current user) is the sender
         receiverId: member.id, // creditor is the receiver
         chatId,
-        currency: selectedCurrency,
+        currency: currency,
         sendNotification: true,
         creditorName: member.firstName,
         creditorUsername: member.username || undefined,
@@ -133,7 +132,7 @@ const ToPayModal = ({
     member.id,
     member.username,
     onOpenChange,
-    selectedCurrency,
+    currency,
     tUserData?.firstName,
     userId,
   ]);
@@ -158,13 +157,22 @@ const ToPayModal = ({
 
   // Clean up secondary button
   useEffect(() => {
+    if (!modalOpen) return;
+
+    if (memberData?.phoneNumber) {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: true,
+        isEnabled: true,
+        text: `Copy Number 📲`,
+      });
+    }
+
     return () =>
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
-        position: "left",
       });
-  }, []);
+  }, [memberData?.phoneNumber, modalOpen]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -219,32 +227,15 @@ const ToPayModal = ({
 
   return (
     <Modal
-      header={<Modal.Header>Settle debt?</Modal.Header>}
+      header={<Modal.Header></Modal.Header>}
       open={modalOpen}
-      onOpenChange={(open) => {
-        if (open) {
-          if (memberData?.phoneNumber) {
-            secondaryButton.setParams.ifAvailable({
-              isVisible: true,
-              isEnabled: true,
-              text: `Copy Number 📲`,
-              position: "top",
-            });
-          }
-        } else {
-          secondaryButton.setParams.ifAvailable({
-            isVisible: false,
-            isEnabled: false,
-            position: "left",
-          });
-        }
-        onOpenChange(open);
-      }}
+      nested={nested}
+      onOpenChange={onOpenChange}
     >
       <div>
         <Placeholder
           description={
-            selectedCurrency !== dChatData?.baseCurrency ? (
+            currency !== dChatData?.baseCurrency ? (
               <div className="flex flex-col items-center gap-2">
                 <Text>
                   or $
@@ -256,7 +247,7 @@ const ToPayModal = ({
                 <Skeleton visible={conversionRateStatus === "pending"}>
                   <Badge type="number">
                     1 {dChatData?.baseCurrency} ≈{" "}
-                    {conversionRateData?.rate.toFixed(2)} {selectedCurrency}
+                    {conversionRateData?.rate.toFixed(2)} {currency}
                   </Badge>
                 </Skeleton>
               </div>
@@ -266,7 +257,7 @@ const ToPayModal = ({
             <>
               You owe {member.firstName}{" "}
               <span className="text-red-500">
-                {formatCurrencyWithCode(absAmountOwed, selectedCurrency)}
+                {formatCurrencyWithCode(absAmountOwed, currency)}
               </span>
             </>
           }

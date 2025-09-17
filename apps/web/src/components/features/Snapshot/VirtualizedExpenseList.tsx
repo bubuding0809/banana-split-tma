@@ -25,13 +25,13 @@ import {
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDateShort, formatDateKey } from "@/utils/date";
 import { cn } from "@/utils/cn";
-import { getRouteApi } from "@tanstack/react-router";
+// Removed getRouteApi import since it's no longer needed
 import { buildExpenseDateMap } from "@/utils/transactionHelpers";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { CalendarArrowUp, X } from "lucide-react";
 import DateSelector from "../Chat/DateSelector";
 
-const routeApi = getRouteApi("/_tma/chat/$chatId_/create-snapshot");
+// Removed routeApi since we no longer use selectedCurrency from route
 
 interface VirtualizedExpenseListProps {
   expenses: RouterOutputs["expense"]["getExpenseByChat"];
@@ -326,7 +326,7 @@ const ExpenseCell = memo(
     onExpenseToggle: (updater: Updater<string[]>) => void;
     isSelected: boolean;
   }) => {
-    const { selectedCurrency } = routeApi.useSearch();
+    // Remove selectedCurrency - use expense.currency instead
     const tButtonColor = useSignal(themeParams.buttonColor);
 
     const { data: expenseDetails, status: expenseDetailsStatus } =
@@ -428,7 +428,7 @@ const ExpenseCell = memo(
                             <Text weight="3" className="text-green-600">
                               {formatCurrencyWithCode(
                                 lentAmount,
-                                selectedCurrency
+                                expense.currency
                               )}
                             </Text>
                           );
@@ -439,7 +439,7 @@ const ExpenseCell = memo(
                             <Text weight="3" className="text-red-600">
                               {formatCurrencyWithCode(
                                 borrowedAmount,
-                                selectedCurrency
+                                expense.currency
                               )}
                             </Text>
                           );

@@ -3,11 +3,6 @@ import { Db, protectedProcedure } from "../../trpc.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
-  currency: z
-    .string()
-    .min(3)
-    .max(3, { message: "Currency code must be 3 characters long" })
-    .optional(),
 });
 
 export const getSnapshotsHandler = async (
@@ -17,7 +12,7 @@ export const getSnapshotsHandler = async (
   const snapshots = await db.expenseSnapshot.findMany({
     where: {
       chatId: input.chatId,
-      ...(input.currency ? { currency: input.currency } : {}),
+      // Remove currency filtering - show all snapshots regardless of currency
     },
     include: {
       creator: true,

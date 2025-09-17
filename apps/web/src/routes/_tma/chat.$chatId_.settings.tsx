@@ -6,7 +6,6 @@ import ChatSettingsPage from "@/components/features/Settings/ChatSettingsPage";
 
 const searchSchema = z.object({
   prevTab: z.enum(["balance", "transaction"]).catch("balance"),
-  prevCurrency: z.string().catch("SGD"),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId_/settings")({

@@ -47,8 +47,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
-  const { prevTab, prevCurrency, currentFormStep, membersExpanded } =
-    routeApi.useSearch();
+  const { prevTab, currentFormStep, membersExpanded } = routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
 
@@ -153,7 +152,6 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           to: "../..",
           search: {
             selectedTab: "transaction",
-            selectedCurrency: value.currency,
             selectedExpense: expenseId,
           },
         });
@@ -195,7 +193,6 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           to: "../..",
           search: {
             selectedTab: prevTab,
-            selectedCurrency: prevCurrency,
             selectedExpense: expenseId,
           },
         });
@@ -212,7 +209,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, expenseId, navigate, prevCurrency, prevTab]);
+  }, [chatId, currentFormStep, expenseId, navigate, prevTab]);
 
   // Show main button on mount
   useEffect(() => {

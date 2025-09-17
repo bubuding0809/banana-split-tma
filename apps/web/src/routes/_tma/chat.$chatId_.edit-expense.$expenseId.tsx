@@ -6,7 +6,6 @@ import EditExpensePage from "@components/features/Expense/EditExpensePage";
 
 const searchSchema = z.object({
   prevTab: z.enum(["balance", "transaction"]).catch("balance"),
-  prevCurrency: z.string().catch("SGD"),
   currentFormStep: z.number().catch(0),
   membersExpanded: z.boolean().catch(false),
 });

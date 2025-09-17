@@ -29,7 +29,6 @@ const routeApi = getRouteApi("/_tma/chat/$chatId_/create-snapshot");
 
 interface CreateSnapshotPageProps {
   chatId: number;
-  selectedCurrency: string;
   prevTab: "balance" | "transaction";
 }
 
@@ -40,10 +39,7 @@ const snapshotFormSchema = z.object({
   }),
 });
 
-const CreateSnapshotPage = ({
-  chatId,
-  selectedCurrency,
-}: CreateSnapshotPageProps) => {
+const CreateSnapshotPage = ({ chatId }: CreateSnapshotPageProps) => {
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const navigate = routeApi.useNavigate();
@@ -61,7 +57,6 @@ const CreateSnapshotPage = ({
         to: "/chat/$chatId/snapshots",
         search: (prev) => ({
           ...prev,
-          selectedCurrency,
         }),
         params: {
           chatId: chatId.toString(),
@@ -94,7 +89,6 @@ const CreateSnapshotPage = ({
           chatId,
           title: value.title,
           expenseIds: value.expenseIds,
-          currency: selectedCurrency,
         });
       } catch (error) {
         // Error handled in mutation onError
@@ -113,7 +107,6 @@ const CreateSnapshotPage = ({
   const { data: expenses, status: expenseStatus } =
     trpc.expense.getExpenseByChat.useQuery({
       chatId,
-      currency: selectedCurrency,
     });
 
   // Setup mainbutton handler
@@ -154,7 +147,6 @@ const CreateSnapshotPage = ({
         params: { chatId: chatId.toString() },
         search: (prev) => ({
           ...prev,
-          selectedCurrency,
         }),
       });
     });
@@ -163,7 +155,7 @@ const CreateSnapshotPage = ({
       backButton.hide();
       offBackClick();
     };
-  }, [chatId, navigate, selectedCurrency]);
+  }, [chatId, navigate]);
 
   return (
     <div className="flex flex-col gap-2 px-4">
@@ -235,7 +227,7 @@ const CreateSnapshotPage = ({
 
         {expenseStatus === "success" && expenses.length === 0 ? (
           <Placeholder
-            header={`No expenses found for ${selectedCurrency}`}
+            header="No expenses found"
             description="Go and create some first"
             action={
               <Link
@@ -245,7 +237,6 @@ const CreateSnapshotPage = ({
                 }}
                 search={(prev) => ({
                   ...prev,
-                  prevCurrency: selectedCurrency,
                   title: "+ Add expense",
                 })}
                 className="w-full"

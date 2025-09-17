@@ -1,5 +1,15 @@
-import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
-import { Cell, Navigation, Skeleton, Text } from "@telegram-apps/telegram-ui";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import {
+  Caption,
+  Cell,
+  Navigation,
+  Skeleton,
+  Text,
+} from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
 import { cn } from "@utils/cn";
@@ -8,58 +18,94 @@ import { trpc } from "@/utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import {
-  getBalanceLabel,
   getBalanceColorClass,
   formatCurrencyWithCode,
-  toDecimal,
 } from "@/utils/financial";
+import MultiCurrencyBalanceModal from "./MultiCurrencyBalanceModal";
 
-import ToReceiveModal from "./ToReceiveModal";
-import ToPayModal from "./ToPayModal";
-import { getRouteApi } from "@tanstack/react-router";
+interface BalanceEntryProps {
+  balance: {
+    currency: string;
+    amount: number;
+  };
+  baseCurrency: string;
+  currencyMap: Map<string, { code: string; name: string; flagEmoji: string }>;
+}
 
-const routeApi = getRouteApi("/_tma/chat/$chatId");
+const BalanceEntry = ({
+  balance,
+  baseCurrency,
+  currencyMap,
+}: BalanceEntryProps) => {
+  const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
+
+  // Single hook call per component instance - always consistent!
+  const { data: conversionRateData, status: conversionRateStatus } =
+    trpc.currency.getCurrentRate.useQuery(
+      {
+        baseCurrency: baseCurrency ?? "SGD",
+        targetCurrency: balance.currency ?? "SGD",
+      },
+      {
+        enabled: !!baseCurrency && balance.currency !== baseCurrency,
+      }
+    );
+
+  return (
+    <div
+      key={`${balance.currency}-$${balance.amount}`}
+      className="relative flex gap-x-1"
+    >
+      <span className="z-10 size-6">
+        {currencyMap.get(balance.currency)?.flagEmoji ?? "🌍"}
+      </span>
+      <div className="flex gap-x-1">
+        <Text className={cn(getBalanceColorClass(balance.amount))}>
+          {formatCurrencyWithCode(balance.amount, balance.currency)}
+        </Text>
+        {balance.currency !== baseCurrency && (
+          <Skeleton visible={conversionRateStatus === "pending"}>
+            <Caption style={{ color: tSubtitleColor }}>
+              or{" "}
+              {conversionRateData &&
+                formatCurrencyWithCode(
+                  balance.amount / conversionRateData.rate,
+                  baseCurrency
+                )}
+            </Caption>
+          </Skeleton>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface ChatBalanceCellProps {
   chatId: number;
   member: NonNullable<
     inferRouterOutputs<AppRouter>["chat"]["getChat"]
   >["members"][0] & {
-    balance: number;
+    balances: {
+      currency: string;
+      amount: number;
+    }[];
   };
   isSimplified?: boolean;
+  balanceType: "debtor" | "creditor";
 }
 
 const ChatBalanceCell = ({
   chatId,
   member,
-  isSimplified = false,
+  balanceType,
 }: ChatBalanceCellProps) => {
   // * Hooks ======================================================================================
-  const tUserData = useSignal(initData.user);
-  const { selectedCurrency } = routeApi.useSearch();
-
-  //* State =======================================================================================
   const [modalOpen, setModalOpen] = useState(false);
-
-  // * Variables ===================================================================================
-  const userId = tUserData?.id ?? 0;
 
   // * Queries ===================================================================================
   const { data: chatData } = trpc.chat.getChat.useQuery({
     chatId,
   });
-
-  const { data: conversionRateData, status: conversionRateStatus } =
-    trpc.currency.getCurrentRate.useQuery(
-      {
-        baseCurrency: chatData?.baseCurrency ?? "SGD",
-        targetCurrency: selectedCurrency ?? "SGD",
-      },
-      {
-        enabled: !!chatData?.baseCurrency && !!selectedCurrency,
-      }
-    );
 
   const { data: memberInfo, isLoading: isMemberInfoLoading } =
     trpc.telegram.getChatMember.useQuery({
@@ -67,111 +113,58 @@ const ChatBalanceCell = ({
       userId: member.id,
     });
 
-  const { data: netBalance, status: netBalanceStatus } =
-    trpc.chat.getNetShare.useQuery(
-      {
-        mainUserId: userId,
-        targetUserId: member.id,
-        chatId,
-        currency: selectedCurrency ?? "SGD",
-      },
-      {
-        enabled: !isSimplified,
-      }
-    );
+  const { data: supportedCurrencies } =
+    trpc.currency.getSupportedCurrencies.useQuery({});
 
-  // * Computed Values =============================================================================
-  // Use member.balance when in simplified mode, otherwise use netBalance from query
-  const effectiveBalance = isSimplified ? member.balance : netBalance;
-  const effectiveBalanceStatus = isSimplified ? "success" : netBalanceStatus;
+  // * Currency mapping ============================================================================
+  const currencyMap = useMemo(() => {
+    if (!supportedCurrencies) return new Map();
+    return new Map(
+      supportedCurrencies.map((currency) => [currency.code, currency])
+    );
+  }, [supportedCurrencies]);
 
   // * Handlers ====================================================================================
   const handleCellClick = () => {
-    if (effectiveBalance === undefined) {
-      return hapticFeedback.notificationOccurred.ifAvailable("error");
-    }
     hapticFeedback.selectionChanged.ifAvailable();
-
     setModalOpen(true);
   };
-
-  const BalanceModal =
-    effectiveBalanceStatus === "success" && effectiveBalance !== undefined
-      ? effectiveBalance > 0
-        ? ToReceiveModal
-        : ToPayModal
-      : null;
-
-  const convertedBalance = useMemo(() => {
-    if (conversionRateData && effectiveBalance !== undefined) {
-      return toDecimal(effectiveBalance)
-        .dividedBy(conversionRateData.rate)
-        .toNumber();
-    }
-    return effectiveBalance;
-  }, [conversionRateData, effectiveBalance]);
-
-  const balanceLabel = (() => {
-    if (effectiveBalanceStatus === "pending") {
-      return "Loading...";
-    }
-    if (effectiveBalanceStatus === "error") {
-      return "Error";
-    }
-    return getBalanceLabel(effectiveBalance);
-  })();
-
-  const balanceAction = (() => {
-    if (effectiveBalanceStatus === "pending") {
-      return "Loading...";
-    }
-    if (effectiveBalanceStatus === "error") {
-      return "Error";
-    }
-    return effectiveBalance !== undefined && effectiveBalance > 0
-      ? "Remind"
-      : "Settle";
-  })();
 
   return (
     <>
       <Cell
         key={member.id}
-        before={<ChatMemberAvatar userId={member.id} size={48} />}
+        before={<ChatMemberAvatar userId={member.id} size={28} />}
         subhead={
           <Skeleton visible={isMemberInfoLoading}>
-            {memberInfo?.user.first_name ?? "Unknown"} {balanceLabel}
+            {balanceType === "debtor"
+              ? `${memberInfo?.user.first_name ?? "Unknown"} owes you`
+              : `You owe ${memberInfo?.user.first_name ?? "Unknown"}`}
           </Skeleton>
         }
-        after={<Navigation>{balanceAction}</Navigation>}
+        after={<Navigation></Navigation>}
         onClick={() => handleCellClick()}
-        subtitle={
-          selectedCurrency !== chatData?.baseCurrency ? (
-            <Skeleton visible={conversionRateStatus === "pending"}>
-              or{" "}
-              {formatCurrencyWithCode(convertedBalance, chatData?.baseCurrency)}
-            </Skeleton>
-          ) : null
-        }
       >
-        <Skeleton
-          visible={effectiveBalanceStatus === "pending"}
-          className="flex flex-col gap-1"
-        >
-          <Text className={cn(getBalanceColorClass(effectiveBalance))}>
-            {formatCurrencyWithCode(effectiveBalance, selectedCurrency)}
-          </Text>
-        </Skeleton>
+        <div className="flex flex-col">
+          {member.balances.map((balance) => (
+            <BalanceEntry
+              key={`${balance.currency}-${balance.amount}`}
+              balance={balance}
+              baseCurrency={chatData?.baseCurrency ?? "SGD"}
+              currencyMap={currencyMap}
+            />
+          ))}
+        </div>
       </Cell>
 
-      {BalanceModal && (
-        <BalanceModal
-          modalOpen={modalOpen}
-          onOpenChange={setModalOpen}
-          member={member}
-          convertedBalance={convertedBalance}
-        />
-      )}
+      <MultiCurrencyBalanceModal
+        modalOpen={modalOpen}
+        onOpenChange={setModalOpen}
+        member={member}
+        balanceType={balanceType}
+        baseCurrency={chatData?.baseCurrency ?? "SGD"}
+        currencyMap={currencyMap}
+      />
     </>
   );
 };

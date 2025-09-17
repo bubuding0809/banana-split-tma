@@ -20,7 +20,6 @@ import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatExpenseDateShort } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import SettlementDetailsModal from "./SettlementDetailsModal";
-import { useSearch } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
 import { ArrowRight, DollarSign, Link } from "lucide-react";
@@ -30,10 +29,8 @@ interface ChatSettlementCellProps {
 }
 
 const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
-  const { senderId, receiverId, chatId, amount } = settlement;
-  const { selectedCurrency } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
+  const { senderId, receiverId, chatId, amount, currency } = settlement;
+
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
 
@@ -151,13 +148,6 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
             </div>
           </Avatar>
         }
-        titleBadge={
-          settlementRelation !== "unrelated" ? (
-            <Badge type="number">
-              <Link size={10} />
-            </Badge>
-          ) : undefined
-        }
         subhead={
           <Skeleton visible={displayInfo.isLoading}>
             <Caption
@@ -170,6 +160,11 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
             >
               {displayInfo.primaryText}
             </Caption>
+            {settlementRelation !== "unrelated" && (
+              <Badge type="number">
+                <Link size={10} />
+              </Badge>
+            )}
           </Skeleton>
         }
         description={
@@ -214,7 +209,7 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
           />
         }
       >
-        {formatCurrencyWithCode(amount, selectedCurrency)}
+        {formatCurrencyWithCode(amount, currency)}
       </Cell>
 
       <SettlementDetailsModal
