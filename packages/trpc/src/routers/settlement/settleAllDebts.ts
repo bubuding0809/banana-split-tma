@@ -147,25 +147,22 @@ export const settleAllDebtsHandler = async (
     // Send notification if requested and names are provided
     if (input.sendNotification && input.creditorName && input.debtorName) {
       try {
-        // Calculate total amount for notification (convert to base currency)
-        const totalAmount = validBalances.reduce(
-          (sum, balance) => sum + Math.abs(balance.amount),
-          0
-        );
-        const mainCurrency = validBalances[0]?.currency || "SGD";
-
-        await sendSettlementNotificationMessageHandler(
-          {
-            chatId: Number(input.chatId),
-            creditorUserId: Number(input.receiverId),
-            creditorName: input.creditorName,
-            creditorUsername: input.creditorUsername,
-            debtorName: input.debtorName,
-            amount: totalAmount,
-            currency: mainCurrency,
-            threadId: input.threadId,
-          },
-          teleBot
+        await Promise.allSettled(
+          validBalances.map((balance) =>
+            sendSettlementNotificationMessageHandler(
+              {
+                chatId: Number(input.chatId),
+                creditorUserId: Number(input.receiverId),
+                creditorName: input.creditorName!, // Safe since we check above
+                creditorUsername: input.creditorUsername,
+                debtorName: input.debtorName!, // Safe since we check above
+                amount: Math.abs(balance.amount),
+                currency: balance.currency,
+                threadId: input.threadId,
+              },
+              teleBot
+            )
+          )
         );
       } catch (notificationError) {
         console.error(
