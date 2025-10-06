@@ -63,6 +63,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     defaultValues: {
       ...formOpts.defaultValues,
       payee: userId.toString(),
+      currency: dChatData?.baseCurrency ?? "SGD",
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({
