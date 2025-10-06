@@ -237,9 +237,7 @@ const AmountFormStep = withForm({
                         onCurrencySelect={field.handleChange}
                         userId={userId}
                         chatId={Number(chatId)}
-                        featuredCurrencies={[displayCurrency, "SGD"].filter(
-                          (code, index, arr) => arr.indexOf(code) === index
-                        )}
+                        featuredCurrencies={[displayCurrency]}
                       />
                     </>
                   )}
