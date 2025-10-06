@@ -198,7 +198,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   return (
     <main className="px-3">
-      <Section header="Currencies">
+      <Section header="Base Currency">
         <Cell
           before={
             <Avatar
