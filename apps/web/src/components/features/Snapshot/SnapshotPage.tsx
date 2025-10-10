@@ -6,7 +6,7 @@ import {
   Placeholder,
   Button,
   Info,
-  Navigation,
+  ButtonCell,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { Aperture, Plus } from "lucide-react";
@@ -212,27 +212,23 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   return (
     <>
       <Section>
-        <Link
-          to="/chat/$chatId/create-snapshot"
-          params={{
-            chatId: chatId.toString(),
+        <ButtonCell
+          onClick={() => {
+            navigate({
+              to: "/chat/$chatId/create-snapshot",
+              params: {
+                chatId: chatId.toString(),
+              },
+            });
+            hapticFeedback.notificationOccurred("success");
           }}
-          search={(prev) => ({
-            ...prev,
-          })}
-          onClick={() => hapticFeedback.notificationOccurred("success")}
+          before={<Plus />}
+          style={{
+            color: tButtonColor,
+          }}
         >
-          <Cell
-            before={
-              <span className="rounded-lg bg-red-600 p-1.5">
-                <Aperture size={20} color="white" />
-              </span>
-            }
-            after={<Navigation>Add snapshot</Navigation>}
-          >
-            Snapshots
-          </Cell>
-        </Link>
+          Add Snapshots
+        </ButtonCell>
 
         {snapshots.map((snapshot) => (
           <SnapshotCell
