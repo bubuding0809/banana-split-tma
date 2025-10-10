@@ -21,7 +21,9 @@
       "Bash(pnpm dev:*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.prisma.io)"
+      "WebFetch(domain:www.prisma.io)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql"
     ],
     "deny": []
   }
