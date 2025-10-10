@@ -40,15 +40,13 @@ export const editExpenseMessageHandler = async (
 ): Promise<boolean> => {
   try {
     // Format the updated message using the shared formatter
-    // Include current timestamp to show when the expense was last updated
     const message = formatExpenseMessage(
       input.payerId,
       input.payerName,
       input.expenseDescription,
       input.totalAmount,
       input.participants,
-      input.currency,
-      new Date() // Add timestamp for edited messages
+      input.currency
     );
 
     // Create the deep link keyboard
