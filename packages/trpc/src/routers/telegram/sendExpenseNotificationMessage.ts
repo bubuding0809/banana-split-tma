@@ -49,7 +49,8 @@ export const formatExpenseMessage = (
   expenseDescription: string,
   totalAmount: number,
   participants: ExpenseParticipant[],
-  currency: string
+  currency: string,
+  lastUpdated?: Date
 ): string => {
   // Format the total amount as currency with error handling
   let formattedTotalAmount: string;
@@ -111,13 +112,28 @@ export const formatExpenseMessage = (
     })
     .join("\n");
 
+  // Format the last updated timestamp if provided (for edited messages)
+  let timestampLine = "";
+  if (lastUpdated) {
+    const formattedDate = new Intl.DateTimeFormat("en-SG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(lastUpdated);
+    const escapedTimestamp = escapeMarkdown(formattedDate, 2);
+    timestampLine = `\n\n_Last updated: ${escapedTimestamp}_`;
+  }
+
   // Create the expense notification message
   return `🧾 New expense paid by ${payerMention}\\!
 
 > ${escapedDescription}
 Total: ${formattedTotalAmount}
 
-*Your shares:*\n${participantList}`;
+*Your shares:*\n${participantList}${timestampLine}`;
 };
 
 export const sendExpenseNotificationMessageHandler = async (
