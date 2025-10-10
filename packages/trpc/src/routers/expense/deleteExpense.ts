@@ -2,6 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { deleteExpenseMessagesHandler } from "../telegram/deleteExpenseNotificationMessage.js";
+import { Telegram } from "telegraf";
 
 export const inputSchema = z.object({
   expenseId: z.string(),
@@ -14,18 +16,52 @@ export const outputSchema = z.object({
 
 export const deleteExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  teleBot: Telegram
 ) => {
   try {
-    await db.expense.delete({
-      where: {
-        id: input.expenseId,
-      },
+    // First, fetch the expense to get Telegram message IDs
+    const expense = await db.expense.findUnique({
+      where: { id: input.expenseId },
       select: {
         id: true,
         description: true,
         amount: true,
         chatId: true,
+        telegramMessageId: true,
+        telegramUpdateBumpMessageIds: true,
+      },
+    });
+
+    if (!expense) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Expense not found",
+      });
+    }
+
+    // Attempt to delete Telegram messages (best effort - don't fail if this fails)
+    try {
+      await deleteExpenseMessagesHandler(
+        {
+          chatId: Number(expense.chatId),
+          telegramMessageId: expense.telegramMessageId,
+          telegramUpdateBumpMessageIds: expense.telegramUpdateBumpMessageIds,
+        },
+        teleBot
+      );
+    } catch (telegramError) {
+      // Log the error but continue with database deletion
+      console.error(
+        "Error deleting Telegram messages for expense:",
+        telegramError
+      );
+    }
+
+    // Delete the expense from database
+    await db.expense.delete({
+      where: {
+        id: input.expenseId,
       },
     });
 
@@ -69,5 +105,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteExpenseHandler(input, ctx.db);
+    return deleteExpenseHandler(input, ctx.db, ctx.teleBot);
   });
