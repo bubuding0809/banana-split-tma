@@ -286,7 +286,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
       <div ref={headerRef} className="py-1">
         <Cell
           onClick={handleSettingsClick}
-          after={<Navigation className="text-nowrap">Settings</Navigation>}
+          after={<Navigation className="text-nowrap">⚙️</Navigation>}
           before={
             <Avatar
               size={48}
