@@ -390,7 +390,7 @@ export const updateExpenseHandler = async (
               );
 
               // Send a small bump reply to notify about the update
-              await sendExpenseUpdateBumpHandler(
+              const bumpMessageId = await sendExpenseUpdateBumpHandler(
                 {
                   chatId: Number(input.chatId),
                   replyToMessageId: Number(existingExpense.telegramMessageId),
@@ -400,6 +400,18 @@ export const updateExpenseHandler = async (
                 },
                 teleBot
               );
+
+              // Store the bump message ID for future deletion
+              if (bumpMessageId) {
+                await db.expense.update({
+                  where: { id: input.expenseId },
+                  data: {
+                    telegramUpdateBumpMessageIds: {
+                      push: BigInt(bumpMessageId),
+                    },
+                  },
+                });
+              }
             } catch (editError) {
               // If editing fails, fall back to sending a new message
               console.error(

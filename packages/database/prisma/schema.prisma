@@ -71,9 +71,10 @@ model Expense {
   description        String
   amount             Decimal           @db.Decimal(12, 2)
   currency           String            @default("SGD")
-  splitMode          SplitMode
-  telegramMessageId  BigInt?           // Stores the Telegram message ID for editing notifications
-  participants       User[]            @relation("Participants")
+  splitMode                     SplitMode
+  telegramMessageId             BigInt?   // Stores the Telegram message ID for editing notifications
+  telegramUpdateBumpMessageIds  BigInt[]  // Stores the Telegram message IDs for update bump notifications
+  participants                  User[]    @relation("Participants")
   shares             ExpenseShare[]
   snapshots          ExpenseSnapshot[] @relation("SnapshotExpenses")
   createdAt          DateTime          @default(now())
