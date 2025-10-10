@@ -10,6 +10,10 @@ import {
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
 import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
+import {
+  editExpenseMessageHandler,
+  sendExpenseUpdateBumpHandler,
+} from "../telegram/editExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
 
 export const inputSchema = z.object({
@@ -366,23 +370,78 @@ export const updateExpenseHandler = async (
             };
           });
 
-          // Send expense notification (updated expense)
-          await sendExpenseNotificationMessageHandler(
-            {
-              chatId: Number(input.chatId),
-              payerId: Number(input.payerId),
-              payerName: payer.firstName,
-              creatorUserId: Number(creator.id),
-              creatorName: creator.firstName,
-              creatorUsername: creator.username || undefined,
-              expenseDescription: `Updated: ${input.description}`,
-              totalAmount: input.amount,
-              participants: participantsWithAmounts,
-              currency: currency,
-              threadId: input.threadId,
-            },
-            teleBot
-          );
+          // If we have the original message ID, edit it instead of sending a new one
+          if (existingExpense.telegramMessageId) {
+            try {
+              // Edit the original expense message with updated details
+              await editExpenseMessageHandler(
+                {
+                  chatId: Number(input.chatId),
+                  messageId: Number(existingExpense.telegramMessageId),
+                  payerId: Number(input.payerId),
+                  payerName: payer.firstName,
+                  expenseDescription: input.description,
+                  totalAmount: input.amount,
+                  participants: participantsWithAmounts,
+                  currency: currency,
+                  threadId: input.threadId,
+                },
+                teleBot
+              );
+
+              // Send a small bump reply to notify about the update
+              await sendExpenseUpdateBumpHandler(
+                {
+                  chatId: Number(input.chatId),
+                  replyToMessageId: Number(existingExpense.telegramMessageId),
+                  updaterUserId: Number(input.creatorId),
+                  updaterName: creator.firstName,
+                  threadId: input.threadId,
+                },
+                teleBot
+              );
+            } catch (editError) {
+              // If editing fails, fall back to sending a new message
+              console.error(
+                "Failed to edit expense message, sending new notification instead:",
+                editError
+              );
+              await sendExpenseNotificationMessageHandler(
+                {
+                  chatId: Number(input.chatId),
+                  payerId: Number(input.payerId),
+                  payerName: payer.firstName,
+                  creatorUserId: Number(creator.id),
+                  creatorName: creator.firstName,
+                  creatorUsername: creator.username || undefined,
+                  expenseDescription: `Updated: ${input.description}`,
+                  totalAmount: input.amount,
+                  participants: participantsWithAmounts,
+                  currency: currency,
+                  threadId: input.threadId,
+                },
+                teleBot
+              );
+            }
+          } else {
+            // No original message ID, send a new notification
+            await sendExpenseNotificationMessageHandler(
+              {
+                chatId: Number(input.chatId),
+                payerId: Number(input.payerId),
+                payerName: payer.firstName,
+                creatorUserId: Number(creator.id),
+                creatorName: creator.firstName,
+                creatorUsername: creator.username || undefined,
+                expenseDescription: `Updated: ${input.description}`,
+                totalAmount: input.amount,
+                participants: participantsWithAmounts,
+                currency: currency,
+                threadId: input.threadId,
+              },
+              teleBot
+            );
+          }
         }
       } catch (notificationError) {
         // Log notification error but don't fail expense update
