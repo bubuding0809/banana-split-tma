@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import {
@@ -9,6 +9,7 @@ import {
   Skeleton,
 } from "@telegram-apps/telegram-ui";
 import { BellRing, BellOff } from "lucide-react";
+import EditReminderScheduleModal from "./EditReminderScheduleModal";
 
 interface RecurringRemindersSectionProps {
   chatId: number;
@@ -17,6 +18,9 @@ interface RecurringRemindersSectionProps {
 const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
   chatId,
 }) => {
+  // State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
   // TRPC Utils
   const trpcUtils = trpc.useUtils();
 
@@ -81,7 +85,10 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
         {/* Schedule Configuration */}
         {scheduleData?.enabled ? (
           <Cell
-            onClick={() => alert("Coming soon!")}
+            onClick={() => {
+              hapticFeedback.impactOccurred("light");
+              setEditModalOpen(true);
+            }}
             after={<Navigation>Edit</Navigation>}
             disabled={isLoading}
             subtitle={scheduleData?.timezone}
@@ -93,6 +100,22 @@ const RecurringRemindersSection: React.FC<RecurringRemindersSectionProps> = ({
           []
         )}
       </Section>
+
+      {/* Edit Schedule Modal */}
+      <EditReminderScheduleModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        chatId={chatId}
+        initialValues={
+          scheduleData
+            ? {
+                timezone: scheduleData.timezone,
+                dayOfWeek: scheduleData.dayOfWeek || "sunday",
+                time: scheduleData.time || "9pm",
+              }
+            : undefined
+        }
+      />
     </>
   );
 };
