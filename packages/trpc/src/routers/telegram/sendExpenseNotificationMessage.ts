@@ -35,60 +35,57 @@ const inputSchema = z.object({
   threadId: z.number().optional(),
 });
 
-export const sendExpenseNotificationMessageHandler = async (
-  input: z.infer<typeof inputSchema>,
-  teleBot: Telegram
-) => {
-  // Validate business logic
-  if (input.chatId === 0) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Invalid chat ID. Cannot send message to chat ID 0.",
-    });
-  }
+// Exported type for use in other handlers
+export type ExpenseNotificationData = z.infer<typeof inputSchema>;
+export type ExpenseParticipant = z.infer<typeof participantSchema>;
 
-  if (input.participants.length === 0) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot send expense notification without participants.",
-    });
-  }
-
+/**
+ * Formats the expense notification message
+ * This is shared between create and edit operations
+ */
+export const formatExpenseMessage = (
+  payerId: number,
+  payerName: string,
+  expenseDescription: string,
+  totalAmount: number,
+  participants: ExpenseParticipant[],
+  currency: string
+): string => {
   // Format the total amount as currency with error handling
   let formattedTotalAmount: string;
   try {
     const rawTotalAmount = new Intl.NumberFormat("en-SG", {
       style: "currency",
-      currency: input.currency,
-    }).format(input.totalAmount);
+      currency: currency,
+    }).format(totalAmount);
     formattedTotalAmount = escapeMarkdown(rawTotalAmount, 2);
   } catch (error) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Invalid currency code: ${input.currency}`,
+      message: `Invalid currency code: ${currency}`,
     });
   }
 
-  // Escape expense description and creator name for MarkdownV2
-  const escapedDescription = escapeMarkdown(input.expenseDescription, 2);
+  // Escape expense description for MarkdownV2
+  const escapedDescription = escapeMarkdown(expenseDescription, 2);
 
   // Create payer mention
   let payerMention: string;
   try {
-    payerMention = mentionMarkdown(input.payerId, input.payerName, 2);
+    payerMention = mentionMarkdown(payerId, payerName, 2);
   } catch (error) {
-    payerMention = escapeMarkdown(input.payerName, 2);
+    payerMention = escapeMarkdown(payerName, 2);
   }
 
   // Build participant list with amounts
-  const participantList = input.participants
+  const participantList = participants
     .map((participant) => {
       // Format individual amount
       let formattedParticipantAmount: string;
       try {
         const rawAmount = new Intl.NumberFormat("en-SG", {
           style: "currency",
-          currency: input.currency,
+          currency: currency,
         }).format(participant.amount);
         formattedParticipantAmount = escapeMarkdown(rawAmount, 2);
       } catch (error) {
@@ -115,12 +112,41 @@ export const sendExpenseNotificationMessageHandler = async (
     .join("\n");
 
   // Create the expense notification message
-  const message = `🧾 New expense paid by ${payerMention}\\!
+  return `🧾 New expense paid by ${payerMention}\\!
 
 > ${escapedDescription}
 Total: ${formattedTotalAmount}
 
 *Your shares:*\n${participantList}`;
+};
+
+export const sendExpenseNotificationMessageHandler = async (
+  input: z.infer<typeof inputSchema>,
+  teleBot: Telegram
+) => {
+  // Validate business logic
+  if (input.chatId === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid chat ID. Cannot send message to chat ID 0.",
+    });
+  }
+
+  if (input.participants.length === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Cannot send expense notification without participants.",
+    });
+  }
+
+  const message = formatExpenseMessage(
+    input.payerId,
+    input.payerName,
+    input.expenseDescription,
+    input.totalAmount,
+    input.participants,
+    input.currency
+  );
 
   const chatContext = {
     chat_id: input.chatId,

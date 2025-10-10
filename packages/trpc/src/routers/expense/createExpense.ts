@@ -349,7 +349,7 @@ export const createExpenseHandler = async (
           });
 
           // Send expense notification
-          await sendExpenseNotificationMessageHandler(
+          const messageId = await sendExpenseNotificationMessageHandler(
             {
               chatId: Number(input.chatId),
               payerId: Number(input.payerId),
@@ -365,6 +365,14 @@ export const createExpenseHandler = async (
             },
             teleBot
           );
+
+          // Store the message ID in the expense record for future edits
+          if (messageId) {
+            await db.expense.update({
+              where: { id: expense.id },
+              data: { telegramMessageId: BigInt(messageId) },
+            });
+          }
         }
       } catch (notificationError) {
         // Log notification error but don't fail expense creation
