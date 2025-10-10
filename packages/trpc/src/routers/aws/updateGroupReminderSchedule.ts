@@ -26,22 +26,48 @@ const DAYS_OF_WEEK = [
 ] as const;
 
 // Common timezone validation
+// Must match COMMON_TIMEZONES in apps/web/src/constants/timezones.ts
 const COMMON_TIMEZONES = [
+  // Universal
   "UTC",
+
+  // North America
   "America/New_York",
   "America/Chicago",
   "America/Denver",
   "America/Los_Angeles",
+  "America/Phoenix",
+  "America/Toronto",
+  "America/Vancouver",
+  "America/Mexico_City",
+
+  // South America
+  "America/Sao_Paulo",
+  "America/Buenos_Aires",
+  "America/Lima",
+  "America/Santiago",
+
+  // Europe
   "Europe/London",
   "Europe/Berlin",
   "Europe/Paris",
   "Europe/Rome",
+  "Europe/Moscow",
+  "Europe/Istanbul",
+  "Europe/Athens",
+  "Europe/Dublin",
+
+  // Middle East
+  "Asia/Dubai",
+  "Asia/Riyadh",
+  "Asia/Jerusalem",
+  "Asia/Tehran",
+
+  // Asia
   "Asia/Tokyo",
   "Asia/Shanghai",
   "Asia/Singapore",
   "Asia/Kolkata",
-  "Australia/Sydney",
-  "Australia/Melbourne",
   "Asia/Bangkok",
   "Asia/Jakarta",
   "Asia/Manila",
@@ -49,6 +75,24 @@ const COMMON_TIMEZONES = [
   "Asia/Hong_Kong",
   "Asia/Seoul",
   "Asia/Taipei",
+  "Asia/Karachi",
+  "Asia/Dhaka",
+  "Asia/Kathmandu",
+  "Asia/Almaty",
+
+  // Oceania
+  "Australia/Sydney",
+  "Australia/Melbourne",
+  "Australia/Perth",
+  "Pacific/Auckland",
+  "Pacific/Fiji",
+  "Pacific/Guam",
+
+  // Africa
+  "Africa/Cairo",
+  "Africa/Johannesburg",
+  "Africa/Nairobi",
+  "Africa/Lagos",
 ];
 
 export const inputSchema = z
