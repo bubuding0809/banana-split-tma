@@ -1,6 +1,5 @@
 import {
   initData,
-  mainButton,
   secondaryButton,
   themeParams,
   useSignal,
@@ -50,7 +49,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     () => expense?.id === selectedExpense
   );
   const [highlighted, setHighlighted] = useState(false);
-  const offMainButtonClickRef = useRef<VoidFunction | undefined>(undefined);
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
   );
@@ -61,7 +59,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
   // * Effects =====================================================================================
   useEffect(() => {
     return () => {
-      offMainButtonClickRef.current?.();
       offSecondaryButtonClickRef.current?.();
     };
   }, []);
@@ -158,9 +155,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
     });
 
     if (action === "delete-expense") {
-      mainButton.setParams({
-        isVisible: false,
-      });
       secondaryButton.setParams({
         isLoaderVisible: true,
         isEnabled: false,
@@ -173,9 +167,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
       } catch (error) {
         console.error("Failed to delete expense:", error);
         alert("Failed to delete expense. Please try again later.");
-        mainButton.setParams({
-          isVisible: true,
-        });
       } finally {
         secondaryButton.setParams({
           isLoaderVisible: false,
@@ -209,11 +200,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         }),
       });
 
-      mainButton.setParams({
-        text: "Edit",
-        isVisible: true,
-        isEnabled: true,
-      });
       secondaryButton.setParams({
         text: "Delete",
         isVisible: true,
@@ -231,7 +217,6 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         },
       });
 
-      offMainButtonClickRef.current = mainButton.onClick(onEditExpense);
       offSecondaryButtonClickRef.current =
         secondaryButton.onClick(onDeleteExpense);
     } else {
@@ -246,17 +231,12 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         }),
       });
 
-      mainButton.setParams({
-        isVisible: false,
-        isEnabled: false,
-      });
       secondaryButton.setParams({
         isVisible: false,
         isEnabled: false,
         textColor: tButtonColor,
       });
 
-      offMainButtonClickRef.current?.();
       offSecondaryButtonClickRef.current?.();
     }
 
@@ -378,6 +358,7 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
         isMemberLoading={isMemberLoading}
         expenseDetails={expenseDetails}
         userId={userId}
+        onEdit={onEditExpense}
       />
     </>
   );
