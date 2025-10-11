@@ -24,7 +24,7 @@ import { formatExpenseDate } from "@utils/date";
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -102,6 +102,7 @@ interface ExpenseDetailsModalProps {
     | inferRouterOutputs<AppRouter>["expense"]["getExpenseDetails"]
     | undefined;
   userId: number;
+  onEdit: () => void;
 }
 
 const ExpenseDetailsModal = ({
@@ -112,6 +113,7 @@ const ExpenseDetailsModal = ({
   isMemberLoading,
   expenseDetails,
   userId,
+  onEdit,
 }: ExpenseDetailsModalProps) => {
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
@@ -207,21 +209,30 @@ const ExpenseDetailsModal = ({
             </Title>
           }
           after={
-            <Modal.Close>
-              <IconButton
-                size="s"
-                mode="gray"
-                onClick={() => hapticFeedback.impactOccurred("light")}
-              >
-                <X
+            <div className="flex items-center gap-2">
+              <IconButton size="s" mode="gray" onClick={onEdit} className="p-1">
+                <Pencil
                   size={20}
                   strokeWidth={3}
-                  style={{
-                    color: tSubtitleTextColor,
-                  }}
+                  style={{ color: tButtonColor }}
                 />
               </IconButton>
-            </Modal.Close>
+              <Modal.Close>
+                <IconButton
+                  size="s"
+                  mode="gray"
+                  onClick={() => hapticFeedback.impactOccurred("light")}
+                >
+                  <X
+                    size={20}
+                    strokeWidth={3}
+                    style={{
+                      color: tSubtitleTextColor,
+                    }}
+                  />
+                </IconButton>
+              </Modal.Close>
+            </div>
           }
         >
           <Badge type="number" mode="secondary" className={getSubtitleColor()}>
