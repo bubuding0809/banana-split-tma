@@ -20,12 +20,14 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import { X, TrendingDown, RefreshCcw } from "lucide-react";
+import { X, TrendingDown, RefreshCcw, Pencil } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { useCallback, useRef, useEffect, useMemo } from "react";
+import { useCallback, useRef, useEffect, useMemo, memo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
+import { useNavigate } from "@tanstack/react-router";
 
 interface SnapshotDetailsModalProps {
   snapshotId: string;
@@ -39,6 +41,7 @@ const SnapshotDetailsModal = ({
   onOpenChange,
 }: SnapshotDetailsModalProps) => {
   const trpcUtils = trpc.useUtils();
+  const navigate = useNavigate();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
@@ -46,6 +49,7 @@ const SnapshotDetailsModal = ({
   const offSecondaryButtonClickRef = useRef<VoidFunction | undefined>(
     undefined
   );
+  const expenseListParentRef = useRef<HTMLDivElement>(null);
 
   const userId = tUserData?.id ?? 0;
 
@@ -121,6 +125,24 @@ const SnapshotDetailsModal = ({
   });
 
   // * Handlers ====================================================================================
+  const handleEdit = useCallback(() => {
+    if (!snapShotDetails) return;
+
+    hapticFeedback.impactOccurred("light");
+    onOpenChange(false);
+    navigate({
+      to: "/chat/$chatId/edit-snapshot/$snapshotId",
+      params: {
+        chatId: snapShotDetails.chatId.toString(),
+        snapshotId,
+      },
+      search: {
+        prevTab: "transaction",
+        title: "Edit Snapshot",
+      },
+    });
+  }, [snapShotDetails, snapshotId, navigate, onOpenChange]);
+
   const handleDelete = useCallback(async () => {
     const action = await popup.open.ifAvailable({
       title: "Delete Snapshot?",
@@ -226,6 +248,25 @@ const SnapshotDetailsModal = ({
     multipleRatesData?.rates,
   ]);
 
+  // Setup virtualizer for expense list
+  const virtualizer = useVirtualizer({
+    count: snapShotDetails?.expenses.length ?? 0,
+    getScrollElement: () => expenseListParentRef.current,
+    estimateSize: (index) => {
+      const expense = snapShotDetails?.expenses[index];
+      if (!expense) return 90;
+      // Base height for expense cells in modal
+      // Account for longer descriptions
+      let baseHeight = 90;
+      if (expense.description && expense.description.length > 50) {
+        baseHeight += 20;
+      }
+      return baseHeight;
+    },
+    overscan: 3,
+    getItemKey: (index) => snapShotDetails?.expenses[index]?.id ?? index,
+  });
+
   if (snapShotDetailsStatus === "pending") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
@@ -286,20 +327,34 @@ const SnapshotDetailsModal = ({
             </Title>
           }
           after={
-            <Modal.Close>
-              <IconButton size="s" mode="gray">
-                <X
+            <div className="flex items-center gap-2">
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={handleEdit}
+                className="p-1"
+              >
+                <Pencil
                   size={20}
                   strokeWidth={3}
-                  style={{ color: tSubtitleTextColor }}
+                  style={{ color: tButtonColor }}
                 />
               </IconButton>
-            </Modal.Close>
+              <Modal.Close>
+                <IconButton size="s" mode="gray">
+                  <X
+                    size={20}
+                    strokeWidth={3}
+                    style={{ color: tSubtitleTextColor }}
+                  />
+                </IconButton>
+              </Modal.Close>
+            </div>
           }
         />
       }
     >
-      <div className="max-h-[70vh]">
+      <div className="max-h-[80vh]">
         {/* Header Information */}
         <Section>
           <Cell
@@ -355,61 +410,132 @@ const SnapshotDetailsModal = ({
 
         {/* Expenses List */}
         <Section header="Included Expenses" className="mt-4">
-          {snapShotDetails.expenses.map((expense) => (
-            <Cell
-              className={cn(
-                !expense.shares.find((s) => s.userId === userId) &&
-                  "bg-neutral-100 dark:bg-neutral-700"
-              )}
-              key={expense.id}
-              before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
-              subhead={
-                <Caption weight="1" level="1">
-                  {expense.payer.firstName} spent
-                </Caption>
-              }
-              description={expense.description}
-              after={
-                <Info
-                  avatarStack={
-                    <Info type="text">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <Caption className="w-max" weight="2">
-                          {format(new Date(expense.createdAt), "d MMM yyyy")}
-                        </Caption>
-                        <Text
-                          weight="3"
-                          className={cn(
-                            expense.shares.find((s) => s.userId === userId)
-                              ? "text-red-600"
-                              : "textgray-600"
-                          )}
-                        >
-                          {formatCurrencyWithCode(
-                            expense.shares.find((s) => s.userId === userId)
-                              ?.amount,
-                            expense.currency
-                          )}
-                        </Text>
-                        <Caption className="w-max">
-                          {expense.shares.find((s) => s.userId === userId)
-                            ? "Share"
-                            : "Unrelated"}
-                        </Caption>
-                      </div>
-                    </Info>
-                  }
-                  type="avatarStack"
-                />
-              }
+          <div
+            ref={expenseListParentRef}
+            className="h-[40vh] overflow-auto"
+            style={{
+              contain: "strict",
+              scrollbarWidth: "thin",
+            }}
+          >
+            <div
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: "100%",
+                position: "relative",
+              }}
             >
-              {formatCurrencyWithCode(expense.amount, expense.currency)}
-            </Cell>
-          ))}
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const expense = snapShotDetails.expenses[virtualItem.index];
+                if (!expense) return null;
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <SnapshotExpenseCell expense={expense} userId={userId} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </Section>
       </div>
     </Modal>
   );
 };
+
+// Type definition for expense from snapshot details
+type SnapshotExpense = {
+  id: string;
+  chatId: number;
+  creatorId: number;
+  payerId: number;
+  description: string;
+  amount: number;
+  currency: string;
+  createdAt: Date;
+  payer: {
+    id: number;
+    firstName: string;
+  };
+  shares: {
+    userId: number;
+    amount: number | null;
+  }[];
+};
+
+// Memoized expense cell component for virtualization
+const SnapshotExpenseCell = memo(
+  ({ expense, userId }: { expense: SnapshotExpense; userId: number }) => {
+    return (
+      <Cell
+        className={cn(
+          !expense.shares.find(
+            (s: { userId: number }) => s.userId === userId
+          ) && "bg-neutral-100 dark:bg-neutral-700"
+        )}
+        before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
+        subhead={
+          <Caption weight="1" level="1">
+            {expense.payer.firstName} spent
+          </Caption>
+        }
+        description={expense.description}
+        after={
+          <Info
+            avatarStack={
+              <Info type="text">
+                <div className="flex flex-col items-end gap-1.5">
+                  <Caption className="w-max" weight="2">
+                    {format(new Date(expense.createdAt), "d MMM yyyy")}
+                  </Caption>
+                  <Text
+                    weight="3"
+                    className={cn(
+                      expense.shares.find(
+                        (s: { userId: number }) => s.userId === userId
+                      )
+                        ? "text-red-600"
+                        : "text-gray-600"
+                    )}
+                  >
+                    {formatCurrencyWithCode(
+                      expense.shares.find(
+                        (s: { userId: number }) => s.userId === userId
+                      )?.amount,
+                      expense.currency
+                    )}
+                  </Text>
+                  <Caption className="w-max">
+                    {expense.shares.find(
+                      (s: { userId: number }) => s.userId === userId
+                    )
+                      ? "Share"
+                      : "Unrelated"}
+                  </Caption>
+                </div>
+              </Info>
+            }
+            type="avatarStack"
+          />
+        }
+      >
+        {formatCurrencyWithCode(expense.amount, expense.currency)}
+      </Cell>
+    );
+  }
+);
+
+SnapshotExpenseCell.displayName = "SnapshotExpenseCell";
 
 export default SnapshotDetailsModal;
