@@ -77,4 +77,3 @@ app.get("/", (_req, res) => {
 });
 
 export default app;
-// test: verify lambda-only build filtering - Thu 29 Jan 2026 18:31:36 +07
