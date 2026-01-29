@@ -24,7 +24,12 @@
       "WebFetch(domain:www.prisma.io)",
       "mcp__supabase__list_tables",
       "mcp__supabase__execute_sql",
-      "Bash(pnpm turbo:*)"
+      "Bash(pnpm turbo:*)",
+      "Bash(tree:*)",
+      "mcp__vercel__search_vercel_documentation",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__list_projects",
+      "mcp__vercel__get_project"
     ],
     "deny": []
   }
