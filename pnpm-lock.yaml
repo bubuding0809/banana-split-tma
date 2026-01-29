@@ -6,6 +6,10 @@ settings:
 
 importers:
   .:
+    dependencies:
+      turbo-ignore:
+        specifier: ^2.8.0
+        version: 2.8.0
     devDependencies:
       husky:
         specifier: ^9.1.7
@@ -9258,6 +9262,13 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  turbo-ignore@2.8.0:
+    resolution:
+      {
+        integrity: sha512-61dluRjo98FkaJ98bfCPA0vJ2ZwsR3RISL/lQ9R985dY913M5XUcGlIlWKoJDD1Zivy6dZupOfh5OzMBj4o8yQ==,
+      }
+    hasBin: true
+
   turbo-linux-64@2.4.4:
     resolution:
       {
@@ -16119,6 +16130,10 @@ snapshots:
 
   turbo-darwin-arm64@2.4.4:
     optional: true
+
+  turbo-ignore@2.8.0:
+    dependencies:
+      json5: 2.2.3
 
   turbo-linux-64@2.4.4:
     optional: true
