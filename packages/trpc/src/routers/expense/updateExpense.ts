@@ -26,6 +26,13 @@ export const inputSchema = z.object({
     .min(1, "Description is required")
     .max(60, "Description too long"),
   amount: z.number().positive("Amount must be positive"),
+  date: z
+    .date()
+    .optional()
+    .refine(
+      (date) => !date || date <= new Date(),
+      "Expense date cannot be in the future"
+    ),
   currency: z
     .string()
     .optional()
@@ -311,6 +318,7 @@ export const updateExpenseHandler = async (
           payerId: input.payerId,
           description: input.description,
           amount: input.amount,
+          date: input.date,
           currency: currency,
           splitMode: input.splitMode,
           participants: {
