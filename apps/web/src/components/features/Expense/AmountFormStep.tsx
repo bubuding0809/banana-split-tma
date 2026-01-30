@@ -16,7 +16,7 @@ import {
   LargeTitle,
   Avatar,
 } from "@telegram-apps/telegram-ui";
-import { ArrowUp, ChevronRight, Currency } from "lucide-react";
+import { ArrowUp, Calendar, ChevronRight, Currency } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -29,6 +29,7 @@ import { Decimal } from "decimal.js";
 import { expenseFormSchema } from "./AddExpenseForm.type";
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
+import { formatDateKey, formatExpenseDate } from "@utils/date";
 import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
@@ -81,10 +82,12 @@ const AmountFormStep = withForm({
           ...prev,
           isTouched: true,
         }));
+        form.setFieldMeta("date", (prev) => ({ ...prev, isTouched: true }));
 
         if (
           form.state.fieldMeta.amount.errors.length ||
-          form.state.fieldMeta.description.errors.length
+          form.state.fieldMeta.description.errors.length ||
+          form.state.fieldMeta.date.errors.length
         ) {
           // Focus the first field with errors
           if (form.state.fieldMeta.amount.errors.length) {
@@ -307,48 +310,92 @@ const AmountFormStep = withForm({
           )}
         </form.AppField>
 
-        {/* Description */}
+        {/* Details (Description + Date) */}
         <form.AppField name="description">
-          {(field) => (
-            <div className="flex flex-col gap-2">
-              <label
-                className={cn(
-                  "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
-                )}
-              >
-                <Subheadline weight="2">Description</Subheadline>
-                <span className="text-sm text-gray-500">
-                  {field.state.value.length} / {descriptionMaxLength} characters
-                </span>
-              </label>
-              <Textarea
-                className="text-wrap"
-                //@ts-expect-error There should be a ref for Textarea
-                ref={descriptionFieldRef}
-                status={
-                  field.state.meta.isTouched && field.state.meta.errors.length
-                    ? "error"
-                    : "default"
-                }
-                placeholder="e.g. Supper at Paradise Biryani"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onFocus={(e) => {
-                  e.target.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
-                }}
-                onChange={(e) => {
-                  if (e.target.value.length > (descriptionMaxLength ?? 60))
-                    return;
-                  field.handleChange(e.target.value);
-                }}
-              />
-              <div className="px-2">
-                <FieldInfo />
-              </div>
-            </div>
+          {(descriptionField) => (
+            <form.AppField name="date">
+              {(dateField) => (
+                <div className="flex flex-col gap-2">
+                  <label
+                    className={cn(
+                      "-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out"
+                    )}
+                  >
+                    <Subheadline weight="2">Details</Subheadline>
+                    <span className="text-sm text-gray-500">
+                      {descriptionField.state.value.length} /{" "}
+                      {descriptionMaxLength} characters
+                    </span>
+                  </label>
+                  <Section>
+                    {/* Description Textarea */}
+                    <Textarea
+                      className="text-wrap"
+                      //@ts-expect-error There should be a ref for Textarea
+                      ref={descriptionFieldRef}
+                      status={
+                        descriptionField.state.meta.isTouched &&
+                        descriptionField.state.meta.errors.length
+                          ? "error"
+                          : "default"
+                      }
+                      placeholder="e.g. Supper at Paradise Biryani"
+                      value={descriptionField.state.value}
+                      onBlur={descriptionField.handleBlur}
+                      onFocus={(e) => {
+                        e.target.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }}
+                      onChange={(e) => {
+                        if (
+                          e.target.value.length > (descriptionMaxLength ?? 60)
+                        )
+                          return;
+                        descriptionField.handleChange(e.target.value);
+                      }}
+                    />
+
+                    {/* Date Cell */}
+                    <Cell
+                      before={
+                        <Calendar
+                          size={24}
+                          style={{ color: tSubtitleTextColor }}
+                        />
+                      }
+                      after={
+                        <Text style={{ color: tSubtitleTextColor }}>
+                          {dateField.state.value
+                            ? formatExpenseDate(
+                                new Date(dateField.state.value + "T00:00:00")
+                              )
+                            : "Select date"}
+                        </Text>
+                      }
+                      className="relative"
+                    >
+                      <input
+                        type="date"
+                        value={dateField.state.value}
+                        max={formatDateKey(new Date())}
+                        onChange={(e) => {
+                          dateField.handleChange(e.target.value);
+                          hapticFeedback.impactOccurred("light");
+                        }}
+                        onBlur={dateField.handleBlur}
+                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                      />
+                      Transaction Date
+                    </Cell>
+                  </Section>
+                  <div className="px-2">
+                    <FieldInfo />
+                  </div>
+                </div>
+              )}
+            </form.AppField>
           )}
         </form.AppField>
       </div>

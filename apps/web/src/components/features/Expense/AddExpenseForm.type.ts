@@ -9,6 +9,18 @@ export const expenseFormSchema = z.object({
     .string()
     .min(1, "A Description is required")
     .max(60, "Description is too long"),
+  date: z
+    .string()
+    .min(1, "A date is required")
+    .refine(
+      (dateStr) => {
+        const selectedDate = new Date(dateStr + "T00:00:00");
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        return selectedDate <= today;
+      },
+      { message: "Date cannot be in the future" }
+    ),
   payee: z.string().min(1, "A payee is required"),
   splitMode: SplitMode,
   participants: z.array(z.string()).min(1, "At least one participant required"),

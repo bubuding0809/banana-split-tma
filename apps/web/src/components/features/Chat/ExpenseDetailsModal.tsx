@@ -261,9 +261,7 @@ const ExpenseDetailsModal = ({
             before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
             subtitle={
               <Skeleton visible={isMemberLoading}>
-                <Caption>
-                  {formatExpenseDate(new Date(expense.createdAt))}
-                </Caption>
+                <Caption>{formatExpenseDate(new Date(expense.date))}</Caption>
               </Skeleton>
             }
             after={

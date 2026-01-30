@@ -18,6 +18,7 @@ import SplitModeFormStep from "./SplitModeFormStep";
 import { useAppForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
+import { formatDateKey } from "@utils/date";
 
 interface EditExpensePageProps {
   chatId: number;
@@ -89,6 +90,9 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
     defaultValues: {
       amount: expenseData ? expenseData.amount.toString() : "",
       description: expenseData?.description ?? "",
+      date: expenseData?.date
+        ? formatDateKey(new Date(expenseData.date))
+        : formatDateKey(new Date()),
       payee: expenseData?.payerId
         ? expenseData.payerId.toString()
         : userId.toString(),
@@ -123,6 +127,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           payerId: Number(value.payee),
           description: value.description,
           amount: Number(value.amount),
+          date: new Date(value.date + "T00:00:00"),
           splitMode: value.splitMode,
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
