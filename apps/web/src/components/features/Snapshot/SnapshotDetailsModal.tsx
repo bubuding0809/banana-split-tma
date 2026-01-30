@@ -463,6 +463,7 @@ type SnapshotExpense = {
   description: string;
   amount: number;
   currency: string;
+  date: Date;
   createdAt: Date;
   payer: {
     id: number;
@@ -497,7 +498,7 @@ const SnapshotExpenseCell = memo(
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
                   <Caption className="w-max" weight="2">
-                    {format(new Date(expense.createdAt), "d MMM yyyy")}
+                    {format(new Date(expense.date), "d MMM yyyy")}
                   </Caption>
                   <Text
                     weight="3"

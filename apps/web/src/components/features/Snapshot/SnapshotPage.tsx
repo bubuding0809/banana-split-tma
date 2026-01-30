@@ -59,11 +59,11 @@ const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots");
 
 // Helper function to calculate date range from expenses
 const getExpenseDateRange = (
-  expenses: Array<{ createdAt: Date | string }>
+  expenses: Array<{ date: Date | string }>
 ): string => {
   if (!expenses.length) return "No expenses";
 
-  const dates = expenses.map((expense) => new Date(expense.createdAt));
+  const dates = expenses.map((expense) => new Date(expense.date));
   const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 

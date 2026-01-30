@@ -250,7 +250,7 @@ const VirtualizedExpenseList = ({
               >
                 <div
                   data-transaction-id={expense.id}
-                  data-date-key={formatDateKey(new Date(expense.createdAt))}
+                  data-date-key={formatDateKey(new Date(expense.date))}
                 >
                   <ExpenseCell
                     expense={expense}
@@ -416,7 +416,7 @@ const ExpenseCell = memo(
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
                   <Caption className="w-max" weight="2">
-                    {formatExpenseDateShort(new Date(expense.createdAt))}
+                    {formatExpenseDateShort(new Date(expense.date))}
                   </Caption>
                   <Skeleton visible={expenseDetailsStatus === "pending"}>
                     {(() => {

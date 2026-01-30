@@ -90,6 +90,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           payerId: Number(value.payee),
           description: value.description,
           amount: Number(value.amount),
+          date: new Date(value.date + "T00:00:00"),
           splitMode: value.splitMode,
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
