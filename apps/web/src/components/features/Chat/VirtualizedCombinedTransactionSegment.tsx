@@ -58,7 +58,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
   VirtualizedCombinedTransactionSegmentRef,
   VirtualizedCombinedTransactionSegmentProps
 >(({ chatId, showPayments, onAvailableDatesChange }, ref) => {
-  const { relatedOnly } = useSearch({
+  const { relatedOnly, sortBy } = useSearch({
     from: "/_tma/chat/$chatId",
   });
   const parentRef = useRef<HTMLDivElement>(null);
@@ -87,6 +87,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       showPayments,
       relatedOnly,
       userId,
+      sortBy,
     });
 
   // Update available dates when they change

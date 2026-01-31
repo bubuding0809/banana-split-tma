@@ -5,6 +5,7 @@ import {
   filterRelatedTransactions,
   groupTransactionsByMonth,
   buildDateMap,
+  type TransactionSortBy,
 } from "@/utils/transactionHelpers";
 
 interface UseTransactionGroupingParams {
@@ -13,6 +14,7 @@ interface UseTransactionGroupingParams {
   showPayments: boolean;
   relatedOnly: boolean;
   userId: number;
+  sortBy: TransactionSortBy;
 }
 
 interface UseTransactionGroupingReturn {
@@ -34,8 +36,9 @@ export const useTransactionGrouping = ({
   showPayments,
   relatedOnly,
   userId,
+  sortBy,
 }: UseTransactionGroupingParams): UseTransactionGroupingReturn => {
-  // Combine and group transactions by month buckets then sort them by date
+  // Combine and group transactions by month buckets then sort them by the sortBy field
   const { groupedTransactions, sortedKeys } = useMemo(() => {
     // Combine expenses and settlements into a single array with type indicators
     let combinedTransactions = combineTransactions(
@@ -52,8 +55,8 @@ export const useTransactionGrouping = ({
       );
     }
 
-    return groupTransactionsByMonth(combinedTransactions);
-  }, [expenses, settlements, showPayments, relatedOnly, userId]);
+    return groupTransactionsByMonth(combinedTransactions, sortBy);
+  }, [expenses, settlements, showPayments, relatedOnly, userId, sortBy]);
 
   // Extract available dates grouped by months from all combined transactions
   const monthGroupedData = useMemo(() => {
@@ -72,8 +75,8 @@ export const useTransactionGrouping = ({
       );
     }
 
-    return buildDateMap(combinedTransactions);
-  }, [expenses, settlements, showPayments, relatedOnly, userId]);
+    return buildDateMap(combinedTransactions, sortBy);
+  }, [expenses, settlements, showPayments, relatedOnly, userId, sortBy]);
 
   return {
     groupedTransactions,
