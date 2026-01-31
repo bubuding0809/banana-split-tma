@@ -15,7 +15,7 @@ export const getAllSettlementsByChatHandler = async (
       // No currency filtering - return all settlements regardless of currency
     },
     orderBy: {
-      createdAt: "desc",
+      date: "desc",
     },
   });
 
