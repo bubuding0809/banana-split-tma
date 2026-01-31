@@ -28,7 +28,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts,
+      // In development, allow all hosts for local tunneling (Tailscale Funnel, etc.)
+      // In production, use the whitelist from VITE_ALLOWED_HOSTS
+      allowedHosts: mode === "development" ? true : allowedHosts,
     },
   };
 });

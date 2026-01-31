@@ -93,6 +93,54 @@ This command leverages Turborepo to intelligently start all services in the corr
 - The `lambda` TRPC API server on http://localhost:8081
 - The `web` React frontend on http://localhost:5173
 
+### 7. Local Development Tunneling (Optional)
+
+For Telegram Mini App development, you need HTTPS URLs accessible from the internet. We use Tailscale Funnel for persistent tunnels.
+
+**First-time setup:**
+
+```bash
+# Install Tailscale
+brew install tailscale
+
+# Install as system daemon (auto-starts on boot)
+sudo tailscaled install-system-daemon
+
+# Authenticate (opens browser)
+tailscale up
+
+# Enable Funnel in admin console
+# Visit: https://login.tailscale.com/admin/dns
+```
+
+**Create local environment file:**
+
+```bash
+# Get your Tailscale DNS name
+tailscale status
+
+# Create apps/web/.env.local with:
+# VITE_TRPC_URL=https://YOUR-MACHINE.tail12345.ts.net/api/trpc
+# VITE_API_KEY=your_api_key_here
+```
+
+**Daily usage:**
+
+```bash
+# Start tunnels + dev servers
+pnpm dev:tunnel
+
+# Or start tunnels separately
+pnpm tunnel        # Start tunnels
+turbo dev          # Start dev servers
+pnpm tunnel:stop   # Stop tunnels
+```
+
+Your persistent URLs will be:
+
+- Frontend: `https://YOUR-MACHINE.tail12345.ts.net:8443`
+- Backend: `https://YOUR-MACHINE.tail12345.ts.net`
+
 ## Turborepo Development Workflows
 
 ### Running individual workspaces
@@ -351,6 +399,15 @@ If you suspect cache-related problems:
 1. Clear the local Turborepo cache: `npx turbo clean`
 2. Verify that `.turbo` is in your `.gitignore`
 3. Ensure your CI environment correctly handles Turborepo caching
+
+### Tailscale Funnel Issues
+
+If tunnels aren't working:
+
+1. Check Tailscale is running: `tailscale status`
+2. Check tunnel status: `tailscale funnel status`
+3. Ensure Funnel is enabled in admin console: https://login.tailscale.com/admin/dns
+4. Restart tunnels: `pnpm tunnel:stop && pnpm tunnel`
 
 ## License
 
