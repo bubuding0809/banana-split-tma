@@ -35,8 +35,6 @@ import {
   ArrowLeftRight,
   LoaderCircle,
   ArrowDownUp,
-  Calendar,
-  Clock,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
@@ -113,38 +111,22 @@ const FilterSection = ({
         </span>
       }
       after={
-        <div className="flex gap-1">
-          <button
-            onClick={() => handleSortByChange("date")}
-            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              sortBy === "date"
-                ? "bg-purple-500 text-white"
-                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-            }`}
-          >
-            <Calendar size={14} />
-            Date
-          </button>
-          <button
-            onClick={() => handleSortByChange("createdAt")}
-            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              sortBy === "createdAt"
-                ? "bg-purple-500 text-white"
-                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-            }`}
-          >
-            <Clock size={14} />
-            Created
-          </button>
-        </div>
+        <Switch
+          checked={sortBy === "createdAt"}
+          onChange={() =>
+            handleSortByChange(sortBy === "date" ? "createdAt" : "date")
+          }
+        />
       }
       description={
         <Caption className="text-wrap">
-          Sort transactions by transaction date or creation time
+          {sortBy === "date"
+            ? "Sorting by transaction date"
+            : "Sorting by creation time"}
         </Caption>
       }
     >
-      Sort By
+      Sort by {sortBy === "date" ? "Date" : "CreatedAt"}
     </Cell>
   </Section>
 );
@@ -364,11 +346,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           }
         >
           <div className="flex gap-2 overflow-auto">
-            {[showPayments, relatedOnly, sortBy === "createdAt"].every(
-              (bool) => !bool
-            ) && (
-              <Text className="py-1 text-neutral-500">No filters applied</Text>
-            )}
             {showPayments && (
               <div
                 className="flex items-center gap-1.5 rounded-full p-1 pe-3"
@@ -399,21 +376,19 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 </Caption>
               </div>
             )}
-            {sortBy === "createdAt" && (
-              <div
-                className="flex items-center gap-1.5 rounded-full p-1 pe-3"
-                style={{
-                  backgroundColor: tSecondaryBackgroundColor,
-                }}
-              >
-                <div className="rounded-full bg-purple-500 p-1.5">
-                  <Clock size={12} color="white" />
-                </div>
-                <Caption weight="2" level="2">
-                  By Created
-                </Caption>
+            <div
+              className="flex items-center gap-1.5 rounded-full p-1 pe-3"
+              style={{
+                backgroundColor: tSecondaryBackgroundColor,
+              }}
+            >
+              <div className="rounded-full bg-purple-500 p-1.5">
+                <ArrowDownUp size={12} color="white" />
               </div>
-            )}
+              <Caption weight="2" level="2">
+                {sortBy === "date" ? "Date" : "CreatedAt"}
+              </Caption>
+            </div>
           </div>
         </Cell>
         <Divider />
