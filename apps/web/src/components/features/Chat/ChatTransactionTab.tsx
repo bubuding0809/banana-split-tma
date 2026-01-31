@@ -17,6 +17,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
+import SortOptionsSelector from "./SortOptionsSelector";
 import {
   hapticFeedback,
   initData,
@@ -34,6 +35,10 @@ import {
   ChevronsUpDown,
   ArrowLeftRight,
   LoaderCircle,
+  ArrowDownUp,
+  ChevronRight,
+  ArrowDown,
+  ArrowUp,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
@@ -42,69 +47,102 @@ import { trpc } from "@/utils/trpc";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
+type SortByOption = "date" | "createdAt";
+type SortOrderOption = "asc" | "desc";
+
 interface FilterSectionProps extends SectionProps {
   showPayments: boolean;
   relatedOnly: boolean;
+  sortBy: SortByOption;
+  sortOrder: SortOrderOption;
   handlePaymentsToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleRelatedOnlyToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onJumpToDate: () => void;
+  onSortOptions: () => void;
 }
 
 const FilterSection = ({
   header,
   showPayments,
   relatedOnly,
+  sortBy,
+  sortOrder,
   handlePaymentsToggle,
   handleRelatedOnlyToggle,
   onJumpToDate,
-}: FilterSectionProps) => (
-  <Section header={header}>
-    <ButtonCell before={<CalendarArrowUp size={20} />} onClick={onJumpToDate}>
-      Jump to date
-    </ButtonCell>
-    <Cell
-      Component="label"
-      before={
-        <span className="rounded-lg bg-green-500 p-1.5">
-          <DollarSign size={20} color="white" />
-        </span>
-      }
-      after={<Switch checked={showPayments} onChange={handlePaymentsToggle} />}
-      description={
-        <Caption className="text-wrap">
-          Include payments in the transaction list
-        </Caption>
-      }
-    >
-      Include Payments
-    </Cell>
-    <Cell
-      Component="label"
-      before={
-        <span className="rounded-lg bg-blue-500 p-1.5">
-          <LucideLink size={20} color="white" />
-        </span>
-      }
-      after={
-        <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
-      }
-      description={
-        <Caption className="text-wrap">
-          Show only transactions that involve you
-        </Caption>
-      }
-    >
-      Show Related Only
-    </Cell>
-  </Section>
-);
+  onSortOptions,
+}: FilterSectionProps) => {
+  const sortByLabel = sortBy === "date" ? "Transaction date" : "Created at";
+  const sortOrderLabel = sortOrder === "desc" ? "Newest first" : "Oldest first";
+
+  return (
+    <Section header={header}>
+      <ButtonCell before={<CalendarArrowUp size={20} />} onClick={onJumpToDate}>
+        Jump to date
+      </ButtonCell>
+      <Cell
+        Component="label"
+        before={
+          <span className="rounded-lg bg-green-500 p-1.5">
+            <DollarSign size={20} color="white" />
+          </span>
+        }
+        after={
+          <Switch checked={showPayments} onChange={handlePaymentsToggle} />
+        }
+        description={
+          <Caption className="text-wrap">
+            Include payments in the transaction list
+          </Caption>
+        }
+      >
+        Include Payments
+      </Cell>
+      <Cell
+        Component="label"
+        before={
+          <span className="rounded-lg bg-blue-500 p-1.5">
+            <LucideLink size={20} color="white" />
+          </span>
+        }
+        after={
+          <Switch checked={relatedOnly} onChange={handleRelatedOnlyToggle} />
+        }
+        description={
+          <Caption className="text-wrap">
+            Show only transactions that involve you
+          </Caption>
+        }
+      >
+        Show Related Only
+      </Cell>
+      <Cell
+        onClick={onSortOptions}
+        before={
+          <span className="rounded-lg bg-purple-500 p-1.5">
+            <ArrowDownUp size={20} color="white" />
+          </span>
+        }
+        after={<ChevronRight size={20} color="gray" />}
+        description={
+          <Caption className="text-wrap">
+            {sortByLabel} &bull; {sortOrderLabel}
+          </Caption>
+        }
+      >
+        Sort options
+      </Cell>
+    </Section>
+  );
+};
 
 interface ChatTransactionTabProps {
   chatId: number;
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedExpense, showPayments, relatedOnly } = routeApi.useSearch();
+  const { selectedExpense, showPayments, relatedOnly, sortBy, sortOrder } =
+    routeApi.useSearch();
   const tUserData = useSignal(initData.user);
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
@@ -117,9 +155,9 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const userId = tUserData?.id ?? 0;
 
   const firstLoadDoneRef = useRef(false);
-  const [modalView, setModalView] = useState<"filters" | "jumpToDate">(
-    "filters"
-  );
+  const [modalView, setModalView] = useState<
+    "filters" | "jumpToDate" | "sortOptions"
+  >("filters");
   const [jumpToDateModalOpen, setJumpToDateModalOpen] = useState(false);
   const [monthGroupedData, setMonthGroupedData] = useState<
     {
@@ -193,16 +231,35 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     });
   };
 
-  // For main FilterSection (outside modal) - opens standalone modal
-  // const handleJumpToDateStandalone = () => {
-  //   hapticFeedback.impactOccurred("light");
-  //   setJumpToDateModalOpen(true);
-  // };
+  const handleSortByChange = (newSortBy: SortByOption) => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        sortBy: newSortBy,
+      }),
+    });
+  };
+
+  const handleSortOrderChange = (newSortOrder: SortOrderOption) => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        sortOrder: newSortOrder,
+      }),
+    });
+  };
 
   // For modal FilterSection (inside modal) - transitions modal content
   const handleJumpToDateTransition = () => {
     hapticFeedback.impactOccurred("light");
     setModalView("jumpToDate");
+  };
+
+  const handleSortOptionsTransition = () => {
+    hapticFeedback.impactOccurred("light");
+    setModalView("sortOptions");
   };
 
   const handleBackToFilters = () => {
@@ -302,10 +359,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             </button>
           }
         >
-          <div className="flex gap-2 overflow-auto">
-            {[showPayments, relatedOnly].every((bool) => !bool) && (
-              <Text className="py-1 text-neutral-500">No filters applied</Text>
-            )}
+          <div className="flex gap-1 overflow-auto">
             {showPayments && (
               <div
                 className="flex items-center gap-1.5 rounded-full p-1 pe-3"
@@ -332,10 +386,27 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                   <LucideLink size={12} color="white" />
                 </div>
                 <Caption weight="2" level="2">
-                  Related Only
+                  Related
                 </Caption>
               </div>
             )}
+            <div
+              className="flex items-center gap-1.5 rounded-full p-1 pe-3"
+              style={{
+                backgroundColor: tSecondaryBackgroundColor,
+              }}
+            >
+              <div className="rounded-full bg-purple-500 p-1.5">
+                {sortOrder === "desc" ? (
+                  <ArrowDown size={12} color="white" />
+                ) : (
+                  <ArrowUp size={12} color="white" />
+                )}
+              </div>
+              <Caption weight="2" level="2">
+                {sortBy === "date" ? "Date" : "Created"}
+              </Caption>
+            </div>
           </div>
         </Cell>
         <Divider />
@@ -446,7 +517,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         header={
           <Modal.Header
             before={
-              modalView === "jumpToDate" ? (
+              modalView !== "filters" ? (
                 <IconButton size="s" mode="gray" onClick={handleBackToFilters}>
                   <ArrowLeft
                     size={20}
@@ -484,7 +555,11 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             }
           >
             <Title level="3" weight="1">
-              {modalView === "filters" ? "" : "Jump to date"}
+              {modalView === "filters"
+                ? ""
+                : modalView === "jumpToDate"
+                  ? "Jump to date"
+                  : "Sort options"}
             </Title>
           </Modal.Header>
         }
@@ -500,14 +575,24 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             <FilterSection
               showPayments={showPayments}
               relatedOnly={relatedOnly}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
               handlePaymentsToggle={handlePaymentsToggle}
               handleRelatedOnlyToggle={handleRelatedOnlyToggle}
               onJumpToDate={handleJumpToDateTransition}
+              onSortOptions={handleSortOptionsTransition}
             />
-          ) : (
+          ) : modalView === "jumpToDate" ? (
             <DateSelector
               monthGroupedData={monthGroupedData}
               onDateSelect={handleDateSelect}
+            />
+          ) : (
+            <SortOptionsSelector
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={handleSortByChange}
+              onSortOrderChange={handleSortOrderChange}
             />
           )}
         </div>

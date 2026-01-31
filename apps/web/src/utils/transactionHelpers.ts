@@ -1,6 +1,7 @@
 import {
   getMonthYear,
   compareDatesDesc,
+  compareDatesAsc,
   formatMonthYear,
   formatJumpToDate,
   formatDateKey,
@@ -10,6 +11,19 @@ import type {
   GroupedTransactions,
 } from "@/types/transaction.types";
 import type { RouterOutputs } from "@dko/trpc";
+
+export type TransactionSortBy = "date" | "createdAt";
+export type TransactionSortOrder = "asc" | "desc";
+
+/**
+ * Get the date value to use for sorting based on sortBy option
+ */
+const getTransactionSortDate = (
+  transaction: CombinedTransaction,
+  sortBy: TransactionSortBy
+): Date => {
+  return new Date(sortBy === "date" ? transaction.date : transaction.createdAt);
+};
 
 /**
  * Check if a transaction is related to the current user
@@ -72,12 +86,16 @@ export const combineTransactions = (
  * Group transactions by month buckets
  */
 export const groupTransactionsByMonth = (
-  transactions: CombinedTransaction[]
+  transactions: CombinedTransaction[],
+  sortBy: TransactionSortBy = "date",
+  sortOrder: TransactionSortOrder = "desc"
 ): { groupedTransactions: GroupedTransactions; sortedKeys: string[] } => {
-  // Group transactions by year-month
+  const compareFn = sortOrder === "desc" ? compareDatesDesc : compareDatesAsc;
+
+  // Group transactions by year-month based on the sortBy field
   const groupedTransactions: GroupedTransactions = transactions.reduce(
     (acc, curr) => {
-      const transactionDate = new Date(curr.date);
+      const transactionDate = getTransactionSortDate(curr, sortBy);
       const { month, year } = getMonthYear(transactionDate);
 
       // Format: YYYY-MM (month is 0-indexed from getMonth)
@@ -94,16 +112,19 @@ export const groupTransactionsByMonth = (
     {} as GroupedTransactions
   );
 
-  // Sort transactions within each group by date (descending)
+  // Sort transactions within each group by the sortBy field
   Object.entries(groupedTransactions).forEach(([key, value]) => {
     groupedTransactions[key] = value.sort((a, b) => {
-      return compareDatesDesc(new Date(a.date), new Date(b.date));
+      return compareFn(
+        getTransactionSortDate(a, sortBy),
+        getTransactionSortDate(b, sortBy)
+      );
     });
   });
 
-  // Sort the keys (year-month) in descending order
+  // Sort the keys (year-month)
   const sortedKeys = Object.keys(groupedTransactions).sort((a, b) => {
-    return compareDatesDesc(new Date(a), new Date(b));
+    return compareFn(new Date(a), new Date(b));
   });
 
   return {
@@ -116,26 +137,33 @@ export const groupTransactionsByMonth = (
  * Build a date map for jump-to-date functionality
  */
 export const buildDateMap = (
-  transactions: CombinedTransaction[]
+  transactions: CombinedTransaction[],
+  sortBy: TransactionSortBy = "date",
+  sortOrder: TransactionSortOrder = "desc"
 ): {
   monthKey: string;
   monthDisplay: string;
   dates: { key: string; display: string; transactionIds: string[] }[];
 }[] => {
+  const compareFn = sortOrder === "desc" ? compareDatesDesc : compareDatesAsc;
   const dateMap = new Map<
     string,
     { display: string; transactionIds: string[] }
   >();
 
-  // Sort transactions by date (most recent first) to ensure correct transactionIds ordering
+  // Sort transactions by the sortBy field to ensure correct transactionIds ordering
   const sortedTransactions = transactions.sort((a, b) =>
-    compareDatesDesc(new Date(a.date), new Date(b.date))
+    compareFn(
+      getTransactionSortDate(a, sortBy),
+      getTransactionSortDate(b, sortBy)
+    )
   );
 
   // Group by date and collect transaction IDs (now in correct order)
   sortedTransactions.forEach((transaction) => {
-    const dateKey = formatDateKey(new Date(transaction.date));
-    const dateDisplay = formatJumpToDate(new Date(transaction.date));
+    const sortDate = getTransactionSortDate(transaction, sortBy);
+    const dateKey = formatDateKey(sortDate);
+    const dateDisplay = formatJumpToDate(sortDate);
 
     if (!dateMap.has(dateKey)) {
       dateMap.set(dateKey, { display: dateDisplay, transactionIds: [] });
@@ -150,7 +178,7 @@ export const buildDateMap = (
       display: data.display,
       transactionIds: data.transactionIds,
     }))
-    .sort((a, b) => compareDatesDesc(new Date(a.key), new Date(b.key)));
+    .sort((a, b) => compareFn(new Date(a.key), new Date(b.key)));
 
   // Group dates by months
   const monthMap = new Map<
@@ -168,23 +196,22 @@ export const buildDateMap = (
     monthMap.get(monthKey)!.dates.push(date);
   });
 
-  // Convert to array and sort months by date (most recent first)
+  // Convert to array and sort months by date
   return Array.from(monthMap.entries())
     .map(([monthKey, data]) => ({
       monthKey,
       monthDisplay: data.display,
       dates: data.dates, // Already sorted above
     }))
-    .sort((a, b) =>
-      compareDatesDesc(new Date(a.monthKey), new Date(b.monthKey))
-    );
+    .sort((a, b) => compareFn(new Date(a.monthKey), new Date(b.monthKey)));
 };
 
 /**
  * Build a date map for expense jump-to-date functionality
  */
 export const buildExpenseDateMap = (
-  expenses: RouterOutputs["expense"]["getExpenseByChat"]
+  expenses: RouterOutputs["expense"]["getExpenseByChat"],
+  sortBy: TransactionSortBy = "date"
 ): {
   monthKey: string;
   monthDisplay: string;
@@ -192,15 +219,21 @@ export const buildExpenseDateMap = (
 }[] => {
   const dateMap = new Map<string, { display: string; expenseIds: string[] }>();
 
-  // Sort expenses by date (most recent first) to ensure correct expenseIds ordering
+  // Sort expenses by the sortBy field (most recent first) to ensure correct expenseIds ordering
   const sortedExpenses = expenses.sort((a, b) =>
-    compareDatesDesc(new Date(a.date), new Date(b.date))
+    compareDatesDesc(
+      new Date(sortBy === "date" ? a.date : a.createdAt),
+      new Date(sortBy === "date" ? b.date : b.createdAt)
+    )
   );
 
   // Group by date and collect expense IDs (now in correct order)
   sortedExpenses.forEach((expense) => {
-    const dateKey = formatDateKey(new Date(expense.date));
-    const dateDisplay = formatJumpToDate(new Date(expense.date));
+    const sortDate = new Date(
+      sortBy === "date" ? expense.date : expense.createdAt
+    );
+    const dateKey = formatDateKey(sortDate);
+    const dateDisplay = formatJumpToDate(sortDate);
 
     if (!dateMap.has(dateKey)) {
       dateMap.set(dateKey, { display: dateDisplay, expenseIds: [] });
