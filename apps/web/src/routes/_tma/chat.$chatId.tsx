@@ -13,6 +13,7 @@ const searchSchema = z.object({
   selectedExpense: z.string().optional(),
   showPayments: z.boolean().catch(true),
   relatedOnly: z.boolean().catch(true),
+  sortBy: z.enum(["date", "createdAt"]).catch("date"),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId")({

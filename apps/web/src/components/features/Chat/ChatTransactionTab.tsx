@@ -34,6 +34,9 @@ import {
   ChevronsUpDown,
   ArrowLeftRight,
   LoaderCircle,
+  ArrowDownUp,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
@@ -42,11 +45,15 @@ import { trpc } from "@/utils/trpc";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId");
 
+type SortByOption = "date" | "createdAt";
+
 interface FilterSectionProps extends SectionProps {
   showPayments: boolean;
   relatedOnly: boolean;
+  sortBy: SortByOption;
   handlePaymentsToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleRelatedOnlyToggle: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSortByChange: (sortBy: SortByOption) => void;
   onJumpToDate: () => void;
 }
 
@@ -54,8 +61,10 @@ const FilterSection = ({
   header,
   showPayments,
   relatedOnly,
+  sortBy,
   handlePaymentsToggle,
   handleRelatedOnlyToggle,
+  handleSortByChange,
   onJumpToDate,
 }: FilterSectionProps) => (
   <Section header={header}>
@@ -96,6 +105,47 @@ const FilterSection = ({
     >
       Show Related Only
     </Cell>
+    <Cell
+      Component="label"
+      before={
+        <span className="rounded-lg bg-purple-500 p-1.5">
+          <ArrowDownUp size={20} color="white" />
+        </span>
+      }
+      after={
+        <div className="flex gap-1">
+          <button
+            onClick={() => handleSortByChange("date")}
+            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+              sortBy === "date"
+                ? "bg-purple-500 text-white"
+                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+            }`}
+          >
+            <Calendar size={14} />
+            Date
+          </button>
+          <button
+            onClick={() => handleSortByChange("createdAt")}
+            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+              sortBy === "createdAt"
+                ? "bg-purple-500 text-white"
+                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+            }`}
+          >
+            <Clock size={14} />
+            Created
+          </button>
+        </div>
+      }
+      description={
+        <Caption className="text-wrap">
+          Sort transactions by transaction date or creation time
+        </Caption>
+      }
+    >
+      Sort By
+    </Cell>
   </Section>
 );
 
@@ -104,7 +154,8 @@ interface ChatTransactionTabProps {
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedExpense, showPayments, relatedOnly } = routeApi.useSearch();
+  const { selectedExpense, showPayments, relatedOnly, sortBy } =
+    routeApi.useSearch();
   const tUserData = useSignal(initData.user);
   const navigate = routeApi.useNavigate();
   const trpcUtils = trpc.useUtils();
@@ -189,6 +240,16 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       search: (prev) => ({
         ...prev,
         relatedOnly: event.target.checked,
+      }),
+    });
+  };
+
+  const handleSortByChange = (newSortBy: SortByOption) => {
+    hapticFeedback.selectionChanged();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        sortBy: newSortBy,
       }),
     });
   };
@@ -303,7 +364,9 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           }
         >
           <div className="flex gap-2 overflow-auto">
-            {[showPayments, relatedOnly].every((bool) => !bool) && (
+            {[showPayments, relatedOnly, sortBy === "createdAt"].every(
+              (bool) => !bool
+            ) && (
               <Text className="py-1 text-neutral-500">No filters applied</Text>
             )}
             {showPayments && (
@@ -333,6 +396,21 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 </div>
                 <Caption weight="2" level="2">
                   Related Only
+                </Caption>
+              </div>
+            )}
+            {sortBy === "createdAt" && (
+              <div
+                className="flex items-center gap-1.5 rounded-full p-1 pe-3"
+                style={{
+                  backgroundColor: tSecondaryBackgroundColor,
+                }}
+              >
+                <div className="rounded-full bg-purple-500 p-1.5">
+                  <Clock size={12} color="white" />
+                </div>
+                <Caption weight="2" level="2">
+                  By Created
                 </Caption>
               </div>
             )}
@@ -500,8 +578,10 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             <FilterSection
               showPayments={showPayments}
               relatedOnly={relatedOnly}
+              sortBy={sortBy}
               handlePaymentsToggle={handlePaymentsToggle}
               handleRelatedOnlyToggle={handleRelatedOnlyToggle}
+              handleSortByChange={handleSortByChange}
               onJumpToDate={handleJumpToDateTransition}
             />
           ) : (
