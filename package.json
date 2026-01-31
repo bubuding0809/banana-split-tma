@@ -8,7 +8,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "start": "turbo run start",
-    "prepare": "husky"
+    "prepare": "husky",
+    "tunnel": "bash scripts/tunnel.sh",
+    "tunnel:stop": "bash scripts/tunnel-stop.sh",
+    "dev:tunnel": "pnpm tunnel && turbo dev"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

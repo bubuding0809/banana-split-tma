@@ -300,6 +300,41 @@ packages/trpc/src/routers/
 - `turbo db:reset` - Reset database
 - `pnpm format` - Format code with Prettier
 
+### Local Development Tunneling (Tailscale Funnel)
+
+Uses Tailscale Funnel for persistent HTTPS tunnels to expose local dev servers to Telegram.
+
+**Persistent URLs** (never change):
+
+- Frontend: `https://192.tail37b3e8.ts.net:8443`
+- Backend: `https://192.tail37b3e8.ts.net`
+- API: `https://192.tail37b3e8.ts.net/api/trpc`
+
+**Daily workflow**:
+
+```bash
+pnpm dev:tunnel    # Start tunnels + dev servers
+```
+
+**Tunnel-only commands**:
+
+- `pnpm tunnel` - Start tunnels only
+- `pnpm tunnel:stop` - Stop tunnels
+- `tailscale funnel status` - Check tunnel status
+
+**Configuration files**:
+
+- `scripts/tunnel.sh` - Start script
+- `scripts/tunnel-stop.sh` - Stop script
+- `apps/web/.env.local` - Local dev environment (git-ignored)
+
+**First-time setup** (already complete):
+
+1. Install: `brew install tailscale`
+2. Start daemon: `sudo tailscaled install-system-daemon`
+3. Authenticate: `tailscale up`
+4. Enable Funnel in admin console: https://login.tailscale.com/admin/dns
+
 ### Pre-commit Hooks
 
 - Husky setup with lint-staged
@@ -475,4 +510,4 @@ const virtualizer = useVirtualizer({
 - Modal patterns with icon buttons
 - Edit/Create form reusability
 
-> Last updated: January 2026
+> Last updated: January 2026 (added Tailscale Funnel tunneling)
