@@ -27,7 +27,7 @@ export const getSnapshotDetailsHandler = async (
           },
         },
         orderBy: {
-          createdAt: "desc",
+          date: "desc",
         },
       },
     },

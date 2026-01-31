@@ -18,7 +18,7 @@ export const getAllExpensesByChatHandler = async (
       shares: true,
     },
     orderBy: {
-      createdAt: "desc",
+      date: "desc",
     },
   });
   return expenses.map((expense) => ({

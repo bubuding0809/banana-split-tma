@@ -77,7 +77,7 @@ export const groupTransactionsByMonth = (
   // Group transactions by year-month
   const groupedTransactions: GroupedTransactions = transactions.reduce(
     (acc, curr) => {
-      const transactionDate = new Date(curr.createdAt);
+      const transactionDate = new Date(curr.date);
       const { month, year } = getMonthYear(transactionDate);
 
       // Format: YYYY-MM (month is 0-indexed from getMonth)
@@ -97,7 +97,7 @@ export const groupTransactionsByMonth = (
   // Sort transactions within each group by date (descending)
   Object.entries(groupedTransactions).forEach(([key, value]) => {
     groupedTransactions[key] = value.sort((a, b) => {
-      return compareDatesDesc(new Date(a.createdAt), new Date(b.createdAt));
+      return compareDatesDesc(new Date(a.date), new Date(b.date));
     });
   });
 
@@ -129,13 +129,13 @@ export const buildDateMap = (
 
   // Sort transactions by date (most recent first) to ensure correct transactionIds ordering
   const sortedTransactions = transactions.sort((a, b) =>
-    compareDatesDesc(new Date(a.createdAt), new Date(b.createdAt))
+    compareDatesDesc(new Date(a.date), new Date(b.date))
   );
 
   // Group by date and collect transaction IDs (now in correct order)
   sortedTransactions.forEach((transaction) => {
-    const dateKey = formatDateKey(new Date(transaction.createdAt));
-    const dateDisplay = formatJumpToDate(new Date(transaction.createdAt));
+    const dateKey = formatDateKey(new Date(transaction.date));
+    const dateDisplay = formatJumpToDate(new Date(transaction.date));
 
     if (!dateMap.has(dateKey)) {
       dateMap.set(dateKey, { display: dateDisplay, transactionIds: [] });
@@ -194,13 +194,13 @@ export const buildExpenseDateMap = (
 
   // Sort expenses by date (most recent first) to ensure correct expenseIds ordering
   const sortedExpenses = expenses.sort((a, b) =>
-    compareDatesDesc(new Date(a.createdAt), new Date(b.createdAt))
+    compareDatesDesc(new Date(a.date), new Date(b.date))
   );
 
   // Group by date and collect expense IDs (now in correct order)
   sortedExpenses.forEach((expense) => {
-    const dateKey = formatDateKey(new Date(expense.createdAt));
-    const dateDisplay = formatJumpToDate(new Date(expense.createdAt));
+    const dateKey = formatDateKey(new Date(expense.date));
+    const dateDisplay = formatJumpToDate(new Date(expense.date));
 
     if (!dateMap.has(dateKey)) {
       dateMap.set(dateKey, { display: dateDisplay, expenseIds: [] });
