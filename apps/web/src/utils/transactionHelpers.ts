@@ -1,6 +1,7 @@
 import {
   getMonthYear,
   compareDatesDesc,
+  compareDatesAsc,
   formatMonthYear,
   formatJumpToDate,
   formatDateKey,
@@ -12,6 +13,7 @@ import type {
 import type { RouterOutputs } from "@dko/trpc";
 
 export type TransactionSortBy = "date" | "createdAt";
+export type TransactionSortOrder = "asc" | "desc";
 
 /**
  * Get the date value to use for sorting based on sortBy option
@@ -85,8 +87,11 @@ export const combineTransactions = (
  */
 export const groupTransactionsByMonth = (
   transactions: CombinedTransaction[],
-  sortBy: TransactionSortBy = "date"
+  sortBy: TransactionSortBy = "date",
+  sortOrder: TransactionSortOrder = "desc"
 ): { groupedTransactions: GroupedTransactions; sortedKeys: string[] } => {
+  const compareFn = sortOrder === "desc" ? compareDatesDesc : compareDatesAsc;
+
   // Group transactions by year-month based on the sortBy field
   const groupedTransactions: GroupedTransactions = transactions.reduce(
     (acc, curr) => {
@@ -107,19 +112,19 @@ export const groupTransactionsByMonth = (
     {} as GroupedTransactions
   );
 
-  // Sort transactions within each group by the sortBy field (descending)
+  // Sort transactions within each group by the sortBy field
   Object.entries(groupedTransactions).forEach(([key, value]) => {
     groupedTransactions[key] = value.sort((a, b) => {
-      return compareDatesDesc(
+      return compareFn(
         getTransactionSortDate(a, sortBy),
         getTransactionSortDate(b, sortBy)
       );
     });
   });
 
-  // Sort the keys (year-month) in descending order
+  // Sort the keys (year-month)
   const sortedKeys = Object.keys(groupedTransactions).sort((a, b) => {
-    return compareDatesDesc(new Date(a), new Date(b));
+    return compareFn(new Date(a), new Date(b));
   });
 
   return {
@@ -133,20 +138,22 @@ export const groupTransactionsByMonth = (
  */
 export const buildDateMap = (
   transactions: CombinedTransaction[],
-  sortBy: TransactionSortBy = "date"
+  sortBy: TransactionSortBy = "date",
+  sortOrder: TransactionSortOrder = "desc"
 ): {
   monthKey: string;
   monthDisplay: string;
   dates: { key: string; display: string; transactionIds: string[] }[];
 }[] => {
+  const compareFn = sortOrder === "desc" ? compareDatesDesc : compareDatesAsc;
   const dateMap = new Map<
     string,
     { display: string; transactionIds: string[] }
   >();
 
-  // Sort transactions by the sortBy field (most recent first) to ensure correct transactionIds ordering
+  // Sort transactions by the sortBy field to ensure correct transactionIds ordering
   const sortedTransactions = transactions.sort((a, b) =>
-    compareDatesDesc(
+    compareFn(
       getTransactionSortDate(a, sortBy),
       getTransactionSortDate(b, sortBy)
     )
@@ -171,7 +178,7 @@ export const buildDateMap = (
       display: data.display,
       transactionIds: data.transactionIds,
     }))
-    .sort((a, b) => compareDatesDesc(new Date(a.key), new Date(b.key)));
+    .sort((a, b) => compareFn(new Date(a.key), new Date(b.key)));
 
   // Group dates by months
   const monthMap = new Map<
@@ -189,16 +196,14 @@ export const buildDateMap = (
     monthMap.get(monthKey)!.dates.push(date);
   });
 
-  // Convert to array and sort months by date (most recent first)
+  // Convert to array and sort months by date
   return Array.from(monthMap.entries())
     .map(([monthKey, data]) => ({
       monthKey,
       monthDisplay: data.display,
       dates: data.dates, // Already sorted above
     }))
-    .sort((a, b) =>
-      compareDatesDesc(new Date(a.monthKey), new Date(b.monthKey))
-    );
+    .sort((a, b) => compareFn(new Date(a.monthKey), new Date(b.monthKey)));
 };
 
 /**
