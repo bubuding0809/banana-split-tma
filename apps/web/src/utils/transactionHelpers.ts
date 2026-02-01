@@ -117,12 +117,13 @@ export const groupTransactionsByMonth = (
     {} as GroupedTransactions
   );
 
-  // Sort transactions within each group by the sortBy field
+  // Sort transactions within each group by the createdAt field
+  // as a tie breaker due to expenses dates being created with T00:00:00 as time
   Object.entries(groupedTransactions).forEach(([key, value]) => {
     groupedTransactions[key] = value.sort((a, b) => {
       return compareFn(
-        getTransactionSortDate(a, sortBy),
-        getTransactionSortDate(b, sortBy)
+        getTransactionSortDate(a, "createdAt"),
+        getTransactionSortDate(b, "createdAt")
       );
     });
   });
