@@ -8,10 +8,16 @@ import {
   type TransactionSortBy,
   type TransactionSortOrder,
 } from "@/utils/transactionHelpers";
+import { RouterOutputs } from "@dko/trpc";
+
+type Expenses = RouterOutputs["expense"]["getExpenseByChat"] | undefined;
+type Settlements =
+  | RouterOutputs["settlement"]["getAllSettlementsByChat"]
+  | undefined;
 
 interface UseTransactionGroupingParams {
-  expenses?: any[];
-  settlements?: any[];
+  expenses: Expenses;
+  settlements: Settlements;
   showPayments: boolean;
   relatedOnly: boolean;
   userId: number;

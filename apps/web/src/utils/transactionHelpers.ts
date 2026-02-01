@@ -15,6 +15,11 @@ import type { RouterOutputs } from "@dko/trpc";
 export type TransactionSortBy = "date" | "createdAt";
 export type TransactionSortOrder = "asc" | "desc";
 
+type Expenses = RouterOutputs["expense"]["getExpenseByChat"] | undefined;
+type Settlements =
+  | RouterOutputs["settlement"]["getAllSettlementsByChat"]
+  | undefined;
+
 /**
  * Get the date value to use for sorting based on sortBy option
  */
@@ -61,8 +66,8 @@ export const filterRelatedTransactions = (
  * Combine expenses and settlements into a single transaction array
  */
 export const combineTransactions = (
-  expenses: any[] = [],
-  settlements: any[] = [],
+  expenses: Expenses = [],
+  settlements: Settlements = [],
   showPayments: boolean
 ): CombinedTransaction[] => {
   const expenseTransactions: CombinedTransaction[] = expenses.map(
