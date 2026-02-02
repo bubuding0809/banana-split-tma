@@ -1,6 +1,16 @@
 import { format, getMonth, getYear, compareDesc, compareAsc } from "date-fns";
 
 /**
+ * Normalize a date to midnight (00:00:00) in the local timezone
+ * Used for displaying expense dates consistently
+ */
+export const normalizeDateToMidnight = (date: Date): Date => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+/**
  * Format a date for display in expense details
  */
 export const formatExpenseDate = (date: Date): string => {
