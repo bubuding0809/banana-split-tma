@@ -25,6 +25,15 @@ export const formatExpenseDateShort = (date: Date): string => {
 };
 
 /**
+ * Format createdAt for short display in expense cells when sorting by createdAt
+ */
+export const formatExpenseDateShortCreatedAt = (
+  date: Date | string
+): string => {
+  return format(new Date(date), "do MMM");
+};
+
+/**
  * Get month and year for grouping expenses
  */
 export const getMonthYear = (date: Date): { month: number; year: number } => {
