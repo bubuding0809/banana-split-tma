@@ -250,20 +250,22 @@ const SnapshotDetailsModal = ({
     multipleRatesData?.rates,
   ]);
 
-  const sortedExpenses = useMemo(() => {
+  const displayExpenses = useMemo(() => {
     if (!snapShotDetails?.expenses) return [];
 
-    return snapShotDetails.expenses.sort((a, b) =>
-      compareTransactions(a, b, "date", compareDatesDesc)
-    );
-  }, [snapShotDetails?.expenses]);
+    return snapShotDetails.expenses
+      .sort((a, b) => compareTransactions(a, b, "date", compareDatesDesc))
+      .filter((expense) =>
+        expense.shares.find((s: { userId: number }) => s.userId === userId)
+      );
+  }, [snapShotDetails?.expenses, userId]);
 
   // Setup virtualizer for expense list
   const virtualizer = useVirtualizer({
-    count: sortedExpenses.length,
+    count: displayExpenses.length,
     getScrollElement: () => expenseListParentRef.current,
     estimateSize: (index) => {
-      const expense = sortedExpenses[index];
+      const expense = displayExpenses[index];
       if (!expense) return 90;
       // Base height for expense cells in modal
       // Account for longer descriptions
@@ -274,7 +276,7 @@ const SnapshotDetailsModal = ({
       return baseHeight;
     },
     overscan: 3,
-    getItemKey: (index) => sortedExpenses[index]?.id ?? index,
+    getItemKey: (index) => displayExpenses[index]?.id ?? index,
   });
 
   if (snapShotDetailsStatus === "pending") {
@@ -436,7 +438,7 @@ const SnapshotDetailsModal = ({
               }}
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
-                const expense = sortedExpenses[virtualItem.index];
+                const expense = displayExpenses[virtualItem.index];
                 if (!expense) return null;
 
                 return (
