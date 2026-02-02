@@ -318,6 +318,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
                   <VirtualTransactionItem
                     transaction={item.transaction}
                     monthKey={item.monthKey}
+                    sortBy={sortBy}
                   />
                 </>
               )}
@@ -346,14 +347,16 @@ const VirtualTransactionItem = memo(
   ({
     transaction,
     monthKey,
+    sortBy,
   }: {
     transaction: CombinedTransaction;
     monthKey: string;
+    sortBy: "date" | "createdAt";
   }) => {
     if (transaction.type === "expense") {
       return (
         <div data-transaction-id={transaction.id} data-month-key={monthKey}>
-          <ChatExpenseCell expense={transaction} />
+          <ChatExpenseCell expense={transaction} sortBy={sortBy} />
         </div>
       );
     } else {

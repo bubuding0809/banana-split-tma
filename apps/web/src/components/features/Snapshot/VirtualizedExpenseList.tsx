@@ -27,9 +27,11 @@ import { formatExpenseDateShort, formatDateKey } from "@/utils/date";
 import { cn } from "@/utils/cn";
 // Removed getRouteApi import since it's no longer needed
 import { buildExpenseDateMap } from "@/utils/transactionHelpers";
+import { compareTransactions } from "@/utils/transactionHelpers";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { CalendarArrowUp, X } from "lucide-react";
 import DateSelector from "../Chat/DateSelector";
+import { compareDatesDesc } from "@/utils/date";
 
 // Removed routeApi since we no longer use selectedCurrency from route
 
@@ -53,9 +55,18 @@ const VirtualizedExpenseList = ({
   // Jump to date modal state
   const [jumpToDateModalOpen, setJumpToDateModalOpen] = useState(false);
 
+  // Sort expenses by date descending for consistent display
+  const sortedExpenses = useMemo(
+    () =>
+      [...expenses].sort((a, b) =>
+        compareTransactions(a, b, "date", compareDatesDesc)
+      ),
+    [expenses]
+  );
+
   // Build month grouped data for date selector (adapted for expense data)
   const monthGroupedData = useMemo(() => {
-    const expenseData = buildExpenseDateMap(expenses);
+    const expenseData = buildExpenseDateMap(sortedExpenses);
     // Convert expenseIds to transactionIds to match DateSelector interface
     return expenseData.map((month) => ({
       ...month,
@@ -64,7 +75,7 @@ const VirtualizedExpenseList = ({
         transactionIds: date.expenseIds, // Map expenseIds to transactionIds
       })),
     }));
-  }, [expenses]);
+  }, [sortedExpenses]);
 
   // Initialize transaction highlighting
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
@@ -109,7 +120,7 @@ const VirtualizedExpenseList = ({
   // Select all handler
   const handleSelectAll = () => {
     hapticFeedback.impactOccurred("light");
-    const allExpenseIds = expenses.map((expense) => expense.id);
+    const allExpenseIds = sortedExpenses.map((expense) => expense.id);
     const isAllSelected = allExpenseIds.every((id) =>
       selectedExpenseIds.includes(id)
     );
@@ -182,11 +193,11 @@ const VirtualizedExpenseList = ({
 
   // Create virtualizer with dynamic sizing
   const virtualizer = useVirtualizer({
-    count: expenses.length,
+    count: sortedExpenses.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => {
       // More accurate estimate based on ExpenseCell content
-      const expense = expenses[index];
+      const expense = sortedExpenses[index];
       if (!expense) return 80;
 
       // Base height + account for description length
@@ -197,7 +208,7 @@ const VirtualizedExpenseList = ({
       return baseHeight;
     },
     overscan: 3, // Reduced overscan for better performance
-    getItemKey: (index) => expenses[index]?.id ?? index,
+    getItemKey: (index) => sortedExpenses[index]?.id ?? index,
   });
 
   return (
@@ -206,7 +217,7 @@ const VirtualizedExpenseList = ({
         before={
           <Checkbox
             onClick={(e) => e.stopPropagation()}
-            checked={expenses.every((expense) =>
+            checked={sortedExpenses.every((expense) =>
               selectedExpenseIds.includes(expense.id)
             )}
           />
@@ -232,7 +243,7 @@ const VirtualizedExpenseList = ({
           }}
         >
           {virtualizer.getVirtualItems().map((virtualItem) => {
-            const expense = expenses[virtualItem.index];
+            const expense = sortedExpenses[virtualItem.index];
             if (!expense) return null;
 
             return (
