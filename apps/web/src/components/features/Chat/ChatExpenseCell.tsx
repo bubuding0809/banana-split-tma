@@ -21,7 +21,10 @@ import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
-import { formatExpenseDateShort } from "@utils/date";
+import {
+  formatExpenseDateShort,
+  formatExpenseDateShortCreatedAt,
+} from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
@@ -32,9 +35,13 @@ const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
+  sortBy?: "date" | "createdAt";
 }
 
-const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
+const ChatExpenseCell = ({
+  expense,
+  sortBy = "date",
+}: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
 
   const router = useRouter();
@@ -289,7 +296,9 @@ const ChatExpenseCell = ({ expense }: ChatExpenseCellProps) => {
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
                   <Caption className="w-max" weight="2">
-                    {formatExpenseDateShort(new Date(expense.date))}
+                    {sortBy === "createdAt"
+                      ? formatExpenseDateShortCreatedAt(expense.createdAt)
+                      : formatExpenseDateShort(expense.date)}
                   </Caption>
                   <Skeleton visible={isExpenseDetailsLoading}>
                     {(() => {
