@@ -5,6 +5,7 @@ import {
   formatMonthYear,
   formatJumpToDate,
   formatDateKey,
+  normalizeDateToMidnight,
 } from "@/utils/date";
 import type {
   CombinedTransaction,
@@ -22,6 +23,7 @@ type Settlements =
 
 /**
  * Get the date value to use for sorting based on sortBy option
+ * Normalizes to midnight to ensure consistent display across timezones
  */
 const getTransactionSortDate = <
   T extends { date: Date | string; createdAt: Date | string },
@@ -29,13 +31,16 @@ const getTransactionSortDate = <
   transaction: T,
   sortBy: TransactionSortBy
 ): Date => {
-  return new Date(sortBy === "date" ? transaction.date : transaction.createdAt);
+  const date = new Date(
+    sortBy === "date" ? transaction.date : transaction.createdAt
+  );
+  return normalizeDateToMidnight(date);
 };
 
 /**
- * Compare two transaction-like objects taking `sortBy` and `sortOrder` into account.
- * When `sortBy` is `date` and the dates fall on the same day, use
- * `createdAt` as a tiebreaker to produce a deterministic ordering.
+ * Compare two transactions based on sortBy and a date comparison function
+ * (e.g., compareDatesDesc or compareDatesAsc)
+ * Uses createdAt as a tiebreaker when dates are the same.
  */
 export const compareTransactions = <
   T extends { date: Date | string; createdAt: Date | string },
@@ -262,8 +267,8 @@ export const buildExpenseDateMap = (
 
   // Group by date and collect expense IDs (now in correct order)
   sortedExpenses.forEach((expense) => {
-    const sortDate = new Date(
-      sortBy === "date" ? expense.date : expense.createdAt
+    const sortDate = normalizeDateToMidnight(
+      new Date(sortBy === "date" ? expense.date : expense.createdAt)
     );
     const dateKey = formatDateKey(sortDate);
     const dateDisplay = formatJumpToDate(sortDate);
