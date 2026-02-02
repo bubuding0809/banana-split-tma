@@ -28,6 +28,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { useNavigate } from "@tanstack/react-router";
+import { compareDatesDesc } from "@/utils/date";
+import { compareTransactions } from "@/utils/transactionHelpers";
 
 interface SnapshotDetailsModalProps {
   snapshotId: string;
@@ -248,12 +250,22 @@ const SnapshotDetailsModal = ({
     multipleRatesData?.rates,
   ]);
 
+  const displayExpenses = useMemo(() => {
+    if (!snapShotDetails?.expenses) return [];
+
+    return snapShotDetails.expenses
+      .sort((a, b) => compareTransactions(a, b, "date", compareDatesDesc))
+      .filter((expense) =>
+        expense.shares.find((s: { userId: number }) => s.userId === userId)
+      );
+  }, [snapShotDetails?.expenses, userId]);
+
   // Setup virtualizer for expense list
   const virtualizer = useVirtualizer({
-    count: snapShotDetails?.expenses.length ?? 0,
+    count: displayExpenses.length,
     getScrollElement: () => expenseListParentRef.current,
     estimateSize: (index) => {
-      const expense = snapShotDetails?.expenses[index];
+      const expense = displayExpenses[index];
       if (!expense) return 90;
       // Base height for expense cells in modal
       // Account for longer descriptions
@@ -264,7 +276,7 @@ const SnapshotDetailsModal = ({
       return baseHeight;
     },
     overscan: 3,
-    getItemKey: (index) => snapShotDetails?.expenses[index]?.id ?? index,
+    getItemKey: (index) => displayExpenses[index]?.id ?? index,
   });
 
   if (snapShotDetailsStatus === "pending") {
@@ -426,7 +438,7 @@ const SnapshotDetailsModal = ({
               }}
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
-                const expense = snapShotDetails.expenses[virtualItem.index];
+                const expense = displayExpenses[virtualItem.index];
                 if (!expense) return null;
 
                 return (

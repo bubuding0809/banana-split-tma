@@ -1,6 +1,16 @@
 import { format, getMonth, getYear, compareDesc, compareAsc } from "date-fns";
 
 /**
+ * Normalize a date to midnight (00:00:00) in the local timezone
+ * Used for displaying expense dates consistently
+ */
+export const normalizeDateToMidnight = (date: Date): Date => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+/**
  * Format a date for display in expense details
  */
 export const formatExpenseDate = (date: Date): string => {
@@ -12,6 +22,15 @@ export const formatExpenseDate = (date: Date): string => {
  */
 export const formatExpenseDateShort = (date: Date): string => {
   return format(date, "do MMM");
+};
+
+/**
+ * Format createdAt for short display in expense cells when sorting by createdAt
+ */
+export const formatExpenseDateShortCreatedAt = (
+  date: Date | string
+): string => {
+  return format(new Date(date), "do MMM");
 };
 
 /**
