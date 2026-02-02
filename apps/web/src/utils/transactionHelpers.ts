@@ -23,11 +23,38 @@ type Settlements =
 /**
  * Get the date value to use for sorting based on sortBy option
  */
-const getTransactionSortDate = (
-  transaction: CombinedTransaction,
+const getTransactionSortDate = <
+  T extends { date: Date | string; createdAt: Date | string },
+>(
+  transaction: T,
   sortBy: TransactionSortBy
 ): Date => {
   return new Date(sortBy === "date" ? transaction.date : transaction.createdAt);
+};
+
+/**
+ * Compare two transaction-like objects taking `sortBy` and `sortOrder` into account.
+ * When `sortBy` is `date` and the dates fall on the same day, use
+ * `createdAt` as a tiebreaker to produce a deterministic ordering.
+ */
+export const compareTransactions = <
+  T extends { date: Date | string; createdAt: Date | string },
+>(
+  a: T,
+  b: T,
+  sortBy: TransactionSortBy,
+  compareFn: (a: Date, b: Date) => number
+): number => {
+  // Use date utils for comparisons so ordering is consistent across the app
+  const aDate = getTransactionSortDate(a, sortBy);
+  const bDate = getTransactionSortDate(b, sortBy);
+
+  const primaryComparison = compareFn(aDate, bDate);
+
+  // Use createdAt as tiebreaker if sorting by date and dates are the same
+  return primaryComparison !== 0
+    ? primaryComparison
+    : compareFn(new Date(a.createdAt), new Date(b.createdAt));
 };
 
 /**
@@ -117,15 +144,12 @@ export const groupTransactionsByMonth = (
     {} as GroupedTransactions
   );
 
-  // Sort transactions within each group by the createdAt field
-  // as a tie breaker due to expenses dates being created with T00:00:00 as time
+  // Sort transactions within each group using comparator that
+  // respects `sortBy` and uses `createdAt` as a tiebreaker when needed.
   Object.entries(groupedTransactions).forEach(([key, value]) => {
-    groupedTransactions[key] = value.sort((a, b) => {
-      return compareFn(
-        getTransactionSortDate(a, "createdAt"),
-        getTransactionSortDate(b, "createdAt")
-      );
-    });
+    groupedTransactions[key] = value.sort((a, b) =>
+      compareTransactions(a, b, sortBy, compareFn)
+    );
   });
 
   // Sort the keys (year-month)
@@ -157,12 +181,10 @@ export const buildDateMap = (
     { display: string; transactionIds: string[] }
   >();
 
-  // Sort transactions by the sortBy field to ensure correct transactionIds ordering
+  // Sort transactions by the sortBy field (and createdAt tiebreaker)
+  // to ensure correct transactionIds ordering
   const sortedTransactions = transactions.sort((a, b) =>
-    compareFn(
-      getTransactionSortDate(a, sortBy),
-      getTransactionSortDate(b, sortBy)
-    )
+    compareTransactions(a, b, sortBy, compareFn)
   );
 
   // Group by date and collect transaction IDs (now in correct order)
@@ -217,19 +239,24 @@ export const buildDateMap = (
  */
 export const buildExpenseDateMap = (
   expenses: RouterOutputs["expense"]["getExpenseByChat"],
-  sortBy: TransactionSortBy = "date"
+  sortBy: TransactionSortBy = "date",
+  sortOrder: TransactionSortOrder = "desc"
 ): {
   monthKey: string;
   monthDisplay: string;
   dates: { key: string; display: string; expenseIds: string[] }[];
 }[] => {
   const dateMap = new Map<string, { display: string; expenseIds: string[] }>();
+  const compareFn = sortOrder === "desc" ? compareDatesDesc : compareDatesAsc;
 
-  // Sort expenses by the sortBy field (most recent first) to ensure correct expenseIds ordering
+  // Sort expenses by the sortBy field (most recent first) and use createdAt as
+  // a tiebreaker for same-day expenses so expenseIds ordering is deterministic.
   const sortedExpenses = expenses.sort((a, b) =>
-    compareDatesDesc(
-      new Date(sortBy === "date" ? a.date : a.createdAt),
-      new Date(sortBy === "date" ? b.date : b.createdAt)
+    compareTransactions(
+      { ...a, type: "expense" },
+      { ...b, type: "expense" },
+      sortBy,
+      compareFn
     )
   );
 
