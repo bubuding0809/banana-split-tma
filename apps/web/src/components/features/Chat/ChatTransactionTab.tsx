@@ -18,6 +18,7 @@ import {
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
 import SortOptionsSelector from "./SortOptionsSelector";
+import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import {
   hapticFeedback,
   initData,
@@ -167,6 +168,10 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     }[]
   >([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [convertFromCurrency, setConvertFromCurrency] = useState<string | null>(
+    null
+  );
+  const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
 
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
@@ -202,10 +207,12 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       trpcUtils.expense.getAllExpensesByChat.invalidate({ chatId });
       trpcUtils.settlement.getAllSettlementsByChat.invalidate({ chatId });
       hapticFeedback.notificationOccurred("success");
+      setConvertFromCurrency(null);
     },
     onError: (error) => {
       hapticFeedback.notificationOccurred("error");
       alert(`❌ Conversion failed: ${error.message}`);
+      setConvertFromCurrency(null);
     },
   });
 
@@ -307,8 +314,24 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     }
   };
 
+  const handleSelectFromCurrency = (fromCurrency: string) => {
+    hapticFeedback.impactOccurred("light");
+    setConvertFromCurrency(fromCurrency);
+    setTargetCurrencyModalOpen(true);
+  };
+
+  const handleTargetCurrencySelect = (targetCurrency: string) => {
+    setTargetCurrencyModalOpen(false);
+    if (convertFromCurrency) {
+      handleConvertCurrency(convertFromCurrency, targetCurrency);
+    }
+    // convertFromCurrency is cleared in mutation onSuccess/onError
+    // or in handleConvertCurrency if user cancels the confirm dialog
+  };
+
   const handleConvertCurrency = (fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) {
+      setConvertFromCurrency(null);
       return;
     }
 
@@ -323,6 +346,8 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         toCurrency,
         userId,
       });
+    } else {
+      setConvertFromCurrency(null);
     }
   };
 
@@ -473,9 +498,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             <div className="flex max-h-[70vh] min-h-40 flex-col gap-y-2 pb-20">
               <div className="px-4">
                 <Blockquote>
-                  {`Expenses and payments made in foreign currencies can be
-                  converted to your base currency (${dChatData?.baseCurrency ?? "SGD"}) to consolidate
-                  transactions`}
+                  {`Select a foreign currency to convert, then choose which currency to convert it to`}
                 </Blockquote>
               </div>
               <Section>
@@ -483,31 +506,57 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                   <Cell
                     disabled={convertCurrencyMutation.isPending}
                     onClick={() =>
-                      handleConvertCurrency(
-                        c.currency.code,
-                        dChatData?.baseCurrency ?? "SGD"
-                      )
+                      handleSelectFromCurrency(c.currency.code)
                     }
                     key={c.currency.code}
                     Component={"label"}
                     before={<Text>{c.currency.flagEmoji}</Text>}
                     after={
-                      convertCurrencyMutation.isPending ? (
+                      convertCurrencyMutation.isPending &&
+                      convertFromCurrency === c.currency.code ? (
                         <LoaderCircle size={20} className="animate-spin" />
                       ) : (
-                        <ArrowLeftRight size={20} />
+                        <ChevronRight size={20} color="gray" />
                       )
                     }
                   >
-                    {convertCurrencyMutation.isPending
+                    {convertCurrencyMutation.isPending &&
+                    convertFromCurrency === c.currency.code
                       ? "Converting..."
-                      : `Convert all ${c.currency.code} to ${dChatData?.baseCurrency}`}
+                      : `Convert all ${c.currency.code}`}
                   </Cell>
                 ))}
               </Section>
             </div>
           </Modal>
         )}
+
+        {/* Target currency selection modal for conversion */}
+        <CurrencySelectionModal
+          open={targetCurrencyModalOpen}
+          onOpenChange={(open) => {
+            setTargetCurrencyModalOpen(open);
+            if (!open && !convertCurrencyMutation.isPending) {
+              setConvertFromCurrency(null);
+            }
+          }}
+          selectedCurrency={dChatData?.baseCurrency}
+          onCurrencySelect={handleTargetCurrencySelect}
+          featuredCurrencies={[
+            dChatData?.baseCurrency ?? "SGD",
+            ...(foreignCurrencies
+              .map((c) => c.currency.code)
+              .filter((code) => code !== convertFromCurrency) ?? []),
+          ]}
+          showRecentlyUsed={false}
+          showOthers={true}
+          footerMessage={
+            convertFromCurrency
+              ? `Select a currency to convert all ${convertFromCurrency} transactions to`
+              : undefined
+          }
+        />
+
         <Divider />
       </div>
 
