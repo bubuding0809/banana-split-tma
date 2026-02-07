@@ -540,7 +540,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
               setConvertFromCurrency(null);
             }
           }}
-          selectedCurrency={dChatData?.baseCurrency}
+          selectedCurrency={undefined}
           onCurrencySelect={handleTargetCurrencySelect}
           featuredCurrencies={[
             dChatData?.baseCurrency ?? "SGD",
