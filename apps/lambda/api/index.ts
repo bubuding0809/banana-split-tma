@@ -6,6 +6,7 @@ import {
   trpcExpress,
   withCreateTRPCContext,
   openApiDocument,
+  createBot,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import { env } from "./env.js";
@@ -14,8 +15,21 @@ import { env } from "./env.js";
 const app = express();
 app.use(cors());
 
+//* Set up Telegram bot
+const bot = createBot(env.TELEGRAM_BOT_TOKEN);
+
 //* Create a router to handle all API requests
 const router = Router();
+
+//* Telegram bot webhook endpoint
+// Parse JSON body only for this route so the bot can process updates from Telegram
+router.post(
+  "/bot/webhook",
+  express.json(),
+  (req, res) => {
+    bot.handleUpdate(req.body, res);
+  }
+);
 
 //* Route all TRPC requests to the TRPC middleware
 router.use(
