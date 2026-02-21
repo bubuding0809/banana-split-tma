@@ -1,4 +1,4 @@
-# Banana Split TMA - Claude Memory Configuration
+# Banana Split TMA - Agent Instructions
 
 ## Project Overview
 
@@ -304,11 +304,13 @@ packages/trpc/src/routers/
 
 Uses Tailscale Funnel for persistent HTTPS tunnels to expose local dev servers to Telegram.
 
-**Persistent URLs** (never change):
+**Each developer configures their own tunnel URLs** in `apps/web/.env.local` (git-ignored). To find your Tailscale FQDN, run `tailscale status` or check the Tailscale admin console.
 
-- Frontend: `https://192.tail37b3e8.ts.net:8443`
-- Backend: `https://192.tail37b3e8.ts.net`
-- API: `https://192.tail37b3e8.ts.net/api/trpc`
+**URL pattern**:
+
+- Frontend: `https://<your-tailscale-hostname>:8443`
+- Backend: `https://<your-tailscale-hostname>`
+- API: `https://<your-tailscale-hostname>/api/trpc`
 
 **Daily workflow**:
 
@@ -328,7 +330,7 @@ pnpm dev:tunnel    # Start tunnels + dev servers
 - `scripts/tunnel-stop.sh` - Stop script
 - `apps/web/.env.local` - Local dev environment (git-ignored)
 
-**First-time setup** (already complete):
+**First-time setup**:
 
 1. Install: `brew install tailscale`
 2. Start daemon: `sudo tailscaled install-system-daemon`
@@ -509,5 +511,3 @@ const virtualizer = useVirtualizer({
 - Financial calculations with Decimal.js
 - Modal patterns with icon buttons
 - Edit/Create form reusability
-
-> Last updated: January 2026 (added Tailscale Funnel tunneling)
