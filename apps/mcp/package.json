@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "@dko/trpc": "workspace:*",
     "@trpc/client": "^11.1.2",
     "superjson": "^2.2.2",
     "zod": "^3.25.76"
