@@ -3,6 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerChatTools } from "./tools/chat.js";
+import { registerExpenseTools } from "./tools/expense.js";
 
 // env.ts validates and exits if vars are missing - import triggers validation
 import "./env.js";
@@ -14,6 +15,7 @@ const server = new McpServer({
 
 // Register all tool groups
 registerChatTools(server);
+registerExpenseTools(server);
 
 // Start stdio transport
 async function main() {
