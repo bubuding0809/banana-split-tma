@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { ChatType } from "@dko/database";
 import { createGroupReminderScheduleHandler } from "../aws/createGroupReminderSchedule.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -104,5 +105,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return createChatHandler(input, ctx.db);
   });

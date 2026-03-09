@@ -4,6 +4,7 @@ import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { deleteExpenseMessagesHandler } from "../telegram/deleteExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   expenseId: z.string(),
@@ -17,7 +18,8 @@ export const outputSchema = z.object({
 export const deleteExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
 ) => {
   try {
     // First, fetch the expense to get Telegram message IDs
@@ -39,6 +41,8 @@ export const deleteExpenseHandler = async (
         message: "Expense not found",
       });
     }
+
+    assertChatScope(session, expense.chatId);
 
     // Attempt to delete Telegram messages (best effort - don't fail if this fails)
     try {
@@ -105,5 +109,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteExpenseHandler(input, ctx.db, ctx.teleBot);
+    return deleteExpenseHandler(input, ctx.db, ctx.teleBot, ctx.session);
   });

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { ChatType } from "@dko/database";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -112,5 +113,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertChatScope(ctx.session, input.chatId);
     return updateChatHandler(input, ctx.db);
   });

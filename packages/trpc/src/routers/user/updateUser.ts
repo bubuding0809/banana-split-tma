@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -107,5 +108,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return updateUserHandler(input, ctx.db);
   });

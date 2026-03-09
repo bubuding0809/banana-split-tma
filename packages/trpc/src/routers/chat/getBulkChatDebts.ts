@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 import type { Decimal } from "decimal.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -242,5 +243,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
+    assertChatScope(ctx.session, input.chatId);
     return getBulkChatDebtsHandler(input, ctx.db);
   });

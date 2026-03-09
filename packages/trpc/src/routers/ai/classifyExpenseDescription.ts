@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 
@@ -147,6 +148,7 @@ export default protectedProcedure
   })
   .input(inputSchema)
   .output(outputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return classifyExpenseDescriptionHandler(input);
   });
