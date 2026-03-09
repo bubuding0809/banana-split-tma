@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { trpc } from "../client.js";
+import { toolHandler } from "./utils.js";
 
 export function registerChatTools(server: McpServer) {
   server.registerTool(
@@ -28,34 +29,23 @@ export function registerChatTools(server: McpServer) {
         openWorldHint: false,
       },
     },
-    async ({ exclude_types }) => {
-      try {
-        const chats = await trpc.chat.getAllChats.query({
-          excludeTypes: exclude_types,
-        });
-        const text =
-          chats.length === 0
-            ? "No chats found."
-            : chats
-                .map(
-                  (c) =>
-                    `- **${c.title}** (ID: ${c.id}, type: ${c.type}, currency: ${c.baseCurrency})`
-                )
-                .join("\n");
-        return {
-          content: [{ type: "text" as const, text }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error listing chats: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    }
+    toolHandler("banana_list_chats", async ({ exclude_types }) => {
+      const chats = await trpc.chat.getAllChats.query({
+        excludeTypes: exclude_types,
+      });
+      const text =
+        chats.length === 0
+          ? "No chats found."
+          : chats
+              .map(
+                (c) =>
+                  `- **${c.title}** (ID: ${c.id}, type: ${c.type}, currency: ${c.baseCurrency})`
+              )
+              .join("\n");
+      return {
+        content: [{ type: "text" as const, text }],
+      };
+    })
   );
 
   server.registerTool(
@@ -80,37 +70,26 @@ export function registerChatTools(server: McpServer) {
         openWorldHint: false,
       },
     },
-    async ({ chat_id }) => {
-      try {
-        const chat = await trpc.chat.getChat.query({ chatId: chat_id });
-        const members = chat.members
-          .map(
-            (m) =>
-              `  - ${m.firstName || ""} ${m.lastName || ""}`.trim() +
-              (m.username ? ` (@${m.username})` : "") +
-              ` [ID: ${m.id}]`
-          )
-          .join("\n");
-        const text =
-          `**${chat.title}** (ID: ${chat.id})\n` +
-          `Type: ${chat.type}\n` +
-          `Base Currency: ${chat.baseCurrency}\n` +
-          `Debt Simplification: ${chat.debtSimplificationEnabled ? "Enabled" : "Disabled"}\n` +
-          `Members (${chat.members.length}):\n${members}`;
-        return {
-          content: [{ type: "text" as const, text }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error getting chat: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    }
+    toolHandler("banana_get_chat", async ({ chat_id }) => {
+      const chat = await trpc.chat.getChat.query({ chatId: chat_id });
+      const members = chat.members
+        .map(
+          (m) =>
+            `  - ${m.firstName || ""} ${m.lastName || ""}`.trim() +
+            (m.username ? ` (@${m.username})` : "") +
+            ` [ID: ${m.id}]`
+        )
+        .join("\n");
+      const text =
+        `**${chat.title}** (ID: ${chat.id})\n` +
+        `Type: ${chat.type}\n` +
+        `Base Currency: ${chat.baseCurrency}\n` +
+        `Debt Simplification: ${chat.debtSimplificationEnabled ? "Enabled" : "Disabled"}\n` +
+        `Members (${chat.members.length}):\n${members}`;
+      return {
+        content: [{ type: "text" as const, text }],
+      };
+    })
   );
 
   server.registerTool(
@@ -136,44 +115,33 @@ export function registerChatTools(server: McpServer) {
         openWorldHint: false,
       },
     },
-    async ({ chat_id, currencies }) => {
-      try {
-        const result = await trpc.chat.getBulkChatDebts.query({
-          chatId: chat_id,
-          currencies,
-        });
-        if (result.debts.length === 0) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "No outstanding debts in this chat.",
-              },
-            ],
-          };
-        }
-        const text = result.debts
-          .map(
-            (d) =>
-              `- User ${d.debtorId} owes User ${d.creditorId}: ${d.amount} ${d.currency}`
-          )
-          .join("\n");
-        return {
-          content: [
-            { type: "text" as const, text: `**Outstanding Debts:**\n${text}` },
-          ],
-        };
-      } catch (error) {
+    toolHandler("banana_get_chat_debts", async ({ chat_id, currencies }) => {
+      const result = await trpc.chat.getBulkChatDebts.query({
+        chatId: chat_id,
+        currencies,
+      });
+      if (result.debts.length === 0) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error getting debts: ${error instanceof Error ? error.message : String(error)}`,
+              text: "No outstanding debts in this chat.",
             },
           ],
         };
       }
-    }
+      const text = result.debts
+        .map(
+          (d) =>
+            `- User ${d.debtorId} owes User ${d.creditorId}: ${d.amount} ${d.currency}`
+        )
+        .join("\n");
+      return {
+        content: [
+          { type: "text" as const, text: `**Outstanding Debts:**\n${text}` },
+        ],
+      };
+    })
   );
 
   server.registerTool(
@@ -198,8 +166,9 @@ export function registerChatTools(server: McpServer) {
         openWorldHint: false,
       },
     },
-    async ({ chat_id, currency }) => {
-      try {
+    toolHandler(
+      "banana_get_simplified_debts",
+      async ({ chat_id, currency }) => {
         const result = await trpc.chat.getSimplifiedDebts.query({
           chatId: chat_id,
           currency,
@@ -224,16 +193,7 @@ export function registerChatTools(server: McpServer) {
         return {
           content: [{ type: "text" as const, text }],
         };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error getting simplified debts: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
       }
-    }
+    )
   );
 }
