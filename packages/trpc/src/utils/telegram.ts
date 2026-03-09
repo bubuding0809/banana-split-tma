@@ -97,6 +97,15 @@ export function mentionMarkdown(
 }
 
 /**
+ * Encodes a string to base64url format (RFC 4648 Section 5).
+ * Replaces '+' with '-', '/' with '_', and strips '=' padding.
+ * This is required for Telegram deep link payloads which only allow [A-Za-z0-9_-].
+ */
+export function toBase64Url(data: string): string {
+  return btoa(data).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
  * Creates a deep-linked URL for a bot with the specified payload.
  *
  * @param botUsername - The username to link to
