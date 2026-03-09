@@ -15,12 +15,7 @@ const outputSchema = z.union([
 export default protectedProcedure
   .output(outputSchema)
   .query(async ({ ctx }) => {
-    // TODO: Task 3 will add chatId to the session type; cast through unknown for now
-    const session = ctx.session as unknown as {
-      authType: string;
-      chatId: bigint | null;
-    };
-    const { authType, chatId } = session;
+    const { authType, chatId } = ctx.session;
 
     if (authType !== "chat-api-key" || chatId === null) {
       return { scoped: false as const };
