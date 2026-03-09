@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { trpc } from "../client.js";
 import { toolHandler } from "./utils.js";
+import { resolveChatId } from "../scope.js";
 
 export function registerSnapshotTools(server: McpServer) {
   server.registerTool(
@@ -10,9 +11,15 @@ export function registerSnapshotTools(server: McpServer) {
       title: "List Snapshots",
       description:
         "List all expense snapshots in a chat. Snapshots group expenses together " +
-        "for a time period or event. Returns snapshot title, creator, and expense count.",
+        "for a time period or event. Returns snapshot title, creator, and expense count. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
-        chat_id: z.number().describe("The numeric chat ID."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
       },
       annotations: {
         readOnlyHint: true,
@@ -22,8 +29,9 @@ export function registerSnapshotTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_snapshots", async ({ chat_id }) => {
+      const resolvedChatId = await resolveChatId(chat_id);
       const snapshots = await trpc.snapshot.getByChat.query({
-        chatId: chat_id,
+        chatId: resolvedChatId,
       });
       if (snapshots.length === 0) {
         return {

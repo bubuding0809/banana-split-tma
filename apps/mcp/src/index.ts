@@ -7,6 +7,7 @@ import { registerCurrencyTools } from "./tools/currency.js";
 import { registerExpenseTools } from "./tools/expense.js";
 import { registerSettlementTools } from "./tools/settlement.js";
 import { registerSnapshotTools } from "./tools/snapshot.js";
+import { getScope } from "./scope.js";
 
 // env.ts validates and exits if vars are missing - import triggers validation
 import "./env.js";
@@ -27,7 +28,18 @@ registerSnapshotTools(server);
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Banana Split MCP server running via stdio");
+
+  // Detect scope after connection (non-blocking — scope is lazy-cached on first tool call)
+  const scope = await getScope();
+  if (scope.scoped) {
+    console.error(
+      `Banana Split MCP server running via stdio (scoped to chat: "${scope.chatTitle}" [${scope.chatId}])`
+    );
+  } else {
+    console.error(
+      "Banana Split MCP server running via stdio (superadmin — unrestricted)"
+    );
+  }
 }
 
 main().catch((error) => {
