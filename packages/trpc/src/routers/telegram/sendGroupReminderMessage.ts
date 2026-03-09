@@ -6,6 +6,7 @@ import {
   escapeMarkdown,
   mentionMarkdown,
   createDeepLinkedUrl,
+  toBase64Url,
 } from "../../utils/telegram.js";
 import { formatCurrencyWithCode } from "../../utils/financial.js";
 import { inlineKeyboard } from "telegraf/markup";
@@ -221,7 +222,7 @@ export const sendGroupReminderMessageHandler = async (
     chat_id: chatIdNumber,
     chat_type: "g",
   };
-  const base64EncodedChatContext = btoa(JSON.stringify(chatContext));
+  const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
   const botInfo = await teleBot.getMe();
   const deepLink = createDeepLinkedUrl(
     botInfo.username,

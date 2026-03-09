@@ -6,6 +6,7 @@ import {
   mentionMarkdown,
   escapeMarkdown,
   createDeepLinkedUrl,
+  toBase64Url,
 } from "../../utils/telegram.js";
 import { inlineKeyboard } from "telegraf/markup";
 
@@ -152,11 +153,11 @@ export const sendExpenseNotificationMessageHandler = async (
     chat_id: input.chatId,
     chat_type: "g",
   };
-  const base64EnchodedChatContext = btoa(JSON.stringify(chatContext));
+  const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
   const botInfo = await teleBot.getMe();
   const deepLink = createDeepLinkedUrl(
     botInfo.username,
-    base64EnchodedChatContext,
+    base64EncodedChatContext,
     "app"
   );
   const keyboard = inlineKeyboard([
