@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { trpc } from "../client.js";
 import { toolHandler } from "./utils.js";
+import { resolveChatId } from "../scope.js";
 
 export function registerExpenseTools(server: McpServer) {
   server.registerTool(
@@ -10,9 +11,15 @@ export function registerExpenseTools(server: McpServer) {
       title: "List Expenses",
       description:
         "List all expenses in a chat, optionally filtered by currency. " +
-        "Returns expense description, amount, currency, payer, date, and split details.",
+        "Returns expense description, amount, currency, payer, date, and split details. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
-        chat_id: z.number().describe("The numeric chat ID."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
         currency: z
           .string()
           .length(3)
@@ -27,8 +34,9 @@ export function registerExpenseTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_expenses", async ({ chat_id, currency }) => {
+      const resolvedChatId = await resolveChatId(chat_id);
       const expenses = await trpc.expense.getExpenseByChat.query({
-        chatId: chat_id,
+        chatId: resolvedChatId,
         currency,
       });
       if (expenses.length === 0) {
@@ -118,7 +126,8 @@ export function registerExpenseTools(server: McpServer) {
       title: "Get Net Share Between Users",
       description:
         "Get the net balance between two users in a specific chat and currency. " +
-        "Positive means mainUser is owed money by targetUser, negative means mainUser owes.",
+        "Positive means mainUser is owed money by targetUser, negative means mainUser owes. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
         main_user_id: z
           .number()
@@ -126,7 +135,10 @@ export function registerExpenseTools(server: McpServer) {
         target_user_id: z
           .number()
           .describe("The other user in the balance calculation."),
-        chat_id: z.number().describe("The chat ID to calculate within."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe("The chat ID. Optional if using a chat-scoped API key."),
         currency: z
           .string()
           .length(3)
@@ -142,10 +154,11 @@ export function registerExpenseTools(server: McpServer) {
     toolHandler(
       "banana_get_net_share",
       async ({ main_user_id, target_user_id, chat_id, currency }) => {
+        const resolvedChatId = await resolveChatId(chat_id);
         const netShare = await trpc.expenseShare.getNetShare.query({
           mainUserId: main_user_id,
           targetUserId: target_user_id,
-          chatId: chat_id,
+          chatId: resolvedChatId,
           currency,
         });
         const direction =
@@ -172,10 +185,14 @@ export function registerExpenseTools(server: McpServer) {
       title: "Get Total Borrowed and Lent",
       description:
         "Get the total amount a user has borrowed and lent in a specific chat. " +
-        "Returns aggregate totals as numbers (not broken down by currency).",
+        "Returns aggregate totals as numbers (not broken down by currency). " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
         user_id: z.number().describe("The user ID to check totals for."),
-        chat_id: z.number().describe("The chat ID."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe("The chat ID. Optional if using a chat-scoped API key."),
       },
       annotations: {
         readOnlyHint: true,
@@ -185,14 +202,15 @@ export function registerExpenseTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_totals", async ({ user_id, chat_id }) => {
+      const resolvedChatId = await resolveChatId(chat_id);
       const [totalBorrowed, totalLent] = await Promise.all([
         trpc.expenseShare.getTotalBorrowed.query({
           userId: user_id,
-          chatId: chat_id,
+          chatId: resolvedChatId,
         }),
         trpc.expenseShare.getTotalLent.query({
           userId: user_id,
-          chatId: chat_id,
+          chatId: resolvedChatId,
         }),
       ]);
       return {
@@ -200,7 +218,7 @@ export function registerExpenseTools(server: McpServer) {
           {
             type: "text" as const,
             text:
-              `**User ${user_id} Totals in Chat ${chat_id}:**\n` +
+              `**User ${user_id} Totals in Chat ${resolvedChatId}:**\n` +
               `Total Borrowed: ${totalBorrowed}\n` +
               `Total Lent: ${totalLent}`,
           },

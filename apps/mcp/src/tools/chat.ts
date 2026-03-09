@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { trpc } from "../client.js";
 import { toolHandler } from "./utils.js";
+import { getScope, resolveChatId } from "../scope.js";
 
 export function registerChatTools(server: McpServer) {
   server.registerTool(
@@ -11,7 +12,8 @@ export function registerChatTools(server: McpServer) {
       description:
         "List all expense-tracking chats/groups in Banana Split. " +
         "Returns chat ID, title, type, base currency, and timestamps. " +
-        "Use this to discover available chats before querying expenses or debts.",
+        "Use this to discover available chats before querying expenses or debts. " +
+        "If using a chat-scoped API key, returns only the scoped chat.",
       inputSchema: {
         exclude_types: z
           .array(
@@ -30,6 +32,22 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_chats", async ({ exclude_types }) => {
+      const scope = await getScope();
+
+      if (scope.scoped && scope.chatId !== null) {
+        // For scoped keys, return the scoped chat info directly
+        const chat = await trpc.chat.getChat.query({ chatId: scope.chatId });
+        const text = `- **${chat.title}** (ID: ${chat.id}, type: ${chat.type}, currency: ${chat.baseCurrency})`;
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `This API key is scoped to a single chat:\n${text}`,
+            },
+          ],
+        };
+      }
+
       const chats = await trpc.chat.getAllChats.query({
         excludeTypes: exclude_types,
       });
@@ -55,12 +73,14 @@ export function registerChatTools(server: McpServer) {
       description:
         "Get detailed information about a specific chat/group, including its members. " +
         "Returns chat title, type, base currency, member list with names/usernames, " +
-        "and whether debt simplification is enabled.",
+        "and whether debt simplification is enabled. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
         chat_id: z
           .number()
+          .optional()
           .describe(
-            "The numeric chat ID. Use banana_list_chats to find chat IDs."
+            "The numeric chat ID. Optional if using a chat-scoped API key."
           ),
       },
       annotations: {
@@ -71,7 +91,8 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_chat", async ({ chat_id }) => {
-      const chat = await trpc.chat.getChat.query({ chatId: chat_id });
+      const resolvedChatId = await resolveChatId(chat_id);
+      const chat = await trpc.chat.getChat.query({ chatId: resolvedChatId });
       const members = chat.members
         .map(
           (m) =>
@@ -98,9 +119,15 @@ export function registerChatTools(server: McpServer) {
       title: "Get Chat Debts",
       description:
         "Get all outstanding debts in a chat. Shows who owes whom and how much, " +
-        "optionally filtered by currencies. Returns debtor ID, creditor ID, amount, and currency.",
+        "optionally filtered by currencies. Returns debtor ID, creditor ID, amount, and currency. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
-        chat_id: z.number().describe("The numeric chat ID."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
         currencies: z
           .array(z.string().length(3))
           .optional()
@@ -116,8 +143,9 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_chat_debts", async ({ chat_id, currencies }) => {
+      const resolvedChatId = await resolveChatId(chat_id);
       const result = await trpc.chat.getBulkChatDebts.query({
-        chatId: chat_id,
+        chatId: resolvedChatId,
         currencies,
       });
       if (result.debts.length === 0) {
@@ -151,9 +179,15 @@ export function registerChatTools(server: McpServer) {
       description:
         "Get optimized/simplified debt graph for a chat in a specific currency. " +
         "Reduces the number of transactions needed to settle all debts. " +
-        "Returns simplified debts, transaction reduction stats, and member info.",
+        "Returns simplified debts, transaction reduction stats, and member info. " +
+        "chat_id is optional if using a chat-scoped API key.",
       inputSchema: {
-        chat_id: z.number().describe("The numeric chat ID."),
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
         currency: z
           .string()
           .length(3)
@@ -169,8 +203,9 @@ export function registerChatTools(server: McpServer) {
     toolHandler(
       "banana_get_simplified_debts",
       async ({ chat_id, currency }) => {
+        const resolvedChatId = await resolveChatId(chat_id);
         const result = await trpc.chat.getSimplifiedDebts.query({
-          chatId: chat_id,
+          chatId: resolvedChatId,
           currency,
         });
         const memberMap = new Map(
