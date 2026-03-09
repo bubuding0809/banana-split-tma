@@ -8,6 +8,7 @@ import {
   generateGroupReminderScheduleName,
 } from "../aws/utils/groupReminderUtils.js";
 import { createRecurringScheduleHandler } from "../aws/createRecurringSchedule.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   oldChatId: z.number().transform((val) => BigInt(val)),
@@ -182,5 +183,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return migrateChatHandler(input, ctx.db);
   });

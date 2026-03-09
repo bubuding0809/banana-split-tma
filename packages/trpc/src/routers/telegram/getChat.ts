@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 
 const inputSchema = z.object({ chatId: z.number() });
@@ -30,5 +31,6 @@ export const getChatHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return getChatHandler(input, ctx.teleBot);
   });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 import {
   generateGroupReminderScheduleName,
   getGroupReminderSchedule,
@@ -131,6 +132,7 @@ export default protectedProcedure
   })
   .input(inputSchema)
   .output(outputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
+    assertChatScope(ctx.session, input.chatId);
     return deleteGroupReminderScheduleHandler(input);
   });

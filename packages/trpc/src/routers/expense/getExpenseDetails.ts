@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { Prisma } from "@dko/database";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   expenseId: z.string(),
@@ -8,7 +9,8 @@ const inputSchema = z.object({
 
 const getExpenseDetailsHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
 ) => {
   const expense = await db.expense.findUnique({
     where: {
@@ -22,6 +24,10 @@ const getExpenseDetailsHandler = async (
       chat: true,
     },
   });
+
+  if (expense) {
+    assertChatScope(session, expense.chatId);
+  }
 
   return {
     ...expense,
@@ -43,5 +49,5 @@ const getExpenseDetailsHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
-    return getExpenseDetailsHandler(input, ctx.db);
+    return getExpenseDetailsHandler(input, ctx.db, ctx.session);
   });
