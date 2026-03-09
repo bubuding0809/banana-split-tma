@@ -38,8 +38,8 @@ export function registerSettlementTools(server: McpServer) {
       }
       const text = settlements
         .map((s) => {
-          const date = s.createdAt
-            ? new Date(s.createdAt).toLocaleDateString()
+          const date = s.date
+            ? new Date(s.date).toLocaleDateString()
             : "Unknown date";
           return `- User ${s.senderId} paid User ${s.receiverId}: ${s.amount} ${s.currency} (${date}) [ID: ${s.id}]`;
         })
