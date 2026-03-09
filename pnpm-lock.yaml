@@ -118,6 +118,9 @@ importers:
 
   apps/mcp:
     dependencies:
+      "@dko/trpc":
+        specifier: workspace:*
+        version: link:../../packages/trpc
       "@modelcontextprotocol/sdk":
         specifier: ^1.12.1
         version: 1.27.1(zod@3.25.76)
