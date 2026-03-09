@@ -10,8 +10,7 @@ export function registerExpenseTools(server: McpServer) {
       title: "List Expenses",
       description:
         "List all expenses in a chat, optionally filtered by currency. " +
-        "Returns expense description, amount, currency, payer, date, and split details. " +
-        "Ordered by date descending.",
+        "Returns expense description, amount, currency, payer, date, and split details.",
       inputSchema: {
         chat_id: z.number().describe("The numeric chat ID."),
         currency: z
@@ -38,7 +37,7 @@ export function registerExpenseTools(server: McpServer) {
         };
       }
       const text = expenses
-        .map((e: any) => {
+        .map((e) => {
           const date = e.date
             ? new Date(e.date).toLocaleDateString()
             : "Unknown date";
@@ -82,6 +81,14 @@ export function registerExpenseTools(server: McpServer) {
       const expense = await trpc.expense.getExpenseDetails.query({
         expenseId: expense_id,
       });
+      if (!expense || !(expense as any).id) {
+        return {
+          content: [{ type: "text" as const, text: "Expense not found." }],
+        };
+      }
+      // Using `as any` because the backend inconsistently types BigInt conversions
+      // (some fields are `number`, others remain `BigInt`). Since MCP output is
+      // text-formatted, the toString coercion is acceptable here.
       const e = expense as any;
       const shares = (e.shares || [])
         .map(
@@ -164,7 +171,8 @@ export function registerExpenseTools(server: McpServer) {
     {
       title: "Get Total Borrowed and Lent",
       description:
-        "Get the total amount a user has borrowed and lent in a specific chat across all currencies.",
+        "Get the total amount a user has borrowed and lent in a specific chat. " +
+        "Returns aggregate totals as numbers (not broken down by currency).",
       inputSchema: {
         user_id: z.number().describe("The user ID to check totals for."),
         chat_id: z.number().describe("The chat ID."),
