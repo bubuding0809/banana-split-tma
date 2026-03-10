@@ -20,7 +20,10 @@ function readConfigFile(): Config {
 }
 
 export function writeConfigFile(config: Config): void {
-  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }
 
 /** Resolve API key: --api-key flag > BANANA_SPLIT_API_KEY env > config file */
