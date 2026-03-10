@@ -1,4 +1,4 @@
-import { trpc } from "./client.js";
+import type { TrpcClient } from "./client.js";
 
 interface Scope {
   scoped: boolean;
@@ -6,41 +6,34 @@ interface Scope {
   chatTitle: string | null;
 }
 
-let cachedScope: Scope | null = null;
-
 /**
- * Fetches and caches the API key scope.
+ * Fetches the API key scope from the backend.
  * Chat-scoped keys return { scoped: true, chatId, chatTitle }.
  * Superadmin keys return { scoped: false, chatId: null, chatTitle: null }.
  */
-export async function getScope(): Promise<Scope> {
-  if (cachedScope) return cachedScope;
-
+export async function getScope(trpc: TrpcClient): Promise<Scope> {
   try {
     const result = await trpc.apiKey.getScope.query();
 
     if (result.scoped) {
-      cachedScope = {
+      return {
         scoped: true,
         chatId: result.chatId,
         chatTitle: result.chatTitle,
       };
     } else {
-      cachedScope = {
+      return {
         scoped: false,
         chatId: null,
         chatTitle: null,
       };
     }
   } catch {
-    // If getScope fails (e.g., old API without the endpoint), assume unscoped
     console.error(
       "Warning: Could not determine API key scope. Assuming unscoped (superadmin)."
     );
-    cachedScope = { scoped: false, chatId: null, chatTitle: null };
+    return { scoped: false, chatId: null, chatTitle: null };
   }
-
-  return cachedScope;
 }
 
 /**
@@ -49,9 +42,10 @@ export async function getScope(): Promise<Scope> {
  * If unscoped, returns the user-provided chatId or throws.
  */
 export async function resolveChatId(
+  trpc: TrpcClient,
   userProvidedChatId?: number
 ): Promise<number> {
-  const scope = await getScope();
+  const scope = await getScope(trpc);
 
   if (scope.scoped && scope.chatId !== null) {
     return scope.chatId;
