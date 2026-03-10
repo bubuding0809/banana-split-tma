@@ -2,9 +2,15 @@ import { createTRPCRouter } from "../../trpc.js";
 import generate from "./generate.js";
 import revoke from "./revoke.js";
 import getScope from "./getScope.js";
+import generateToken from "./generateToken.js";
+import listTokens from "./listTokens.js";
+import revokeToken from "./revokeToken.js";
 
 export const apiKeyRouter = createTRPCRouter({
   generate,
   revoke,
   getScope,
+  generateToken,
+  listTokens,
+  revokeToken,
 });

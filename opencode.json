@@ -4,12 +4,29 @@
     "vercel": {
       "type": "remote",
       "url": "https://mcp.vercel.com",
-      "oauth": {}
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:VERCEL_TOKEN}"
+      }
     },
     "supabase": {
       "type": "remote",
       "url": "https://mcp.supabase.com/mcp?project_ref=orodqkvkgttuahfmlajx&read_only=true",
-      "oauth": {}
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:SUPABASE_TOKEN}"
+      }
+    },
+    "bananasplit": {
+      "type": "local",
+      "command": [
+        "node",
+        "/home/team_aidmi_ai/code/personal/banana-split-tma/apps/mcp/dist/index.js"
+      ],
+      "environment": {
+        "BANANA_SPLIT_API_URL": "http://localhost:8081/api/trpc",
+        "BANANA_SPLIT_API_KEY": "bsk_3FtaTYAaEBLcUYrspR9l16E76Nh-Ju2JZYhiaWUbrMRzgxRxY_t6V8ldr9hvnMsR"
+      }
     }
   }
 }

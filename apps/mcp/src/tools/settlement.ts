@@ -113,6 +113,17 @@ export function registerSettlementTools(server: McpServer) {
         description,
       }) => {
         const resolvedChatId = await resolveChatId(chat_id);
+
+        // Fetch chat members to get names for the notification
+        const chat = await trpc.chat.getChat.query({
+          chatId: resolvedChatId,
+        });
+        const members = chat.members ?? [];
+        const creditor = members.find(
+          (m: { id: number }) => m.id === receiver_id
+        );
+        const debtor = members.find((m: { id: number }) => m.id === sender_id);
+
         const settlement = await trpc.settlement.createSettlement.mutate({
           chatId: resolvedChatId,
           senderId: sender_id,
@@ -121,6 +132,10 @@ export function registerSettlementTools(server: McpServer) {
           currency,
           description,
           sendNotification: true,
+          creditorName: creditor?.firstName ?? `User ${receiver_id}`,
+          creditorUsername: creditor?.username ?? undefined,
+          debtorName: debtor?.firstName ?? `User ${sender_id}`,
+          threadId: chat.threadId ?? undefined,
         });
 
         return {
