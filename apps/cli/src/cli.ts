@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { chatCommands } from "./commands/chat.js";
@@ -104,6 +105,12 @@ function handleLogin(args: string[]): never {
 function handleInstallSkill(): never {
   const skillDir = new URL("../skills/banana-cli", import.meta.url);
   const skillPath = fileURLToPath(skillDir);
+  if (!existsSync(skillPath)) {
+    return error(
+      "unexpected_error",
+      `Skill directory not found at ${skillPath}. Package may be corrupted — try reinstalling.`
+    );
+  }
   return success({
     skill_path: skillPath,
     skill_name: "banana-cli",

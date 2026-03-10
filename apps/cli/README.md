@@ -89,6 +89,7 @@ banana update-chat-settings --debt-simplification true --base-currency SGD
 | ---------------------- | -------------------------------------- |
 | `help`                 | Show available commands and options    |
 | `login`                | Save API key to config file            |
+| `install-skill`        | Print path to bundled Agent Skill      |
 | `list-chats`           | List all expense-tracking chats/groups |
 | `get-chat`             | Get chat details and members           |
 | `get-debts`            | Get outstanding debts                  |
@@ -120,6 +121,32 @@ banana get-chat
 ```
 
 Run `banana help` to get a machine-readable JSON schema of all commands and their options.
+
+## Agent Skill
+
+This package includes an [Agent Skills](https://agentskills.io) spec-compliant skill file that teaches AI agents how to use the CLI.
+
+### Discover the skill path
+
+```bash
+banana install-skill
+# Returns: {"skill_path": "/path/to/skills/banana-cli", ...}
+```
+
+### Install for your agent
+
+Copy the skill directory to your agent's skills location:
+
+```bash
+# OpenCode
+cp -r "$(banana install-skill | jq -r .skill_path)" .agents/skills/banana-cli
+
+# Claude Code
+cp -r "$(banana install-skill | jq -r .skill_path)" ~/.claude/skills/banana-cli
+
+# Cursor
+cp -r "$(banana install-skill | jq -r .skill_path)" .cursor/skills/banana-cli
+```
 
 ## License
 
