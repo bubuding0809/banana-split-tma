@@ -231,4 +231,77 @@ export function registerChatTools(server: McpServer) {
       }
     )
   );
+
+  server.registerTool(
+    "banana_update_chat_settings",
+    {
+      title: "Update Chat Settings",
+      description:
+        "Update configuration for a chat/group, such as enabling/disabling debt simplification or changing the base currency. " +
+        "chat_id is optional if using a chat-scoped API key.",
+      inputSchema: {
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
+        debt_simplification_enabled: z
+          .boolean()
+          .optional()
+          .describe(
+            "Turn on or off the debt simplification algorithm for the group"
+          ),
+        base_currency: z
+          .string()
+          .length(3)
+          .optional()
+          .describe(
+            "Update the default 3-letter currency code for the group (e.g. 'USD')"
+          ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    toolHandler(
+      "banana_update_chat_settings",
+      async ({ chat_id, debt_simplification_enabled, base_currency }) => {
+        const resolvedChatId = await resolveChatId(chat_id);
+
+        // Build update payload dynamically
+        const updateData: any = { chatId: resolvedChatId };
+        if (debt_simplification_enabled !== undefined) {
+          updateData.debtSimplificationEnabled = debt_simplification_enabled;
+        }
+        if (base_currency !== undefined) {
+          updateData.baseCurrency = base_currency;
+        }
+
+        const chat = await trpc.chat.updateChat.mutate(updateData);
+
+        const settings = [];
+        if (debt_simplification_enabled !== undefined) {
+          settings.push(
+            `Debt Simplification: ${chat.debtSimplificationEnabled ? "Enabled" : "Disabled"}`
+          );
+        }
+        if (base_currency !== undefined) {
+          settings.push(`Base Currency: ${chat.baseCurrency}`);
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `✅ Successfully updated chat settings for '${chat.title}'!\n- ${settings.join("\n- ")}`,
+            },
+          ],
+        };
+      }
+    )
+  );
 }
