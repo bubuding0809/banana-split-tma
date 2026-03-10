@@ -31,6 +31,7 @@ model Chat {
   createdAt                  DateTime          @default(now())
   updatedAt                  DateTime          @updatedAt
   ExpenseSnapshot            ExpenseSnapshot[]
+  apiKeys                    ChatApiKey[]
 }
 
 model User {
@@ -50,6 +51,7 @@ model User {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   ExpenseSnapshot      ExpenseSnapshot[]
+  createdApiKeys       ChatApiKey[]
 }
 
 enum SplitMode {
@@ -144,4 +146,18 @@ model ExpenseSnapshot {
 
   @@index([chatId]) // Optimizes queries filtering snapshots by chat
   @@index([creatorId]) // Improves performance when looking up snapshots created by a user
+}
+
+model ChatApiKey {
+  id          String    @id @default(uuid())
+  keyHash     String    @unique
+  keyPrefix   String
+  chatId      BigInt
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdById BigInt
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([chatId])
 }

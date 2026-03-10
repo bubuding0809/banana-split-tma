@@ -9,6 +9,7 @@ import {
   User as TelegramUser,
 } from "@telegram-apps/init-data-node";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import crypto from "node:crypto";
 
 import "telegraf/types"; // Required to ensure types are portable
 
@@ -78,16 +79,62 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const authorization = headers["authorization"];
 
   let user: TelegramUser | null = null;
-  let authType: "api-key" | "telegram" = "api-key";
+  let authType: "superadmin" | "chat-api-key" | "telegram" = "superadmin";
+  let chatId: bigint | null = null;
 
   // Check for API key authentication
   if (apiKey) {
     const validApiKey = process.env.API_KEY;
-    if (!validApiKey || apiKey !== validApiKey) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Invalid API key",
+
+    // Path 1: Superadmin key (existing env-based API key)
+    if (
+      validApiKey &&
+      validApiKey.length === (apiKey as string).length &&
+      crypto.timingSafeEqual(
+        Buffer.from(validApiKey),
+        Buffer.from(apiKey as string)
+      )
+    ) {
+      authType = "superadmin";
+
+      // Also parse Telegram user identity when Authorization header is present
+      // alongside x-api-key (common in dev where both headers are sent).
+      // This populates `user` so endpoints can identify the caller.
+      if (authorization) {
+        const parts = authorization.split(" ");
+        if (parts.length === 2 && parts[0] === "tma" && parts[1]) {
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          if (botToken) {
+            try {
+              validateInitData(parts[1], botToken);
+              user = parseInitData(parts[1]).user ?? null;
+            } catch {
+              // Ignore - API key is the primary auth method
+            }
+          }
+        }
+      }
+    }
+    // Path 2: Chat-scoped key (hashed lookup in DB)
+    else {
+      const keyHash = crypto
+        .createHash("sha256")
+        .update(apiKey as string)
+        .digest("hex");
+
+      const chatApiKey = await ctx.db.chatApiKey.findUnique({
+        where: { keyHash },
       });
+
+      if (!chatApiKey || chatApiKey.revokedAt !== null) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid API key",
+        });
+      }
+
+      authType = "chat-api-key";
+      chatId = chatApiKey.chatId;
     }
   }
   // Check for Telegram authentication
@@ -117,7 +164,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     }
 
     try {
-      // Validate the Telegram initData
       if (!botToken) {
         throw new Error("Bot token is required but not available");
       }
@@ -152,6 +198,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       session: {
         user,
         authType,
+        chatId,
       },
     },
   });

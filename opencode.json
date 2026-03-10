@@ -1,0 +1,29 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "vercel": {
+      "type": "remote",
+      "url": "https://mcp.vercel.com",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:VERCEL_TOKEN}"
+      }
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=orodqkvkgttuahfmlajx&read_only=true",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:SUPABASE_TOKEN}"
+      }
+    },
+    "bananasplit": {
+      "type": "remote",
+      "url": "http://localhost:8082/mcp",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:BANANA_SPLIT_API_KEY}"
+      }
+    }
+  }
+}

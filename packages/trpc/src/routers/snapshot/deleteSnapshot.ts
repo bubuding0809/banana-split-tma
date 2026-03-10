@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
@@ -7,7 +8,11 @@ const inputSchema = z.object({
 
 export const deleteSnapshotHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   // First check if the snapshot exists and belongs to the user
   const snapshot = await db.expenseSnapshot.findUnique({
@@ -17,12 +22,15 @@ export const deleteSnapshotHandler = async (
     select: {
       id: true,
       creatorId: true,
+      chatId: true,
     },
   });
 
   if (!snapshot) {
     throw new Error("Snapshot not found");
   }
+
+  assertChatScope(session, snapshot.chatId);
 
   // Delete the snapshot (expenses will be disconnected automatically)
   await db.expenseSnapshot.delete({
@@ -37,5 +45,5 @@ export const deleteSnapshotHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteSnapshotHandler(input, ctx.db);
+    return deleteSnapshotHandler(input, ctx.db, ctx.session);
   });

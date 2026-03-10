@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   excludeTypes: z
@@ -62,5 +63,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return getAllChatsHandler(input, ctx.db);
   });

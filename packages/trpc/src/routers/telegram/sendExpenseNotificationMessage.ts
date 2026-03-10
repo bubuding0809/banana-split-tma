@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import {
   mentionMarkdown,
@@ -185,5 +186,6 @@ export const sendExpenseNotificationMessageHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return sendExpenseNotificationMessageHandler(input, ctx.teleBot);
   });

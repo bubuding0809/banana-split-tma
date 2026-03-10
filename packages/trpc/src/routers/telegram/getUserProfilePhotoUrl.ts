@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc.js";
+import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 
 const inputSchema = z.object({ userId: z.number() });
@@ -20,5 +21,6 @@ export const getUserProfilePhotoUrlHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
+    assertNotChatScoped(ctx.session);
     return getUserProfilePhotoUrlHandler(input, ctx.teleBot);
   });
