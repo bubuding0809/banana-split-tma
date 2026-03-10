@@ -25,7 +25,7 @@
       ],
       "environment": {
         "BANANA_SPLIT_API_URL": "http://localhost:8081/api/trpc",
-        "BANANA_SPLIT_API_KEY": "bsk_3FtaTYAaEBLcUYrspR9l16E76Nh-Ju2JZYhiaWUbrMRzgxRxY_t6V8ldr9hvnMsR"
+        "BANANA_SPLIT_API_KEY": "{env:BANANA_SPLIT_API_KEY}"
       }
     }
   }
