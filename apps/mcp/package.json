@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "start": "NODE_ENV=production node dist/index.js",
+    "dev": "NODE_ENV=development tsx src/index.ts",
     "test:e2e:basic": "tsx tests/e2e-basic.ts",
     "test:e2e:comprehensive": "tsx tests/e2e-comprehensive.ts",
     "build": "tsc",
