@@ -273,7 +273,11 @@ export function registerChatTools(server: McpServer, trpc: TrpcClient) {
         const resolvedChatId = await resolveChatId(trpc, chat_id);
 
         // Build update payload dynamically
-        const updateData: any = { chatId: resolvedChatId };
+        const updateData: {
+          chatId: number;
+          debtSimplificationEnabled?: boolean;
+          baseCurrency?: string;
+        } = { chatId: resolvedChatId };
         if (debt_simplification_enabled !== undefined) {
           updateData.debtSimplificationEnabled = debt_simplification_enabled;
         }
