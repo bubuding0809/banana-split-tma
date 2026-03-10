@@ -1,6 +1,6 @@
 {
   "name": "@banananasplitz/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Agent-first CLI for Banana Split expense tracking API",
   "type": "module",
   "main": "dist/cli.js",
@@ -10,6 +10,21 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bubuding0809/banana-split-tma",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/bubuding0809/banana-split-tma/tree/develop/apps/cli",
+  "keywords": [
+    "banana-split",
+    "expense-tracker",
+    "split-expenses",
+    "cli",
+    "telegram",
+    "agent"
+  ],
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
