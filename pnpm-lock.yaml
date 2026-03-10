@@ -59,6 +59,31 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
 
+  apps/cli:
+    dependencies:
+      "@dko/trpc":
+        specifier: workspace:*
+        version: link:../../packages/trpc
+      "@trpc/client":
+        specifier: 11.0.0
+        version: 11.0.0(@trpc/server@11.0.0(typescript@5.8.2))(typescript@5.8.2)
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
+    devDependencies:
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      "@types/node":
+        specifier: ^20.11.17
+        version: 20.17.25
+      tsx:
+        specifier: ^4.7.1
+        version: 4.19.3
+      typescript:
+        specifier: 5.8.2
+        version: 5.8.2
+
   apps/lambda:
     dependencies:
       '@dko/trpc':
