@@ -307,7 +307,7 @@ export function registerExpenseTools(server: McpServer, trpc: TrpcClient) {
           description,
           amount,
           currency,
-          splitMode: split_mode as any,
+          splitMode: split_mode as "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES",
           participantIds: participant_ids,
           customSplits: custom_splits,
           sendNotification: true,

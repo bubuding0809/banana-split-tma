@@ -61,21 +61,22 @@ app.all("/mcp", async (req, res) => {
     return;
   }
 
-  try {
-    const server = createMcpServerForRequest(apiKey);
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // stateless
-    });
+  const server = createMcpServerForRequest(apiKey);
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // stateless
+  });
 
+  try {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
-    await transport.close();
-    await server.close();
   } catch (error) {
     console.error("MCP request error:", error);
     if (!res.headersSent) {
       res.status(500).json({ error: "Internal server error" });
     }
+  } finally {
+    await transport.close();
+    await server.close();
   }
 });
 
