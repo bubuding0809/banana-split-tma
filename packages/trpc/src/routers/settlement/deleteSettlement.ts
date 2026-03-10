@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   settlementId: z.string(),
@@ -14,9 +15,28 @@ export const outputSchema = z.object({
 
 export const deleteSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   try {
+    // Lookup settlement to enforce scope
+    const settlement = await db.settlement.findUnique({
+      where: { id: input.settlementId },
+      select: { chatId: true },
+    });
+
+    if (!settlement) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Settlement not found",
+      });
+    }
+
+    assertChatScope(session, settlement.chatId);
+
     await db.settlement.delete({
       where: {
         id: input.settlementId,
@@ -63,5 +83,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteSettlementHandler(input, ctx.db);
+    return deleteSettlementHandler(input, ctx.db, ctx.session);
   });

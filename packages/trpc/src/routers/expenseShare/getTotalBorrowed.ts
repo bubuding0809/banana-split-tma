@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
@@ -34,5 +35,6 @@ const getTotalBorrowedHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
+    assertChatScope(ctx.session, input.chatId);
     return getTotalBorrowedHandler(input, ctx.db);
   });

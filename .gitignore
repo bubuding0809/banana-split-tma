@@ -33,6 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# direnv
+.envrc
+
 # Misc
 .DS_Store
 *.pem
+.worktrees/

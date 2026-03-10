@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
+import { assertChatScope } from "../../middleware/chatScope.js";
 import {
   toNumber,
   toDecimal,
@@ -204,5 +205,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
+    assertChatScope(ctx.session, input.chatId);
     return settleAllDebtsHandler(input, ctx.db, ctx.teleBot);
   });
