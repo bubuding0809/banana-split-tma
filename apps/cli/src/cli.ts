@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { parseArgs } from "node:util";
 import { chatCommands } from "./commands/chat.js";
 import { expenseCommands } from "./commands/expense.js";
