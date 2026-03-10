@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { trpc } from "../client.js";
+import type { TrpcClient } from "../client.js";
 import { toolHandler } from "./utils.js";
 
-export function registerCurrencyTools(server: McpServer) {
+export function registerCurrencyTools(server: McpServer, trpc: TrpcClient) {
   server.registerTool(
     "banana_get_exchange_rate",
     {

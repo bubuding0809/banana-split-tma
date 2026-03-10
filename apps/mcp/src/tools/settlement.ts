@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { trpc } from "../client.js";
+import type { TrpcClient } from "../client.js";
 import { toolHandler } from "./utils.js";
 import { resolveChatId } from "../scope.js";
 
-export function registerSettlementTools(server: McpServer) {
+export function registerSettlementTools(server: McpServer, trpc: TrpcClient) {
   server.registerTool(
     "banana_list_settlements",
     {
@@ -34,7 +34,7 @@ export function registerSettlementTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_settlements", async ({ chat_id, currency }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const settlements = await trpc.settlement.getSettlementByChat.query({
         chatId: resolvedChatId,
         currency,
@@ -112,7 +112,7 @@ export function registerSettlementTools(server: McpServer) {
         currency,
         description,
       }) => {
-        const resolvedChatId = await resolveChatId(chat_id);
+        const resolvedChatId = await resolveChatId(trpc, chat_id);
 
         // Fetch chat members to get names for the notification
         const chat = await trpc.chat.getChat.query({

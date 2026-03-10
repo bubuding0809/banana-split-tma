@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { trpc } from "../client.js";
+import type { TrpcClient } from "../client.js";
 import { toolHandler } from "./utils.js";
 import { resolveChatId } from "../scope.js";
 
-export function registerSnapshotTools(server: McpServer) {
+export function registerSnapshotTools(server: McpServer, trpc: TrpcClient) {
   server.registerTool(
     "banana_list_snapshots",
     {
@@ -29,7 +29,7 @@ export function registerSnapshotTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_snapshots", async ({ chat_id }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const snapshots = await trpc.snapshot.getByChat.query({
         chatId: resolvedChatId,
       });
