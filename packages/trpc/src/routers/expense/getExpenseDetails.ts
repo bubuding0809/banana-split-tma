@@ -10,7 +10,10 @@ const inputSchema = z.object({
 const getExpenseDetailsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   const expense = await db.expense.findUnique({
     where: {

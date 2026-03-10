@@ -11,7 +11,7 @@
     "prepare": "husky",
     "tunnel": "bash scripts/tunnel.sh",
     "tunnel:stop": "bash scripts/tunnel-stop.sh",
-    "dev:tunnel": "pnpm tunnel && turbo dev"
+    "dev:tunnel": "pnpm tunnel && turbo dev --filter=!banana-split-mcp-server"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

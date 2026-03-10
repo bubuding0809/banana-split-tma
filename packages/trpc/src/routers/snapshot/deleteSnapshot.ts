@@ -9,7 +9,10 @@ const inputSchema = z.object({
 export const deleteSnapshotHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   // First check if the snapshot exists and belongs to the user
   const snapshot = await db.expenseSnapshot.findUnique({

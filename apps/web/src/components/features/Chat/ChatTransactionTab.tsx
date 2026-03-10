@@ -505,9 +505,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
                 {foreignCurrencies.map((c) => (
                   <Cell
                     disabled={convertCurrencyMutation.isPending}
-                    onClick={() =>
-                      handleSelectFromCurrency(c.currency.code)
-                    }
+                    onClick={() => handleSelectFromCurrency(c.currency.code)}
                     key={c.currency.code}
                     Component={"label"}
                     before={<Text>{c.currency.flagEmoji}</Text>}

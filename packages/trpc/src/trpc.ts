@@ -96,6 +96,24 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       )
     ) {
       authType = "superadmin";
+
+      // Also parse Telegram user identity when Authorization header is present
+      // alongside x-api-key (common in dev where both headers are sent).
+      // This populates `user` so endpoints can identify the caller.
+      if (authorization) {
+        const parts = authorization.split(" ");
+        if (parts.length === 2 && parts[0] === "tma" && parts[1]) {
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          if (botToken) {
+            try {
+              validateInitData(parts[1], botToken);
+              user = parseInitData(parts[1]).user ?? null;
+            } catch {
+              // Ignore - API key is the primary auth method
+            }
+          }
+        }
+      }
     }
     // Path 2: Chat-scoped key (hashed lookup in DB)
     else {

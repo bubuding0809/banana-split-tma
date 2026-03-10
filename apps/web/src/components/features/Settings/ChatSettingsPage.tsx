@@ -20,6 +20,7 @@ import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import RecurringRemindersSection from "./RecurringRemindersSection";
+import AccessTokensSection from "./AccessTokensSection";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -267,6 +268,8 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       </Section>
 
       <RecurringRemindersSection chatId={chatId} />
+
+      <AccessTokensSection chatId={chatId} />
 
       <CurrencySelectionModal
         open={currencyModalOpen}

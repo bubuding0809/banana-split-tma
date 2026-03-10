@@ -19,7 +19,10 @@ export const deleteExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   teleBot: Telegram,
-  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   try {
     // First, fetch the expense to get Telegram message IDs

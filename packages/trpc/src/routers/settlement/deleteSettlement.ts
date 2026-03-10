@@ -16,7 +16,10 @@ export const outputSchema = z.object({
 export const deleteSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  session: { authType: "superadmin" | "chat-api-key" | "telegram"; chatId: bigint | null }
+  session: {
+    authType: "superadmin" | "chat-api-key" | "telegram";
+    chatId: bigint | null;
+  }
 ) => {
   try {
     // Lookup settlement to enforce scope
