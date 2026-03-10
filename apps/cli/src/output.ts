@@ -16,7 +16,8 @@ export function error(
     | "invalid_option"
     | "auth_error"
     | "api_error"
-    | "unknown_command",
+    | "unknown_command"
+    | "unexpected_error",
   message: string,
   command?: string
 ): never {

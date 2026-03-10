@@ -134,18 +134,60 @@ export const expenseCommands: Command[] = [
       }
 
       const payerId = Number(opts["payer-id"]);
+      if (Number.isNaN(payerId)) {
+        return error(
+          "invalid_option",
+          "--payer-id must be a valid number",
+          "create-expense"
+        );
+      }
+
+      const amount = Number(opts.amount);
+      if (Number.isNaN(amount) || amount <= 0) {
+        return error(
+          "invalid_option",
+          "--amount must be a positive number",
+          "create-expense"
+        );
+      }
+
       const creatorId = opts["creator-id"]
         ? Number(opts["creator-id"])
         : payerId;
+      if (Number.isNaN(creatorId)) {
+        return error(
+          "invalid_option",
+          "--creator-id must be a valid number",
+          "create-expense"
+        );
+      }
+
       const participantIds = String(opts["participant-ids"])
         .split(",")
         .map(Number);
-      const customSplits = opts["custom-splits"]
-        ? (JSON.parse(String(opts["custom-splits"])) as {
+      if (participantIds.some(Number.isNaN)) {
+        return error(
+          "invalid_option",
+          "--participant-ids must be comma-separated numbers",
+          "create-expense"
+        );
+      }
+
+      let customSplits: { userId: number; amount: number }[] | undefined;
+      if (opts["custom-splits"]) {
+        try {
+          customSplits = JSON.parse(String(opts["custom-splits"])) as {
             userId: number;
             amount: number;
-          }[])
-        : undefined;
+          }[];
+        } catch {
+          return error(
+            "invalid_option",
+            "--custom-splits must be valid JSON array",
+            "create-expense"
+          );
+        }
+      }
 
       return run("create-expense", async () => {
         const chatId = await resolveChatId(
@@ -157,7 +199,7 @@ export const expenseCommands: Command[] = [
           creatorId,
           payerId,
           description: String(opts.description),
-          amount: Number(opts.amount),
+          amount,
           currency: opts.currency ? String(opts.currency) : undefined,
           splitMode: String(opts["split-mode"]) as
             | "EQUAL"

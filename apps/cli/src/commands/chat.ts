@@ -117,7 +117,7 @@ export const chatCommands: Command[] = [
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
       },
-      "debt-simplification-enabled": {
+      "debt-simplification": {
         type: "string",
         description: "Enable/disable debt simplification (true/false)",
       },
@@ -139,9 +139,9 @@ export const chatCommands: Command[] = [
           baseCurrency?: string;
         } = { chatId };
 
-        if (opts["debt-simplification-enabled"] !== undefined) {
+        if (opts["debt-simplification"] !== undefined) {
           updateData.debtSimplificationEnabled =
-            String(opts["debt-simplification-enabled"]) === "true";
+            String(opts["debt-simplification"]) === "true";
         }
         if (opts["base-currency"] !== undefined) {
           updateData.baseCurrency = String(opts["base-currency"]);

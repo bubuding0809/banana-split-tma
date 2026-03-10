@@ -167,4 +167,6 @@ async function main(): Promise<never> {
   return command.execute(commandValues, trpc) as Promise<never>;
 }
 
-main();
+main().catch((err) => {
+  error("unexpected_error", err instanceof Error ? err.message : String(err));
+});
