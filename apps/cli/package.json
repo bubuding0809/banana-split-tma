@@ -1,0 +1,33 @@
+{
+  "name": "@bananasplit/cli",
+  "version": "0.1.0",
+  "description": "Agent-first CLI for Banana Split expense tracking API",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "banana": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "build": "tsc",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dko/trpc": "workspace:*",
+    "@trpc/client": "11.0.0",
+    "superjson": "^2.2.2"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1",
+    "typescript": "5.8.2"
+  }
+}
