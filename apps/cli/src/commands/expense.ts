@@ -1,0 +1,306 @@
+import type { Command } from "./types.js";
+import { resolveChatId } from "../scope.js";
+import { run, error } from "../output.js";
+
+export const expenseCommands: Command[] = [
+  {
+    name: "list-expenses",
+    description: "List all expenses in a chat",
+    options: {
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      currency: {
+        type: "string",
+        description: "Filter by 3-letter currency code (e.g. USD)",
+      },
+    },
+    execute: (opts, trpc) =>
+      run("list-expenses", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.expense.getExpenseByChat.query({
+          chatId,
+          currency: opts.currency ? String(opts.currency) : undefined,
+        });
+      }),
+  },
+
+  {
+    name: "get-expense",
+    description: "Get full details of a specific expense",
+    options: {
+      "expense-id": {
+        type: "string",
+        description: "The expense UUID",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["expense-id"]) {
+        return error(
+          "missing_option",
+          "--expense-id is required",
+          "get-expense"
+        );
+      }
+      return run("get-expense", async () => {
+        return trpc.expense.getExpenseDetails.query({
+          expenseId: String(opts["expense-id"]),
+        });
+      });
+    },
+  },
+
+  {
+    name: "create-expense",
+    description: "Create a new expense with automatic split calculation",
+    options: {
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      "payer-id": {
+        type: "string",
+        description: "The user ID who paid the expense",
+      },
+      "creator-id": {
+        type: "string",
+        description: "The user ID creating the expense (defaults to payer-id)",
+      },
+      description: {
+        type: "string",
+        description: "Short description of the expense (max 60 chars)",
+      },
+      amount: {
+        type: "string",
+        description: "The total amount of the expense",
+      },
+      currency: {
+        type: "string",
+        description: "3-letter currency code (defaults to chat base currency)",
+      },
+      "split-mode": {
+        type: "string",
+        description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
+      },
+      "participant-ids": {
+        type: "string",
+        description: "Comma-separated user IDs participating in the split",
+      },
+      "custom-splits": {
+        type: "string",
+        description:
+          'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["payer-id"]) {
+        return error(
+          "missing_option",
+          "--payer-id is required",
+          "create-expense"
+        );
+      }
+      if (!opts.description) {
+        return error(
+          "missing_option",
+          "--description is required",
+          "create-expense"
+        );
+      }
+      if (!opts.amount) {
+        return error(
+          "missing_option",
+          "--amount is required",
+          "create-expense"
+        );
+      }
+      if (!opts["split-mode"]) {
+        return error(
+          "missing_option",
+          "--split-mode is required",
+          "create-expense"
+        );
+      }
+      if (!opts["participant-ids"]) {
+        return error(
+          "missing_option",
+          "--participant-ids is required",
+          "create-expense"
+        );
+      }
+
+      const payerId = Number(opts["payer-id"]);
+      if (Number.isNaN(payerId)) {
+        return error(
+          "invalid_option",
+          "--payer-id must be a valid number",
+          "create-expense"
+        );
+      }
+
+      const amount = Number(opts.amount);
+      if (Number.isNaN(amount) || amount <= 0) {
+        return error(
+          "invalid_option",
+          "--amount must be a positive number",
+          "create-expense"
+        );
+      }
+
+      const creatorId = opts["creator-id"]
+        ? Number(opts["creator-id"])
+        : payerId;
+      if (Number.isNaN(creatorId)) {
+        return error(
+          "invalid_option",
+          "--creator-id must be a valid number",
+          "create-expense"
+        );
+      }
+
+      const participantIds = String(opts["participant-ids"])
+        .split(",")
+        .map(Number);
+      if (participantIds.some(Number.isNaN)) {
+        return error(
+          "invalid_option",
+          "--participant-ids must be comma-separated numbers",
+          "create-expense"
+        );
+      }
+
+      let customSplits: { userId: number; amount: number }[] | undefined;
+      if (opts["custom-splits"]) {
+        try {
+          customSplits = JSON.parse(String(opts["custom-splits"])) as {
+            userId: number;
+            amount: number;
+          }[];
+        } catch {
+          return error(
+            "invalid_option",
+            "--custom-splits must be valid JSON array",
+            "create-expense"
+          );
+        }
+      }
+
+      return run("create-expense", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.expense.createExpense.mutate({
+          chatId,
+          creatorId,
+          payerId,
+          description: String(opts.description),
+          amount,
+          currency: opts.currency ? String(opts.currency) : undefined,
+          splitMode: String(opts["split-mode"]) as
+            | "EQUAL"
+            | "EXACT"
+            | "PERCENTAGE"
+            | "SHARES",
+          participantIds,
+          customSplits,
+          sendNotification: true,
+        });
+      });
+    },
+  },
+
+  {
+    name: "get-net-share",
+    description: "Get the net balance between two users in a chat",
+    options: {
+      "main-user-id": {
+        type: "string",
+        description: "The user whose perspective to calculate from",
+      },
+      "target-user-id": {
+        type: "string",
+        description: "The other user in the balance calculation",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      currency: {
+        type: "string",
+        description: "3-letter currency code (e.g. USD) — required",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["main-user-id"]) {
+        return error(
+          "missing_option",
+          "--main-user-id is required",
+          "get-net-share"
+        );
+      }
+      if (!opts["target-user-id"]) {
+        return error(
+          "missing_option",
+          "--target-user-id is required",
+          "get-net-share"
+        );
+      }
+      if (!opts.currency) {
+        return error(
+          "missing_option",
+          "--currency is required",
+          "get-net-share"
+        );
+      }
+      return run("get-net-share", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.expenseShare.getNetShare.query({
+          mainUserId: Number(opts["main-user-id"]),
+          targetUserId: Number(opts["target-user-id"]),
+          chatId,
+          currency: String(opts.currency),
+        });
+      });
+    },
+  },
+
+  {
+    name: "get-totals",
+    description: "Get total borrowed and lent amounts for a user in a chat",
+    options: {
+      "user-id": {
+        type: "string",
+        description: "The user ID to check totals for",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["user-id"]) {
+        return error("missing_option", "--user-id is required", "get-totals");
+      }
+      return run("get-totals", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        const userId = Number(opts["user-id"]);
+        const [borrowed, lent] = await Promise.all([
+          trpc.expenseShare.getTotalBorrowed.query({ userId, chatId }),
+          trpc.expenseShare.getTotalLent.query({ userId, chatId }),
+        ]);
+        return { borrowed, lent };
+      });
+    },
+  },
+];
