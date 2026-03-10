@@ -144,7 +144,7 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
           )}
         </Skeleton>
 
-        <div className="flex flex-col gap-2 pb-4">
+        <div className="flex flex-col gap-2">
           <ButtonCell
             before={<Plus size={20} />}
             onClick={handleGenerate}

@@ -258,7 +258,9 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
           >
             {isUpdatingUser ? "Removing..." : "Remove Phone Number"}
           </ButtonCell>
-        ) : isSupported ? null : (
+        ) : isSupported ? (
+          []
+        ) : (
           <Cell>
             <Text className="text-sm text-gray-500">
               Phone number sharing not supported in this version of Telegram
