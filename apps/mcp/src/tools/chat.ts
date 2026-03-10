@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { trpc } from "../client.js";
+import type { TrpcClient } from "../client.js";
 import { toolHandler } from "./utils.js";
 import { getScope, resolveChatId } from "../scope.js";
 
-export function registerChatTools(server: McpServer) {
+export function registerChatTools(server: McpServer, trpc: TrpcClient) {
   server.registerTool(
     "banana_list_chats",
     {
@@ -32,7 +32,7 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_chats", async ({ exclude_types }) => {
-      const scope = await getScope();
+      const scope = await getScope(trpc);
 
       if (scope.scoped && scope.chatId !== null) {
         // For scoped keys, return the scoped chat info directly
@@ -91,7 +91,7 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_chat", async ({ chat_id }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const chat = await trpc.chat.getChat.query({ chatId: resolvedChatId });
       const members = chat.members
         .map(
@@ -143,7 +143,7 @@ export function registerChatTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_chat_debts", async ({ chat_id, currencies }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const result = await trpc.chat.getBulkChatDebts.query({
         chatId: resolvedChatId,
         currencies,
@@ -203,7 +203,7 @@ export function registerChatTools(server: McpServer) {
     toolHandler(
       "banana_get_simplified_debts",
       async ({ chat_id, currency }) => {
-        const resolvedChatId = await resolveChatId(chat_id);
+        const resolvedChatId = await resolveChatId(trpc, chat_id);
         const result = await trpc.chat.getSimplifiedDebts.query({
           chatId: resolvedChatId,
           currency,
@@ -270,7 +270,7 @@ export function registerChatTools(server: McpServer) {
     toolHandler(
       "banana_update_chat_settings",
       async ({ chat_id, debt_simplification_enabled, base_currency }) => {
-        const resolvedChatId = await resolveChatId(chat_id);
+        const resolvedChatId = await resolveChatId(trpc, chat_id);
 
         // Build update payload dynamically
         const updateData: any = { chatId: resolvedChatId };

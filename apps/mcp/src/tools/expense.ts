@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { trpc } from "../client.js";
+import type { TrpcClient } from "../client.js";
 import { toolHandler } from "./utils.js";
 import { resolveChatId } from "../scope.js";
 
-export function registerExpenseTools(server: McpServer) {
+export function registerExpenseTools(server: McpServer, trpc: TrpcClient) {
   server.registerTool(
     "banana_list_expenses",
     {
@@ -34,7 +34,7 @@ export function registerExpenseTools(server: McpServer) {
       },
     },
     toolHandler("banana_list_expenses", async ({ chat_id, currency }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const expenses = await trpc.expense.getExpenseByChat.query({
         chatId: resolvedChatId,
         currency,
@@ -154,7 +154,7 @@ export function registerExpenseTools(server: McpServer) {
     toolHandler(
       "banana_get_net_share",
       async ({ main_user_id, target_user_id, chat_id, currency }) => {
-        const resolvedChatId = await resolveChatId(chat_id);
+        const resolvedChatId = await resolveChatId(trpc, chat_id);
         const netShare = await trpc.expenseShare.getNetShare.query({
           mainUserId: main_user_id,
           targetUserId: target_user_id,
@@ -202,7 +202,7 @@ export function registerExpenseTools(server: McpServer) {
       },
     },
     toolHandler("banana_get_totals", async ({ user_id, chat_id }) => {
-      const resolvedChatId = await resolveChatId(chat_id);
+      const resolvedChatId = await resolveChatId(trpc, chat_id);
       const [totalBorrowed, totalLent] = await Promise.all([
         trpc.expenseShare.getTotalBorrowed.query({
           userId: user_id,
@@ -299,7 +299,7 @@ export function registerExpenseTools(server: McpServer) {
         participant_ids,
         custom_splits,
       }) => {
-        const resolvedChatId = await resolveChatId(chat_id);
+        const resolvedChatId = await resolveChatId(trpc, chat_id);
         const expense = await trpc.expense.createExpense.mutate({
           chatId: resolvedChatId,
           creatorId: creator_id,
