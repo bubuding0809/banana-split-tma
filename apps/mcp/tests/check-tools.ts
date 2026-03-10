@@ -14,7 +14,7 @@ async function main() {
     env: {
       ...process.env,
       BANANA_SPLIT_API_URL: "http://localhost:8081/api/trpc",
-      BANANA_SPLIT_API_KEY: "test-superadmin-key-123",
+      BANANA_SPLIT_API_KEY: process.env.API_KEY || "dummy-test-key",
     },
   });
 

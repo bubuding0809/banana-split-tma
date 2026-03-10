@@ -3,7 +3,7 @@ import superjson from "superjson";
 import type { AppRouter } from "@dko/trpc";
 
 const API_URL = "http://localhost:8081/api/trpc";
-const SUPERADMIN_KEY = "test-superadmin-key-123";
+const SUPERADMIN_KEY = process.env.API_KEY || "dummy-test-key";
 
 function makeClient(apiKey: string) {
   return createTRPCClient<AppRouter>({
