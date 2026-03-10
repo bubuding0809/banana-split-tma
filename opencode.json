@@ -18,14 +18,11 @@
       }
     },
     "bananasplit": {
-      "type": "local",
-      "command": [
-        "node",
-        "/home/team_aidmi_ai/code/personal/banana-split-tma/apps/mcp/dist/index.js"
-      ],
-      "environment": {
-        "BANANA_SPLIT_API_URL": "http://localhost:8081/api/trpc",
-        "BANANA_SPLIT_API_KEY": "{env:BANANA_SPLIT_API_KEY}"
+      "type": "remote",
+      "url": "http://localhost:8082/mcp",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:BANANA_SPLIT_API_KEY}"
       }
     }
   }
