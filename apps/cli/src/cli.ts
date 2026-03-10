@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { fileURLToPath } from "node:url";
 import { chatCommands } from "./commands/chat.js";
 import { expenseCommands } from "./commands/expense.js";
 import { settlementCommands } from "./commands/settlement.js";
@@ -63,6 +64,12 @@ function showHelp(): never {
           },
         ],
       },
+      {
+        name: "install-skill",
+        description:
+          "Output Agent Skills spec skill path for AI agent integration",
+        options: [],
+      },
       ...commands,
     ],
     globalOptions,
@@ -94,6 +101,16 @@ function handleLogin(args: string[]): never {
   return success({ ok: true, message: "API key saved to ~/.bananasplit.json" });
 }
 
+function handleInstallSkill(): never {
+  const skillDir = new URL("../skills/banana-cli", import.meta.url);
+  const skillPath = fileURLToPath(skillDir);
+  return success({
+    skill_path: skillPath,
+    skill_name: "banana-cli",
+    hint: "Copy this directory to your agent's skills location",
+  });
+}
+
 async function main(): Promise<never> {
   const args = process.argv.slice(2);
   const commandName = args[0];
@@ -106,6 +123,11 @@ async function main(): Promise<never> {
   // Handle login separately (no auth needed)
   if (commandName === "login") {
     return handleLogin(args.slice(1));
+  }
+
+  // Handle install-skill (no auth needed)
+  if (commandName === "install-skill") {
+    return handleInstallSkill();
   }
 
   // --- Regular command dispatch ---
