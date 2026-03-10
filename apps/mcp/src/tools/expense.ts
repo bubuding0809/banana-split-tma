@@ -226,4 +226,102 @@ export function registerExpenseTools(server: McpServer) {
       };
     })
   );
+
+  server.registerTool(
+    "banana_create_expense",
+    {
+      title: "Create Expense",
+      description:
+        "Creates a new expense with automatic split calculation based on split mode. " +
+        "chat_id is optional if using a chat-scoped API key. " +
+        "If exact/percentage/shares split mode is used, custom_splits array MUST be provided.",
+      inputSchema: {
+        chat_id: z
+          .number()
+          .optional()
+          .describe(
+            "The numeric chat ID. Optional if using a chat-scoped API key."
+          ),
+        creator_id: z.number().describe("The user ID creating the expense"),
+        payer_id: z.number().describe("The user ID who paid the expense"),
+        description: z
+          .string()
+          .min(1)
+          .max(60)
+          .describe("Short description of the expense"),
+        amount: z
+          .number()
+          .positive()
+          .describe("The total amount of the expense"),
+        currency: z
+          .string()
+          .length(3)
+          .optional()
+          .describe(
+            "Optional 3-letter currency code. Defaults to chat base currency."
+          ),
+        split_mode: z
+          .enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"])
+          .describe("How to split the expense"),
+        participant_ids: z
+          .array(z.number())
+          .min(1)
+          .describe("List of user IDs participating in the split"),
+        custom_splits: z
+          .array(
+            z.object({
+              userId: z.number(),
+              amount: z.number().positive(),
+            })
+          )
+          .optional()
+          .describe(
+            "Required if split_mode is not EQUAL. For EXACT, amount is exact currency value. For PERCENTAGE, amount is percentage (e.g. 50). For SHARES, amount is number of shares."
+          ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    toolHandler(
+      "banana_create_expense",
+      async ({
+        chat_id,
+        creator_id,
+        payer_id,
+        description,
+        amount,
+        currency,
+        split_mode,
+        participant_ids,
+        custom_splits,
+      }) => {
+        const resolvedChatId = await resolveChatId(chat_id);
+        const expense = await trpc.expense.createExpense.mutate({
+          chatId: resolvedChatId,
+          creatorId: creator_id,
+          payerId: payer_id,
+          description,
+          amount,
+          currency,
+          splitMode: split_mode as any,
+          participantIds: participant_ids,
+          customSplits: custom_splits,
+          sendNotification: true,
+        });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `✅ Successfully created expense '${expense.description}' for ${expense.amount} ${expense.currency}!\nExpense ID: ${expense.id}`,
+            },
+          ],
+        };
+      }
+    )
+  );
 }
