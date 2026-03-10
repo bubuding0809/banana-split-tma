@@ -13,14 +13,17 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
     "@dko/trpc": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "@trpc/client": "11.0.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
     "superjson": "^2.2.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@types/express": "^5.0.1",
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1",
     "typescript": "5.8.2"
