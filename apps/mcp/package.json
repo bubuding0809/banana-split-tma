@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "test:e2e:basic": "tsx tests/e2e-basic.ts",
+    "test:e2e:comprehensive": "tsx tests/e2e-comprehensive.ts",
     "build": "tsc",
     "check-types": "tsc --noEmit"
   },
