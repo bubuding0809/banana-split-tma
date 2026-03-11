@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --fix",
     "start": "vite preview",
-    "check-types": "tsc -b"
+    "check-types": "tsc -b",
+    "test:ct": "playwright test -c playwright-ct.config.ts"
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
