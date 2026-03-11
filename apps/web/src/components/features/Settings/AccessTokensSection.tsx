@@ -17,6 +17,14 @@ import {
 import { Copy, Check, Key, Plus, Trash2, X } from "lucide-react";
 import { useState, useCallback } from "react";
 
+const getAgentPrompt = (
+  token: string
+) => `Hey agent, please install and configure the Banana Split CLI for this project:
+1. Run \`npm install -g @banananasplitz/cli\`
+2. Run \`banana login --api-key ${token}\`
+3. Install the skill by evaluating \`banana install-skill\`, extracting the \`skill_path\` from the JSON, and copying that directory into your skills folder.
+4. Confirm you can read the skill, then run \`banana list-expenses\` to verify the connection.`;
+
 interface AccessTokensSectionProps {
   chatId: number;
 }
@@ -24,6 +32,7 @@ interface AccessTokensSectionProps {
 const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
   const [copiedAgent, setCopiedAgent] = useState<string | null>(null);
 
@@ -80,6 +89,15 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
     }
   }, [newRawKey]);
 
+  const handleCopyPrompt = useCallback(() => {
+    if (newRawKey) {
+      navigator.clipboard.writeText(getAgentPrompt(newRawKey));
+      setCopiedPrompt(true);
+      hapticFeedback.impactOccurred("light");
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    }
+  }, [newRawKey]);
+
   const handleRevoke = useCallback(
     (tokenId: string) => {
       if (
@@ -96,6 +114,7 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
   const handleCloseModal = useCallback(() => {
     setNewRawKey(null);
     setCopied(false);
+    setCopiedPrompt(false);
   }, []);
 
   return (
@@ -199,30 +218,63 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
       >
         <div className="flex flex-col gap-4 px-4 pb-6 pt-2">
           <Text className="text-sm text-gray-500">
-            Copy this token now. For security, it won&apos;t be shown again.
+            Copy this setup prompt to your AI agent (Claude Code, OpenCode,
+            Cursor, etc.). For security, the token won&apos;t be shown again.
           </Text>
 
-          <code className="break-all rounded-lg border bg-gray-50 p-3 text-xs dark:bg-gray-800">
-            {newRawKey}
-          </code>
+          <div className="relative">
+            <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border bg-gray-50 p-4 font-mono text-xs dark:bg-gray-800">
+              {newRawKey ? getAgentPrompt(newRawKey) : ""}
+            </pre>
+          </div>
 
           <button
-            onClick={handleCopy}
+            onClick={handleCopyPrompt}
             className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-semibold text-white transition-colors"
-            style={{ backgroundColor: copied ? "#22c55e" : tButtonColor }}
+            style={{ backgroundColor: copiedPrompt ? "#22c55e" : tButtonColor }}
           >
-            {copied ? (
+            {copiedPrompt ? (
               <>
                 <Check size={20} />
-                Copied!
+                Copied Prompt!
               </>
             ) : (
               <>
                 <Copy size={20} />
-                Copy Token
+                Copy Agent Setup Prompt
               </>
             )}
           </button>
+
+          <div className="mt-2 flex flex-col gap-2 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+            <Text className="text-xs font-medium text-gray-500">
+              Or copy just the raw token:
+            </Text>
+            <code className="break-all rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
+              {newRawKey}
+            </code>
+            <button
+              onClick={handleCopy}
+              className="mt-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: copied ? "#22c55e" : "transparent",
+                color: copied ? "white" : tButtonColor,
+                border: `1px solid ${copied ? "#22c55e" : tButtonColor}`,
+              }}
+            >
+              {copied ? (
+                <>
+                  <Check size={16} />
+                  Copied Token
+                </>
+              ) : (
+                <>
+                  <Copy size={16} />
+                  Copy Token Only
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </Modal>
 
