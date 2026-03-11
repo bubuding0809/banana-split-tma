@@ -324,4 +324,34 @@ export function registerExpenseTools(server: McpServer, trpc: TrpcClient) {
       }
     )
   );
+
+  server.registerTool(
+    "banana_delete_expense",
+    {
+      title: "Delete Expense",
+      description: "Delete a specific expense by ID.",
+      inputSchema: {
+        expense_id: z.string().describe("The expense UUID to delete."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    toolHandler("banana_delete_expense", async ({ expense_id }) => {
+      const result = await trpc.expense.deleteExpense.mutate({
+        expenseId: expense_id,
+      });
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ ${result.message}`,
+          },
+        ],
+      };
+    })
+  );
 }
