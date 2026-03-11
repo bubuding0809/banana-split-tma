@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --fix",
     "start": "vite preview",
-    "check-types": "tsc -b"
+    "check-types": "tsc -b",
+    "test:ct": "playwright test -c playwright-ct.config.ts"
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@playwright/experimental-ct-react": "^1.58.2",
     "@repo/eslint-config": "workspace:*",
     "@tanstack/router-plugin": "^1.121.25",
     "@types/react": "^19.0.10",
