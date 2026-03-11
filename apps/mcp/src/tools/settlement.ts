@@ -149,4 +149,34 @@ export function registerSettlementTools(server: McpServer, trpc: TrpcClient) {
       }
     )
   );
+
+  server.registerTool(
+    "banana_delete_settlement",
+    {
+      title: "Delete Settlement",
+      description: "Delete a specific settlement by ID.",
+      inputSchema: {
+        settlement_id: z.string().describe("The settlement UUID to delete."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    toolHandler("banana_delete_settlement", async ({ settlement_id }) => {
+      const result = await trpc.settlement.deleteSettlement.mutate({
+        settlementId: settlement_id,
+      });
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ ${result.message}`,
+          },
+        ],
+      };
+    })
+  );
 }
