@@ -26,12 +26,10 @@ import {
   formatExpenseDateShortCreatedAt,
 } from "@utils/date";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { getRouteApi, useRouter } from "@tanstack/react-router";
+import { useNavigate, useRouter, useSearch } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
 import { Link, Link2Off } from "lucide-react";
-
-const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
@@ -45,8 +43,19 @@ const ChatExpenseCell = ({
   const { payerId, chatId } = expense;
 
   const router = useRouter();
-  const { selectedTab, selectedExpense } = routeApi.useSearch();
-  const navigate = routeApi.useNavigate();
+  const { selectedTab, selectedExpense } = useSearch({ strict: false }) as {
+    selectedTab?: string;
+    selectedExpense?: string;
+  };
+  const navigate = useNavigate();
+
+  // Route-agnostic search param updater (works on both /_tma/chat/ and /_tma/chat/$chatId)
+
+  const updateSearchParams = (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => {
+    navigate({ search: updater as any });
+  };
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
@@ -186,8 +195,8 @@ const ChatExpenseCell = ({
   const onEditExpense = async () => {
     hapticFeedback.notificationOccurred("success");
     navigate({
-      to: "edit-expense/$expenseId",
-      params: { expenseId: expense.id },
+      to: "/chat/$chatId/edit-expense/$expenseId",
+      params: { chatId: chatId.toString(), expenseId: expense.id },
       search: {
         title: "✍️ Edit Expense",
         prevTab: selectedTab,
@@ -200,12 +209,10 @@ const ChatExpenseCell = ({
   const handleModalOpenChange = (open: boolean) => {
     if (open) {
       setHighlighted(true);
-      navigate({
-        search: (prev) => ({
-          ...prev,
-          selectedExpense: expense.id,
-        }),
-      });
+      updateSearchParams((prev) => ({
+        ...prev,
+        selectedExpense: expense.id,
+      }));
 
       secondaryButton.setParams({
         text: "Delete",
@@ -231,12 +238,10 @@ const ChatExpenseCell = ({
         setHighlighted(false);
       }, 150);
 
-      navigate({
-        search: (prev) => ({
-          ...prev,
-          selectedExpense: undefined,
-        }),
-      });
+      updateSearchParams((prev) => ({
+        ...prev,
+        selectedExpense: undefined,
+      }));
 
       secondaryButton.setParams({
         isVisible: false,
