@@ -1,55 +1,99 @@
+import { Link } from "@tanstack/react-router";
+import { Aperture, Plus } from "lucide-react";
 import {
-  mainButton,
-  openTelegramLink,
+  hapticFeedback,
+  initData,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Placeholder } from "@telegram-apps/telegram-ui";
-import { useEffect } from "react";
-import { assetUrls } from "@/assets/urls";
+import {
+  Avatar,
+  Button,
+  Caption,
+  Cell,
+  Divider,
+  Navigation,
+  Text,
+} from "@telegram-apps/telegram-ui";
+import ChatTransactionTab from "./ChatTransactionTab";
 
 const UserPage = () => {
-  const isMainButtonMounted = useSignal(mainButton.isMounted);
+  const tUserData = useSignal(initData.user);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
 
-  useEffect(() => {
-    mainButton.setParams.ifAvailable({
-      text: "+ Add to group",
-      isEnabled: true,
-      isVisible: true,
-    });
-
-    const offMainButtonClick = mainButton.onClick.ifAvailable(() => {
-      // This will open the Telegram app to add the bot to a group
-      openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup=group_add`
-      );
-    });
-
-    return () => {
-      offMainButtonClick?.();
-      mainButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-      });
-    };
-  }, [isMainButtonMounted]);
+  const userId = tUserData?.id ?? 0;
 
   return (
-    <div className="flex h-[80vh] flex-col items-center justify-center p-4">
-      <Placeholder
-        header="Nothing to see here, for now ..."
-        description="Add me to a group to start splitting expenses"
-      >
-        <img
-          alt="Telegram sticker"
-          src={assetUrls.bananaMiddleFinger}
-          style={{
-            display: "block",
-            height: "144px",
-            width: "144px",
-          }}
-        />
-      </Placeholder>
-    </div>
+    <main className="no-scrollbar flex h-screen flex-col bg-neutral-50 dark:bg-neutral-900/20">
+      {/* Header */}
+      <div className="flex items-center gap-3 bg-white px-4 py-2 dark:bg-black">
+        <Avatar size={48} src={tUserData?.photoUrl} />
+        <div>
+          <Text weight="2" className="block">
+            {tUserData?.firstName} {tUserData?.lastName}
+          </Text>
+          <Caption level="1" className="text-gray-500">
+            Personal Space
+          </Caption>
+        </div>
+      </div>
+
+      <Divider />
+
+      <div className="relative flex flex-1 flex-col overflow-y-auto bg-white pb-20 dark:bg-black">
+        {/* Snapshots link */}
+        <Link
+          className="block"
+          onClick={() => hapticFeedback.impactOccurred("light")}
+          to="/chat/$chatId/snapshots"
+          params={{ chatId: userId.toString() }}
+          search={{ title: "📸 Snapshots" }}
+        >
+          <Cell
+            Component="div"
+            before={
+              <span className="rounded-lg bg-red-600 p-1.5">
+                <Aperture size={20} color="white" />
+              </span>
+            }
+            after={<Navigation />}
+            description="See what you have spent"
+          >
+            Snapshots
+          </Cell>
+        </Link>
+
+        <Divider />
+
+        {/* Add Expense Button */}
+        <Link
+          className="block p-4"
+          onClick={() => hapticFeedback.impactOccurred("light")}
+          to="/chat/$chatId/add-expense"
+          params={{ chatId: userId.toString() }}
+          search={{ title: "+ Add expense" }}
+        >
+          <Button
+            size="l"
+            stretched
+            before={<Plus size={24} />}
+            className="rounded-xl"
+            style={{
+              color: tButtonTextColor,
+              backgroundColor: tButtonColor,
+            }}
+          >
+            Add personal expense
+          </Button>
+        </Link>
+
+        {/* Transactions List */}
+        <div className="mt-2 flex-1">
+          <ChatTransactionTab chatId={userId} />
+        </div>
+      </div>
+    </main>
   );
 };
 
