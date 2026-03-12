@@ -25,5 +25,5 @@ function TmaIndexRoute() {
     );
   }
 
-  return <Navigate to="/chat" />;
+  return <Navigate to="/chat" search={{ title: "" }} />;
 }
