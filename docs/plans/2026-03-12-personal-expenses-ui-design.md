@@ -18,6 +18,45 @@ The previous placeholder "Add to group" logic will be removed entirely from this
 
 The `UserPage` will become the main dashboard for the private chat experience. It will be a clean, vertical, single-page layout (no tabs).
 
+**Proposed Layout:**
+
+```text
++--------------------------------------------------+
+|                                                  |
+|  [ Avatar ]   User's Full Name                   |
+|               Personal Space                     |
+|                                                  |
++--------------------------------------------------+
+|                                                  |
+|  [Icon] Snapshots                        [ > ]   |
+|         See what you have spent                  |
+|                                                  |
++--------------------------------------------------+
+|                                                  |
+|   +------------------------------------------+   |
+|   |            + Add expense                 |   |
+|   +------------------------------------------+   |
+|                                                  |
++--------------------------------------------------+
+| Transactions                                     |
+|                                                  |
+|  +--------------------------------------------+  |
+|  | [Icon]   Lunch                   - SGD 12  |  |
+|  |          Today, 1:00 PM                    |  |
+|  +--------------------------------------------+  |
+|                                                  |
+|  +--------------------------------------------+  |
+|  | [Icon]   Coffee                  - SGD  5  |  |
+|  |          Yesterday, 9:00 AM                |  |
+|  +--------------------------------------------+  |
+|                                                  |
+|  +--------------------------------------------+  |
+|  | [Icon]   Groceries               - SGD 40  |  |
+|  |          Mar 10, 6:00 PM                   |  |
+|  +--------------------------------------------+  |
++--------------------------------------------------+
+```
+
 **Layout Structure:**
 
 - **Profile Header**:
