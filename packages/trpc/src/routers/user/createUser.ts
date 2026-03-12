@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
+import { ChatType } from "@dko/database";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -38,7 +39,7 @@ export const createUserHandler = async (
       });
     }
 
-    return db.user.create({
+    const user = await db.user.create({
       data: {
         id: input.userId,
         firstName: input.firstName,
@@ -47,6 +48,37 @@ export const createUserHandler = async (
         phoneNumber: input.phoneNumber,
       },
     });
+
+    // Create personal chat for the user. This is intentionally NOT in a $transaction
+    // with user creation -- if chat creation fails, the user is still valid and the
+    // backfill script (packages/database/scripts/backfill-personal-chats.ts) can fix
+    // any missing personal chats.
+    try {
+      await db.chat.create({
+        data: {
+          id: input.userId,
+          title: input.firstName,
+          type: ChatType.private,
+          members: { connect: { id: input.userId } },
+        },
+      });
+    } catch (chatError) {
+      if (
+        chatError instanceof Error &&
+        chatError.message.includes("Unique constraint failed")
+      ) {
+        console.warn(
+          `Personal chat already exists for user ${input.userId}, skipping creation`
+        );
+      } else {
+        console.error(
+          `Failed to create personal chat for user ${input.userId}:`,
+          chatError
+        );
+      }
+    }
+
+    return user;
   } catch (error) {
     if (error instanceof TRPCError) {
       throw error;
