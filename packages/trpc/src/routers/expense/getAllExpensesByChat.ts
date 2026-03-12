@@ -37,7 +37,16 @@ export const getAllExpensesByChatHandler = async (
 };
 
 export default protectedProcedure
+  .meta({
+    openapi: {
+      method: "GET",
+      path: "/chat/{chatId}/expenses",
+      tags: ["expense"],
+      summary: "Get all expenses by chat",
+    },
+  })
   .input(inputSchema)
+  .output(z.any())
   .query(async ({ input, ctx }) => {
     assertChatScope(ctx.session, input.chatId);
     return getAllExpensesByChatHandler(input, ctx.db);
