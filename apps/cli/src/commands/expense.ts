@@ -303,4 +303,29 @@ export const expenseCommands: Command[] = [
       });
     },
   },
+
+  {
+    name: "delete-expense",
+    description: "Delete an expense by ID",
+    options: {
+      "expense-id": {
+        type: "string",
+        description: "The expense UUID",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["expense-id"]) {
+        return error(
+          "missing_option",
+          "--expense-id is required",
+          "delete-expense"
+        );
+      }
+      return run("delete-expense", async () => {
+        return trpc.expense.deleteExpense.mutate({
+          expenseId: String(opts["expense-id"]),
+        });
+      });
+    },
+  },
 ];
