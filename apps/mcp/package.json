@@ -7,6 +7,8 @@
   "scripts": {
     "start": "NODE_ENV=production node dist/index.js",
     "dev": "NODE_ENV=development tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e:basic": "tsx tests/e2e-basic.ts",
     "test:e2e:comprehensive": "tsx tests/e2e-comprehensive.ts",
     "build": "tsc",
