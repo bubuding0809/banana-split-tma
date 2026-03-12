@@ -33,6 +33,8 @@
     "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
     "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "check-types": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
