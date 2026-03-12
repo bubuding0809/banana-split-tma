@@ -113,4 +113,29 @@ export const settlementCommands: Command[] = [
       });
     },
   },
+
+  {
+    name: "delete-settlement",
+    description: "Delete a settlement by ID",
+    options: {
+      "settlement-id": {
+        type: "string",
+        description: "The settlement UUID",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["settlement-id"]) {
+        return error(
+          "missing_option",
+          "--settlement-id is required",
+          "delete-settlement"
+        );
+      }
+      return run("delete-settlement", async () => {
+        return trpc.settlement.deleteSettlement.mutate({
+          settlementId: String(opts["settlement-id"]),
+        });
+      });
+    },
+  },
 ];
