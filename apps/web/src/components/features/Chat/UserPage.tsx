@@ -1,55 +1,41 @@
-import {
-  mainButton,
-  openTelegramLink,
-  useSignal,
-} from "@telegram-apps/sdk-react";
-import { Placeholder } from "@telegram-apps/telegram-ui";
-import { useEffect } from "react";
-import { assetUrls } from "@/assets/urls";
+import { useRef } from "react";
+import { initData, useSignal } from "@telegram-apps/sdk-react";
+import { Avatar, Caption, Divider, Text } from "@telegram-apps/telegram-ui";
+import ChatTransactionTab from "./ChatTransactionTab";
 
 const UserPage = () => {
-  const isMainButtonMounted = useSignal(mainButton.isMounted);
+  const tUserData = useSignal(initData.user);
+  const headerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    mainButton.setParams.ifAvailable({
-      text: "+ Add to group",
-      isEnabled: true,
-      isVisible: true,
-    });
-
-    const offMainButtonClick = mainButton.onClick.ifAvailable(() => {
-      // This will open the Telegram app to add the bot to a group
-      openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup=group_add`
-      );
-    });
-
-    return () => {
-      offMainButtonClick?.();
-      mainButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-      });
-    };
-  }, [isMainButtonMounted]);
+  const userId = tUserData?.id ?? 0;
 
   return (
-    <div className="flex h-[80vh] flex-col items-center justify-center p-4">
-      <Placeholder
-        header="Nothing to see here, for now ..."
-        description="Add me to a group to start splitting expenses"
+    <main className="no-scrollbar flex flex-col">
+      {/* Header */}
+      <div ref={headerRef} className="flex items-center gap-3 px-4 py-2">
+        <Avatar size={48} src={tUserData?.photoUrl} />
+        <div>
+          <Text weight="2" className="block">
+            {tUserData?.firstName} {tUserData?.lastName}
+          </Text>
+          <Caption level="1" className="text-gray-500">
+            Personal Space
+          </Caption>
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* Transactions List - explicit height for virtualizer */}
+      <div
+        className="relative flex-1 overflow-y-auto"
+        style={{
+          height: `calc(100vh - ${headerRef.current?.offsetHeight ?? 0}px)`,
+        }}
       >
-        <img
-          alt="Telegram sticker"
-          src={assetUrls.bananaMiddleFinger}
-          style={{
-            display: "block",
-            height: "144px",
-            width: "144px",
-          }}
-        />
-      </Placeholder>
-    </div>
+        <ChatTransactionTab chatId={userId} />
+      </div>
+    </main>
   );
 };
 
