@@ -35,17 +35,6 @@ The `UserPage` will become the main dashboard for the private chat experience. I
 |   (Selected)               (Disabled)            |
 |                                                  |
 +--------------------------------------------------+
-|                                                  |
-|  [Icon] Snapshots                        [ > ]   |
-|         See what you have spent                  |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|   +------------------------------------------+   |
-|   |            + Add expense                 |   |
-|   +------------------------------------------+   |
-|                                                  |
-+--------------------------------------------------+
 | Transactions                                     |
 |                                                  |
 |  +--------------------------------------------+  |
@@ -74,9 +63,6 @@ The `UserPage` will become the main dashboard for the private chat experience. I
   - Reusing `TabsList` from `@telegram-apps/telegram-ui`.
   - Tab 1: "Personal" (Selected by default).
   - Tab 2: "Groups" (Disabled state).
-- **Primary Actions (Personal Tab)**:
-  - **Snapshots Cell**: A styled `Cell` link to view expense snapshots. Reusing the existing Snapshots route (`/chat/$chatId/snapshots`), passing the user's ID as the `chatId`.
-  - **Add Expense Button**: A prominent, stretched `<Button>` to quickly add a personal expense. Routes to `/chat/$chatId/add-expense` where `chatId` is the user ID.
 - **Recent Transactions Area (Personal Tab)**:
   - We will render the existing `<ChatTransactionTab>` component, passing the user's ID as the `chatId`.
   - Since personal expenses are stored as standard expenses linked to the user's private `Chat` ID, this component will naturally list all personal expenses, manage pagination, and handle viewing details.
