@@ -133,6 +133,14 @@ export const getSimplifiedDebtsHandler = async (
 };
 
 export default protectedProcedure
+  .meta({
+    openapi: {
+      method: "GET",
+      path: "/chat/{chatId}/simplified-debts",
+      tags: ["chat"],
+      summary: "Get simplified debts",
+    },
+  })
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
