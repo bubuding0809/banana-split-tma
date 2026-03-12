@@ -1,69 +1,50 @@
 # Personal Expenses UI Design
 
-## Overview
+## Objective
 
-We are building a user interface to display "personal expenses" on the home page of the Banana Split TMA. Currently, the root `chat` index page (when accessed via a private chat with the bot) displays a `UserPage` placeholder component encouraging the user to "Add to group".
+Build a dedicated "personal expenses dashboard" for the private chat home page (the index route `/_tma/chat/`). We are abandoning the concept of a "Groups" tab. The entire private chat page will simply act as a single-page view dedicated strictly to tracking and managing personal expenses.
 
-Following the user's requirement, we will replace this placeholder with a functional dashboard. The layout will be a **tabbed interface** (similar to the Balances / Transactions tabs in the `GroupPage`), with two tabs:
-
-1. **Personal** - To show the user's personal expenses and snapshots.
-2. **Groups** - To display the user's groups (which we will keep as a placeholder/list for future expansion, or just point them to how to add the bot to groups). We will remove the large persistent "Add to group" button from the main view to focus on personal finance.
+The previous placeholder "Add to group" logic will be removed entirely from this view.
 
 ## Constraints & Decisions
 
-- **UI Framework**: `@telegram-apps/telegram-ui` for components (TabsList, List, Cell, etc.).
-- **Location**: `apps/web/src/components/features/Chat/UserPage.tsx`. We will refactor this component.
+- **UI Framework**: `@telegram-apps/telegram-ui` for components (`List`, `Cell`, `Button`, etc.).
+- **Location**: Refactoring `apps/web/src/components/features/Chat/UserPage.tsx` which is rendered by the `/_tma/chat/` index route.
 - **Data Model**: Personal expenses are stored in a `Chat` of type `"private"` where the chat ID matches the user's Telegram ID.
-- **Tab State**: We will use search parameters to manage the tab state (`?selectedTab=personal|groups`), similar to `GroupPage`.
 
 ## Architecture & Components
 
-### 1. Route Changes
+### 1. Refactoring `UserPage.tsx`
 
-Update `apps/web/src/routes/_tma/chat.index.tsx` to handle the `selectedTab` search parameter so we can deep link into tabs.
-
-### 2. Refactoring `UserPage.tsx`
-
-The `UserPage` will become the main container for the private chat experience.
+The `UserPage` will become the main dashboard for the private chat experience. It will be a clean, vertical, single-page layout (no tabs).
 
 **Layout Structure:**
 
-- **Header Section**: User's Avatar and Name (fetched via `initData.user`).
-- **Tab List**: `TabsList` component from `@telegram-apps/telegram-ui`.
-  - Tab 1: "Personal" (Icon: `User` or `Wallet`)
-  - Tab 2: "Groups" (Icon: `Users`)
-- **Tab Content Area**:
-  - If `selectedTab === 'personal'`: Render `<PersonalTab />`
-  - If `selectedTab === 'groups'`: Render `<GroupsTab />`
+- **Profile Header**:
+  - User's Avatar and Name (fetched via `initData.user`).
+  - A small subtitle like "Personal Space" or "Private Expenses".
+- **Primary Actions**:
+  - **Snapshots Cell**: A styled `Cell` link to view expense snapshots. Reusing the existing Snapshots route (`/chat/$chatId/snapshots`), passing the user's ID as the `chatId`.
+  - **Add Expense Button**: A prominent, stretched `<Button>` to quickly add a personal expense. Routes to `/chat/$chatId/add-expense` where `chatId` is the user ID.
+- **Recent Transactions Area**:
+  - We will render the existing `<ChatTransactionTab>` component, passing the user's ID as the `chatId`.
+  - Since personal expenses are stored as standard expenses linked to the user's private `Chat` ID, this component will naturally list all personal expenses, manage pagination, and handle viewing details.
 
-### 3. `<PersonalTab />` Component
+### 2. Deletions / Removals
 
-This new component will display the personal financial dashboard.
+- The "Groups" tab concept is scrapped.
+- The `mainButton` logic prompting users to "Add to group" will be deleted from `UserPage`.
+- The `Placeholder` with the middle-finger banana sticker will be removed.
 
-**Features:**
+## Data Flow & State Management
 
-- **Snapshots Cell**: A link to view expense snapshots (using the existing `Snapshots` route, passing the user's ID as the `chatId`).
-- **Add Expense Button**: A large primary button to quickly add a personal expense (routes to `/chat/$chatId/add-expense` where `chatId` is the user ID).
-- **Recent Transactions Segment**: We can reuse the existing `<ChatTransactionTab>` component, passing the user's ID as the `chatId`. Since personal expenses are just expenses in a private chat, the existing transaction tab should work out of the box to list the expenses!
-
-### 4. `<GroupsTab />` Component
-
-For now, this will house the current "Add me to a group" placeholder and the logic to show the "Add to group" Telegram main button. This keeps the functionality accessible without cluttering the personal expense view.
-
-## Data Flow
-
-- The `chatId` for all personal expense operations is the `userId` (`tUserData.id`).
-- We can fetch the user's personal chat data using `trpc.chat.getChat.useQuery({ chatId: userId })`.
-- If the chat doesn't exist yet (for older users who haven't been backfilled, though the backend design handles this), we should degrade gracefully.
-
-## Error Handling & Loading States
-
-- Use `<Spinner />` and `<Skeleton />` while fetching the personal chat details or transactions.
-- Wrap the tabs in Suspense/Error boundaries as needed, following the existing `GroupPage` pattern.
+- The `chatId` used for all components is the `userId` (`tUserData.id`).
+- There is no need for internal tab state or URL search parameters (`selectedTab`) since we are focusing purely on the personal dashboard.
+- The `<ChatTransactionTab>` handles its own data fetching via `trpc.expense.getInfiniteExpenses`.
 
 ## Verification
 
-- Opening the TMA in the bot's private chat defaults to the "Personal" tab.
-- The "Personal" tab shows the user's personal expenses (via `ChatTransactionTab`).
-- Clicking "Add expense" routes to the add expense form for the personal chat.
-- Switching to the "Groups" tab shows the "Add to group" placeholder.
+- When a user opens the TMA via the private bot chat, they immediately see their personal expense dashboard.
+- The "Add to group" prompt and button are nowhere to be seen.
+- Clicking "Add expense" successfully navigates to the expense creation form for the user's private chat.
+- The transaction list successfully queries and displays only the user's personal expenses.
