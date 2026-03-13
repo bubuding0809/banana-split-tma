@@ -119,4 +119,46 @@ describe("settlement commands", () => {
     await cmd?.execute({ "settlement-id": "set-123" }, trpcMock);
     expect(mutateMock).toHaveBeenCalledWith({ settlementId: "set-123" });
   });
+
+  it("settle-all-debts should fail if required options are missing", async () => {
+    const cmd = settlementCommands.find((c) => c.name === "settle-all-debts");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({}, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--sender-id is required",
+    });
+
+    expect(
+      await cmd?.execute({ "sender-id": "1", "receiver-id": "2" }, trpcMock)
+    ).toMatchObject({
+      code: "missing_option",
+      message: "--balances is required",
+    });
+  });
+
+  it("settle-all-debts should call trpc.settlement.settleAllDebts with parsed JSON", async () => {
+    const cmd = settlementCommands.find((c) => c.name === "settle-all-debts");
+    const mutateMock = vi.fn().mockResolvedValue({ totalSettlements: 1 });
+    const trpcMock = {
+      settlement: { settleAllDebts: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute(
+      {
+        "chat-id": "123",
+        "sender-id": "1",
+        "receiver-id": "2",
+        balances: '[{"currency":"USD","amount":15}]',
+      },
+      trpcMock
+    );
+
+    expect(mutateMock).toHaveBeenCalledWith({
+      chatId: 123,
+      senderId: 1,
+      receiverId: 2,
+      balances: [{ currency: "USD", amount: 15 }],
+    });
+  });
 });
