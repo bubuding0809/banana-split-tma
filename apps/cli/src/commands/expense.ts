@@ -342,7 +342,11 @@ export const expenseCommands: Command[] = [
           description: String(opts.description),
           amount,
           currency: opts.currency ? String(opts.currency) : undefined,
-          splitMode: String(opts["split-mode"]) as any,
+          splitMode: String(opts["split-mode"]) as
+            | "EQUAL"
+            | "EXACT"
+            | "PERCENTAGE"
+            | "SHARES",
           participantIds,
           customSplits,
           sendNotification: true,
