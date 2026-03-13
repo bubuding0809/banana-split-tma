@@ -4,7 +4,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { getDebtorsHandler } from "../chat/getDebtors.js";
 import { getCreditorsHandler } from "../chat/getCreditors.js";
 import { getSupportedCurrenciesHandler } from "./getSupportedCurrencies.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -172,6 +172,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getCurrenciesWithBalanceHandler(input, ctx.db);
   });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
 
 const AWS_GROUP_REMINDER_LAMBDA_ARN =
@@ -272,6 +272,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, Number(input.chatId));
+    await assertChatAccess(ctx.session, ctx.db, Number(input.chatId));
     return createGroupReminderScheduleHandler(input);
   });

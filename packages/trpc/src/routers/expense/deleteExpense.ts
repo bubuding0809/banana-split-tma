@@ -4,7 +4,7 @@ import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { deleteExpenseMessagesHandler } from "../telegram/deleteExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   expenseId: z.string(),
@@ -45,7 +45,7 @@ export const deleteExpenseHandler = async (
       });
     }
 
-    assertChatScope(session, expense.chatId);
+    await assertChatAccess(session, db, expense.chatId);
 
     // Attempt to delete Telegram messages (best effort - don't fail if this fails)
     try {

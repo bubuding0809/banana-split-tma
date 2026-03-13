@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 
 const inputSchema = z.object({
@@ -100,6 +100,6 @@ export const getNetShareHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getNetShareHandler(input, ctx.db);
   });
