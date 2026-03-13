@@ -326,21 +326,26 @@ export const createExpenseHandler = async (
     // Send notification if requested and teleBot is available
     if (input.sendNotification) {
       try {
-        // Fetch creator and participant details for notification
-        const [payer, creator, participants] = await Promise.all([
-          db.user.findUnique({
-            where: { id: input.payerId },
-            select: { id: true, firstName: true, username: true },
-          }),
-          db.user.findUnique({
-            where: { id: input.creatorId },
-            select: { id: true, firstName: true, username: true },
-          }),
-          db.user.findMany({
-            where: { id: { in: input.participantIds } },
-            select: { id: true, firstName: true, username: true },
-          }),
-        ]);
+        // Fetch creator, participant details, and chat type for notification
+        const [payer, creator, participants, chatForNotification] =
+          await Promise.all([
+            db.user.findUnique({
+              where: { id: input.payerId },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.user.findUnique({
+              where: { id: input.creatorId },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.user.findMany({
+              where: { id: { in: input.participantIds } },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.chat.findUnique({
+              where: { id: input.chatId },
+              select: { type: true },
+            }),
+          ]);
 
         if (creator && payer && participants.length > 0) {
           // Map splits to participants with user info
@@ -361,6 +366,7 @@ export const createExpenseHandler = async (
           const messageId = await sendExpenseNotificationMessageHandler(
             {
               chatId: Number(input.chatId),
+              chatType: chatForNotification?.type ?? "group",
               payerId: Number(input.payerId),
               payerName: payer.firstName,
               creatorUserId: Number(creator.id),
