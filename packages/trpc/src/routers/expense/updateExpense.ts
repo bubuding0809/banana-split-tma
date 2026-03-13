@@ -386,6 +386,7 @@ export const updateExpenseHandler = async (
               await editExpenseMessageHandler(
                 {
                   chatId: Number(input.chatId),
+                  chatType: existingExpense.chat.type,
                   messageId: Number(existingExpense.telegramMessageId),
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
@@ -430,6 +431,7 @@ export const updateExpenseHandler = async (
               await sendExpenseNotificationMessageHandler(
                 {
                   chatId: Number(input.chatId),
+                  chatType: existingExpense.chat.type,
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
                   creatorUserId: Number(creator.id),
@@ -449,6 +451,7 @@ export const updateExpenseHandler = async (
             await sendExpenseNotificationMessageHandler(
               {
                 chatId: Number(input.chatId),
+                chatType: existingExpense.chat.type,
                 payerId: Number(input.payerId),
                 payerName: payer.firstName,
                 creatorUserId: Number(creator.id),
