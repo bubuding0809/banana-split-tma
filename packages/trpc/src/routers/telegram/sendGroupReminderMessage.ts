@@ -221,7 +221,7 @@ export const sendGroupReminderMessageHandler = async (
   // Create deep link to mini app
   const chatContext = {
     chat_id: chatIdNumber,
-    chat_type: chat.type === "private" ? "private" : "g",
+    chat_type: chat.type === "private" ? "p" : "g",
   };
   const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
   const botInfo = await teleBot.getMe();
