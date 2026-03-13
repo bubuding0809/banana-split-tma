@@ -138,4 +138,108 @@ export const settlementCommands: Command[] = [
       });
     },
   },
+
+  {
+    name: "settle-all-debts",
+    description:
+      "Settle all debts between two users across multiple currencies",
+    options: {
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      "sender-id": {
+        type: "string",
+        description: "The user ID paying the debt",
+      },
+      "receiver-id": {
+        type: "string",
+        description: "The user ID receiving the payment",
+      },
+      balances: {
+        type: "string",
+        description:
+          'JSON array of balances: \'[{"currency":"USD","amount":15}]\'',
+      },
+      "creditor-name": {
+        type: "string",
+        description: "Optional creditor name for notifications",
+      },
+      "debtor-name": {
+        type: "string",
+        description: "Optional debtor name for notifications",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["sender-id"]) {
+        return error(
+          "missing_option",
+          "--sender-id is required",
+          "settle-all-debts"
+        );
+      }
+      if (!opts["receiver-id"]) {
+        return error(
+          "missing_option",
+          "--receiver-id is required",
+          "settle-all-debts"
+        );
+      }
+      if (!opts.balances) {
+        return error(
+          "missing_option",
+          "--balances is required",
+          "settle-all-debts"
+        );
+      }
+
+      let parsedBalances: { currency: string; amount: number }[];
+      try {
+        parsedBalances = JSON.parse(String(opts.balances));
+        if (!Array.isArray(parsedBalances)) {
+          throw new Error("not array");
+        }
+      } catch {
+        return error(
+          "invalid_option",
+          "--balances must be valid JSON array",
+          "settle-all-debts"
+        );
+      }
+
+      return run("settle-all-debts", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        const senderId = Number(opts["sender-id"]);
+        const receiverId = Number(opts["receiver-id"]);
+
+        // Fetch chat members to get names for the notification
+        const chat = await trpc.chat.getChat.query({ chatId });
+        const members = chat.members ?? [];
+        const creditor = members.find(
+          (m: { id: number }) => m.id === receiverId
+        );
+        const debtor = members.find((m: { id: number }) => m.id === senderId);
+
+        return trpc.settlement.settleAllDebts.mutate({
+          chatId,
+          senderId,
+          receiverId,
+          balances: parsedBalances,
+          creditorName:
+            (opts["creditor-name"] as string | undefined) ??
+            creditor?.firstName ??
+            `User ${receiverId}`,
+          creditorUsername: creditor?.username ?? undefined,
+          debtorName:
+            (opts["debtor-name"] as string | undefined) ??
+            debtor?.firstName ??
+            `User ${senderId}`,
+          threadId: chat.threadId ?? undefined,
+        });
+      });
+    },
+  },
 ];

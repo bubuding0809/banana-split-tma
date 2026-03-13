@@ -216,4 +216,57 @@ describe("expense commands", () => {
     await cmd?.execute({ "expense-id": "exp-123" }, trpcMock);
     expect(mutateMock).toHaveBeenCalledWith({ expenseId: "exp-123" });
   });
+
+  it("update-expense should fail if required options are missing", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "update-expense");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({}, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--expense-id is required",
+    });
+
+    expect(
+      await cmd?.execute({ "expense-id": "exp-1" }, trpcMock)
+    ).toMatchObject({
+      code: "missing_option",
+      message: "--payer-id is required",
+    });
+  });
+
+  it("update-expense should call trpc.expense.updateExpense with valid inputs", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "update-expense");
+    const mutateMock = vi.fn().mockResolvedValue({ id: "exp-123" });
+    const trpcMock = {
+      expense: { updateExpense: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute(
+      {
+        "expense-id": "exp-123",
+        "payer-id": "1",
+        description: "Food",
+        amount: "100",
+        "split-mode": "EQUAL",
+        "participant-ids": "1,2,3",
+        currency: "USD",
+        "chat-id": "123",
+      },
+      trpcMock
+    );
+
+    expect(mutateMock).toHaveBeenCalledWith({
+      expenseId: "exp-123",
+      chatId: 123,
+      creatorId: 1,
+      payerId: 1,
+      description: "Food",
+      amount: 100,
+      currency: "USD",
+      splitMode: "EQUAL",
+      participantIds: [1, 2, 3],
+      customSplits: undefined,
+      sendNotification: true,
+    });
+  });
 });
