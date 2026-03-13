@@ -11,7 +11,7 @@ const getExpenseDetailsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   session: {
-    authType: "superadmin" | "chat-api-key" | "telegram";
+    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
     chatId: bigint | null;
   }
 ) => {
