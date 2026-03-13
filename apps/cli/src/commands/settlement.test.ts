@@ -139,8 +139,17 @@ describe("settlement commands", () => {
 
   it("settle-all-debts should call trpc.settlement.settleAllDebts with parsed JSON", async () => {
     const cmd = settlementCommands.find((c) => c.name === "settle-all-debts");
+    const chatQueryMock = vi.fn().mockResolvedValue({
+      id: 123,
+      threadId: 555,
+      members: [
+        { id: 1, firstName: "Alice", username: "alice" },
+        { id: 2, firstName: "Bob", username: "bob" },
+      ],
+    });
     const mutateMock = vi.fn().mockResolvedValue({ totalSettlements: 1 });
     const trpcMock = {
+      chat: { getChat: { query: chatQueryMock } },
       settlement: { settleAllDebts: { mutate: mutateMock } },
     } as any;
 
@@ -159,6 +168,10 @@ describe("settlement commands", () => {
       senderId: 1,
       receiverId: 2,
       balances: [{ currency: "USD", amount: 15 }],
+      creditorName: "Bob",
+      creditorUsername: "bob",
+      debtorName: "Alice",
+      threadId: 555,
     });
   });
 });
