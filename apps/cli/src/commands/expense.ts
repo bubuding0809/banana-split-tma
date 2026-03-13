@@ -215,6 +215,147 @@ export const expenseCommands: Command[] = [
   },
 
   {
+    name: "update-expense",
+    description: "Update an existing expense",
+    options: {
+      "expense-id": {
+        type: "string",
+        description: "The expense UUID",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      "payer-id": {
+        type: "string",
+        description: "The user ID who paid the expense",
+      },
+      "creator-id": {
+        type: "string",
+        description: "The user ID creating the update (defaults to payer-id)",
+      },
+      description: {
+        type: "string",
+        description: "Short description of the expense (max 60 chars)",
+      },
+      amount: {
+        type: "string",
+        description: "The total amount of the expense",
+      },
+      currency: {
+        type: "string",
+        description: "3-letter currency code",
+      },
+      "split-mode": {
+        type: "string",
+        description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
+      },
+      "participant-ids": {
+        type: "string",
+        description: "Comma-separated user IDs participating in the split",
+      },
+      "custom-splits": {
+        type: "string",
+        description:
+          'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["expense-id"]) {
+        return error(
+          "missing_option",
+          "--expense-id is required",
+          "update-expense"
+        );
+      }
+      if (!opts["payer-id"]) {
+        return error(
+          "missing_option",
+          "--payer-id is required",
+          "update-expense"
+        );
+      }
+      if (!opts.description) {
+        return error(
+          "missing_option",
+          "--description is required",
+          "update-expense"
+        );
+      }
+      if (!opts.amount) {
+        return error(
+          "missing_option",
+          "--amount is required",
+          "update-expense"
+        );
+      }
+      if (!opts["split-mode"]) {
+        return error(
+          "missing_option",
+          "--split-mode is required",
+          "update-expense"
+        );
+      }
+      if (!opts["participant-ids"]) {
+        return error(
+          "missing_option",
+          "--participant-ids is required",
+          "update-expense"
+        );
+      }
+
+      const payerId = Number(opts["payer-id"]);
+      const amount = Number(opts.amount);
+      const creatorId = opts["creator-id"]
+        ? Number(opts["creator-id"])
+        : payerId;
+      const participantIds = String(opts["participant-ids"])
+        .split(",")
+        .map(Number);
+
+      let customSplits: { userId: number; amount: number }[] | undefined;
+      if (opts["custom-splits"]) {
+        try {
+          customSplits = JSON.parse(String(opts["custom-splits"])) as {
+            userId: number;
+            amount: number;
+          }[];
+        } catch {
+          return error(
+            "invalid_option",
+            "--custom-splits must be valid JSON array",
+            "update-expense"
+          );
+        }
+      }
+
+      return run("update-expense", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.expense.updateExpense.mutate({
+          expenseId: String(opts["expense-id"]),
+          chatId,
+          creatorId,
+          payerId,
+          description: String(opts.description),
+          amount,
+          currency: opts.currency ? String(opts.currency) : undefined,
+          splitMode: String(opts["split-mode"]) as
+            | "EQUAL"
+            | "EXACT"
+            | "PERCENTAGE"
+            | "SHARES",
+          participantIds,
+          customSplits,
+          sendNotification: true,
+        });
+      });
+    },
+  },
+
+  {
     name: "get-net-share",
     description: "Get the net balance between two users in a chat",
     options: {

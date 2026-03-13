@@ -51,4 +51,84 @@ describe("snapshot commands", () => {
 
     expect(queryMock).toHaveBeenCalledWith({ snapshotId: "snap-123" });
   });
+
+  it("create-snapshot should fail if required options are missing", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({}, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--creator-id is required",
+    });
+
+    expect(await cmd?.execute({ "creator-id": "1" }, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--title is required",
+    });
+  });
+
+  it("create-snapshot should fail if creator-id is invalid", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({ "creator-id": "abc" }, trpcMock)).toMatchObject(
+      {
+        code: "invalid_option",
+        message: "--creator-id must be a valid number",
+      }
+    );
+  });
+
+  it("create-snapshot should call trpc.snapshot.create", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
+    const mutateMock = vi.fn().mockResolvedValue({ id: "snap-1" });
+    const trpcMock = { snapshot: { create: { mutate: mutateMock } } } as any;
+
+    await cmd?.execute(
+      {
+        "chat-id": "123",
+        "creator-id": "1",
+        title: "Trip",
+        "expense-ids": "exp-1,exp-2",
+      },
+      trpcMock
+    );
+    expect(mutateMock).toHaveBeenCalledWith({
+      chatId: 123,
+      creatorId: 1,
+      title: "Trip",
+      expenseIds: ["exp-1", "exp-2"],
+    });
+  });
+
+  it("update-snapshot should call trpc.snapshot.update", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "update-snapshot");
+    const mutateMock = vi.fn().mockResolvedValue({ id: "snap-1" });
+    const trpcMock = { snapshot: { update: { mutate: mutateMock } } } as any;
+
+    await cmd?.execute(
+      {
+        "snapshot-id": "snap-1",
+        "chat-id": "123",
+        title: "Trip 2",
+        "expense-ids": "exp-1",
+      },
+      trpcMock
+    );
+    expect(mutateMock).toHaveBeenCalledWith({
+      snapshotId: "snap-1",
+      chatId: 123,
+      title: "Trip 2",
+      expenseIds: ["exp-1"],
+    });
+  });
+
+  it("delete-snapshot should call trpc.snapshot.delete", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "delete-snapshot");
+    const mutateMock = vi.fn().mockResolvedValue({ success: true });
+    const trpcMock = { snapshot: { delete: { mutate: mutateMock } } } as any;
+
+    await cmd?.execute({ "snapshot-id": "snap-1" }, trpcMock);
+    expect(mutateMock).toHaveBeenCalledWith({ snapshotId: "snap-1" });
+  });
 });
