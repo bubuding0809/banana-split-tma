@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TmaHomeRouteImport } from './routes/_tma/home'
 import { Route as TmaChatRouteImport } from './routes/_tma/chat'
 import { Route as TmaChatIndexRouteImport } from './routes/_tma/chat.index'
+import { Route as TmaSettingsApiKeysRouteImport } from './routes/_tma/settings/api-keys'
 import { Route as TmaChatChatIdRouteImport } from './routes/_tma/chat.$chatId'
 import { Route as TmaChatChatIdSnapshotsRouteImport } from './routes/_tma/chat.$chatId_.snapshots'
 import { Route as TmaChatChatIdSettingsRouteImport } from './routes/_tma/chat.$chatId_.settings'
@@ -45,6 +46,11 @@ const TmaChatIndexRoute = TmaChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TmaChatRoute,
+} as any)
+const TmaSettingsApiKeysRoute = TmaSettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => TmaRoute,
 } as any)
 const TmaChatChatIdRoute = TmaChatChatIdRouteImport.update({
   id: '/$chatId',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof TmaChatRouteWithChildren
   '/home': typeof TmaHomeRoute
   '/chat/$chatId': typeof TmaChatChatIdRoute
+  '/settings/api-keys': typeof TmaSettingsApiKeysRoute
   '/chat/': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof TmaHomeRoute
   '/chat/$chatId': typeof TmaChatChatIdRoute
+  '/settings/api-keys': typeof TmaSettingsApiKeysRoute
   '/chat': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_tma/chat': typeof TmaChatRouteWithChildren
   '/_tma/home': typeof TmaHomeRoute
   '/_tma/chat/$chatId': typeof TmaChatChatIdRoute
+  '/_tma/settings/api-keys': typeof TmaSettingsApiKeysRoute
   '/_tma/chat/': typeof TmaChatIndexRoute
   '/_tma/chat/$chatId_/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/_tma/chat/$chatId_/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/home'
     | '/chat/$chatId'
+    | '/settings/api-keys'
     | '/chat/'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/create-snapshot'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/'
     | '/home'
     | '/chat/$chatId'
+    | '/settings/api-keys'
     | '/chat'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/create-snapshot'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/_tma/chat'
     | '/_tma/home'
     | '/_tma/chat/$chatId'
+    | '/_tma/settings/api-keys'
     | '/_tma/chat/'
     | '/_tma/chat/$chatId_/add-expense'
     | '/_tma/chat/$chatId_/create-snapshot'
@@ -208,6 +220,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/chat/'
       preLoaderRoute: typeof TmaChatIndexRouteImport
       parentRoute: typeof TmaChatRoute
+    }
+    '/_tma/settings/api-keys': {
+      id: '/_tma/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof TmaSettingsApiKeysRouteImport
+      parentRoute: typeof TmaRoute
     }
     '/_tma/chat/$chatId': {
       id: '/_tma/chat/$chatId'
@@ -291,11 +310,13 @@ const TmaChatRouteWithChildren =
 interface TmaRouteChildren {
   TmaChatRoute: typeof TmaChatRouteWithChildren
   TmaHomeRoute: typeof TmaHomeRoute
+  TmaSettingsApiKeysRoute: typeof TmaSettingsApiKeysRoute
 }
 
 const TmaRouteChildren: TmaRouteChildren = {
   TmaChatRoute: TmaChatRouteWithChildren,
   TmaHomeRoute: TmaHomeRoute,
+  TmaSettingsApiKeysRoute: TmaSettingsApiKeysRoute,
 }
 
 const TmaRouteWithChildren = TmaRoute._addFileChildren(TmaRouteChildren)
