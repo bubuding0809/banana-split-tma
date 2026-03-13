@@ -69,6 +69,12 @@ export const snapshotCommands: Command[] = [
           "--creator-id is required",
           "create-snapshot"
         );
+      if (Number.isNaN(Number(opts["creator-id"])))
+        return error(
+          "invalid_option",
+          "--creator-id must be a valid number",
+          "create-snapshot"
+        );
       if (!opts.title)
         return error(
           "missing_option",
