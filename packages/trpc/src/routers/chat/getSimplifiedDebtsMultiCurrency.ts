@@ -7,7 +7,7 @@ import {
   calculateTransactionReduction,
   validateDebtSimplification,
 } from "../../utils/debtSimplification.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -225,6 +225,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getSimplifiedDebtsMultiCurrencyHandler(input, ctx.db);
   });

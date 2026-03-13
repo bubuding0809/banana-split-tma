@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
@@ -30,7 +30,7 @@ export const deleteSnapshotHandler = async (
     throw new Error("Snapshot not found");
   }
 
-  assertChatScope(session, snapshot.chatId);
+  await assertChatAccess(session, db, snapshot.chatId);
 
   // Delete the snapshot (expenses will be disconnected automatically)
   await db.expenseSnapshot.delete({
