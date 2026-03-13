@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 interface SessionWithScope {
-  authType: "superadmin" | "chat-api-key" | "telegram";
+  authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
   chatId: bigint | null;
 }
 
