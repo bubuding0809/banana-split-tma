@@ -52,6 +52,33 @@ describe("snapshot commands", () => {
     expect(queryMock).toHaveBeenCalledWith({ snapshotId: "snap-123" });
   });
 
+  it("create-snapshot should fail if required options are missing", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({}, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--creator-id is required",
+    });
+
+    expect(await cmd?.execute({ "creator-id": "1" }, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--title is required",
+    });
+  });
+
+  it("create-snapshot should fail if creator-id is invalid", async () => {
+    const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({ "creator-id": "abc" }, trpcMock)).toMatchObject(
+      {
+        code: "invalid_option",
+        message: "--creator-id must be a valid number",
+      }
+    );
+  });
+
   it("create-snapshot should call trpc.snapshot.create", async () => {
     const cmd = snapshotCommands.find((c) => c.name === "create-snapshot");
     const mutateMock = vi.fn().mockResolvedValue({ id: "snap-1" });
