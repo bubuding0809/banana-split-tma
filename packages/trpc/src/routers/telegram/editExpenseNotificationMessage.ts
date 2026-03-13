@@ -54,7 +54,7 @@ export const editExpenseMessageHandler = async (
     // Create the deep link keyboard
     const chatContext = {
       chat_id: input.chatId,
-      chat_type: input.chatType === "private" ? "private" : "g",
+      chat_type: input.chatType === "private" ? "p" : "g",
     };
     const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
     const botInfo = await teleBot.getMe();

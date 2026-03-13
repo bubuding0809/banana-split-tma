@@ -10,10 +10,10 @@ function TmaIndexRoute() {
   const { chat_id, chat_type } = tmaStartParams ?? {};
 
   const chatId = chat_id ?? 0;
-  const chatType = chat_type ?? "private";
+  const chatType = chat_type ?? "p";
 
   // Only redirect to the /chat/$chatId route if it is a group chat and currently on /_tma/chat
-  if (chatType !== "private") {
+  if (chatType !== "p") {
     return (
       <Navigate
         to="/chat/$chatId"
