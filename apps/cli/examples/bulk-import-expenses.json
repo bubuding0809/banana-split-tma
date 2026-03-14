@@ -1,0 +1,51 @@
+[
+  {
+    "payerId": 123456789,
+    "description": "Groceries",
+    "amount": 85.5,
+    "currency": "SGD",
+    "splitMode": "EQUAL",
+    "participantIds": [123456789, 987654321]
+  },
+  {
+    "payerId": 987654321,
+    "description": "Electricity bill",
+    "amount": 120.0,
+    "currency": "SGD",
+    "splitMode": "EQUAL",
+    "participantIds": [123456789, 987654321]
+  },
+  {
+    "payerId": 123456789,
+    "description": "Dinner at Lau Pa Sat",
+    "amount": 95.8,
+    "currency": "SGD",
+    "splitMode": "EQUAL",
+    "participantIds": [123456789, 987654321, 111222333]
+  },
+  {
+    "payerId": 111222333,
+    "description": "Grab ride to airport",
+    "amount": 45.0,
+    "currency": "SGD",
+    "splitMode": "EXACT",
+    "participantIds": [123456789, 111222333],
+    "customSplits": [
+      { "userId": 123456789, "amount": 15.0 },
+      { "userId": 111222333, "amount": 30.0 }
+    ]
+  },
+  {
+    "payerId": 987654321,
+    "description": "Netflix subscription",
+    "amount": 18.98,
+    "currency": "SGD",
+    "splitMode": "SHARES",
+    "participantIds": [123456789, 987654321, 111222333],
+    "customSplits": [
+      { "userId": 123456789, "amount": 2 },
+      { "userId": 987654321, "amount": 1 },
+      { "userId": 111222333, "amount": 1 }
+    ]
+  }
+]
