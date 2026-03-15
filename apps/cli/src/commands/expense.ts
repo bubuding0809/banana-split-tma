@@ -95,6 +95,11 @@ export const expenseCommands: Command[] = [
         description:
           'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
       },
+      date: {
+        type: "string",
+        description:
+          "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z). Defaults to now.",
+      },
     },
     execute: (opts, trpc) => {
       if (!opts["payer-id"]) {
@@ -189,6 +194,18 @@ export const expenseCommands: Command[] = [
         }
       }
 
+      let date: Date | undefined;
+      if (opts.date) {
+        date = new Date(String(opts.date));
+        if (Number.isNaN(date.getTime())) {
+          return error(
+            "invalid_option",
+            "--date must be a valid ISO 8601 date string",
+            "create-expense"
+          );
+        }
+      }
+
       return run("create-expense", async () => {
         const chatId = await resolveChatId(
           trpc,
@@ -201,6 +218,7 @@ export const expenseCommands: Command[] = [
           description: String(opts.description),
           amount,
           currency: opts.currency ? String(opts.currency) : undefined,
+          date,
           splitMode: String(opts["split-mode"]) as
             | "EQUAL"
             | "EXACT"
@@ -258,6 +276,11 @@ export const expenseCommands: Command[] = [
         type: "string",
         description:
           'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+      },
+      date: {
+        type: "string",
+        description:
+          "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z)",
       },
     },
     execute: (opts, trpc) => {
@@ -329,6 +352,18 @@ export const expenseCommands: Command[] = [
         }
       }
 
+      let date: Date | undefined;
+      if (opts.date) {
+        date = new Date(String(opts.date));
+        if (Number.isNaN(date.getTime())) {
+          return error(
+            "invalid_option",
+            "--date must be a valid ISO 8601 date string",
+            "update-expense"
+          );
+        }
+      }
+
       return run("update-expense", async () => {
         const chatId = await resolveChatId(
           trpc,
@@ -341,6 +376,7 @@ export const expenseCommands: Command[] = [
           payerId,
           description: String(opts.description),
           amount,
+          date,
           currency: opts.currency ? String(opts.currency) : undefined,
           splitMode: String(opts["split-mode"]) as
             | "EQUAL"
