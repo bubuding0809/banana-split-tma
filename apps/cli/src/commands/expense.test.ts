@@ -111,10 +111,63 @@ describe("expense commands", () => {
       description: "Food",
       amount: 100,
       currency: "USD",
+      date: undefined,
       splitMode: "EQUAL",
       participantIds: [1, 2, 3],
       customSplits: undefined,
       sendNotification: true,
+    });
+  });
+
+  it("create-expense should pass --date as a Date object", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "create-expense");
+    const mutateMock = vi.fn().mockResolvedValue({ id: "new-exp" });
+    const trpcMock = {
+      expense: { createExpense: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute(
+      {
+        "payer-id": "1",
+        description: "ntuc",
+        amount: "10.88",
+        "split-mode": "EQUAL",
+        "participant-ids": "1,2",
+        currency: "SGD",
+        "chat-id": "123",
+        date: "2026-03-04",
+      },
+      trpcMock
+    );
+
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: new Date("2026-03-04"),
+        description: "ntuc",
+        amount: 10.88,
+      })
+    );
+  });
+
+  it("create-expense should reject invalid --date", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "create-expense");
+    const trpcMock = {} as any;
+
+    const result = await cmd?.execute(
+      {
+        "payer-id": "1",
+        description: "Food",
+        amount: "100",
+        "split-mode": "EQUAL",
+        "participant-ids": "1,2",
+        date: "not-a-date",
+      },
+      trpcMock
+    );
+
+    expect(result).toMatchObject({
+      code: "invalid_option",
+      message: "--date must be a valid ISO 8601 date string",
     });
   });
 
@@ -262,11 +315,64 @@ describe("expense commands", () => {
       payerId: 1,
       description: "Food",
       amount: 100,
+      date: undefined,
       currency: "USD",
       splitMode: "EQUAL",
       participantIds: [1, 2, 3],
       customSplits: undefined,
       sendNotification: true,
+    });
+  });
+
+  it("update-expense should pass --date as a Date object", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "update-expense");
+    const mutateMock = vi.fn().mockResolvedValue({ id: "exp-123" });
+    const trpcMock = {
+      expense: { updateExpense: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute(
+      {
+        "expense-id": "exp-123",
+        "payer-id": "1",
+        description: "Food",
+        amount: "100",
+        "split-mode": "EQUAL",
+        "participant-ids": "1,2",
+        "chat-id": "123",
+        date: "2026-03-04T10:00:00Z",
+      },
+      trpcMock
+    );
+
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expenseId: "exp-123",
+        date: new Date("2026-03-04T10:00:00Z"),
+      })
+    );
+  });
+
+  it("update-expense should reject invalid --date", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "update-expense");
+    const trpcMock = {} as any;
+
+    const result = await cmd?.execute(
+      {
+        "expense-id": "exp-123",
+        "payer-id": "1",
+        description: "Food",
+        amount: "100",
+        "split-mode": "EQUAL",
+        "participant-ids": "1,2",
+        date: "invalid",
+      },
+      trpcMock
+    );
+
+    expect(result).toMatchObject({
+      code: "invalid_option",
+      message: "--date must be a valid ISO 8601 date string",
     });
   });
 });
