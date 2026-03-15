@@ -532,48 +532,20 @@ export const expenseCommands: Command[] = [
           opts["chat-id"] as string | undefined
         );
 
-        const results: {
-          index: number;
-          status: "success" | "error";
-          description: string;
-          result?: unknown;
-          error?: string;
-        }[] = [];
-
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i]!;
-          try {
-            const result = await trpc.expense.createExpense.mutate({
-              chatId,
-              payerId: row.payerId,
-              creatorId: row.creatorId ?? row.payerId,
-              description: row.description,
-              amount: row.amount,
-              currency: row.currency,
-              splitMode: row.splitMode,
-              participantIds: row.participantIds,
-              customSplits: row.customSplits,
-              sendNotification: false,
-            });
-            results.push({
-              index: i,
-              status: "success",
-              description: row.description,
-              result,
-            });
-          } catch (e) {
-            results.push({
-              index: i,
-              status: "error",
-              description: row.description,
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-
-        const succeeded = results.filter((r) => r.status === "success").length;
-        const failed = results.filter((r) => r.status === "error").length;
-        return { total: rows.length, succeeded, failed, results };
+        return trpc.expense.createExpensesBulk.mutate({
+          chatId,
+          expenses: rows.map((row) => ({
+            payerId: row.payerId,
+            creatorId: row.creatorId,
+            description: row.description,
+            amount: row.amount,
+            currency: row.currency,
+            splitMode: row.splitMode,
+            participantIds: row.participantIds,
+            customSplits: row.customSplits,
+            date: row.date ? new Date(row.date) : undefined,
+          })),
+        });
       });
     },
   },

@@ -2,6 +2,7 @@ import getExpenseByChat from "./getExpenseByChat.js";
 import getAllExpensesByChat from "./getAllExpensesByChat.js";
 import getExpenseDetails from "./getExpenseDetails.js";
 import createExpense from "./createExpense.js";
+import createExpensesBulk from "./createExpensesBulk.js";
 import updateExpense from "./updateExpense.js";
 import deleteExpense from "./deleteExpense.js";
 import convertCurrencyBulk from "./convertCurrencyBulk.js";
@@ -12,6 +13,7 @@ export const expenseRouter = createTRPCRouter({
   getAllExpensesByChat,
   getExpenseDetails,
   createExpense,
+  createExpensesBulk,
   updateExpense,
   deleteExpense,
   convertCurrencyBulk,
