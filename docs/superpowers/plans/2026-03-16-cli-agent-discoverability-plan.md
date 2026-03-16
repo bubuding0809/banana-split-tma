@@ -155,6 +155,65 @@ git add apps/cli/src/cli.ts
 git commit -m "feat(cli): implement command-specific help and concise global help"
 ```
 
+### Task 2.5: Add Tests for Help System
+
+**Files:**
+
+- Create: `apps/cli/src/cli.test.ts`
+
+- [ ] **Step 1: Write tests for help output**
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { execSync } from "node:child_process";
+
+describe("CLI Help System", () => {
+  it("should output concise global help", () => {
+    const output = execSync("node dist/cli.js --help").toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.name).toBe("banana");
+    expect(parsed.agent_instructions).toBeDefined();
+    expect(parsed.commands).toBeDefined();
+    expect(parsed.commands.length).toBeGreaterThan(0);
+
+    // Global help should not have detailed options for commands
+    const createExpenseCmd = parsed.commands.find(
+      (c: any) => c.name === "create-expense"
+    );
+    expect(createExpenseCmd.options).toBeUndefined();
+  });
+
+  it("should output detailed command-specific help", () => {
+    const output = execSync(
+      "node dist/cli.js create-expense --help"
+    ).toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.command).toBe("create-expense");
+    expect(parsed.agentGuidance).toBeDefined();
+    expect(parsed.examples).toBeDefined();
+    expect(parsed.options).toBeDefined();
+
+    // Check for required flags
+    const amountOpt = parsed.options.find((o: any) => o.name === "--amount");
+    expect(amountOpt.required).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests**
+
+Run: `pnpm --filter @banananasplitz/cli test`
+Expected: PASS
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/cli/src/cli.test.ts
+git commit -m "test(cli): add tests for help system"
+```
+
 ---
 
 ## Chunk 2: Update Command Definitions
@@ -303,7 +362,53 @@ git commit -m "feat(cli): add metadata to chat commands"
 
 - [ ] **Step 5: Add metadata to `get-net-share`, `get-totals`, `delete-expense`, `bulk-import-expenses`**
 
-Update the remaining commands in `expense.ts` with appropriate `required` flags, `agentGuidance`, and `examples`.
+```typescript
+  {
+    name: "get-net-share",
+    description: "Get the net balance between two users in a chat",
+    agentGuidance: "Use this to see who owes who before creating a settlement.",
+    examples: ["banana get-net-share --main-user-id 123 --target-user-id 456 --currency USD"],
+    options: {
+      "main-user-id": { type: "string", description: "The user whose perspective to calculate from", required: true },
+      "target-user-id": { type: "string", description: "The other user in the balance calculation", required: true },
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      currency: { type: "string", description: "3-letter currency code", required: true },
+    },
+    // ...
+  },
+  {
+    name: "get-totals",
+    description: "Get total borrowed and lent amounts for a user in a chat",
+    agentGuidance: "Use this to get a high-level overview of a user's financial state in a chat.",
+    examples: ["banana get-totals --user-id 123"],
+    options: {
+      "user-id": { type: "string", description: "The user ID to check totals for", required: true },
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+    },
+    // ...
+  },
+  {
+    name: "delete-expense",
+    description: "Delete an expense by ID",
+    agentGuidance: "Use this to remove an expense completely. This cannot be undone.",
+    examples: ["banana delete-expense --expense-id 123e4567-e89b-12d3-a456-426614174000"],
+    options: {
+      "expense-id": { type: "string", description: "The expense UUID", required: true },
+    },
+    // ...
+  },
+  {
+    name: "bulk-import-expenses",
+    description: "Import multiple expenses from a JSON file",
+    agentGuidance: "Use this when migrating data or adding many expenses at once.",
+    examples: ["banana bulk-import-expenses --file ./expenses.json"],
+    options: {
+      file: { type: "string", description: "Path to a JSON file", required: true },
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+    },
+    // ...
+  }
+```
 
 - [ ] **Step 6: Commit**
 
@@ -322,15 +427,136 @@ git commit -m "feat(cli): add metadata to expense commands"
 
 - [ ] **Step 1: Add metadata to settlement commands**
 
-Update `get-settlements`, `create-settlement`, `delete-settlement` with `required` flags, `agentGuidance`, and `examples`.
+```typescript
+  {
+    name: "list-settlements",
+    description: "List all debt settlements in a chat",
+    agentGuidance: "Use this to see past payments between users.",
+    examples: ["banana list-settlements --chat-id 123456789"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      currency: { type: "string", description: "Filter by 3-letter currency code", required: false },
+    },
+    // ...
+  },
+  {
+    name: "create-settlement",
+    description: "Record a debt settlement/payment between two users",
+    agentGuidance: "Use this when a user says 'I paid back $50 to Bob'. Always use get-net-share first to verify the debt.",
+    examples: ["banana create-settlement --sender-id 123 --receiver-id 456 --amount 50 --currency USD"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      "sender-id": { type: "string", description: "The user ID who is paying", required: true },
+      "receiver-id": { type: "string", description: "The user ID who is receiving", required: true },
+      amount: { type: "string", description: "The amount being paid", required: true },
+      currency: { type: "string", description: "3-letter currency code", required: false },
+      description: { type: "string", description: "Optional note", required: false },
+    },
+    // ...
+  },
+  {
+    name: "delete-settlement",
+    description: "Delete a settlement by ID",
+    agentGuidance: "Use this to undo a settlement.",
+    examples: ["banana delete-settlement --settlement-id 123e4567-e89b-12d3-a456-426614174000"],
+    options: {
+      "settlement-id": { type: "string", description: "The settlement UUID", required: true },
+    },
+    // ...
+  },
+  {
+    name: "settle-all-debts",
+    description: "Settle all debts between two users across multiple currencies",
+    agentGuidance: "Use this when a user wants to clear all balances with someone else.",
+    examples: ["banana settle-all-debts --sender-id 123 --receiver-id 456 --balances '[{\"currency\":\"USD\",\"amount\":15}]'"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      "sender-id": { type: "string", description: "The user ID paying", required: true },
+      "receiver-id": { type: "string", description: "The user ID receiving", required: true },
+      balances: { type: "string", description: "JSON array of balances", required: true },
+      "creditor-name": { type: "string", description: "Optional creditor name", required: false },
+      "debtor-name": { type: "string", description: "Optional debtor name", required: false },
+    },
+    // ...
+  }
+```
 
 - [ ] **Step 2: Add metadata to snapshot commands**
 
-Update `create-snapshot`, `list-snapshots`, `get-snapshot`, `restore-snapshot` with `required` flags, `agentGuidance`, and `examples`.
+```typescript
+  {
+    name: "list-snapshots",
+    description: "List all expense snapshots in a chat",
+    agentGuidance: "Use this to find a snapshot ID.",
+    examples: ["banana list-snapshots"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+    },
+    // ...
+  },
+  {
+    name: "get-snapshot",
+    description: "Get full details of a specific snapshot",
+    agentGuidance: "Use this to see which expenses are included in a snapshot.",
+    examples: ["banana get-snapshot --snapshot-id 123e4567-e89b-12d3-a456-426614174000"],
+    options: {
+      "snapshot-id": { type: "string", description: "The snapshot UUID", required: true },
+    },
+    // ...
+  },
+  {
+    name: "create-snapshot",
+    description: "Create an expense snapshot combining multiple specific expenses",
+    agentGuidance: "Use this to group expenses together.",
+    examples: ["banana create-snapshot --creator-id 123 --title 'Trip to Japan' --expense-ids 'id1,id2'"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      "creator-id": { type: "string", description: "The user ID creating the snapshot", required: true },
+      title: { type: "string", description: "Snapshot title", required: true },
+      "expense-ids": { type: "string", description: "Comma-separated expense UUIDs", required: true },
+    },
+    // ...
+  },
+  {
+    name: "update-snapshot",
+    description: "Modify an existing snapshot's title or associated expenses",
+    agentGuidance: "Use this to add or remove expenses from a snapshot.",
+    examples: ["banana update-snapshot --snapshot-id 123e4567-e89b-12d3-a456-426614174000 --title 'Trip to Japan' --expense-ids 'id1,id2,id3'"],
+    options: {
+      "snapshot-id": { type: "string", description: "The snapshot UUID", required: true },
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      title: { type: "string", description: "Snapshot title", required: true },
+      "expense-ids": { type: "string", description: "Comma-separated expense UUIDs", required: true },
+    },
+    // ...
+  },
+  {
+    name: "delete-snapshot",
+    description: "Delete an existing snapshot",
+    agentGuidance: "Use this to remove a snapshot. The underlying expenses are not deleted.",
+    examples: ["banana delete-snapshot --snapshot-id 123e4567-e89b-12d3-a456-426614174000"],
+    options: {
+      "snapshot-id": { type: "string", description: "The snapshot UUID", required: true },
+    },
+    // ...
+  }
+```
 
 - [ ] **Step 3: Add metadata to currency commands**
 
-Update `get-exchange-rates` with `required` flags, `agentGuidance`, and `examples`.
+```typescript
+  {
+    name: "get-exchange-rate",
+    description: "Get the current exchange rate between two currencies",
+    agentGuidance: "Use this to check conversion rates before creating expenses in foreign currencies.",
+    examples: ["banana get-exchange-rate --base-currency USD --target-currency SGD"],
+    options: {
+      "base-currency": { type: "string", description: "The source currency code", required: true },
+      "target-currency": { type: "string", description: "The target currency code", required: true },
+    },
+    // ...
+  }
+```
 
 - [ ] **Step 4: Run type check and build**
 
