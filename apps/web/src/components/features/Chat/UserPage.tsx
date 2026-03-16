@@ -1,40 +1,43 @@
 import { useRef } from "react";
-import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Avatar, Caption, Divider, Text } from "@telegram-apps/telegram-ui";
-import { Settings } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
+import { Avatar, Cell, Divider, Navigation } from "@telegram-apps/telegram-ui";
+import { useNavigate } from "@tanstack/react-router";
 import ChatTransactionTab from "./ChatTransactionTab";
 
 const UserPage = () => {
   const tUserData = useSignal(initData.user);
   const headerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const userId = tUserData?.id ?? 0;
+
+  const handleSettingsClick = () => {
+    hapticFeedback.impactOccurred("light");
+    navigate({
+      to: "/chat/$chatId/settings",
+      params: { chatId: userId.toString() },
+      search: {
+        prevTab: "transaction",
+      },
+    });
+  };
 
   return (
     <main className="no-scrollbar flex flex-col">
       {/* Header */}
-      <div
-        ref={headerRef}
-        className="flex items-center justify-between px-4 py-2"
-      >
-        <div className="flex items-center gap-3">
-          <Avatar size={48} src={tUserData?.photoUrl} />
-          <div>
-            <Text weight="2" className="block">
-              {tUserData?.firstName} {tUserData?.lastName}
-            </Text>
-            <Caption level="1" className="text-gray-500">
-              Personal Space
-            </Caption>
-          </div>
-        </div>
-        <Link
-          to="/settings/api-keys"
-          className="p-2 text-gray-500 hover:text-gray-700"
+      <div ref={headerRef} className="py-1">
+        <Cell
+          onClick={handleSettingsClick}
+          after={<Navigation className="text-nowrap">⚙️</Navigation>}
+          before={
+            <Avatar size={48} src={tUserData?.photoUrl}>
+              ⏳
+            </Avatar>
+          }
+          subtitle="Personal Space"
         >
-          <Settings size={24} />
-        </Link>
+          {tUserData?.firstName} {tUserData?.lastName}
+        </Cell>
       </div>
 
       <Divider />
