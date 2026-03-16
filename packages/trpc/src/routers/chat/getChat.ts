@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { TRPCError } from "@trpc/server";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({ chatId: z.number() });
 
@@ -33,6 +33,6 @@ export const getChatHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getChatHandler(input, ctx.db);
   });

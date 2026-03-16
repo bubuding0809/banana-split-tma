@@ -79,7 +79,8 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const authorization = headers["authorization"];
 
   let user: TelegramUser | null = null;
-  let authType: "superadmin" | "chat-api-key" | "telegram" = "superadmin";
+  let authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram" =
+    "superadmin";
   let chatId: bigint | null = null;
 
   // Check for API key authentication
@@ -126,15 +127,42 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         where: { keyHash },
       });
 
-      if (!chatApiKey || chatApiKey.revokedAt !== null) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Invalid API key",
+      if (chatApiKey) {
+        if (chatApiKey.revokedAt !== null) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "API key has been revoked",
+          });
+        }
+        authType = "chat-api-key";
+        chatId = chatApiKey.chatId;
+      } else {
+        const userApiKey = await ctx.db.userApiKey.findUnique({
+          where: { keyHash },
+          include: { user: true },
         });
-      }
 
-      authType = "chat-api-key";
-      chatId = chatApiKey.chatId;
+        if (userApiKey) {
+          if (userApiKey.revokedAt !== null) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "API key has been revoked",
+            });
+          }
+          authType = "user-api-key";
+          user = {
+            id: Number(userApiKey.user.id),
+            first_name: userApiKey.user.firstName,
+            last_name: userApiKey.user.lastName || undefined,
+            username: userApiKey.user.username || undefined,
+          };
+        } else {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid API key",
+          });
+        }
+      }
     }
   }
   // Check for Telegram authentication

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
@@ -100,6 +100,6 @@ export const updateSnapshotHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return updateSnapshotHandler(input, ctx.db);
   });
