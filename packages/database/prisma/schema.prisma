@@ -52,6 +52,7 @@ model User {
   updatedAt            DateTime          @updatedAt
   ExpenseSnapshot      ExpenseSnapshot[]
   createdApiKeys       ChatApiKey[]
+  userApiKeys          UserApiKey[]
 }
 
 enum SplitMode {
@@ -160,4 +161,16 @@ model ChatApiKey {
   createdAt   DateTime  @default(now())
 
   @@index([chatId])
+}
+
+model UserApiKey {
+  id          String    @id @default(uuid())
+  keyHash     String    @unique
+  keyPrefix   String
+  userId      BigInt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
 }

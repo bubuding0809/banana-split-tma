@@ -1,55 +1,57 @@
-import {
-  mainButton,
-  openTelegramLink,
-  useSignal,
-} from "@telegram-apps/sdk-react";
-import { Placeholder } from "@telegram-apps/telegram-ui";
-import { useEffect } from "react";
-import { assetUrls } from "@/assets/urls";
+import { useRef } from "react";
+import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
+import { Avatar, Cell, Divider, Navigation } from "@telegram-apps/telegram-ui";
+import { useNavigate } from "@tanstack/react-router";
+import ChatTransactionTab from "./ChatTransactionTab";
 
 const UserPage = () => {
-  const isMainButtonMounted = useSignal(mainButton.isMounted);
+  const tUserData = useSignal(initData.user);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    mainButton.setParams.ifAvailable({
-      text: "+ Add to group",
-      isEnabled: true,
-      isVisible: true,
+  const userId = tUserData?.id ?? 0;
+
+  const handleSettingsClick = () => {
+    hapticFeedback.impactOccurred("light");
+    navigate({
+      to: "/chat/$chatId/settings",
+      params: { chatId: userId.toString() },
+      search: {
+        prevTab: "transaction",
+      },
     });
-
-    const offMainButtonClick = mainButton.onClick.ifAvailable(() => {
-      // This will open the Telegram app to add the bot to a group
-      openTelegramLink(
-        `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?startgroup=group_add`
-      );
-    });
-
-    return () => {
-      offMainButtonClick?.();
-      mainButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-      });
-    };
-  }, [isMainButtonMounted]);
+  };
 
   return (
-    <div className="flex h-[80vh] flex-col items-center justify-center p-4">
-      <Placeholder
-        header="Nothing to see here, for now ..."
-        description="Add me to a group to start splitting expenses"
+    <main className="no-scrollbar flex flex-col">
+      {/* Header */}
+      <div ref={headerRef} className="py-1">
+        <Cell
+          onClick={handleSettingsClick}
+          after={<Navigation className="text-nowrap">⚙️</Navigation>}
+          before={
+            <Avatar size={48} src={tUserData?.photoUrl}>
+              ⏳
+            </Avatar>
+          }
+          subtitle="Personal Space"
+        >
+          {tUserData?.firstName} {tUserData?.lastName}
+        </Cell>
+      </div>
+
+      <Divider />
+
+      {/* Transactions List - explicit height for virtualizer */}
+      <div
+        className="relative flex-1 overflow-y-auto"
+        style={{
+          height: `calc(100vh - ${headerRef.current?.offsetHeight ?? 0}px)`,
+        }}
       >
-        <img
-          alt="Telegram sticker"
-          src={assetUrls.bananaMiddleFinger}
-          style={{
-            display: "block",
-            height: "144px",
-            width: "144px",
-          }}
-        />
-      </Placeholder>
-    </div>
+        <ChatTransactionTab chatId={userId} />
+      </div>
+    </main>
   );
 };
 

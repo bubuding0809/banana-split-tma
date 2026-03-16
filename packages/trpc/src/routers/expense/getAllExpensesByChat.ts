@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -37,8 +37,17 @@ export const getAllExpensesByChatHandler = async (
 };
 
 export default protectedProcedure
+  .meta({
+    openapi: {
+      method: "GET",
+      path: "/chat/{chatId}/expenses",
+      tags: ["expense"],
+      summary: "Get all expenses by chat",
+    },
+  })
   .input(inputSchema)
+  .output(z.any())
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getAllExpensesByChatHandler(input, ctx.db);
   });
