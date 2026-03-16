@@ -5,6 +5,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
+  Button,
   ButtonCell,
   Cell,
   IconButton,
@@ -136,16 +137,17 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
                 key={token.id}
                 before={<Key size={18} className="text-gray-500" />}
                 after={
-                  <button
+                  <IconButton
+                    size="s"
+                    mode="plain"
                     onClick={() => handleRevoke(token.id)}
                     disabled={revokeMutation.isPending}
-                    className="rounded p-1.5"
                   >
                     <Trash2
                       size={18}
                       style={{ color: tDestructiveTextColor }}
                     />
-                  </button>
+                  </IconButton>
                 }
                 subtitle={
                   <Text className="text-xs text-gray-500">
@@ -228,23 +230,16 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
             </pre>
           </div>
 
-          <button
+          <Button
+            size="l"
+            stretched
+            mode="filled"
             onClick={handleCopyPrompt}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-semibold text-white transition-colors"
+            before={copiedPrompt ? <Check size={20} /> : <Copy size={20} />}
             style={{ backgroundColor: copiedPrompt ? "#22c55e" : tButtonColor }}
           >
-            {copiedPrompt ? (
-              <>
-                <Check size={20} />
-                Copied Prompt!
-              </>
-            ) : (
-              <>
-                <Copy size={20} />
-                Copy Agent Setup Prompt
-              </>
-            )}
-          </button>
+            {copiedPrompt ? "Copied Prompt!" : "Copy Agent Setup Prompt"}
+          </Button>
 
           <div className="mt-2 flex flex-col gap-2 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
             <Text className="text-xs font-medium text-gray-500">
@@ -253,27 +248,24 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
             <code className="break-all rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
               {newRawKey}
             </code>
-            <button
+            <Button
+              size="s"
+              stretched
+              mode={copied ? "filled" : "outline"}
               onClick={handleCopy}
-              className="mt-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: copied ? "#22c55e" : "transparent",
-                color: copied ? "white" : tButtonColor,
-                border: `1px solid ${copied ? "#22c55e" : tButtonColor}`,
-              }}
+              before={copied ? <Check size={16} /> : <Copy size={16} />}
+              style={
+                copied
+                  ? {
+                      backgroundColor: "#22c55e",
+                      borderColor: "#22c55e",
+                      color: "white",
+                    }
+                  : { color: tButtonColor, borderColor: tButtonColor }
+              }
             >
-              {copied ? (
-                <>
-                  <Check size={16} />
-                  Copied Token
-                </>
-              ) : (
-                <>
-                  <Copy size={16} />
-                  Copy Token Only
-                </>
-              )}
-            </button>
+              {copied ? "Copied Token" : "Copy Token Only"}
+            </Button>
           </div>
         </div>
       </Modal>
@@ -342,29 +334,30 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
   }
 }`}
               </pre>
-              <button
+              <Button
+                size="m"
+                stretched
+                mode="filled"
                 onClick={() =>
                   handleCopyAgentConfig(
                     `"mcp": {\n  "banana-split": {\n    "command": "node",\n    "args": [\n      "/path/to/banana-split-tma/apps/mcp/dist/index.js"\n    ],\n    "env": {\n      "BANANA_SPLIT_API_KEY": "<YOUR_API_TOKEN>"\n    }\n  }\n}`,
                     "openclaw"
                   )
                 }
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors"
+                before={
+                  copiedAgent === "openclaw" ? (
+                    <Check size={18} />
+                  ) : (
+                    <Copy size={18} />
+                  )
+                }
                 style={{
                   backgroundColor:
                     copiedAgent === "openclaw" ? "#22c55e" : tButtonColor,
                 }}
               >
-                {copiedAgent === "openclaw" ? (
-                  <>
-                    <Check size={18} /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} /> Copy Config
-                  </>
-                )}
-              </button>
+                {copiedAgent === "openclaw" ? "Copied!" : "Copy Config"}
+              </Button>
             </div>
           </div>
 
@@ -394,29 +387,30 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
   }
 }`}
               </pre>
-              <button
+              <Button
+                size="m"
+                stretched
+                mode="filled"
                 onClick={() =>
                   handleCopyAgentConfig(
                     `"mcpServers": {\n  "banana-split": {\n    "command": "node",\n    "args": [\n      "/path/to/banana-split-tma/apps/mcp/dist/index.js"\n    ],\n    "env": {\n      "BANANA_SPLIT_API_KEY": "<YOUR_API_TOKEN>"\n    }\n  }\n}`,
                     "claude"
                   )
                 }
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors"
+                before={
+                  copiedAgent === "claude" ? (
+                    <Check size={18} />
+                  ) : (
+                    <Copy size={18} />
+                  )
+                }
                 style={{
                   backgroundColor:
                     copiedAgent === "claude" ? "#22c55e" : tButtonColor,
                 }}
               >
-                {copiedAgent === "claude" ? (
-                  <>
-                    <Check size={18} /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} /> Copy Config
-                  </>
-                )}
-              </button>
+                {copiedAgent === "claude" ? "Copied!" : "Copy Config"}
+              </Button>
             </div>
           </div>
 
@@ -440,29 +434,32 @@ When interacting with expenses:
 3. If asked to create an expense or settlement, use the corresponding write tools.
 4. Keep track of who owes who by using the get_debts and get_simplified_debts tools.`}
               </pre>
-              <button
+              <Button
+                size="m"
+                stretched
+                mode="filled"
                 onClick={() =>
                   handleCopyAgentConfig(
                     `You are connected to the Banana Split MCP Server. You have access to tools to read and manage expenses for this Telegram group.\n\nWhen interacting with expenses:\n1. Always verify the currency of an expense or settlement.\n2. If asked to summarize expenses, use the list tools to retrieve them first.\n3. If asked to create an expense or settlement, use the corresponding write tools.\n4. Keep track of who owes who by using the get_debts and get_simplified_debts tools.`,
                     "instructions"
                   )
                 }
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors"
+                before={
+                  copiedAgent === "instructions" ? (
+                    <Check size={18} />
+                  ) : (
+                    <Copy size={18} />
+                  )
+                }
                 style={{
                   backgroundColor:
                     copiedAgent === "instructions" ? "#22c55e" : tButtonColor,
                 }}
               >
-                {copiedAgent === "instructions" ? (
-                  <>
-                    <Check size={18} /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} /> Copy Instructions
-                  </>
-                )}
-              </button>
+                {copiedAgent === "instructions"
+                  ? "Copied!"
+                  : "Copy Instructions"}
+              </Button>
             </div>
           </div>
         </div>

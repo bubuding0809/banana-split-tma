@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import {
   backButton,
   hapticFeedback,
@@ -15,7 +15,7 @@ import { cn } from "@utils/cn";
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
-import { useAppForm } from "@/hooks";
+import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { normalizeDateToMidnight } from "@/utils/date";
@@ -46,9 +46,23 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const navigate = routeApi.useNavigate();
+  const globalNavigate = useNavigate();
+  const tmaStartParams = useStartParams();
   const { prevTab, currentFormStep } = routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
+  const isPersonalChat = (tmaStartParams?.chat_type ?? "private") === "private";
+
+  const navigateBackToChat = (search: Record<string, unknown>) => {
+    if (isPersonalChat) {
+      return globalNavigate({ to: "/chat", search });
+    }
+    return globalNavigate({
+      to: "/chat/$chatId",
+      params: { chatId: chatId.toString() },
+      search,
+    });
+  };
 
   // * Queries =====================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -105,13 +119,9 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           isLoaderVisible: false,
         });
 
-        navigate({
-          to: "..",
-          search: (prev) => ({
-            ...prev,
-            selectedTab: "transaction",
-            selectedCurrency: value.currency,
-          }),
+        navigateBackToChat({
+          selectedTab: "transaction",
+          selectedCurrency: value.currency,
         });
       } catch (error) {
         secondaryButton.setParams.ifAvailable({
@@ -147,12 +157,9 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
       hapticFeedback.notificationOccurred("success");
 
       if (isFirstStep) {
-        return navigate({
-          to: "..",
-          search: {
-            selectedTab: prevTab,
-            title: "",
-          },
+        return navigateBackToChat({
+          selectedTab: prevTab,
+          title: "",
         });
       }
 
@@ -167,7 +174,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, navigate, prevTab]);
+  }, [chatId, currentFormStep, isPersonalChat, navigate, prevTab]);
 
   // Show main button on mount
   useEffect(() => {

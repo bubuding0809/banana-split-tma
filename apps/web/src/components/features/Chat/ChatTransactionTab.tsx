@@ -25,7 +25,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { getRouteApi } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowLeft,
   CalendarArrowUp,
@@ -45,8 +45,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
-
-const routeApi = getRouteApi("/_tma/chat/$chatId");
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
@@ -142,10 +140,30 @@ interface ChatTransactionTabProps {
 }
 
 const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
-  const { selectedExpense, showPayments, relatedOnly, sortBy, sortOrder } =
-    routeApi.useSearch();
+  const {
+    selectedExpense,
+    showPayments = true,
+    relatedOnly = true,
+    sortBy = "date" as SortByOption,
+    sortOrder = "desc" as SortOrderOption,
+  } = useSearch({ strict: false }) as {
+    selectedExpense?: string;
+    showPayments?: boolean;
+    relatedOnly?: boolean;
+    sortBy?: SortByOption;
+    sortOrder?: SortOrderOption;
+  };
   const tUserData = useSignal(initData.user);
-  const navigate = routeApi.useNavigate();
+  const navigate = useNavigate();
+
+  // Route-agnostic search param updater (supports both /_tma/chat/ and /_tma/chat/$chatId)
+  const updateSearchParams = (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    void navigate({ search: updater as any });
+  };
+
   const trpcUtils = trpc.useUtils();
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tSecondaryBackgroundColor = useSignal(
@@ -218,44 +236,36 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
   const handlePaymentsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     hapticFeedback.selectionChanged();
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        showPayments: event.target.checked,
-      }),
-    });
+    updateSearchParams((prev) => ({
+      ...prev,
+      showPayments: event.target.checked,
+    }));
   };
 
   const handleRelatedOnlyToggle = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     hapticFeedback.selectionChanged();
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        relatedOnly: event.target.checked,
-      }),
-    });
+    updateSearchParams((prev) => ({
+      ...prev,
+      relatedOnly: event.target.checked,
+    }));
   };
 
   const handleSortByChange = (newSortBy: SortByOption) => {
     hapticFeedback.selectionChanged();
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        sortBy: newSortBy,
-      }),
-    });
+    updateSearchParams((prev) => ({
+      ...prev,
+      sortBy: newSortBy,
+    }));
   };
 
   const handleSortOrderChange = (newSortOrder: SortOrderOption) => {
     hapticFeedback.selectionChanged();
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        sortOrder: newSortOrder,
-      }),
-    });
+    updateSearchParams((prev) => ({
+      ...prev,
+      sortOrder: newSortOrder,
+    }));
   };
 
   // For modal FilterSection (inside modal) - transitions modal content

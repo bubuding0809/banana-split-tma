@@ -21,6 +21,7 @@ import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import RecurringRemindersSection from "./RecurringRemindersSection";
 import AccessTokensSection from "./AccessTokensSection";
+import UserAccessTokensSection from "./UserAccessTokensSection";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -40,6 +41,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
+  const isPrivateChat = userId === chatId;
 
   // * Queries =====================================================================================
   const { data: dChatData, status: dChatDataStatus } =
@@ -269,9 +271,13 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         )}
       </Section>
 
-      <RecurringRemindersSection chatId={chatId} />
+      {!isPrivateChat && <RecurringRemindersSection chatId={chatId} />}
 
-      <AccessTokensSection chatId={chatId} />
+      {isPrivateChat ? (
+        <UserAccessTokensSection />
+      ) : (
+        <AccessTokensSection chatId={chatId} />
+      )}
 
       <CurrencySelectionModal
         open={currencyModalOpen}

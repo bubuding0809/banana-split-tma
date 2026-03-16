@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
 import { Decimal } from "decimal.js";
 import {
@@ -379,6 +379,8 @@ export const updateExpenseHandler = async (
             };
           });
 
+          const threadId = input.threadId ?? (existingExpense.chat.threadId ? Number(existingExpense.chat.threadId) : undefined);
+
           // If we have the original message ID, edit it instead of sending a new one
           if (existingExpense.telegramMessageId) {
             try {
@@ -386,6 +388,7 @@ export const updateExpenseHandler = async (
               await editExpenseMessageHandler(
                 {
                   chatId: Number(input.chatId),
+                  chatType: existingExpense.chat.type,
                   messageId: Number(existingExpense.telegramMessageId),
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
@@ -393,7 +396,7 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -405,7 +408,7 @@ export const updateExpenseHandler = async (
                   replyToMessageId: Number(existingExpense.telegramMessageId),
                   updaterUserId: Number(input.creatorId),
                   updaterName: creator.firstName,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -430,6 +433,7 @@ export const updateExpenseHandler = async (
               await sendExpenseNotificationMessageHandler(
                 {
                   chatId: Number(input.chatId),
+                  chatType: existingExpense.chat.type,
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
                   creatorUserId: Number(creator.id),
@@ -439,7 +443,7 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -449,6 +453,7 @@ export const updateExpenseHandler = async (
             await sendExpenseNotificationMessageHandler(
               {
                 chatId: Number(input.chatId),
+                chatType: existingExpense.chat.type,
                 payerId: Number(input.payerId),
                 payerName: payer.firstName,
                 creatorUserId: Number(creator.id),
@@ -458,7 +463,7 @@ export const updateExpenseHandler = async (
                 totalAmount: input.amount,
                 participants: participantsWithAmounts,
                 currency: currency,
-                threadId: input.threadId,
+                threadId,
               },
               teleBot
             );
@@ -508,6 +513,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return updateExpenseHandler(input, ctx.db, ctx.teleBot);
   });
