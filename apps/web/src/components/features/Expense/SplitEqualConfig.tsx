@@ -1,4 +1,4 @@
-import { useStartParams, withForm } from "@/hooks";
+import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { Section, Cell, Checkbox, Text } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
@@ -18,12 +18,14 @@ const SplitEqualConfig = withForm({
   props: {
     step: 2,
     isLastStep: true,
+    onShowFooterChange: (() => {}) as (show: boolean) => void,
+    onFormSubmit: (() => {}) as () => void,
+    chatId: 0,
+    membersExpanded: false,
   },
-  render: function Render({ form }) {
-    const tStartParams = useStartParams();
+  render: function Render({ form, chatId }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
-    const chatId = tStartParams?.chat_id ?? 0;
     const { currency } = useStore(form.store, (state) => ({
       currency: state.values.currency,
     }));
