@@ -115,10 +115,32 @@ In `main()`, check if `--help` is passed alongside a command name.
 // Handle global help: no args, or just "help" or "--help"
 if (
   !commandName ||
-  commandName === "help" ||
+  (commandName === "help" && args.length === 1) ||
   (commandName === "--help" && args.length === 1)
 ) {
   return showHelp();
+}
+
+// Handle command-specific help
+if (args.includes("--help") || args.includes("-h") || commandName === "help") {
+  const targetCommandName = commandName === "help" ? args[1] : commandName;
+  const command = ALL_COMMANDS.find((cmd) => cmd.name === targetCommandName);
+  if (command) {
+    return success({
+      command: command.name,
+      description: command.description,
+      agentGuidance: command.agentGuidance,
+      examples: command.examples,
+      options: Object.entries(command.options).map(([name, opt]) => ({
+        name: `--${name}`,
+        type: opt.type,
+        description: opt.description,
+        required: opt.required,
+        default: opt.default,
+      })),
+    });
+  }
+  // If command not found, let it fall through to the unknown command error below
 }
 
 // Handle command-specific help
@@ -155,7 +177,9 @@ git add apps/cli/src/cli.ts
 git commit -m "feat(cli): implement command-specific help and concise global help"
 ```
 
-### Task 2.5: Add Tests for Help System
+## Chunk 2: Add Tests for Help System
+
+### Task 3: Write Tests for Help Output
 
 **Files:**
 
@@ -164,7 +188,7 @@ git commit -m "feat(cli): implement command-specific help and concise global hel
 - [ ] **Step 1: Write tests for help output**
 
 ```typescript
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
 
 describe("CLI Help System", () => {
@@ -199,24 +223,32 @@ describe("CLI Help System", () => {
     const amountOpt = parsed.options.find((o: any) => o.name === "--amount");
     expect(amountOpt.required).toBe(true);
   });
+
+  it("should support 'help <command>' syntax", () => {
+    const output = execSync("node dist/cli.js help create-expense").toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.command).toBe("create-expense");
+    expect(parsed.options).toBeDefined();
+  });
 });
 ```
 
 - [ ] **Step 2: Run tests**
 
 Run: `pnpm --filter @banananasplitz/cli test`
-Expected: PASS
+Expected: FAIL (because implementation is not done yet)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add apps/cli/src/cli.test.ts
-git commit -m "test(cli): add tests for help system"
+git commit -m "test(cli): add failing tests for help system"
 ```
 
 ---
 
-## Chunk 2: Update Command Definitions
+## Chunk 3: Update Command Definitions
 
 ### Task 3: Update Chat Commands
 
@@ -254,7 +286,46 @@ git commit -m "test(cli): add tests for help system"
     // ...
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Add metadata to `get-debts`, `get-simplified-debts`, `update-chat-settings`**
+
+```typescript
+  {
+    name: "get-debts",
+    description: "Get all outstanding debts in a chat",
+    agentGuidance: "Use this to see all individual debts before simplification.",
+    examples: ["banana get-debts --chat-id 123456789"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      currencies: { type: "string", description: "Comma-separated 3-letter currency codes", required: false },
+    },
+    // ...
+  },
+  {
+    name: "get-simplified-debts",
+    description: "Get optimized/simplified debt graph for a chat in a specific currency",
+    agentGuidance: "Use this to see the most efficient way to settle all debts in a chat.",
+    examples: ["banana get-simplified-debts --chat-id 123456789 --currency USD"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      currency: { type: "string", description: "3-letter currency code", required: true },
+    },
+    // ...
+  },
+  {
+    name: "update-chat-settings",
+    description: "Update chat settings (debt simplification, base currency)",
+    agentGuidance: "Use this to change how debts are calculated or the default currency.",
+    examples: ["banana update-chat-settings --chat-id 123456789 --debt-simplification true --base-currency USD"],
+    options: {
+      "chat-id": { type: "string", description: "The numeric chat ID", required: false },
+      "debt-simplification": { type: "string", description: "Enable/disable debt simplification (true/false)", required: false },
+      "base-currency": { type: "string", description: "Update default 3-letter currency code", required: false },
+    },
+    // ...
+  }
+```
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/cli/src/commands/chat.ts
