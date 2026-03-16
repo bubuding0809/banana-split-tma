@@ -7,7 +7,7 @@ description: >
   expense splitting, shared costs, or bill splitting.
 metadata:
   author: banananasplitz
-  version: "0.1.3"
+  version: "0.4.0"
 ---
 
 # Banana Split CLI
@@ -43,25 +43,31 @@ Always parse stdout as JSON. Check exit code before reading output.
 
 ## Command Reference
 
-| Command                | Key Flags                                                                                                                                                   | Description                             |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `help`                 | —                                                                                                                                                           | JSON schema of all commands and options |
-| `login`                | `--api-key`, `--api-url`                                                                                                                                    | Save credentials to config file         |
-| `list-chats`           | `--exclude-types`                                                                                                                                           | List all expense-tracking chats         |
-| `get-chat`             | `--chat-id`                                                                                                                                                 | Get chat details and member list        |
-| `get-debts`            | `--chat-id`, `--currencies`                                                                                                                                 | Get outstanding debts (all currencies)  |
-| `get-simplified-debts` | `--chat-id`, `--currency` (required)                                                                                                                        | Optimized debt graph for one currency   |
-| `update-chat-settings` | `--chat-id`, `--debt-simplification`, `--base-currency`                                                                                                     | Update chat config                      |
-| `list-expenses`        | `--chat-id`, `--currency`                                                                                                                                   | List expenses, optional currency filter |
-| `get-expense`          | `--expense-id` (required)                                                                                                                                   | Full details of one expense             |
-| `create-expense`       | `--payer-id`, `--description`, `--amount`, `--split-mode`, `--participant-ids` (all required); `--chat-id`, `--creator-id`, `--currency`, `--custom-splits` | Create expense with split               |
-| `get-net-share`        | `--main-user-id`, `--target-user-id`, `--currency` (all required); `--chat-id`                                                                              | Balance between two users               |
-| `get-totals`           | `--user-id` (required); `--chat-id`                                                                                                                         | Total borrowed/lent for a user          |
-| `list-settlements`     | `--chat-id`, `--currency`                                                                                                                                   | List past settlements                   |
-| `create-settlement`    | `--sender-id`, `--receiver-id`, `--amount` (all required); `--chat-id`, `--currency`, `--description`                                                       | Record a payment                        |
-| `list-snapshots`       | `--chat-id`                                                                                                                                                 | List expense snapshots                  |
-| `get-snapshot`         | `--snapshot-id` (required)                                                                                                                                  | Full snapshot details                   |
-| `get-exchange-rate`    | `--base-currency`, `--target-currency` (both required)                                                                                                      | Currency exchange rate                  |
+| Command                | Key Flags                                                                                                                                                             | Description                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `help`                 | —                                                                                                                                                                     | JSON schema of all commands and options |
+| `login`                | `--api-key`, `--api-url`                                                                                                                                              | Save credentials to config file         |
+| `list-chats`           | `--exclude-types`                                                                                                                                                     | List all expense-tracking chats         |
+| `get-chat`             | `--chat-id`                                                                                                                                                           | Get chat details and member list        |
+| `get-debts`            | `--chat-id`, `--currencies`                                                                                                                                           | Get outstanding debts (all currencies)  |
+| `get-simplified-debts` | `--chat-id`, `--currency` (required)                                                                                                                                  | Optimized debt graph for one currency   |
+| `update-chat-settings` | `--chat-id`, `--debt-simplification`, `--base-currency`                                                                                                               | Update chat config                      |
+| `list-expenses`        | `--chat-id`, `--currency`                                                                                                                                             | List expenses, optional currency filter |
+| `get-expense`          | `--expense-id` (required)                                                                                                                                             | Full details of one expense             |
+| `create-expense`       | `--payer-id`, `--description`, `--amount`, `--split-mode`, `--participant-ids` (all required); `--chat-id`, `--creator-id`, `--currency`, `--custom-splits`, `--date` | Create expense with split               |
+| `update-expense`       | `--expense-id` (required); `--description`, `--amount`, `--payer-id`, `--split-mode`, `--participant-ids`, `--custom-splits`, `--date`                                | Update an existing expense              |
+| `bulk-import-expenses` | `--file` (required); `--chat-id`                                                                                                                                      | Import multiple expenses from JSON file |
+| `get-net-share`        | `--main-user-id`, `--target-user-id`, `--currency` (all required); `--chat-id`                                                                                        | Balance between two users               |
+| `get-totals`           | `--user-id` (required); `--chat-id`                                                                                                                                   | Total borrowed/lent for a user          |
+| `list-settlements`     | `--chat-id`, `--currency`                                                                                                                                             | List past settlements                   |
+| `create-settlement`    | `--sender-id`, `--receiver-id`, `--amount` (all required); `--chat-id`, `--currency`, `--description`                                                                 | Record a payment                        |
+| `settle-all-debts`     | `--currency` (required); `--chat-id`                                                                                                                                  | Settle all debts in a currency          |
+| `list-snapshots`       | `--chat-id`                                                                                                                                                           | List expense snapshots                  |
+| `get-snapshot`         | `--snapshot-id` (required)                                                                                                                                            | Full snapshot details                   |
+| `create-snapshot`      | `--name` (required); `--chat-id`                                                                                                                                      | Create a new snapshot                   |
+| `update-snapshot`      | `--snapshot-id`, `--name` (both required)                                                                                                                             | Update snapshot name                    |
+| `delete-snapshot`      | `--snapshot-id` (required)                                                                                                                                            | Delete a snapshot                       |
+| `get-exchange-rate`    | `--base-currency`, `--target-currency` (both required)                                                                                                                | Currency exchange rate                  |
 
 **Split modes** for `create-expense`:
 
@@ -85,25 +91,34 @@ Always parse stdout as JSON. Check exit code before reading output.
 Resolve all outstanding debts in a chat with the minimum number of payments.
 
 ```bash
-# 1. Get simplified debts for the currency
-DEBTS=$(banana get-simplified-debts --currency SGD)
+# Settle all debts for a specific currency
+banana settle-all-debts --currency SGD
 
-# 2. Parse each debt and create a settlement
-# Each item has: debtorId, creditorId, amount, currency
-# Iterate over the simplified_debts array and settle each:
-for each debt in DEBTS.simplified_debts:
-  banana create-settlement \
-    --sender-id <debt.debtorId> \
-    --receiver-id <debt.creditorId> \
-    --amount <debt.amount> \
-    --currency <debt.currency>
-
-# 3. Verify debts are cleared
+# Verify debts are cleared
 banana get-simplified-debts --currency SGD
 # simplified_debts array should be empty
 ```
 
-**Important**: Use `get-simplified-debts`, not `get-debts`. Simplified debts minimize the number of transfers needed to settle everyone.
+### Bulk Import Expenses
+
+Import multiple expenses at once from a JSON file.
+
+```bash
+# 1. Prepare a JSON file (e.g., data.json) with an array of expense objects:
+# [
+#   {
+#     "description": "Lunch",
+#     "amount": 25.5,
+#     "payerId": "12345",
+#     "participantIds": ["12345", "67890"],
+#     "splitMode": "EQUAL",
+#     "date": "2024-03-15T12:00:00Z"
+#   }
+# ]
+
+# 2. Run the import command
+banana bulk-import-expenses --file data.json
+```
 
 ### Log a Group Meal
 
