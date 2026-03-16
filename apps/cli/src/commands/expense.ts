@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { Command } from "./types.js";
 import { resolveChatId } from "../scope.js";
 import { run, error } from "../output.js";
@@ -95,6 +96,11 @@ export const expenseCommands: Command[] = [
         description:
           'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
       },
+      date: {
+        type: "string",
+        description:
+          "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z). Defaults to now.",
+      },
     },
     execute: (opts, trpc) => {
       if (!opts["payer-id"]) {
@@ -189,6 +195,18 @@ export const expenseCommands: Command[] = [
         }
       }
 
+      let date: Date | undefined;
+      if (opts.date) {
+        date = new Date(String(opts.date));
+        if (Number.isNaN(date.getTime())) {
+          return error(
+            "invalid_option",
+            "--date must be a valid ISO 8601 date string",
+            "create-expense"
+          );
+        }
+      }
+
       return run("create-expense", async () => {
         const chatId = await resolveChatId(
           trpc,
@@ -200,6 +218,166 @@ export const expenseCommands: Command[] = [
           payerId,
           description: String(opts.description),
           amount,
+          currency: opts.currency ? String(opts.currency) : undefined,
+          date,
+          splitMode: String(opts["split-mode"]) as
+            | "EQUAL"
+            | "EXACT"
+            | "PERCENTAGE"
+            | "SHARES",
+          participantIds,
+          customSplits,
+          sendNotification: true,
+        });
+      });
+    },
+  },
+
+  {
+    name: "update-expense",
+    description: "Update an existing expense",
+    options: {
+      "expense-id": {
+        type: "string",
+        description: "The expense UUID",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+      "payer-id": {
+        type: "string",
+        description: "The user ID who paid the expense",
+      },
+      "creator-id": {
+        type: "string",
+        description: "The user ID creating the update (defaults to payer-id)",
+      },
+      description: {
+        type: "string",
+        description: "Short description of the expense (max 60 chars)",
+      },
+      amount: {
+        type: "string",
+        description: "The total amount of the expense",
+      },
+      currency: {
+        type: "string",
+        description: "3-letter currency code",
+      },
+      "split-mode": {
+        type: "string",
+        description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
+      },
+      "participant-ids": {
+        type: "string",
+        description: "Comma-separated user IDs participating in the split",
+      },
+      "custom-splits": {
+        type: "string",
+        description:
+          'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+      },
+      date: {
+        type: "string",
+        description:
+          "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z)",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["expense-id"]) {
+        return error(
+          "missing_option",
+          "--expense-id is required",
+          "update-expense"
+        );
+      }
+      if (!opts["payer-id"]) {
+        return error(
+          "missing_option",
+          "--payer-id is required",
+          "update-expense"
+        );
+      }
+      if (!opts.description) {
+        return error(
+          "missing_option",
+          "--description is required",
+          "update-expense"
+        );
+      }
+      if (!opts.amount) {
+        return error(
+          "missing_option",
+          "--amount is required",
+          "update-expense"
+        );
+      }
+      if (!opts["split-mode"]) {
+        return error(
+          "missing_option",
+          "--split-mode is required",
+          "update-expense"
+        );
+      }
+      if (!opts["participant-ids"]) {
+        return error(
+          "missing_option",
+          "--participant-ids is required",
+          "update-expense"
+        );
+      }
+
+      const payerId = Number(opts["payer-id"]);
+      const amount = Number(opts.amount);
+      const creatorId = opts["creator-id"]
+        ? Number(opts["creator-id"])
+        : payerId;
+      const participantIds = String(opts["participant-ids"])
+        .split(",")
+        .map(Number);
+
+      let customSplits: { userId: number; amount: number }[] | undefined;
+      if (opts["custom-splits"]) {
+        try {
+          customSplits = JSON.parse(String(opts["custom-splits"])) as {
+            userId: number;
+            amount: number;
+          }[];
+        } catch {
+          return error(
+            "invalid_option",
+            "--custom-splits must be valid JSON array",
+            "update-expense"
+          );
+        }
+      }
+
+      let date: Date | undefined;
+      if (opts.date) {
+        date = new Date(String(opts.date));
+        if (Number.isNaN(date.getTime())) {
+          return error(
+            "invalid_option",
+            "--date must be a valid ISO 8601 date string",
+            "update-expense"
+          );
+        }
+      }
+
+      return run("update-expense", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.expense.updateExpense.mutate({
+          expenseId: String(opts["expense-id"]),
+          chatId,
+          creatorId,
+          payerId,
+          description: String(opts.description),
+          amount,
+          date,
           currency: opts.currency ? String(opts.currency) : undefined,
           splitMode: String(opts["split-mode"]) as
             | "EQUAL"
@@ -300,6 +478,110 @@ export const expenseCommands: Command[] = [
           trpc.expenseShare.getTotalLent.query({ userId, chatId }),
         ]);
         return { borrowed, lent };
+      });
+    },
+  },
+
+  {
+    name: "delete-expense",
+    description: "Delete an expense by ID",
+    options: {
+      "expense-id": {
+        type: "string",
+        description: "The expense UUID",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["expense-id"]) {
+        return error(
+          "missing_option",
+          "--expense-id is required",
+          "delete-expense"
+        );
+      }
+      return run("delete-expense", async () => {
+        return trpc.expense.deleteExpense.mutate({
+          expenseId: String(opts["expense-id"]),
+        });
+      });
+    },
+  },
+
+  {
+    name: "bulk-import-expenses",
+    description:
+      "Import multiple expenses from a JSON file. Each entry mirrors create-expense options.",
+    options: {
+      file: {
+        type: "string",
+        description:
+          "Path to a JSON file containing an array of expense objects",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts.file) {
+        return error(
+          "missing_option",
+          "--file is required",
+          "bulk-import-expenses"
+        );
+      }
+
+      type ExpenseRow = {
+        payerId: number;
+        creatorId?: number;
+        description: string;
+        amount: number;
+        currency?: string;
+        splitMode: "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
+        participantIds: number[];
+        customSplits?: { userId: number; amount: number }[];
+        date?: string;
+      };
+
+      let rows: ExpenseRow[];
+      try {
+        const raw = readFileSync(String(opts.file), "utf8");
+        rows = JSON.parse(raw) as ExpenseRow[];
+        if (!Array.isArray(rows)) {
+          return error(
+            "invalid_option",
+            "JSON file must contain an array of expense objects",
+            "bulk-import-expenses"
+          );
+        }
+      } catch (e) {
+        return error(
+          "invalid_option",
+          `Failed to read/parse file: ${e instanceof Error ? e.message : String(e)}`,
+          "bulk-import-expenses"
+        );
+      }
+
+      return run("bulk-import-expenses", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+
+        return trpc.expense.createExpensesBulk.mutate({
+          chatId,
+          expenses: rows.map((row) => ({
+            payerId: row.payerId,
+            creatorId: row.creatorId,
+            description: row.description,
+            amount: row.amount,
+            currency: row.currency,
+            splitMode: row.splitMode,
+            participantIds: row.participantIds,
+            customSplits: row.customSplits,
+            date: row.date ? new Date(row.date) : undefined,
+          })),
+        });
       });
     },
   },

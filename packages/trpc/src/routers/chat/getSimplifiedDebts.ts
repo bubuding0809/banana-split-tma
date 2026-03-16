@@ -7,7 +7,7 @@ import {
   calculateTransactionReduction,
   validateDebtSimplification,
 } from "../../utils/debtSimplification.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -133,9 +133,17 @@ export const getSimplifiedDebtsHandler = async (
 };
 
 export default protectedProcedure
+  .meta({
+    openapi: {
+      method: "GET",
+      path: "/chat/{chatId}/simplified-debts",
+      tags: ["chat"],
+      summary: "Get simplified debts",
+    },
+  })
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getSimplifiedDebtsHandler(input, ctx.db);
   });

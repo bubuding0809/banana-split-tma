@@ -58,9 +58,14 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
   VirtualizedCombinedTransactionSegmentRef,
   VirtualizedCombinedTransactionSegmentProps
 >(({ chatId, showPayments, onAvailableDatesChange }, ref) => {
-  const { relatedOnly, sortBy, sortOrder } = useSearch({
-    from: "/_tma/chat/$chatId",
-  });
+  const searchParams = useSearch({ strict: false }) as {
+    relatedOnly?: boolean;
+    sortBy?: "date" | "createdAt";
+    sortOrder?: "asc" | "desc";
+  };
+  const relatedOnly = searchParams.relatedOnly ?? true;
+  const sortBy = searchParams.sortBy ?? "date";
+  const sortOrder = searchParams.sortOrder ?? "desc";
   const parentRef = useRef<HTMLDivElement>(null);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tUserData = useSignal(initData.user);

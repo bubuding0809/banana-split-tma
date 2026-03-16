@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
@@ -10,7 +10,7 @@ export const getSnapshotDetailsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   session: {
-    authType: "superadmin" | "chat-api-key" | "telegram";
+    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
     chatId: bigint | null;
   }
 ) => {
@@ -42,7 +42,7 @@ export const getSnapshotDetailsHandler = async (
     throw new Error("Snapshot not found");
   }
 
-  assertChatScope(session, snapshot.chatId);
+  await assertChatAccess(session, db, snapshot.chatId);
 
   return {
     ...snapshot,
