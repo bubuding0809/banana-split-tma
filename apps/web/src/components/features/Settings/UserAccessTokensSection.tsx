@@ -1,6 +1,5 @@
 import { trpc } from "@/utils/trpc";
 import {
-  backButton,
   hapticFeedback,
   themeParams,
   useSignal,
@@ -16,16 +15,10 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Copy, Check, Key, Plus, Trash2, X } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
-export const Route = createFileRoute("/_tma/settings/api-keys")({
-  component: ApiKeysRoute,
-});
-
-function ApiKeysRoute() {
-  const navigate = useNavigate();
+const UserAccessTokensSection = () => {
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -90,25 +83,8 @@ function ApiKeysRoute() {
     setCopied(false);
   }, []);
 
-  useEffect(() => {
-    backButton.show();
-    return () => {
-      backButton.hide();
-    };
-  }, []);
-
-  useEffect(() => {
-    const offBackbutton = backButton.onClick(() => {
-      hapticFeedback.impactOccurred("light");
-      navigate({ to: "/chat", search: { title: "" } });
-    });
-    return () => {
-      offBackbutton();
-    };
-  }, [navigate]);
-
   return (
-    <div className="flex flex-col gap-4 pb-12 pt-4">
+    <>
       <Section
         header="Personal API Keys"
         footer="Generate API keys to allow personal AI agents to access your data."
@@ -227,6 +203,8 @@ function ApiKeysRoute() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
-}
+};
+
+export default UserAccessTokensSection;
