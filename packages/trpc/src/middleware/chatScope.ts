@@ -1,32 +1,59 @@
+import { Db } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
 
 interface SessionWithScope {
-  authType: "superadmin" | "chat-api-key" | "telegram";
+  authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
   chatId: bigint | null;
+  user?: { id: bigint | number; [key: string]: any } | null;
 }
 
 /**
- * Asserts that a chat-scoped API key is authorized to access the given chatId.
- * - Superadmin and telegram auth: always allowed (no restriction).
+ * Asserts that a session is authorized to access the given chatId.
+ * - Superadmin: always allowed (no restriction).
  * - Chat-api-key auth: input chatId must match session chatId exactly.
+ * - User-api-key / Telegram auth: MUST verify membership via db.
  *
  * Call this at the START of any procedure handler that accepts chatId as input.
  */
-export function assertChatScope(
+export async function assertChatAccess(
   session: SessionWithScope,
+  db: Db,
   inputChatId: bigint | number
-): void {
-  if (session.authType !== "chat-api-key") {
-    return; // Superadmin and telegram are unrestricted
-  }
+): Promise<void> {
+  if (session.authType === "superadmin") return;
 
   const inputAsBigInt =
     typeof inputChatId === "number" ? BigInt(inputChatId) : inputChatId;
 
-  if (session.chatId !== inputAsBigInt) {
+  if (session.authType === "chat-api-key") {
+    if (session.chatId !== inputAsBigInt) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "This API key does not have access to the requested chat",
+      });
+    }
+    return;
+  }
+
+  // telegram or user-api-key auth MUST verify membership
+  if (!("user" in session) || !session.user) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "User not authenticated",
+    });
+  }
+
+  const isMember = await db.chat.findFirst({
+    where: {
+      id: inputAsBigInt,
+      members: { some: { id: BigInt((session.user as any).id) } },
+    },
+  });
+
+  if (!isMember) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This API key does not have access to the requested chat",
+      message: "You are not a member of this chat",
     });
   }
 }
