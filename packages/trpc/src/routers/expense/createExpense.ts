@@ -343,7 +343,7 @@ export const createExpenseHandler = async (
             }),
             db.chat.findUnique({
               where: { id: input.chatId },
-              select: { type: true },
+              select: { type: true, threadId: true },
             }),
           ]);
 
@@ -376,7 +376,7 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
-              threadId: input.threadId,
+              threadId: input.threadId ?? (chatForNotification?.threadId ? Number(chatForNotification.threadId) : undefined),
             },
             teleBot
           );

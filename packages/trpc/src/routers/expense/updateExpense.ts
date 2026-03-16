@@ -379,6 +379,8 @@ export const updateExpenseHandler = async (
             };
           });
 
+          const threadId = input.threadId ?? (existingExpense.chat.threadId ? Number(existingExpense.chat.threadId) : undefined);
+
           // If we have the original message ID, edit it instead of sending a new one
           if (existingExpense.telegramMessageId) {
             try {
@@ -394,7 +396,7 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -406,7 +408,7 @@ export const updateExpenseHandler = async (
                   replyToMessageId: Number(existingExpense.telegramMessageId),
                   updaterUserId: Number(input.creatorId),
                   updaterName: creator.firstName,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -441,7 +443,7 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
-                  threadId: input.threadId,
+                  threadId,
                 },
                 teleBot
               );
@@ -461,7 +463,7 @@ export const updateExpenseHandler = async (
                 totalAmount: input.amount,
                 participants: participantsWithAmounts,
                 currency: currency,
-                threadId: input.threadId,
+                threadId,
               },
               teleBot
             );
