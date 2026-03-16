@@ -209,27 +209,6 @@ if (args.includes("--help") || args.includes("-h") || commandName === "help") {
   }
   // If command not found, let it fall through to the unknown command error below
 }
-
-// Handle command-specific help
-if (args.includes("--help") || args.includes("-h")) {
-  const command = ALL_COMMANDS.find((cmd) => cmd.name === commandName);
-  if (command) {
-    return success({
-      command: command.name,
-      description: command.description,
-      agentGuidance: command.agentGuidance,
-      examples: command.examples,
-      options: Object.entries(command.options).map(([name, opt]) => ({
-        name: `--${name}`,
-        type: opt.type,
-        description: opt.description,
-        required: opt.required,
-        default: opt.default,
-      })),
-    });
-  }
-  // If command not found, let it fall through to the unknown command error below
-}
 ```
 
 - [ ] **Step 3: Run type check and build**
