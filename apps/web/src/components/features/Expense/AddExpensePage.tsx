@@ -9,7 +9,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Steps, Subheadline } from "@telegram-apps/telegram-ui";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { cn } from "@utils/cn";
 
 import AmountFormStep from "./AmountFormStep";
@@ -51,18 +51,23 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   const { prevTab, currentFormStep } = routeApi.useSearch();
 
   const userId = tUserData?.id ?? 0;
-  const isPersonalChat = (tmaStartParams?.chat_type ?? "private") === "private";
+  const isPersonalChat = ["private", "p"].includes(
+    tmaStartParams?.chat_type ?? "private"
+  );
 
-  const navigateBackToChat = (search: Record<string, unknown>) => {
-    if (isPersonalChat) {
-      return globalNavigate({ to: "/chat", search });
-    }
-    return globalNavigate({
-      to: "/chat/$chatId",
-      params: { chatId: chatId.toString() },
-      search,
-    });
-  };
+  const navigateBackToChat = useCallback(
+    (search: Record<string, unknown>) => {
+      if (isPersonalChat) {
+        return globalNavigate({ to: "/chat", search });
+      }
+      return globalNavigate({
+        to: "/chat/$chatId",
+        params: { chatId: chatId.toString() },
+        search,
+      });
+    },
+    [isPersonalChat, globalNavigate, chatId]
+  );
 
   // * Queries =====================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -174,7 +179,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     return () => {
       offClick();
     };
-  }, [chatId, currentFormStep, isPersonalChat, navigate, prevTab]);
+  }, [chatId, currentFormStep, navigateBackToChat, navigate, prevTab]);
 
   // Show main button on mount
   useEffect(() => {
