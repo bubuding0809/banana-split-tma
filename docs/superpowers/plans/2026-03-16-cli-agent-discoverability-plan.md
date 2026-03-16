@@ -61,7 +61,74 @@ git add apps/cli/src/commands/types.ts
 git commit -m "feat(cli): add metadata fields to command interfaces"
 ```
 
-### Task 2: Refactor Help System in CLI Entrypoint
+### Task 2: Write Tests for Help Output
+
+**Files:**
+
+- Create: `apps/cli/src/cli.test.ts`
+
+- [ ] **Step 1: Write tests for help output**
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { execSync } from "node:child_process";
+
+describe("CLI Help System", () => {
+  it("should output concise global help", () => {
+    const output = execSync("node dist/cli.js --help").toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.name).toBe("banana");
+    expect(parsed.agent_instructions).toBeDefined();
+    expect(parsed.commands).toBeDefined();
+    expect(parsed.commands.length).toBeGreaterThan(0);
+
+    // Global help should not have detailed options for commands
+    const createExpenseCmd = parsed.commands.find(
+      (c: any) => c.name === "create-expense"
+    );
+    expect(createExpenseCmd.options).toBeUndefined();
+  });
+
+  it("should output detailed command-specific help", () => {
+    const output = execSync(
+      "node dist/cli.js create-expense --help"
+    ).toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.command).toBe("create-expense");
+    expect(parsed.agentGuidance).toBeDefined();
+    expect(parsed.examples).toBeDefined();
+    expect(parsed.options).toBeDefined();
+
+    // Check for required flags
+    const amountOpt = parsed.options.find((o: any) => o.name === "--amount");
+    expect(amountOpt.required).toBe(true);
+  });
+
+  it("should support 'help <command>' syntax", () => {
+    const output = execSync("node dist/cli.js help create-expense").toString();
+    const parsed = JSON.parse(output);
+
+    expect(parsed.command).toBe("create-expense");
+    expect(parsed.options).toBeDefined();
+  });
+});
+```
+
+- [ ] **Step 2: Run tests**
+
+Run: `pnpm --filter @banananasplitz/cli test`
+Expected: FAIL (because implementation is not done yet)
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/cli/src/cli.test.ts
+git commit -m "test(cli): add failing tests for help system"
+```
+
+### Task 3: Refactor Help System in CLI Entrypoint
 
 **Files:**
 
@@ -177,80 +244,11 @@ git add apps/cli/src/cli.ts
 git commit -m "feat(cli): implement command-specific help and concise global help"
 ```
 
-## Chunk 2: Add Tests for Help System
-
-### Task 3: Write Tests for Help Output
-
-**Files:**
-
-- Create: `apps/cli/src/cli.test.ts`
-
-- [ ] **Step 1: Write tests for help output**
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { execSync } from "node:child_process";
-
-describe("CLI Help System", () => {
-  it("should output concise global help", () => {
-    const output = execSync("node dist/cli.js --help").toString();
-    const parsed = JSON.parse(output);
-
-    expect(parsed.name).toBe("banana");
-    expect(parsed.agent_instructions).toBeDefined();
-    expect(parsed.commands).toBeDefined();
-    expect(parsed.commands.length).toBeGreaterThan(0);
-
-    // Global help should not have detailed options for commands
-    const createExpenseCmd = parsed.commands.find(
-      (c: any) => c.name === "create-expense"
-    );
-    expect(createExpenseCmd.options).toBeUndefined();
-  });
-
-  it("should output detailed command-specific help", () => {
-    const output = execSync(
-      "node dist/cli.js create-expense --help"
-    ).toString();
-    const parsed = JSON.parse(output);
-
-    expect(parsed.command).toBe("create-expense");
-    expect(parsed.agentGuidance).toBeDefined();
-    expect(parsed.examples).toBeDefined();
-    expect(parsed.options).toBeDefined();
-
-    // Check for required flags
-    const amountOpt = parsed.options.find((o: any) => o.name === "--amount");
-    expect(amountOpt.required).toBe(true);
-  });
-
-  it("should support 'help <command>' syntax", () => {
-    const output = execSync("node dist/cli.js help create-expense").toString();
-    const parsed = JSON.parse(output);
-
-    expect(parsed.command).toBe("create-expense");
-    expect(parsed.options).toBeDefined();
-  });
-});
-```
-
-- [ ] **Step 2: Run tests**
-
-Run: `pnpm --filter @banananasplitz/cli test`
-Expected: FAIL (because implementation is not done yet)
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add apps/cli/src/cli.test.ts
-git commit -m "test(cli): add failing tests for help system"
-```
-
 ---
 
-## Chunk 3: Update Command Definitions
+## Chunk 2: Update Command Definitions
 
-### Task 3: Update Chat Commands
+### Task 4: Update Chat Commands
 
 **Files:**
 
@@ -332,7 +330,7 @@ git add apps/cli/src/commands/chat.ts
 git commit -m "feat(cli): add metadata to chat commands"
 ```
 
-### Task 4: Update Expense Commands
+### Task 5: Update Expense Commands
 
 **Files:**
 
@@ -488,7 +486,7 @@ git add apps/cli/src/commands/expense.ts
 git commit -m "feat(cli): add metadata to expense commands"
 ```
 
-### Task 5: Update Remaining Commands
+### Task 6: Update Remaining Commands
 
 **Files:**
 
