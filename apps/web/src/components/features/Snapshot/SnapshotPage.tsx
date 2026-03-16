@@ -89,7 +89,9 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
   const tmaStartParams = useStartParams();
-  const isPersonalChat = (tmaStartParams?.chat_type ?? "private") === "private";
+  const isPersonalChat = ["private", "p"].includes(
+    tmaStartParams?.chat_type ?? "private"
+  );
 
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(
     null
