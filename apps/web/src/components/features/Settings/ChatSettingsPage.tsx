@@ -118,19 +118,30 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   useEffect(() => {
     const offBackbutton = backButton.onClick(() => {
       hapticFeedback.notificationOccurred("success");
-      navigate({
-        to: "..",
-        search: (prev) => ({
-          ...prev,
-          selectedTab: prevTab,
-          title: "",
-        }),
-      });
+
+      if (isPrivateChat) {
+        navigate({
+          to: "/chat",
+          search: (prev) => ({
+            ...prev,
+            title: "",
+          }),
+        });
+      } else {
+        navigate({
+          to: "..",
+          search: (prev) => ({
+            ...prev,
+            selectedTab: prevTab,
+            title: "",
+          }),
+        });
+      }
     });
     return () => {
       offBackbutton();
     };
-  }, [navigate, prevTab]);
+  }, [navigate, prevTab, isPrivateChat]);
 
   // * Handlers ====================================================================================
   const handleCurrencyChange = (currencyCode: string) => {
