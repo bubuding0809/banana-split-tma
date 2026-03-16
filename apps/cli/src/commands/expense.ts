@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { Command } from "./types.js";
 import { resolveChatId } from "../scope.js";
 import { run, error } from "../output.js";
@@ -501,6 +502,85 @@ export const expenseCommands: Command[] = [
       return run("delete-expense", async () => {
         return trpc.expense.deleteExpense.mutate({
           expenseId: String(opts["expense-id"]),
+        });
+      });
+    },
+  },
+
+  {
+    name: "bulk-import-expenses",
+    description:
+      "Import multiple expenses from a JSON file. Each entry mirrors create-expense options.",
+    options: {
+      file: {
+        type: "string",
+        description:
+          "Path to a JSON file containing an array of expense objects",
+      },
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts.file) {
+        return error(
+          "missing_option",
+          "--file is required",
+          "bulk-import-expenses"
+        );
+      }
+
+      type ExpenseRow = {
+        payerId: number;
+        creatorId?: number;
+        description: string;
+        amount: number;
+        currency?: string;
+        splitMode: "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
+        participantIds: number[];
+        customSplits?: { userId: number; amount: number }[];
+        date?: string;
+      };
+
+      let rows: ExpenseRow[];
+      try {
+        const raw = readFileSync(String(opts.file), "utf8");
+        rows = JSON.parse(raw) as ExpenseRow[];
+        if (!Array.isArray(rows)) {
+          return error(
+            "invalid_option",
+            "JSON file must contain an array of expense objects",
+            "bulk-import-expenses"
+          );
+        }
+      } catch (e) {
+        return error(
+          "invalid_option",
+          `Failed to read/parse file: ${e instanceof Error ? e.message : String(e)}`,
+          "bulk-import-expenses"
+        );
+      }
+
+      return run("bulk-import-expenses", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+
+        return trpc.expense.createExpensesBulk.mutate({
+          chatId,
+          expenses: rows.map((row) => ({
+            payerId: row.payerId,
+            creatorId: row.creatorId,
+            description: row.description,
+            amount: row.amount,
+            currency: row.currency,
+            splitMode: row.splitMode,
+            participantIds: row.participantIds,
+            customSplits: row.customSplits,
+            date: row.date ? new Date(row.date) : undefined,
+          })),
         });
       });
     },

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+import * as fs from "node:fs";
 import { expenseCommands } from "./expense.js";
+
+vi.mock("node:fs", () => ({
+  readFileSync: vi.fn(),
+}));
 
 vi.mock("../output.js", () => ({
   success: vi.fn((data) => data),
@@ -268,6 +273,155 @@ describe("expense commands", () => {
 
     await cmd?.execute({ "expense-id": "exp-123" }, trpcMock);
     expect(mutateMock).toHaveBeenCalledWith({ expenseId: "exp-123" });
+  });
+
+  it("bulk-import-expenses should fail if --file is missing", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    const trpcMock = {} as any;
+    const result = await cmd?.execute({}, trpcMock);
+    expect(result).toMatchObject({
+      code: "missing_option",
+      message: "--file is required",
+    });
+  });
+
+  it("bulk-import-expenses should fail if file contains invalid JSON", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    vi.mocked(fs.readFileSync).mockReturnValueOnce("not-json");
+    const trpcMock = {} as any;
+    const result = await cmd?.execute({ file: "bad.json" }, trpcMock);
+    expect(result).toMatchObject({ code: "invalid_option" });
+  });
+
+  it("bulk-import-expenses should fail if JSON is not an array", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify({ foo: 1 }));
+    const trpcMock = {} as any;
+    const result = await cmd?.execute({ file: "obj.json" }, trpcMock);
+    expect(result).toMatchObject({
+      code: "invalid_option",
+      message: "JSON file must contain an array of expense objects",
+    });
+  });
+
+  it("bulk-import-expenses should call createExpensesBulk with all rows in one request", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    const rows = [
+      {
+        payerId: 1,
+        description: "Dinner",
+        amount: 60,
+        currency: "SGD",
+        splitMode: "EQUAL",
+        participantIds: [1, 2, 3],
+      },
+      {
+        payerId: 2,
+        description: "Taxi",
+        amount: 20,
+        currency: "SGD",
+        splitMode: "EQUAL",
+        participantIds: [1, 2],
+      },
+    ];
+    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
+    const mutateMock = vi.fn().mockResolvedValueOnce({
+      total: 2,
+      succeeded: 2,
+      failed: 0,
+      results: [
+        {
+          index: 0,
+          status: "success",
+          description: "Dinner",
+          expense: { id: "exp-1" },
+        },
+        {
+          index: 1,
+          status: "success",
+          description: "Taxi",
+          expense: { id: "exp-2" },
+        },
+      ],
+    });
+    const trpcMock = {
+      expense: { createExpensesBulk: { mutate: mutateMock } },
+    } as any;
+
+    const result = await cmd?.execute(
+      { file: "expenses.json", "chat-id": "123" },
+      trpcMock
+    );
+
+    expect(mutateMock).toHaveBeenCalledTimes(1);
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chatId: 123,
+        expenses: expect.arrayContaining([
+          expect.objectContaining({ description: "Dinner", amount: 60 }),
+          expect.objectContaining({ description: "Taxi", amount: 20 }),
+        ]),
+      })
+    );
+    expect(result).toMatchObject({ total: 2, succeeded: 2, failed: 0 });
+  });
+
+  it("bulk-import-expenses should parse date strings to Date objects", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    const rows = [
+      {
+        payerId: 1,
+        description: "Lunch",
+        amount: 15,
+        splitMode: "EQUAL",
+        participantIds: [1, 2],
+        date: "2026-03-04",
+      },
+    ];
+    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
+    const mutateMock = vi.fn().mockResolvedValueOnce({
+      total: 1,
+      succeeded: 1,
+      failed: 0,
+      results: [],
+    });
+    const trpcMock = {
+      expense: { createExpensesBulk: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute({ file: "expenses.json" }, trpcMock);
+
+    const call = mutateMock.mock.calls[0][0];
+    expect(call.expenses[0].date).toBeInstanceOf(Date);
+    expect(call.expenses[0].date.toISOString().startsWith("2026-03-04")).toBe(
+      true
+    );
+  });
+
+  it("bulk-import-expenses should propagate server errors", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    const rows = [
+      {
+        payerId: 1,
+        description: "Groceries",
+        amount: 50,
+        splitMode: "EQUAL",
+        participantIds: [1, 2],
+      },
+    ];
+    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
+    const mutateMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Network error"));
+    const trpcMock = {
+      expense: { createExpensesBulk: { mutate: mutateMock } },
+    } as any;
+
+    const result = await cmd?.execute({ file: "expenses.json" }, trpcMock);
+    expect(result).toMatchObject({
+      code: "api_error",
+      message: "Network error",
+    });
   });
 
   it("update-expense should fail if required options are missing", async () => {
