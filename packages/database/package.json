@@ -17,6 +17,7 @@
     "db:deploy": "dotenv -e .env.production -- prisma migrate deploy",
     "dev": "tsc --watch --preserveWatchOutput",
     "postinstall": "prisma generate",
+    "backfill:personal-chats": "npx tsx scripts/backfill-personal-chats.ts",
     "build": "prisma generate && tsc"
   },
   "keywords": [],

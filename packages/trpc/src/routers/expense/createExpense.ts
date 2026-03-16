@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
 import { Decimal } from "decimal.js";
 import {
@@ -326,21 +326,26 @@ export const createExpenseHandler = async (
     // Send notification if requested and teleBot is available
     if (input.sendNotification) {
       try {
-        // Fetch creator and participant details for notification
-        const [payer, creator, participants] = await Promise.all([
-          db.user.findUnique({
-            where: { id: input.payerId },
-            select: { id: true, firstName: true, username: true },
-          }),
-          db.user.findUnique({
-            where: { id: input.creatorId },
-            select: { id: true, firstName: true, username: true },
-          }),
-          db.user.findMany({
-            where: { id: { in: input.participantIds } },
-            select: { id: true, firstName: true, username: true },
-          }),
-        ]);
+        // Fetch creator, participant details, and chat type for notification
+        const [payer, creator, participants, chatForNotification] =
+          await Promise.all([
+            db.user.findUnique({
+              where: { id: input.payerId },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.user.findUnique({
+              where: { id: input.creatorId },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.user.findMany({
+              where: { id: { in: input.participantIds } },
+              select: { id: true, firstName: true, username: true },
+            }),
+            db.chat.findUnique({
+              where: { id: input.chatId },
+              select: { type: true, threadId: true },
+            }),
+          ]);
 
         if (creator && payer && participants.length > 0) {
           // Map splits to participants with user info
@@ -361,6 +366,7 @@ export const createExpenseHandler = async (
           const messageId = await sendExpenseNotificationMessageHandler(
             {
               chatId: Number(input.chatId),
+              chatType: chatForNotification?.type ?? "group",
               payerId: Number(input.payerId),
               payerName: payer.firstName,
               creatorUserId: Number(creator.id),
@@ -370,7 +376,7 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
-              threadId: input.threadId,
+              threadId: input.threadId ?? (chatForNotification?.threadId ? Number(chatForNotification.threadId) : undefined),
             },
             teleBot
           );
@@ -424,6 +430,6 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    assertChatScope(ctx.session, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return createExpenseHandler(input, ctx.db, ctx.teleBot);
   });

@@ -23,16 +23,34 @@ const outputSchema = z.array(
 
 export const getAllChatsHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  session: {
+    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
+    user?: { id: bigint | number; [key: string]: any } | null;
+  }
 ) => {
   const { excludeTypes } = input;
 
-  const chats = await db.chat.findMany({
-    where: {
-      type: {
-        notIn: excludeTypes,
-      },
+  const whereClause: any = {
+    type: {
+      notIn: excludeTypes,
     },
+  };
+
+  // If not a superadmin, only return chats the user is a member of
+  if (session.authType !== "superadmin") {
+    if (!session.user) {
+      return []; // Failsafe
+    }
+    whereClause.members = {
+      some: {
+        id: BigInt(session.user.id),
+      },
+    };
+  }
+
+  const chats = await db.chat.findMany({
+    where: whereClause,
     select: {
       id: true,
       title: true,
@@ -64,5 +82,5 @@ export default protectedProcedure
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return getAllChatsHandler(input, ctx.db);
+    return getAllChatsHandler(input, ctx.db, ctx.session);
   });
