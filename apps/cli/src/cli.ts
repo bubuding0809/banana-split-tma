@@ -33,11 +33,6 @@ function showHelp(): never {
   const commands = ALL_COMMANDS.map((cmd) => ({
     name: cmd.name,
     description: cmd.description,
-    options: Object.entries(cmd.options).map(([name, opt]) => ({
-      name: `--${name}`,
-      type: opt.type,
-      description: opt.description,
-    })),
   }));
 
   const globalOptions = Object.entries(GLOBAL_OPTIONS).map(([name, opt]) => ({
@@ -49,29 +44,18 @@ function showHelp(): never {
   return success({
     name: "banana",
     description: "Agent-first CLI for Banana Split expense tracking API",
+    agent_instructions:
+      "To see detailed options, required fields, and examples for a specific command, run: banana <command> --help",
     commands: [
-      { name: "help", description: "Show this help information", options: [] },
+      { name: "help", description: "Show this help information" },
       {
         name: "login",
         description: "Save API key to config file",
-        options: [
-          {
-            name: "--api-key",
-            type: "string",
-            description: "API key for authentication",
-          },
-          {
-            name: "--api-url",
-            type: "string",
-            description: "Override API base URL (optional)",
-          },
-        ],
       },
       {
         name: "install-skill",
         description:
           "Output Agent Skills spec skill path for AI agent integration",
-        options: [],
       },
       ...commands,
     ],
@@ -124,9 +108,39 @@ async function main(): Promise<never> {
   const args = process.argv.slice(2);
   const commandName = args[0];
 
-  // Handle help: no args, --help flag, or "help" command
-  if (!commandName || commandName === "help" || commandName === "--help") {
+  // Handle global help: no args, or just "help" or "--help"
+  if (
+    !commandName ||
+    (commandName === "help" && args.length === 1) ||
+    (commandName === "--help" && args.length === 1)
+  ) {
     return showHelp();
+  }
+
+  // Handle command-specific help
+  if (
+    args.includes("--help") ||
+    args.includes("-h") ||
+    commandName === "help"
+  ) {
+    const targetCommandName = commandName === "help" ? args[1] : commandName;
+    const command = ALL_COMMANDS.find((cmd) => cmd.name === targetCommandName);
+    if (command) {
+      return success({
+        command: command.name,
+        description: command.description,
+        agentGuidance: command.agentGuidance,
+        examples: command.examples,
+        options: Object.entries(command.options).map(([name, opt]) => ({
+          name: `--${name}`,
+          type: opt.type,
+          description: opt.description,
+          required: opt.required,
+          default: opt.default,
+        })),
+      });
+    }
+    // If command not found, let it fall through to the unknown command error below
   }
 
   // Handle login separately (no auth needed)
