@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
   settlementId: z.string(),
@@ -17,7 +17,7 @@ export const deleteSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   session: {
-    authType: "superadmin" | "chat-api-key" | "telegram";
+    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
     chatId: bigint | null;
   }
 ) => {
@@ -35,7 +35,7 @@ export const deleteSettlementHandler = async (
       });
     }
 
-    assertChatScope(session, settlement.chatId);
+    await assertChatAccess(session, db, settlement.chatId);
 
     await db.settlement.delete({
       where: {

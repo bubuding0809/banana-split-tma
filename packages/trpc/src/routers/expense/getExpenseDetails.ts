@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { Prisma } from "@dko/database";
-import { assertChatScope } from "../../middleware/chatScope.js";
+import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   expenseId: z.string(),
@@ -11,7 +11,7 @@ const getExpenseDetailsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   session: {
-    authType: "superadmin" | "chat-api-key" | "telegram";
+    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
     chatId: bigint | null;
   }
 ) => {
@@ -29,7 +29,7 @@ const getExpenseDetailsHandler = async (
   });
 
   if (expense) {
-    assertChatScope(session, expense.chatId);
+    await assertChatAccess(session, db, expense.chatId);
   }
 
   return {
