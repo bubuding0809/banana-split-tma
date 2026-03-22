@@ -15,10 +15,14 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --skip-generate",
     "db:deploy": "dotenv -e .env.production -- prisma migrate deploy",
+    "db:seed": "prisma db seed",
     "dev": "tsc --watch --preserveWatchOutput",
     "postinstall": "prisma generate",
     "backfill:personal-chats": "npx tsx scripts/backfill-personal-chats.ts",
     "build": "prisma generate && tsc"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +32,8 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.13.10",
     "dotenv-cli": "^8.0.0",
-    "prisma": "^6.5.0"
+    "prisma": "^6.5.0",
+    "tsx": "^4.7.1"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0"
