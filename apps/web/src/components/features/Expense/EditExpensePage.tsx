@@ -119,6 +119,8 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       splitMode: expenseData?.splitMode ?? "EQUAL",
       participants: handleInitParticipants(),
       customSplits: handleInitSplits(),
+      categoryName: expenseData?.categoryName ?? null,
+      categoryIcon: expenseData?.categoryIcon ?? null,
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({
@@ -151,6 +153,8 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
+          categoryName: value.categoryName,
+          categoryIcon: value.categoryIcon,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,

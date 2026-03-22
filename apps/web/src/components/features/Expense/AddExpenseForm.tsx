@@ -14,6 +14,8 @@ export const formOpts = formOptions({
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
     customSplits: [] as { userId: string; amount: string }[],
+    categoryName: null as string | null,
+    categoryIcon: null as string | null,
   },
   validators: {
     onChange: expenseFormSchema,
