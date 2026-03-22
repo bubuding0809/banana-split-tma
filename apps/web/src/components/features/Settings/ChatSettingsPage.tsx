@@ -15,7 +15,7 @@ import {
   Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { ChevronsUpDown, Phone, X } from "lucide-react";
+import { ChevronsUpDown, Phone, X, Tags } from "lucide-react";
 import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
@@ -243,6 +243,21 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
           >
             {currentCurrencyInfo?.name || "Default Currency"}
           </Skeleton>
+        </Cell>
+      </Section>
+
+      <Section header="Categories">
+        <Cell
+          before={<Tags size={20} />}
+          onClick={() =>
+            navigate({
+              to: "/chat/$chatId/categories",
+              params: { chatId: chatId.toString() },
+            })
+          }
+          after={<Navigation />}
+        >
+          Manage Categories
         </Cell>
       </Section>
 
