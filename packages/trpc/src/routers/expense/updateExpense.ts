@@ -52,6 +52,8 @@ export const inputSchema = z.object({
     .optional(),
   sendNotification: z.boolean().default(true),
   threadId: z.number().optional(),
+  categoryName: z.string().nullable().optional(),
+  categoryIcon: z.string().nullable().optional(),
 });
 
 export const outputSchema = z.object({
@@ -64,6 +66,8 @@ export const outputSchema = z.object({
   currency: z.string(),
   splitMode: z.nativeEnum(SplitMode),
   date: z.date(),
+  categoryName: z.string().nullable(),
+  categoryIcon: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -322,6 +326,8 @@ export const updateExpenseHandler = async (
           date: input.date,
           currency: currency,
           splitMode: input.splitMode,
+          categoryName: input.categoryName,
+          categoryIcon: input.categoryIcon,
           participants: {
             set: input.participantIds.map((id) => ({ id })),
           },
@@ -379,7 +385,11 @@ export const updateExpenseHandler = async (
             };
           });
 
-          const threadId = input.threadId ?? (existingExpense.chat.threadId ? Number(existingExpense.chat.threadId) : undefined);
+          const threadId =
+            input.threadId ??
+            (existingExpense.chat.threadId
+              ? Number(existingExpense.chat.threadId)
+              : undefined);
 
           // If we have the original message ID, edit it instead of sending a new one
           if (existingExpense.telegramMessageId) {

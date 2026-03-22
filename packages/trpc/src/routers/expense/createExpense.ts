@@ -47,6 +47,8 @@ export const inputSchema = z.object({
     .optional(),
   sendNotification: z.boolean().default(true),
   threadId: z.number().optional(),
+  categoryName: z.string().nullable().optional(),
+  categoryIcon: z.string().nullable().optional(),
 });
 
 export const outputSchema = z.object({
@@ -59,6 +61,8 @@ export const outputSchema = z.object({
   currency: z.string(),
   splitMode: z.nativeEnum(SplitMode),
   date: z.date(),
+  categoryName: z.string().nullable(),
+  categoryIcon: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -305,6 +309,8 @@ export const createExpenseHandler = async (
           date: input.date ?? new Date(),
           currency: currency,
           splitMode: input.splitMode,
+          categoryName: input.categoryName,
+          categoryIcon: input.categoryIcon,
           participants: {
             connect: input.participantIds.map((id) => ({ id })),
           },
@@ -376,7 +382,11 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
-              threadId: input.threadId ?? (chatForNotification?.threadId ? Number(chatForNotification.threadId) : undefined),
+              threadId:
+                input.threadId ??
+                (chatForNotification?.threadId
+                  ? Number(chatForNotification.threadId)
+                  : undefined),
             },
             teleBot
           );
