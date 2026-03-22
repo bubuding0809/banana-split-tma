@@ -28,10 +28,23 @@ model Chat {
   members                    User[]
   expenses                   Expense[]
   transfers                  Settlement[]
+  categories                 Category[]
   createdAt                  DateTime          @default(now())
   updatedAt                  DateTime          @updatedAt
   ExpenseSnapshot            ExpenseSnapshot[]
   apiKeys                    ChatApiKey[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  chat      Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId    BigInt?  // null means it's a global preset category
+  name      String
+  icon      String   // Emoji character
+  createdAt DateTime @default(now())
+  
+  @@unique([chatId, name])
+  @@index([chatId])
 }
 
 model User {
@@ -75,6 +88,8 @@ model Expense {
   amount             Decimal           @db.Decimal(12, 2)
   currency           String            @default("SGD")
   splitMode                     SplitMode
+  categoryName       String?           // Snapshot of the category name
+  categoryIcon       String?           // Snapshot of the category emoji
   telegramMessageId             BigInt?   // Stores the Telegram message ID for editing notifications
   telegramUpdateBumpMessageIds  BigInt[]  // Stores the Telegram message IDs for update bump notifications
   participants                  User[]    @relation("Participants")
