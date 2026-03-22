@@ -4,6 +4,8 @@ import { expenseFormSchema } from "./AddExpenseForm.type";
 
 import type { SplitModeType } from "./AddExpenseForm.type";
 
+import { z } from "zod";
+
 export const formOpts = formOptions({
   defaultValues: {
     amount: "",
@@ -14,9 +16,9 @@ export const formOpts = formOptions({
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
     customSplits: [] as { userId: string; amount: string }[],
-    categoryName: null as string | null,
-    categoryIcon: null as string | null,
-  },
+    categoryName: null,
+    categoryIcon: null,
+  } as z.infer<typeof expenseFormSchema>,
   validators: {
     onChange: expenseFormSchema,
   },
