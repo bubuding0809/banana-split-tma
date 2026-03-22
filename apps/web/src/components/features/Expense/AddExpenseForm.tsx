@@ -16,8 +16,6 @@ export const formOpts = formOptions({
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
     customSplits: [] as { userId: string; amount: string }[],
-    categoryName: null,
-    categoryIcon: null,
   } as z.infer<typeof expenseFormSchema>,
   validators: {
     onChange: expenseFormSchema,

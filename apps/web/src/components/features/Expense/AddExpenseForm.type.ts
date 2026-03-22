@@ -34,8 +34,6 @@ export const expenseFormSchema = z.object({
         }),
     })
   ),
-  categoryName: z.string().nullable().optional(),
-  categoryIcon: z.string().nullable().optional(),
 });
 
 export type SplitModeType = z.infer<typeof SplitMode>;

@@ -119,8 +119,6 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       splitMode: expenseData?.splitMode ?? "EQUAL",
       participants: handleInitParticipants(),
       customSplits: handleInitSplits(),
-      categoryName: expenseData?.categoryName ?? null,
-      categoryIcon: expenseData?.categoryIcon ?? null,
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({

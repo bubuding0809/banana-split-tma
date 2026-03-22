@@ -328,6 +328,31 @@ const AmountFormStep = withForm({
                     </span>
                   </label>
                   <Section>
+                    {/* Category Picker */}
+                    <form.AppField name="categoryName">
+                      {(categoryNameField) => (
+                        <form.AppField name="categoryIcon">
+                          {(categoryIconField) => (
+                            <CategoryPicker
+                              chatId={Number(chatId)}
+                              value={{
+                                categoryName: categoryNameField.state.value as
+                                  | string
+                                  | null,
+                                categoryIcon: categoryIconField.state.value as
+                                  | string
+                                  | null,
+                              }}
+                              onChange={({ categoryName, categoryIcon }) => {
+                                categoryNameField.handleChange(categoryName);
+                                categoryIconField.handleChange(categoryIcon);
+                              }}
+                            />
+                          )}
+                        </form.AppField>
+                      )}
+                    </form.AppField>
+
                     {/* Description Textarea */}
                     <Textarea
                       className="text-wrap"
