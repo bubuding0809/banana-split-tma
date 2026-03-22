@@ -290,9 +290,18 @@ const ChatExpenseCell = ({
         description={
           <>
             on{" "}
-            <Caption weight="2" level="1">
-              {expenseDetails?.description}
+            <Caption weight="2" level="1" className="max-w-[120px] truncate">
+              {expense.description}
             </Caption>
+            {expense.categoryIcon && expense.categoryName && (
+              <>
+                <span className="mx-0.5 opacity-50">•</span>
+                <span className="flex items-center gap-0.5 text-xs opacity-70">
+                  <span>{expense.categoryIcon}</span>
+                  <span>{expense.categoryName}</span>
+                </span>
+              </>
+            )}
           </>
         }
         after={

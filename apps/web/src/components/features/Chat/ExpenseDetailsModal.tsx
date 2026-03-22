@@ -251,7 +251,15 @@ const ExpenseDetailsModal = ({
               backgroundColor: tSectionBgColor,
             }}
           >
-            <Text className="text-wrap">{expense.description}</Text>
+            <div className="flex flex-col gap-1">
+              <Text className="text-wrap">{expense.description}</Text>
+              {expense.categoryIcon && expense.categoryName && (
+                <div className="flex items-center gap-1.5 opacity-70">
+                  <span className="text-sm">{expense.categoryIcon}</span>
+                  <Caption className="text-xs font-medium uppercase tracking-wider">{expense.categoryName}</Caption>
+                </div>
+              )}
+            </div>
           </Cell>
         </Section>
 
