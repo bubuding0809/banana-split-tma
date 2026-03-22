@@ -49,9 +49,10 @@ These can be seeded using a database seeding script or a startup migration to en
 ## 4. API (tRPC)
 
 ### 4.1 New Router: `category`
-- `category.listForChat`: Fetches all custom categories for a specific `chatId`.
+- `category.listForChat`: Fetches all global and custom categories for a specific `chatId`.
 - `category.create`: Creates a new custom category for a `chatId` (validates uniqueness against both DB and global presets).
-- `category.delete`: Deletes a custom category (does not affect past expenses due to snapshot architecture).
+- `category.update`: Updates the name/icon of a custom category. (Cannot update global presets).
+- `category.delete`: Deletes a custom category (does not affect past expenses due to snapshot architecture. Cannot delete global presets).
 
 ### 4.2 Modified Procedures
 - `expense.createExpense`: Update input schema to accept `categoryName` and `categoryIcon`.
@@ -65,8 +66,11 @@ These can be seeded using a database seeding script or a startup migration to en
 - **Emoji Picker**: Tapping the create button opens an emoji picker (e.g., using `@emoji-mart/react` or a native Telegram UI equivalent if available) to finalize creation.
 - **Creation Mutation**: The creation is optimistic or blocks briefly to save the new category via tRPC before selecting it for the expense form.
 
-### 5.2 Expense Lists
-- Expenses in the chat view and summary views will display the `categoryIcon` alongside the expense details.
+### 5.3 Chat Settings - Manage Categories
+- Add a new "Manage Categories" section within the Chat Settings page.
+- Lists all available categories for the chat.
+- Custom categories will show an "Edit" and "Delete" option (or swipe-to-delete).
+- Global preset categories will be displayed as read-only (or visual indicator that they are locked/system presets).
 
 ## 6. Migration Plan
 1. **Schema Update**: Deploy the Prisma schema changes (`Category` model and `Expense` fields).
