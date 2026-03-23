@@ -320,11 +320,16 @@ const MultiCurrencyBalanceModal = ({
   }, [modalOpen, openedEntry, isDebtor]);
 
   useEffect(() => {
-    if (openedEntry === null && modalOpen && !isDebtor && memberData?.phoneNumber) {
+    if (
+      openedEntry === null &&
+      modalOpen &&
+      !isDebtor &&
+      memberData?.phoneNumber
+    ) {
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: `Copy Number 📲`,
+        text: `Copy PayNow No. 📲`,
       });
     }
 
@@ -349,30 +354,37 @@ const MultiCurrencyBalanceModal = ({
   useEffect(() => {
     let offSecondaryButtonClick: VoidFunction | undefined;
 
-    if (openedEntry === null && modalOpen && !isDebtor && memberData?.phoneNumber) {
-      offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(async () => {
-        try {
-          await navigator.clipboard.writeText(memberData.phoneNumber!);
-          hapticFeedback.notificationOccurred.ifAvailable("success");
-          secondaryButton.setParams.ifAvailable({
-            text: "✅ Copied",
-            isEnabled: false,
-          });
-          setTimeout(() => {
+    if (
+      openedEntry === null &&
+      modalOpen &&
+      !isDebtor &&
+      memberData?.phoneNumber
+    ) {
+      offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(
+        async () => {
+          try {
+            await navigator.clipboard.writeText(memberData.phoneNumber!);
+            hapticFeedback.notificationOccurred.ifAvailable("success");
             secondaryButton.setParams.ifAvailable({
-              text: "Copy Number 📲",
-              isEnabled: true,
-              isLoaderVisible: false,
+              text: "✅ Copied",
+              isEnabled: false,
             });
-          }, 500);
-        } catch (error) {
-          console.error("Failed to copy to clipboard:", error);
-          hapticFeedback.notificationOccurred.ifAvailable("error");
-          popup.open.ifAvailable({
-            message: "Failed to copy number to clipboard. Please try again.",
-          });
+            setTimeout(() => {
+              secondaryButton.setParams.ifAvailable({
+                text: "Copy PayNow No. 📲",
+                isEnabled: true,
+                isLoaderVisible: false,
+              });
+            }, 500);
+          } catch (error) {
+            console.error("Failed to copy to clipboard:", error);
+            hapticFeedback.notificationOccurred.ifAvailable("error");
+            popup.open.ifAvailable({
+              message: "Failed to copy number to clipboard. Please try again.",
+            });
+          }
         }
-      });
+      );
     }
 
     return () => offSecondaryButtonClick?.();

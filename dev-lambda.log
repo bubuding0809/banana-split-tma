@@ -1,0 +1,81 @@
+turbo 2.4.4
+
+• Packages in scope: lambda
+• Running dev in 1 packages
+• Remote caching disabled
+lambda:dev: cache bypass, force executing 686a70fce43e0224
+lambda:dev: 
+lambda:dev: > lambda@ dev /Users/dingruoqian/code/banana-split-tma/apps/lambda
+lambda:dev: > NODE_ENV=development PORT=8081 tsx watch index.dev.ts
+lambda:dev: 
+lambda:dev: NODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.chat.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.user.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.chat.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.user.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.chat.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.user.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: Authenticated user: 259941064 (bubuding0809)
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.chat.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: prisma:error 
+lambda:dev: Invalid `prisma.user.findUnique()` invocation:
+lambda:dev: 
+lambda:dev: 
+lambda:dev: Can't reach database server at `localhost:5432`
+lambda:dev: 
+lambda:dev: Please make sure your database server is running at `localhost:5432`.
+lambda:dev: 9:26:01 AM [tsx] change in ./../../packages/database/generated/client/runtime/library.js Restarting...
+lambda:dev: cNODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: 9:32:25 AM [tsx] Previous process hasn't exited yet. Force killing...
+ ERROR  run failed: command  exited (1)
