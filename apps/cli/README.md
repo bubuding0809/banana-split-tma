@@ -72,6 +72,10 @@ banana get-totals --user-id 123456
 banana list-settlements
 banana create-settlement --sender-id 123 --receiver-id 456 --amount 50 --currency SGD
 
+# Reminders
+banana send-group-reminder
+banana send-debt-reminder --debtor-user-id 123 --debtor-name "John Doe" --creditor-name "Jane Smith" --amount 50 --currency SGD
+
 # Snapshots
 banana list-snapshots
 banana get-snapshot --snapshot-id <uuid>
@@ -102,6 +106,8 @@ banana update-chat-settings --debt-simplification true --base-currency SGD
 | `get-totals`           | Get total borrowed/lent for a user     |
 | `list-settlements`     | List debt settlements                  |
 | `create-settlement`    | Record a payment                       |
+| `send-group-reminder`  | Send group debt reminder message       |
+| `send-debt-reminder`   | Send individual debt reminder message  |
 | `list-snapshots`       | List expense snapshots                 |
 | `get-snapshot`         | Get snapshot details                   |
 | `get-exchange-rate`    | Get currency exchange rate             |

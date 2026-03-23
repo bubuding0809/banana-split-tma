@@ -52,8 +52,17 @@ const SplitModeFormStep = withForm({
       "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
     >,
     isEditMode: false,
+    chatId: 0,
+    membersExpanded: false,
   },
-  render: function Render({ form, isLastStep, step, navigate }) {
+  render: function Render({
+    form,
+    isLastStep,
+    step,
+    navigate,
+    chatId,
+    membersExpanded,
+  }) {
     const [showFooter, setShowFooter] = useState(true);
 
     const onFormSubmit = useCallback(async () => {
@@ -243,6 +252,8 @@ const SplitModeFormStep = withForm({
                 isLastStep={isLastStep}
                 onShowFooterChange={setShowFooter}
                 onFormSubmit={onFormSubmit}
+                chatId={chatId}
+                membersExpanded={membersExpanded}
               />
             );
           }}
@@ -262,7 +273,12 @@ const SplitModeFormStep = withForm({
             }[splitMode as "EQUAL" | "SHARES" | "EXACT"];
 
             return showFooter ? (
-              <FooterComponent form={form} step={step} isLastStep />
+              <FooterComponent
+                form={form}
+                step={step}
+                isLastStep
+                chatId={chatId}
+              />
             ) : null;
           }}
         </form.Subscribe>

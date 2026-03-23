@@ -3,6 +3,8 @@ import { hapticFeedback, initData, useSignal } from "@telegram-apps/sdk-react";
 import { Avatar, Cell, Divider, Navigation } from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
 import ChatTransactionTab from "./ChatTransactionTab";
+import SnapshotsLink from "../Snapshot/SnapshotsLink";
+import AddExpenseButton from "../Expense/AddExpenseButton";
 
 const UserPage = () => {
   const tUserData = useSignal(initData.user);
@@ -24,7 +26,7 @@ const UserPage = () => {
 
   return (
     <main className="no-scrollbar flex flex-col">
-      {/* Header */}
+      {/* Header and Top Actions (wrapped in headerRef for height calculation) */}
       <div ref={headerRef} className="py-1">
         <Cell
           onClick={handleSettingsClick}
@@ -38,9 +40,17 @@ const UserPage = () => {
         >
           {tUserData?.firstName} {tUserData?.lastName}
         </Cell>
-      </div>
 
-      <Divider />
+        <Divider />
+
+        <SnapshotsLink chatId={userId} />
+
+        <Divider />
+
+        <AddExpenseButton chatId={userId} selectedTab="transaction" />
+
+        <Divider />
+      </div>
 
       {/* Transactions List - explicit height for virtualizer */}
       <div

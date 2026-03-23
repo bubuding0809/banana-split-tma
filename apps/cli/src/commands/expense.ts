@@ -7,14 +7,22 @@ export const expenseCommands: Command[] = [
   {
     name: "list-expenses",
     description: "List all expenses in a chat",
+    agentGuidance:
+      "Use this to find a specific expense ID or to see recent activity.",
+    examples: [
+      "banana list-expenses --chat-id 123456789",
+      "banana list-expenses --currency USD",
+    ],
     options: {
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
       currency: {
         type: "string",
         description: "Filter by 3-letter currency code (e.g. USD)",
+        required: false,
       },
     },
     execute: (opts, trpc) =>
@@ -33,10 +41,16 @@ export const expenseCommands: Command[] = [
   {
     name: "get-expense",
     description: "Get full details of a specific expense",
+    agentGuidance:
+      "Use this to see how an expense was split or to get its exact details before updating.",
+    examples: [
+      "banana get-expense --expense-id 123e4567-e89b-12d3-a456-426614174000",
+    ],
     options: {
       "expense-id": {
         type: "string",
         description: "The expense UUID",
+        required: true,
       },
     },
     execute: (opts, trpc) => {
@@ -58,48 +72,64 @@ export const expenseCommands: Command[] = [
   {
     name: "create-expense",
     description: "Create a new expense with automatic split calculation",
+    agentGuidance:
+      "Use this when a user adds a new expense. Always resolve the chat ID first. For EQUAL splits, you don't need custom-splits.",
+    examples: [
+      "banana create-expense --amount 50 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
+      'banana create-expense --amount 100 --description \'Groceries\' --payer-id 123 --split-mode EXACT --participant-ids 123,456 --custom-splits \'[{"userId":123,"amount":60},{"userId":456,"amount":40}]\'',
+    ],
     options: {
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
       "payer-id": {
         type: "string",
         description: "The user ID who paid the expense",
+        required: true,
       },
       "creator-id": {
         type: "string",
         description: "The user ID creating the expense (defaults to payer-id)",
+        required: false,
       },
       description: {
         type: "string",
         description: "Short description of the expense (max 60 chars)",
+        required: true,
       },
       amount: {
         type: "string",
         description: "The total amount of the expense",
+        required: true,
       },
       currency: {
         type: "string",
         description: "3-letter currency code (defaults to chat base currency)",
+        required: false,
       },
       "split-mode": {
         type: "string",
         description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
+        required: true,
       },
       "participant-ids": {
         type: "string",
         description: "Comma-separated user IDs participating in the split",
+        required: true,
       },
       "custom-splits": {
         type: "string",
         description:
           'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+        required: false,
       },
       date: {
         type: "string",
         description:
           "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z). Defaults to now.",
+        required: false,
       },
     },
     execute: (opts, trpc) => {
@@ -236,52 +266,68 @@ export const expenseCommands: Command[] = [
   {
     name: "update-expense",
     description: "Update an existing expense",
+    agentGuidance:
+      "Use this to modify an expense. You must provide all required fields, even if they haven't changed. Use get-expense first to get current values.",
+    examples: [
+      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
+    ],
     options: {
       "expense-id": {
         type: "string",
         description: "The expense UUID",
+        required: true,
       },
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
       "payer-id": {
         type: "string",
         description: "The user ID who paid the expense",
+        required: true,
       },
       "creator-id": {
         type: "string",
         description: "The user ID creating the update (defaults to payer-id)",
+        required: false,
       },
       description: {
         type: "string",
         description: "Short description of the expense (max 60 chars)",
+        required: true,
       },
       amount: {
         type: "string",
         description: "The total amount of the expense",
+        required: true,
       },
       currency: {
         type: "string",
         description: "3-letter currency code",
+        required: false,
       },
       "split-mode": {
         type: "string",
         description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
+        required: true,
       },
       "participant-ids": {
         type: "string",
         description: "Comma-separated user IDs participating in the split",
+        required: true,
       },
       "custom-splits": {
         type: "string",
         description:
           'JSON array for non-EQUAL splits: \'[{"userId":123,"amount":30}]\'',
+        required: false,
       },
       date: {
         type: "string",
         description:
           "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z)",
+        required: false,
       },
     },
     execute: (opts, trpc) => {
@@ -395,22 +441,30 @@ export const expenseCommands: Command[] = [
   {
     name: "get-net-share",
     description: "Get the net balance between two users in a chat",
+    agentGuidance: "Use this to see who owes who before creating a settlement.",
+    examples: [
+      "banana get-net-share --main-user-id 123 --target-user-id 456 --currency USD",
+    ],
     options: {
       "main-user-id": {
         type: "string",
         description: "The user whose perspective to calculate from",
+        required: true,
       },
       "target-user-id": {
         type: "string",
         description: "The other user in the balance calculation",
+        required: true,
       },
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
       currency: {
         type: "string",
         description: "3-letter currency code (e.g. USD) — required",
+        required: true,
       },
     },
     execute: (opts, trpc) => {
@@ -453,14 +507,19 @@ export const expenseCommands: Command[] = [
   {
     name: "get-totals",
     description: "Get total borrowed and lent amounts for a user in a chat",
+    agentGuidance:
+      "Use this to get a high-level overview of a user's financial state in a chat.",
+    examples: ["banana get-totals --user-id 123"],
     options: {
       "user-id": {
         type: "string",
         description: "The user ID to check totals for",
+        required: true,
       },
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
     },
     execute: (opts, trpc) => {
@@ -485,10 +544,16 @@ export const expenseCommands: Command[] = [
   {
     name: "delete-expense",
     description: "Delete an expense by ID",
+    agentGuidance:
+      "Use this to remove an expense completely. This cannot be undone.",
+    examples: [
+      "banana delete-expense --expense-id 123e4567-e89b-12d3-a456-426614174000",
+    ],
     options: {
       "expense-id": {
         type: "string",
         description: "The expense UUID",
+        required: true,
       },
     },
     execute: (opts, trpc) => {
@@ -511,15 +576,20 @@ export const expenseCommands: Command[] = [
     name: "bulk-import-expenses",
     description:
       "Import multiple expenses from a JSON file. Each entry mirrors create-expense options.",
+    agentGuidance:
+      "Use this when migrating data or adding many expenses at once.",
+    examples: ["banana bulk-import-expenses --file ./expenses.json"],
     options: {
       file: {
         type: "string",
         description:
           "Path to a JSON file containing an array of expense objects",
+        required: true,
       },
       "chat-id": {
         type: "string",
         description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
       },
     },
     execute: (opts, trpc) => {

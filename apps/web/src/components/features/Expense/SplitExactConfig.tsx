@@ -1,4 +1,4 @@
-import { useStartParams, withForm } from "@/hooks";
+import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import {
   Section,
@@ -49,9 +49,10 @@ const SplitExactConfig = withForm({
       console.info("Footer visibility changed:", show);
     },
     onFormSubmit: () => {},
+    chatId: 0,
+    membersExpanded: false,
   },
-  render: function Render({ form, onShowFooterChange, onFormSubmit }) {
-    const tStartParams = useStartParams();
+  render: function Render({ form, onShowFooterChange, onFormSubmit, chatId }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tButtonColor = useSignal(themeParams.buttonColor);
     const tButtonTextColor = useSignal(themeParams.buttonTextColor);
@@ -64,7 +65,6 @@ const SplitExactConfig = withForm({
     const [navigationEnabled, setNavigationEnabled] = useState(false);
     const [modalOpen, setModalOpen] = useState(true);
 
-    const chatId = tStartParams?.chat_id ?? 0;
     const { currency, participants, customSplits } = useStore(
       form.store,
       (state) => ({

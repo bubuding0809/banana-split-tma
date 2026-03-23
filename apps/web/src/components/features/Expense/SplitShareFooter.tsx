@@ -1,4 +1,4 @@
-import { useStartParams, withForm } from "@/hooks";
+import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import {
   Modal,
@@ -25,11 +25,10 @@ const SplitShareFooter = withForm({
   props: {
     step: 2,
     isLastStep: true,
+    chatId: 0,
   },
-  render: function Render({ form }) {
+  render: function Render({ form, chatId }) {
     const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-    const tStartParams = useStartParams();
-    const chatId = tStartParams?.chat_id ?? 0;
 
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
     return (

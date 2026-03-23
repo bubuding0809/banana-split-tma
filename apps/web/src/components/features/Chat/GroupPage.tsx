@@ -1,4 +1,4 @@
-import { Link, getRouteApi } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import {
   hapticFeedback,
   initData,
@@ -8,14 +8,11 @@ import {
 } from "@telegram-apps/sdk-react";
 import {
   Avatar,
-  Badge,
-  Button,
   Caption,
   Cell,
   Divider,
   Navigation,
   Text,
-  Skeleton,
   Spinner,
   TabsList,
   Switch,
@@ -23,16 +20,16 @@ import {
 import useEnsureChatMember from "@hooks/useEnsureChatMember";
 import useStartParams from "@hooks/useStartParams";
 import {
-  Aperture,
   ArrowRightLeft,
   FileSpreadsheet,
-  Plus,
   Settings,
   WandSparkles,
 } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
 import ChatTransactionTab from "./ChatTransactionTab";
+import SnapshotsLink from "../Snapshot/SnapshotsLink";
+import AddExpenseButton from "../Expense/AddExpenseButton";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
 import { useEffect, useRef } from "react";
@@ -51,7 +48,6 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   const navigate = routeApi.useNavigate();
   const tUserData = useSignal(initData.user);
   const tStartParams = useStartParams();
-  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
@@ -180,11 +176,6 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
     chatId,
   });
 
-  const { data: snapShots, status: snapShotsStatus } =
-    trpc.snapshot.getByChat.useQuery({
-      chatId,
-    });
-
   const handleTabChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
     navigate({
@@ -304,35 +295,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
       <Divider />
 
       {/* Snapshots link */}
-      <Link
-        onClick={() => hapticFeedback.impactOccurred("light")}
-        to="/chat/$chatId/snapshots"
-        params={{
-          chatId: chatId.toString(),
-        }}
-        search={{
-          title: "📸 Snapshots",
-        }}
-      >
-        <Cell
-          Component="label"
-          before={
-            <span className="rounded-lg bg-red-600 p-1.5">
-              <Aperture size={20} color="white" />
-            </span>
-          }
-          after={
-            <Skeleton visible={snapShotsStatus === "pending"}>
-              <Navigation>
-                <Badge type="number">{snapShots?.length}</Badge>
-              </Navigation>
-            </Skeleton>
-          }
-          description="See what you have spent"
-        >
-          Snapshots
-        </Cell>
-      </Link>
+      <SnapshotsLink chatId={chatId} />
 
       <Divider />
 
@@ -364,31 +327,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
       <Divider />
 
       {/* Main action button */}
-      <Link
-        className="p-4"
-        onClick={() => hapticFeedback.impactOccurred("light")}
-        to="/chat/$chatId/add-expense"
-        params={{
-          chatId: chatId.toString(),
-        }}
-        search={{
-          prevTab: selectedTab,
-          title: "+ Add expense",
-        }}
-      >
-        <Button
-          size="l"
-          stretched
-          before={<Plus size={24} />}
-          className="rounded-xl"
-          style={{
-            color: tButtonTextColor,
-            backgroundColor: tButtonColor,
-          }}
-        >
-          Add expense
-        </Button>
-      </Link>
+      <AddExpenseButton chatId={chatId} selectedTab={selectedTab} />
 
       <section
         className="flex h-screen flex-col bg-neutral-50 pt-1 dark:bg-neutral-900/20"

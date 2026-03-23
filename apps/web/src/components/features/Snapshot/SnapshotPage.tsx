@@ -19,8 +19,9 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { RouterOutputs } from "@dko/trpc";
+import { useStartParams } from "@/hooks";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { format } from "date-fns";
 
@@ -84,8 +85,13 @@ interface SnapshotPageProps {
 
 const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   const navigate = routeApi.useNavigate();
+  const globalNavigate = useNavigate();
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+  const tmaStartParams = useStartParams();
+  const isPersonalChat = ["private", "p"].includes(
+    tmaStartParams?.chat_type ?? "private"
+  );
 
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(
     null
@@ -104,20 +110,32 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
     backButton.show();
     const offBackButton = backButton.onClick(() => {
       hapticFeedback.notificationOccurred("success");
-      navigate({
-        to: "..",
-        search: (prev) => ({
-          ...prev,
-          selectedTab: "transaction",
-          title: "",
-        }),
-      });
+
+      if (isPersonalChat) {
+        globalNavigate({
+          to: "/chat",
+          search: (prev: Record<string, unknown>) => ({
+            ...prev,
+            selectedTab: "transaction",
+            title: "",
+          }),
+        });
+      } else {
+        navigate({
+          to: "..",
+          search: (prev) => ({
+            ...prev,
+            selectedTab: "transaction",
+            title: "",
+          }),
+        });
+      }
     });
     return () => {
       backButton.hide();
       offBackButton();
     };
-  }, [navigate]);
+  }, [navigate, globalNavigate, isPersonalChat]);
 
   const handleSnapshotClick = (snapshotId: string) => {
     setSelectedSnapshotId(snapshotId);
