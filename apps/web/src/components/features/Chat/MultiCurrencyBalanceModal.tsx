@@ -13,6 +13,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import ToPayModal from "./ToPayModal";
 import ToReceiveModal from "./ToReceiveModal";
+import PayNowQR from "./PayNowQR";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { trpc } from "@/utils/trpc";
 import {
@@ -22,6 +23,7 @@ import {
   hapticFeedback,
   initData,
   popup,
+  secondaryButton,
 } from "@telegram-apps/sdk-react";
 import { cn } from "@/utils/cn";
 import { getBalanceColorClass } from "@/utils/financial";
@@ -154,6 +156,9 @@ const MultiCurrencyBalanceModal = ({
   const chatId = startParams?.chat_id ?? 0;
 
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: memberData } = trpc.user.getUser.useQuery({
+    userId: member.id,
+  });
 
   const isDebtor = balanceType === "debtor";
   const title = isDebtor ? "Send Reminders?" : `Settle Debts?`;
@@ -305,14 +310,31 @@ const MultiCurrencyBalanceModal = ({
       mainButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: "Settle All ✅",
+        text: isDebtor ? "Send Reminders ✅" : "Settle All ✅",
       });
     }
 
     return () => {
       mainButton.setParams.ifAvailable({ isVisible: false });
     };
-  }, [modalOpen, openedEntry]);
+  }, [modalOpen, openedEntry, isDebtor]);
+
+  useEffect(() => {
+    if (openedEntry === null && modalOpen && !isDebtor && memberData?.phoneNumber) {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: true,
+        isEnabled: true,
+        text: `Copy Number 📲`,
+      });
+    }
+
+    return () => {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
+    };
+  }, [modalOpen, openedEntry, isDebtor, memberData?.phoneNumber]);
 
   useEffect(() => {
     let offMainButtonClick: VoidFunction | undefined;
@@ -323,6 +345,38 @@ const MultiCurrencyBalanceModal = ({
 
     return () => offMainButtonClick?.();
   }, [handleSettleAllDebts, modalOpen, openedEntry]);
+
+  useEffect(() => {
+    let offSecondaryButtonClick: VoidFunction | undefined;
+
+    if (openedEntry === null && modalOpen && !isDebtor && memberData?.phoneNumber) {
+      offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(async () => {
+        try {
+          await navigator.clipboard.writeText(memberData.phoneNumber!);
+          hapticFeedback.notificationOccurred.ifAvailable("success");
+          secondaryButton.setParams.ifAvailable({
+            text: "✅ Copied",
+            isEnabled: false,
+          });
+          setTimeout(() => {
+            secondaryButton.setParams.ifAvailable({
+              text: "Copy Number 📲",
+              isEnabled: true,
+              isLoaderVisible: false,
+            });
+          }, 500);
+        } catch (error) {
+          console.error("Failed to copy to clipboard:", error);
+          hapticFeedback.notificationOccurred.ifAvailable("error");
+          popup.open.ifAvailable({
+            message: "Failed to copy number to clipboard. Please try again.",
+          });
+        }
+      });
+    }
+
+    return () => offSecondaryButtonClick?.();
+  }, [modalOpen, openedEntry, isDebtor, memberData?.phoneNumber]);
 
   return (
     <Modal
@@ -367,6 +421,18 @@ const MultiCurrencyBalanceModal = ({
             />
           ))}
         </Section>
+        {!isDebtor &&
+          memberData?.phoneNumber &&
+          baseCurrency === "SGD" &&
+          convertedTotal !== null && (
+            <div className="mt-4">
+              <PayNowQR
+                phoneNumber={memberData.phoneNumber}
+                amount={Math.abs(convertedTotal)}
+                merchantName={member.firstName}
+              />
+            </div>
+          )}
       </div>
     </Modal>
   );
