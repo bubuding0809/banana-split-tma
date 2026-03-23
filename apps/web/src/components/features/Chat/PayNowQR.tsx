@@ -29,7 +29,13 @@ const PayNowQR = ({
 
   return (
     <div className="flex flex-col items-center gap-2 py-4">
-      <QRCodeSVG value={qrString} size={200} level="M" includeMargin />
+      <QRCodeSVG
+        value={qrString}
+        size={200}
+        level="M"
+        includeMargin
+        aria-label="PayNow QR code"
+      />
       <p className="text-center text-sm text-gray-500">
         Scan with any Singapore banking app to pay via PayNow
       </p>

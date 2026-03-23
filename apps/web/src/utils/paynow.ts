@@ -22,7 +22,7 @@ function crc16(data: string): string {
  * e.g. "6591234567". SG mobiles start with 8 or 9 after the 65 country code.
  */
 export function isValidSgMobile(phoneNumber: string): boolean {
-  return /^658\d{7}$|^659\d{7}$/.test(phoneNumber);
+  return /^65[89]\d{7}$/.test(phoneNumber);
 }
 
 /**
@@ -64,7 +64,7 @@ export function generatePayNowString(
 
   parts.push(
     tlv("58", "SG"), // Country Code
-    tlv("59", merchantName), // Merchant Name (creditor's name)
+    tlv("59", merchantName.slice(0, 25)), // Merchant Name (creditor's name, max 25 chars per EMV spec)
     tlv("60", "SINGAPORE") // Merchant City
   );
 
