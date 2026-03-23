@@ -1,0 +1,12 @@
+
+> dko-turbo@ dev:tunnel /Users/dingruoqian/code/banana-split-tma
+> pnpm tunnel && turbo dev --filter=!banana-split-mcp-server
+
+
+> dko-turbo@ tunnel /Users/dingruoqian/code/banana-split-tma
+> bash scripts/tunnel.sh
+
+[0;31mError: Tailscale is not installed.[0m
+Install with: [0;34mbrew install tailscale[0m
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

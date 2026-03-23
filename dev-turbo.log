@@ -1,0 +1,145 @@
+turbo 2.4.4
+
+• Packages in scope: @dko/database, @dko/trpc, @repo/eslint-config, @repo/typescript-config, @repo/ui, admin, lambda, web
+• Running dev in 8 packages
+• Remote caching disabled
+@dko/trpc:dev: cache bypass, force executing 81c51a65ccc67c1c
+@dko/database:dev: cache bypass, force executing 826afaf14355ad6a
+web:dev: cache bypass, force executing e0593b7796f1aabd
+lambda:dev: cache bypass, force executing 686a70fce43e0224
+@dko/trpc:dev: 
+@dko/trpc:dev: > @dko/trpc@1.0.0 dev /Users/dingruoqian/code/banana-split-tma/packages/trpc
+@dko/trpc:dev: > tsc --watch --preserveWatchOutput
+@dko/trpc:dev: 
+@dko/database:dev: 
+@dko/database:dev: > @dko/database@1.0.0 dev /Users/dingruoqian/code/banana-split-tma/packages/database
+@dko/database:dev: > tsc --watch --preserveWatchOutput
+@dko/database:dev: 
+web:dev: 
+web:dev: > web@0.0.0 dev /Users/dingruoqian/code/banana-split-tma/apps/web
+web:dev: > vite
+web:dev: 
+lambda:dev: 
+lambda:dev: > lambda@ dev /Users/dingruoqian/code/banana-split-tma/apps/lambda
+lambda:dev: > NODE_ENV=development PORT=8081 tsx watch index.dev.ts
+lambda:dev: 
+@dko/database:dev: 
+@dko/database:dev: 9:08:10 AM - Starting compilation in watch mode...
+@dko/database:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:10 AM - Starting compilation in watch mode...
+@dko/trpc:dev: 
+@dko/database:dev: 
+@dko/database:dev: 9:08:11 AM - Found 0 errors. Watching for file changes.
+lambda:dev: NODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: 9:08:12 AM [tsx] change in ./../../packages/database/dist/index.js Restarting...
+web:dev: Route file "import { test, expect } from "@playwright/experimental-ct-react";
+web:dev: import { Index } from "./index";
+web:dev: 
+web:dev: test.use({ viewport: { width: 375, height: 812 } });
+web:dev: 
+web:dev: test("splash screen renders correctly", async ({ mount }) => {
+web:dev:   const component = await mount(<Index />);
+web:dev:   await expect(component).toContainText("🍌 Banana Splitz");
+web:dev:   await expect(component).toHaveScreenshot("splash-screen.png");
+web:dev: });
+web:dev: " does not export any route piece. This is likely a mistake.
+web:dev: Generated route tree in 157ms
+web:dev: 
+web:dev:   VITE v6.2.2  ready in 1821 ms
+web:dev: 
+web:dev:   ➜  Local:   http://localhost:5173/
+web:dev:   ➜  Network: use --host to expose
+lambda:dev: cNODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: 9:08:13 AM [tsx] change in ./../../packages/trpc/dist/routers/ai/classifyExpenseDescription.js Restarting...
+lambda:dev: c9:08:14 AM [tsx] change in ./../../packages/trpc/dist/routers/expense/getAllExpensesByChat.js Restarting...
+lambda:dev: 9:08:14 AM [tsx] change in ./../../packages/trpc/dist/routers/telegram/getChatMember.js Process hasn't exited. Killing process...
+@dko/trpc:dev: src/routers/apiKey/generate.ts(48,12): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/generate.ts(67,12): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/generateToken.ts(53,12): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/listTokens.ts(51,27): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/listTokens.ts(71,22): error TS7006: Parameter 't' implicitly has an 'any' type.
+@dko/trpc:dev: src/routers/apiKey/revoke.ts(28,30): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/revoke.ts(43,12): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/revokeToken.ts(44,26): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/routers/apiKey/revokeToken.ts(60,12): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: src/trpc.ts(125,39): error TS2339: Property 'chatApiKey' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:14 AM - Found 10 errors. Watching for file changes.
+lambda:dev: c9:08:14 AM [tsx] change in ./../../packages/trpc/dist/routers/snapshot/index.js Restarting...
+lambda:dev: 9:08:14 AM [tsx] change in ./../../packages/trpc/dist/index.js Process hasn't exited. Killing process...
+lambda:dev: cNODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: 9:08:28 AM [tsx] change in ./../../packages/database/generated/client/runtime/library.js Restarting...
+@dko/database:dev: 
+@dko/database:dev: 9:08:28 AM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:28 AM - File change detected. Starting incremental compilation...
+@dko/trpc:dev: 
+@dko/database:dev: 
+@dko/database:dev: 9:08:29 AM - Found 0 errors. Watching for file changes.
+lambda:dev: cNODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+lambda:dev: 9:08:29 AM [tsx] change in ./../../packages/database/dist/index.js Restarting...
+lambda:dev: cNODE_ENV: development
+lambda:dev: 🚀 Server running on http://localhost:8081
+@dko/database:dev: 
+@dko/database:dev: 9:08:30 AM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/database:dev: 
+@dko/database:dev: 9:08:30 AM - Found 0 errors. Watching for file changes.
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:31 AM - Found 0 errors. Watching for file changes.
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:31 AM - File change detected. Starting incremental compilation...
+@dko/trpc:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: 9:08:31 AM - Found 0 errors. Watching for file changes.
+web:dev: The request url "/Users/dingruoqian/code/banana-split-tma/apps/web/.env" is outside of Vite serving allow list.
+web:dev: 
+web:dev: - /Users/dingruoqian/code/banana-split-tma
+web:dev: 
+web:dev: Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+web:dev: 
+web:dev: The request url "/Users/dingruoqian/code/banana-split-tma/apps/web/.env" is outside of Vite serving allow list.
+web:dev: 9:17:46 AM [vite] Internal server error: ENOENT: no such file or directory, open '/proc/self/environ'
+web:dev:       at async open (node:internal/fs/promises:641:25)
+web:dev:       at async Object.readFile (node:internal/fs/promises:1245:14)
+web:dev:       at async LoadPluginContext.load (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:13528:11)
+web:dev:       at async EnvironmentPluginContainer.load (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:47621:22)
+web:dev:       at async loadAndTransform (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:41254:22)
+web:dev: 9:18:05 AM [vite] Internal server error: ENOENT: no such file or directory, open '/proc/self/environ'
+web:dev:       at async open (node:internal/fs/promises:641:25)
+web:dev:       at async Object.readFile (node:internal/fs/promises:1245:14)
+web:dev:       at async LoadPluginContext.load (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:13528:11)
+web:dev:       at async EnvironmentPluginContainer.load (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:47621:22)
+web:dev:       at async loadAndTransform (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:41254:22)
+web:dev:       at async viteTransformMiddleware (file:///Users/dingruoqian/code/banana-split-tma/node_modules/.pnpm/vite@6.2.2_@types+node@22.13.10_jiti@2.4.2_lightningcss@1.30.1_tsx@4.19.3_yaml@2.8.0/node_modules/vite/dist/node/chunks/dep-B0fRCRkQ.js:42783:24)
+web:dev: 9:18:51 AM [vite] .env.local changed, restarting server...
+web:dev: Route file "import { test, expect } from "@playwright/experimental-ct-react";
+web:dev: import { Index } from "./index";
+web:dev: 
+web:dev: test.use({ viewport: { width: 375, height: 812 } });
+web:dev: 
+web:dev: test("splash screen renders correctly", async ({ mount }) => {
+web:dev:   const component = await mount(<Index />);
+web:dev:   await expect(component).toContainText("🍌 Banana Splitz");
+web:dev:   await expect(component).toHaveScreenshot("splash-screen.png");
+web:dev: });
+web:dev: " does not export any route piece. This is likely a mistake.
+web:dev: Generated route tree in 60ms
+web:dev: 9:18:51 AM [vite] server restarted.
+web:dev:  ELIFECYCLE  Command failed with exit code 143.
+web:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/apps/web) /usr/local/bin/pnpm run dev exited (143)
+lambda:dev: 9:18:57 AM [tsx] Previous process hasn't exited yet. Force killing...
+web#dev: command (/Users/dingruoqian/code/banana-split-tma/apps/web) /usr/local/bin/pnpm run dev exited (143)
+
+ Tasks:    0 successful, 4 total
+Cached:    0 cached, 4 total
+  Time:    10m47.432s 
+Failed:    web#dev
+
+ ERROR  run failed: command  exited (143)

@@ -1,0 +1,494 @@
+## Router: ai
+### Procedure: classifyExpenseDescription
+#### Input Schema:
+export const inputSchema = z.object({
+  description: z
+    .string()
+    .min(1, "Expense description is required")
+    .max(200, "Description too long"),
+  categories: z
+    .array(ExpenseCategorySchema)
+    .min(2, "At least 2 categories required")
+    .max(20, "Too many categories provided"),
+});
+#### Type: mutation
+
+## Router: apiKey
+### Procedure: generate
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: generateToken
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: generateUserToken
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: getScope
+#### Input Schema:
+#### Type: query
+
+### Procedure: listTokens
+#### Input Schema:
+#### Type: query
+
+### Procedure: listUserTokens
+#### Input Schema:
+#### Type: query
+
+### Procedure: revoke
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: revokeToken
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: revokeUserToken
+#### Input Schema:
+#### Type: mutation
+
+## Router: aws
+### Procedure: createGroupReminderSchedule
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z
+    .string()
+    .min(1, "Chat ID is required")
+    .refine(
+      validateChatId,
+      "Invalid Telegram chat ID format. Must be a numeric string (can be negative for groups)"
+    ),
+
+  dayOfWeek: z
+    .enum(DAYS_OF_WEEK)
+    .describe("Day of the week for the weekly reminder"),
+
+  time: z
+    .string()
+#### Type: mutation
+
+### Procedure: createRecurringSchedule
+#### Input Schema:
+export const inputSchema = z.object({
+  scheduleName: z
+    .string()
+    .min(1, "Schedule name is required")
+    .max(64, "Schedule name must be 64 characters or less")
+    .regex(
+      /^[a-zA-Z0-9._-]+$/,
+      "Schedule name can only contain letters, numbers, periods, hyphens, and underscores"
+    ),
+
+  scheduleExpression: z
+    .string()
+    .min(1, "Schedule expression is required")
+    .describe(
+      "Human-readable (e.g., 'daily at 9am', 'every 5 minutes') or AWS format (cron/rate expressions)"
+#### Type: mutation
+
+### Procedure: deleteGroupReminderSchedule
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z
+    .number()
+    .describe("Telegram chat ID to identify the schedule to delete"),
+});
+#### Type: mutation
+
+### Procedure: getChatSchedule
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().describe("Telegram chat ID"),
+});
+#### Type: query
+
+### Procedure: updateGroupReminderSchedule
+#### Input Schema:
+#### Type: mutation
+
+## Router: chat
+### Procedure: addMember
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  userId: z.number().transform((val) => BigInt(val)),
+});
+#### Type: mutation
+
+### Procedure: createChat
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  chatTitle: z.string(),
+  chatType: z.string(),
+  chatPhoto: z.string().nullish(),
+});
+#### Type: mutation
+
+### Procedure: getAllChats
+#### Input Schema:
+#### Type: query
+
+### Procedure: getBulkChatDebts
+#### Input Schema:
+#### Type: query
+
+### Procedure: getChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: getCreditors
+#### Input Schema:
+#### Type: query
+
+### Procedure: getCreditorsMultiCurrency
+#### Input Schema:
+#### Type: query
+
+### Procedure: getDebtors
+#### Input Schema:
+#### Type: query
+
+### Procedure: getDebtorsMultiCurrency
+#### Input Schema:
+#### Type: query
+
+### Procedure: getMembers
+#### Input Schema:
+#### Type: query
+
+### Procedure: getSimplifiedDebts
+#### Input Schema:
+#### Type: query
+
+### Procedure: getSimplifiedDebtsMultiCurrency
+#### Input Schema:
+#### Type: query
+
+### Procedure: hasMember
+#### Input Schema:
+#### Type: query
+
+### Procedure: migrateChat
+#### Input Schema:
+export const inputSchema = z.object({
+  oldChatId: z.number().transform((val) => BigInt(val)),
+  newChatId: z.number().transform((val) => BigInt(val)),
+});
+#### Type: mutation
+
+### Procedure: removeMember
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z
+    .union([z.string(), z.number()])
+    .transform((val) => Number(val))
+    .pipe(z.number()),
+  userId: z
+    .union([z.string(), z.number()])
+    .transform((val) => Number(val))
+    .pipe(z.number()),
+});
+#### Type: mutation
+
+### Procedure: updateChat
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  threadId: z
+    .number()
+    .optional()
+    .transform((val) => (val ? BigInt(val) : undefined)),
+  title: z.string().optional(),
+  photo: z.string().optional(),
+  type: z.nativeEnum(ChatType).optional(),
+  baseCurrency: z.string().optional(),
+  debtSimplificationEnabled: z.boolean().optional(),
+});
+#### Type: mutation
+
+## Router: currency
+### Procedure: getCurrenciesWithBalance
+#### Input Schema:
+export const inputSchema = z.object({
+  userId: z.number().transform((val) => BigInt(val)),
+  chatId: z.number().transform((val) => BigInt(val)),
+});
+#### Type: query
+
+### Procedure: getCurrentRate
+#### Input Schema:
+export const inputSchema = z.object({
+  baseCurrency: z.string().min(3).max(3).toUpperCase(),
+  targetCurrency: z.string().min(3).max(3).toUpperCase(),
+  fallbackBaseCurrency: z.string().min(3).max(3).toUpperCase().default("USD"),
+  autoRefresh: z.boolean().default(true),
+});
+#### Type: query
+
+### Procedure: getMultipleRates
+#### Input Schema:
+export const inputSchema = z.object({
+  baseCurrency: z.string().min(3).max(3).toUpperCase(),
+  targetCurrencies: z.array(z.string().min(3).max(3).toUpperCase()),
+  fallbackBaseCurrency: z.string().min(3).max(3).toUpperCase().default("USD"),
+  autoRefresh: z.boolean().default(true),
+});
+#### Type: query
+
+### Procedure: getSupportedCurrencies
+#### Input Schema:
+export const inputSchema = z.object({
+  includeRates: z.boolean().default(false),
+  onlyWithRates: z.boolean().default(false),
+});
+#### Type: query
+
+### Procedure: refreshRates
+#### Input Schema:
+export const inputSchema = z.object({
+  baseCurrency: z.string().min(3).max(3).toUpperCase().default("USD"),
+});
+#### Type: mutation
+
+## Router: expense
+### Procedure: convertCurrencyBulk
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number(),
+  fromCurrency: z.string().min(3).max(3).toUpperCase(),
+  toCurrency: z.string().min(3).max(3).toUpperCase(),
+  userId: z.number(),
+});
+#### Type: mutation
+
+### Procedure: createExpense
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  creatorId: z.number().transform((val) => BigInt(val)),
+  payerId: z.number().transform((val) => BigInt(val)),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(60, "Description too long"),
+  amount: z.number().positive("Amount must be positive"),
+  date: z
+    .date()
+    .optional()
+    .refine(
+      (date) => !date || date <= new Date(),
+      "Expense date cannot be in the future"
+#### Type: mutation
+
+### Procedure: createExpensesBulk
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  expenses: z
+    .array(singleExpenseSchema)
+    .min(1, "At least one expense required"),
+});
+#### Type: mutation
+
+### Procedure: deleteExpense
+#### Input Schema:
+export const inputSchema = z.object({
+  expenseId: z.string(),
+});
+#### Type: mutation
+
+### Procedure: getAllExpensesByChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: getExpenseByChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: getExpenseDetails
+#### Input Schema:
+#### Type: query
+
+### Procedure: updateExpense
+#### Input Schema:
+export const inputSchema = z.object({
+  expenseId: z.string().min(1, "Expense ID is required"),
+  chatId: z.number().transform((val) => BigInt(val)),
+  creatorId: z.number().transform((val) => BigInt(val)),
+  payerId: z.number().transform((val) => BigInt(val)),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(60, "Description too long"),
+  amount: z.number().positive("Amount must be positive"),
+  date: z
+    .date()
+    .optional()
+    .refine(
+      (date) => !date || date <= new Date(),
+#### Type: mutation
+
+## Router: expenseShare
+### Procedure: getNetShare
+#### Input Schema:
+#### Type: query
+
+### Procedure: getTotalBorrowed
+#### Input Schema:
+#### Type: query
+
+### Procedure: getTotalLent
+#### Input Schema:
+#### Type: query
+
+## Router: settlement
+### Procedure: createSettlement
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  senderId: z.number().transform((val) => BigInt(val)),
+  receiverId: z.number().transform((val) => BigInt(val)),
+  amount: z.number().positive("Amount must be positive"),
+  currency: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateCurrency(val), "Invalid currency code"),
+  description: z.string().max(255, "Description too long").optional(),
+  sendNotification: z.boolean().default(false),
+  creditorName: z.string().optional(),
+  creditorUsername: z.string().optional(),
+  debtorName: z.string().optional(),
+  threadId: z.number().optional(),
+#### Type: mutation
+
+### Procedure: deleteSettlement
+#### Input Schema:
+export const inputSchema = z.object({
+  settlementId: z.string(),
+});
+#### Type: mutation
+
+### Procedure: getAllSettlementsByChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: getSettlementByChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: settleAllDebts
+#### Input Schema:
+export const inputSchema = z.object({
+  chatId: z.number().transform((val) => BigInt(val)),
+  senderId: z.number().transform((val) => BigInt(val)),
+  receiverId: z.number().transform((val) => BigInt(val)),
+  balances: z.array(
+    z.object({
+      currency: z
+        .string()
+        .refine((val) => validateCurrency(val), "Invalid currency code"),
+      amount: z.number(),
+    })
+  ),
+  sendNotification: z.boolean().default(true),
+  creditorName: z.string().optional(),
+  creditorUsername: z.string().optional(),
+#### Type: mutation
+
+## Router: snapshot
+### Procedure: createSnapshot
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: deleteSnapshot
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: getSnapshotDetails
+#### Input Schema:
+#### Type: query
+
+### Procedure: getSnapshots
+#### Input Schema:
+#### Type: query
+
+### Procedure: updateSnapshot
+#### Input Schema:
+#### Type: mutation
+
+## Router: telegram
+### Procedure: deleteExpenseNotificationMessage
+#### Input Schema:
+#### Type: 
+
+### Procedure: editExpenseNotificationMessage
+#### Input Schema:
+#### Type: 
+
+### Procedure: getChat
+#### Input Schema:
+#### Type: query
+
+### Procedure: getChatMember
+#### Input Schema:
+#### Type: query
+
+### Procedure: getUserProfilePhotoUrl
+#### Input Schema:
+#### Type: query
+
+### Procedure: sendDebtReminderMessage
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: sendExpenseNotificationMessage
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: sendGroupReminderMessage
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: sendMessage
+#### Input Schema:
+#### Type: mutation
+
+### Procedure: sendSettlementNotificationMessage
+#### Input Schema:
+#### Type: mutation
+
+## Router: user
+### Procedure: createUser
+#### Input Schema:
+export const inputSchema = z.object({
+  userId: z.number().transform((val) => BigInt(val)),
+  firstName: z.string(),
+  lastName: z.string().nullable(),
+  userName: z.string().nullable(),
+  phoneNumber: z.string().nullable().optional(),
+});
+#### Type: mutation
+
+### Procedure: getUser
+#### Input Schema:
+export const inputSchema = z.object({
+  userId: z.number().transform((val) => BigInt(val)),
+});
+#### Type: query
+
+### Procedure: updateUser
+#### Input Schema:
+export const inputSchema = z.object({
+  userId: z.number().transform((val) => BigInt(val)),
+  firstName: z.string().optional(),
+  lastName: z.string().nullable().optional(),
+  username: z.string().nullable().optional(),
+  phoneNumber: z.string().nullable().optional(),
+  phoneNumberRequested: z.boolean().optional(),
+});
+#### Type: mutation
+

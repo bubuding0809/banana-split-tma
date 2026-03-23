@@ -1,0 +1,1431 @@
+turbo 2.4.4
+
+• Packages in scope: @banananasplitz/cli, @dko/database, @dko/trpc, @repo/eslint-config, @repo/typescript-config, @repo/ui, admin, lambda, web
+• Running dev in 9 packages
+• Remote caching disabled
+web:dev: cache bypass, force executing d4cede3e537796bf
+@dko/trpc:dev: cache bypass, force executing b898500a92b06c5f
+lambda:dev: cache bypass, force executing 686a70fce43e0224
+@dko/database:dev: cache bypass, force executing b1388119f0a210b1
+@banananasplitz/cli:dev: cache bypass, force executing ad0f8ade5c0ed816
+@dko/database:dev: 
+@dko/database:dev: > @dko/database@1.0.0 dev /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database
+@dko/database:dev: > tsc --watch --preserveWatchOutput
+@dko/database:dev: 
+@banananasplitz/cli:dev: 
+@banananasplitz/cli:dev: > @banananasplitz/cli@0.4.1 dev /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/cli
+@banananasplitz/cli:dev: > tsx src/cli.ts
+@banananasplitz/cli:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: > @dko/trpc@1.0.0 dev /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc
+@dko/trpc:dev: > tsc --watch --preserveWatchOutput
+@dko/trpc:dev: 
+web:dev: 
+web:dev: > web@0.0.0 dev /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web
+web:dev: > vite
+web:dev: 
+lambda:dev: 
+lambda:dev: > lambda@ dev /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda
+lambda:dev: > NODE_ENV=development PORT=8081 tsx watch index.dev.ts
+lambda:dev: 
+@dko/database:dev: 
+@dko/database:dev: 6:20:24 PM - Starting compilation in watch mode...
+@dko/database:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:20:24 PM - Starting compilation in watch mode...
+@dko/trpc:dev: 
+@banananasplitz/cli:dev: {
+@banananasplitz/cli:dev:   "name": "banana",
+@banananasplitz/cli:dev:   "description": "Agent-first CLI for Banana Split expense tracking API",
+@banananasplitz/cli:dev:   "commands": [
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "help",
+@banananasplitz/cli:dev:       "description": "Show this help information",
+@banananasplitz/cli:dev:       "options": []
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "login",
+@banananasplitz/cli:dev:       "description": "Save API key to config file",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--api-key",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "API key for authentication"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--api-url",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Override API base URL (optional)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "install-skill",
+@banananasplitz/cli:dev:       "description": "Output Agent Skills spec skill path for AI agent integration",
+@banananasplitz/cli:dev:       "options": []
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "list-chats",
+@banananasplitz/cli:dev:       "description": "List all expense-tracking chats/groups",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--exclude-types",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated chat types to exclude (private,group,supergroup,channel,sender)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-chat",
+@banananasplitz/cli:dev:       "description": "Get detailed information about a specific chat/group",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-debts",
+@banananasplitz/cli:dev:       "description": "Get all outstanding debts in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currencies",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated 3-letter currency codes to filter by (e.g. USD,SGD)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-simplified-debts",
+@banananasplitz/cli:dev:       "description": "Get optimized/simplified debt graph for a chat in a specific currency",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "3-letter currency code (e.g. USD, SGD) — required"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "update-chat-settings",
+@banananasplitz/cli:dev:       "description": "Update chat settings (debt simplification, base currency)",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--debt-simplification",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Enable/disable debt simplification (true/false)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--base-currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Update default 3-letter currency code (e.g. USD)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "list-expenses",
+@banananasplitz/cli:dev:       "description": "List all expenses in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Filter by 3-letter currency code (e.g. USD)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-expense",
+@banananasplitz/cli:dev:       "description": "Get full details of a specific expense",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--expense-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The expense UUID"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "create-expense",
+@banananasplitz/cli:dev:       "description": "Create a new expense with automatic split calculation",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--payer-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID who paid the expense"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--creator-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID creating the expense (defaults to payer-id)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--description",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Short description of the expense (max 60 chars)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--amount",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The total amount of the expense"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "3-letter currency code (defaults to chat base currency)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--split-mode",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--participant-ids",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated user IDs participating in the split"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--custom-splits",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "JSON array for non-EQUAL splits: '[{\"userId\":123,\"amount\":30}]'"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--date",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z). Defaults to now."
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "update-expense",
+@banananasplitz/cli:dev:       "description": "Update an existing expense",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--expense-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The expense UUID"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--payer-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID who paid the expense"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--creator-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID creating the update (defaults to payer-id)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--description",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Short description of the expense (max 60 chars)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--amount",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The total amount of the expense"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "3-letter currency code"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--split-mode",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--participant-ids",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated user IDs participating in the split"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--custom-splits",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "JSON array for non-EQUAL splits: '[{\"userId\":123,\"amount\":30}]'"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--date",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-net-share",
+@banananasplitz/cli:dev:       "description": "Get the net balance between two users in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--main-user-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user whose perspective to calculate from"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--target-user-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The other user in the balance calculation"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "3-letter currency code (e.g. USD) — required"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-totals",
+@banananasplitz/cli:dev:       "description": "Get total borrowed and lent amounts for a user in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--user-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID to check totals for"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "delete-expense",
+@banananasplitz/cli:dev:       "description": "Delete an expense by ID",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--expense-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The expense UUID"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "bulk-import-expenses",
+@banananasplitz/cli:dev:       "description": "Import multiple expenses from a JSON file. Each entry mirrors create-expense options.",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--file",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Path to a JSON file containing an array of expense objects"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "list-settlements",
+@banananasplitz/cli:dev:       "description": "List all debt settlements in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Filter by 3-letter currency code"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "create-settlement",
+@banananasplitz/cli:dev:       "description": "Record a debt settlement/payment between two users",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--sender-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID who is paying the debt"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--receiver-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID who is receiving the payment"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--amount",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The amount being paid"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "3-letter currency code (defaults to chat base currency)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--description",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Optional note about the settlement"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "delete-settlement",
+@banananasplitz/cli:dev:       "description": "Delete a settlement by ID",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--settlement-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The settlement UUID"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "settle-all-debts",
+@banananasplitz/cli:dev:       "description": "Settle all debts between two users across multiple currencies",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--sender-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID paying the debt"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--receiver-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID receiving the payment"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--balances",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "JSON array of balances: '[{\"currency\":\"USD\",\"amount\":15}]'"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--creditor-name",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Optional creditor name for notifications"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--debtor-name",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Optional debtor name for notifications"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "list-snapshots",
+@banananasplitz/cli:dev:       "description": "List all expense snapshots in a chat",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID (optional if API key is chat-scoped)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-snapshot",
+@banananasplitz/cli:dev:       "description": "Get full details of a specific snapshot",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--snapshot-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The snapshot UUID"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "create-snapshot",
+@banananasplitz/cli:dev:       "description": "Create an expense snapshot combining multiple specific expenses",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--creator-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The user ID creating the snapshot"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--title",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Snapshot title"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--expense-ids",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated expense UUIDs"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "update-snapshot",
+@banananasplitz/cli:dev:       "description": "Modify an existing snapshot's title or associated expenses",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--snapshot-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The snapshot UUID"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--chat-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The numeric chat ID"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--title",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Snapshot title"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--expense-ids",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "Comma-separated expense UUIDs"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "delete-snapshot",
+@banananasplitz/cli:dev:       "description": "Delete an existing snapshot",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--snapshot-id",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The snapshot UUID"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "get-exchange-rate",
+@banananasplitz/cli:dev:       "description": "Get the current exchange rate between two currencies",
+@banananasplitz/cli:dev:       "options": [
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--base-currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The source currency code (e.g. USD)"
+@banananasplitz/cli:dev:         },
+@banananasplitz/cli:dev:         {
+@banananasplitz/cli:dev:           "name": "--target-currency",
+@banananasplitz/cli:dev:           "type": "string",
+@banananasplitz/cli:dev:           "description": "The target currency code (e.g. SGD)"
+@banananasplitz/cli:dev:         }
+@banananasplitz/cli:dev:       ]
+@banananasplitz/cli:dev:     }
+@banananasplitz/cli:dev:   ],
+@banananasplitz/cli:dev:   "globalOptions": [
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "--api-key",
+@banananasplitz/cli:dev:       "type": "string",
+@banananasplitz/cli:dev:       "description": "API key for authentication"
+@banananasplitz/cli:dev:     },
+@banananasplitz/cli:dev:     {
+@banananasplitz/cli:dev:       "name": "--api-url",
+@banananasplitz/cli:dev:       "type": "string",
+@banananasplitz/cli:dev:       "description": "Override API base URL"
+@banananasplitz/cli:dev:     }
+@banananasplitz/cli:dev:   ]
+@banananasplitz/cli:dev: }
+@dko/database:dev: 
+@dko/database:dev: 6:20:25 PM - Found 0 errors. Watching for file changes.
+lambda:dev: 6:20:25 PM [tsx] change in ./../../packages/database/dist/client.js Restarting...
+lambda:dev: 6:20:26 PM [tsx] change in ./../../packages/database/dist/index.js Process hasn't exited. Killing process...
+web:dev: Route file "import { test, expect } from "@playwright/experimental-ct-react";
+web:dev: import { Index } from "./index";
+web:dev: 
+web:dev: test.use({ viewport: { width: 375, height: 812 } });
+web:dev: 
+web:dev: test("splash screen renders correctly", async ({ mount }) => {
+web:dev:   const component = await mount(<Index />);
+web:dev:   await expect(component).toContainText("🍌 Banana Splitz");
+web:dev:   await expect(component).toHaveScreenshot("splash-screen.png");
+web:dev: });
+web:dev: " does not export any route piece. This is likely a mistake.
+web:dev: Generated route tree in 605ms
+web:dev: Port 5173 is in use, trying another one...
+web:dev: Port 5174 is in use, trying another one...
+web:dev: Port 5175 is in use, trying another one...
+web:dev: Port 5176 is in use, trying another one...
+web:dev: 
+web:dev:   VITE v6.2.2  ready in 2754 ms
+web:dev: 
+web:dev:   ➜  Local:   http://localhost:5177/
+web:dev:   ➜  Network: use --host to expose
+lambda:dev: ❌ Invalid environment variables: [
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'TELEGRAM_BOT_TOKEN' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   },
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'API_KEY' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   }
+lambda:dev: ]
+lambda:dev: file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54
+lambda:dev: 		throw new Error("Invalid environment variables");
+lambda:dev: 		      ^
+lambda:dev: 
+lambda:dev: Error: Invalid environment variables
+lambda:dev:     at onValidationError (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54:9)
+lambda:dev:     at createEnv (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:59:28)
+lambda:dev:     at <anonymous> (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/env.ts:11:20)
+lambda:dev:     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+lambda:dev:     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+lambda:dev:     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:20:29 PM [tsx] change in ./../../packages/trpc/dist/trpc.js Rerunning...
+lambda:dev: c6:20:30 PM [tsx] change in ./../../packages/trpc/dist/routers/chat/getBulkChatDebts.js Restarting...
+lambda:dev: ❌ Invalid environment variables: [
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'TELEGRAM_BOT_TOKEN' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   },
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'API_KEY' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   }
+lambda:dev: ]
+lambda:dev: file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54
+lambda:dev: 		throw new Error("Invalid environment variables");
+lambda:dev: 		      ^
+lambda:dev: 
+lambda:dev: Error: Invalid environment variables
+lambda:dev:     at onValidationError (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54:9)
+lambda:dev:     at createEnv (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:59:28)
+lambda:dev:     at <anonymous> (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/env.ts:11:20)
+lambda:dev:     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+lambda:dev:     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+lambda:dev:     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:20:30 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/getChat.js Restarting...
+lambda:dev: c6:20:30 PM [tsx] change in ./../../packages/trpc/dist/routers/user/getUser.js Restarting...
+lambda:dev: c6:20:31 PM [tsx] change in ./../../packages/trpc/dist/routers/snapshot/getSnapshots.js Restarting...
+lambda:dev: c6:20:31 PM [tsx] change in ./../../packages/trpc/dist/root.js Restarting...
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:20:31 PM - Found 0 errors. Watching for file changes.
+lambda:dev: c6:20:31 PM [tsx] change in ./../../packages/trpc/dist/index.js Restarting...
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:20:31 PM - File change detected. Starting incremental compilation...
+@dko/trpc:dev: 
+lambda:dev: ❌ Invalid environment variables: [
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'TELEGRAM_BOT_TOKEN' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   },
+lambda:dev:   {
+lambda:dev:     code: 'invalid_type',
+lambda:dev:     expected: 'string',
+lambda:dev:     received: 'undefined',
+lambda:dev:     path: [ 'API_KEY' ],
+lambda:dev:     message: 'Required'
+lambda:dev:   }
+lambda:dev: ]
+lambda:dev: file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54
+lambda:dev: 		throw new Error("Invalid environment variables");
+lambda:dev: 		      ^
+lambda:dev: 
+lambda:dev: Error: Invalid environment variables
+lambda:dev:     at onValidationError (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:54:9)
+lambda:dev:     at createEnv (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@t3-oss+env-core@0.13.8_typescript@5.8.2_valibot@1.0.0-beta.14_typescript@5.8.2__zod@3.25.76/node_modules/@t3-oss/env-core/dist/src-Bb3GbGAa.js:59:28)
+lambda:dev:     at <anonymous> (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/env.ts:11:20)
+lambda:dev:     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+lambda:dev:     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+lambda:dev:     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:20:33 PM - Found 0 errors. Watching for file changes.
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:23:05 PM - File change detected. Starting incremental compilation...
+@dko/trpc:dev: 
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:23:05 PM - Found 0 errors. Watching for file changes.
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:23:05 PM - File change detected. Starting incremental compilation...
+@dko/trpc:dev: 
+@dko/database:dev: 
+@dko/database:dev: 6:23:06 PM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/database:dev: 
+@dko/database:dev: 6:23:06 PM - Found 0 errors. Watching for file changes.
+@dko/database:dev: 
+@dko/database:dev: 6:23:07 PM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/database:dev: error TS2688: Cannot find type definition file for 'node'.
+@dko/database:dev:   The file is in the program because:
+@dko/database:dev:     Entry point for implicit type library 'node'
+@dko/database:dev: 
+@dko/database:dev: 6:23:08 PM - Found 1 error. Watching for file changes.
+lambda:dev: c6:23:08 PM [tsx] change in ./../../packages/database/dist/client.js Rerunning...
+lambda:dev: c6:23:08 PM [tsx] change in ./../../packages/database/dist/index.js Restarting...
+lambda:dev: 
+lambda:dev: node:internal/modules/run_main:123
+lambda:dev:     triggerUncaughtException(
+lambda:dev:     ^
+lambda:dev: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'telegraf' imported from /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc/dist/trpc.js
+lambda:dev:     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:266:9)
+lambda:dev:     at packageResolve (node:internal/modules/esm/resolve:767:81)
+lambda:dev:     at moduleResolve (node:internal/modules/esm/resolve:853:18)
+lambda:dev:     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28)
+lambda:dev:     at resolveBase (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656588691:2:3212)
+lambda:dev:     at resolveDirectory (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656588691:2:3584)
+lambda:dev:     at resolveTsPaths (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656588691:2:4073)
+lambda:dev:     at resolve (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656588691:2:4447)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28) {
+lambda:dev:   code: 'ERR_MODULE_NOT_FOUND'
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+@dko/database:dev: 
+@dko/database:dev: 6:23:09 PM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/database:dev: src/client.ts(3,25): error TS2304: Cannot find name 'global'.
+@dko/database:dev: src/client.ts(11,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/database:dev: 
+@dko/database:dev: 6:23:10 PM - Found 2 errors. Watching for file changes.
+lambda:dev: c6:23:17 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/sendExpenseNotificationMessage.js Rerunning...
+@dko/trpc:dev: src/routers/expense/createExpense.ts(14,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/createExpensesBulk.ts(11,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/deleteExpense.ts(6,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/updateExpense.ts(18,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/settlement/createSettlement.ts(12,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/settlement/settleAllDebts.ts(12,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/deleteExpenseNotificationMessage.ts(2,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/editExpenseNotificationMessage.ts(2,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/editExpenseNotificationMessage.ts(13,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getChat.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getChatMember.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getUserProfilePhotoUrl.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendDebtReminderMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendExpenseNotificationMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendExpenseNotificationMessage.ts(12,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendGroupReminderMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendGroupReminderMessage.ts(13,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendMessage.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendSettlementNotificationMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/trpc.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:23:17 PM - Found 20 errors. Watching for file changes.
+lambda:dev: c6:23:17 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/deleteExpense.js Restarting...
+lambda:dev: 
+lambda:dev: node:internal/modules/run_main:123
+lambda:dev:     triggerUncaughtException(
+lambda:dev:     ^
+lambda:dev: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/index.ts
+lambda:dev:     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:266:9)
+lambda:dev:     at packageResolve (node:internal/modules/esm/resolve:767:81)
+lambda:dev:     at moduleResolve (node:internal/modules/esm/resolve:853:18)
+lambda:dev:     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28)
+lambda:dev:     at resolveBase (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656597603:2:3212)
+lambda:dev:     at resolveDirectory (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656597603:2:3584)
+lambda:dev:     at resolveTsPaths (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656597603:2:4073)
+lambda:dev:     at resolve (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656597603:2:4447)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28) {
+lalambda:dev: c6:23:17 PM [tsx] change in ./../../packages/trpc/dist/routers/settlement/settleAllDebts.js Restarting...
+lambda:dev: 
+lambda:dev: node:internal/modules/run_main:123
+lambda:dev:     triggerUncaughtException(
+lambda:dev:     ^
+lambda:dev: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from /Users/dlambda:dev: c6:23:18 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/sendExpenseNotificationMessage.js Restarting...
+lambda:dev: c6:23:18 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/updateExpense.js Restarting...
+lambda:dev: c6:23:18 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/sendSettlementNotificationMessage.js Restarting...
+lambda:dev: c6:23:18 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/createExpense.js Restarting...
+lambda:dev: c6:23:19 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/updateExpense.js Restarting...
+lambda:dev: c6:23:19 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/getChat.js Restarting...
+lambda:dev: c6:23:19 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/getChat.js Restarting...
+lambda:dev: c6:23:19 PM [tsx] change in ./../../packages/trpc/dist/routers/settlement/settleAllDebts.js Restarting...
+lambda:dev: 
+lambda:dev: node:internal/modules/run_main:123
+lambda:dev:     triggerUncaughtException(
+lambda:dev:     ^
+lambda:dev: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/index.ts
+lambda:dev:     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:266:9)
+lambda:dev:     at packageResolve (node:internal/modules/esm/resolve:767:81)
+lambda:dev:     at moduleResolve (node:internal/modules/esm/resolve:853:18)
+lambda:dev:     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28)
+lambda:dev:     at resolveBase (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656599916:2:3212)
+lambda:dev:     at resolveDirectory (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656599916:2:3584)
+lambda:dev:     at resolveTsPaths (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656599916:2:4073)
+lambda:dev:     at resolve (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656599916:2:4447)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28) {
+lambda:dev:   code: 'ERR_MODULE_NOT_FOUND'
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:21 PM [tsx] unlink in ./../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js Rerunning...
+lambda:dev: 
+lambda:dev: node:internal/modules/run_main:123
+lambda:dev:     triggerUncaughtException(
+lambda:dev:     ^
+lambda:dev: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/lambda/api/index.ts
+lambda:dev:     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:266:9)
+lambda:dev:     at packageResolve (node:internal/modules/esm/resolve:767:81)
+lambda:dev:     at moduleResolve (node:internal/modules/esm/resolve:853:18)
+lambda:dev:     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28)
+lambda:dev:     at resolveBase (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656601400:2:3212)
+lambda:dev:     at resolveDirectory (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656601400:2:3584)
+lambda:dev:     at resolveTsPaths (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656601400:2:4073)
+lambda:dev:     at resolve (file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/esm/index.mjs?1773656601400:2:4447)
+lambda:dev:     at nextResolve (node:internal/modules/esm/hooks:748:28) {
+lambda:dev:   code: 'ERR_MODULE_NOT_FOUND'
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:24 PM [tsx] unlink in ./../../node_modules/.pnpm/@trpc+server@11.0.0_typescript@5.8.2/node_modules/@trpc/server/dist/unstable-core-do-not-import.mjs Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module 'get-tsconfig'
+lambda:dev: Require stack:
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/cjs/index.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/get-pipe-path-BoR10qr8.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at require (node:internal/modules/helpers:147:16)
+lambda:dev:     at Object.<anonymous> (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs:1:211)
+lambda:dev:     at Module._compile (node:internal/modules/cjs/loader:1706:14) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/cjs/index.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/get-pipe-path-BoR10qr8.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs',
+lambda:dev:     'internal/preload'
+lambda:dev:   ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+@dko/database:dev: 
+@dko/database:dev: 6:23:25 PM - File change detected. Starting incremental compilation...
+@dko/database:dev: 
+@dko/database:dev: error TS2318: Cannot find global type 'Array'.
+@dko/database:dev: error TS2318: Cannot find global type 'Boolean'.
+@dko/database:dev: error TS2318: Cannot find global type 'CallableFunction'.
+@dko/database:dev: error TS2318: Cannot find global type 'Function'.
+@dko/database:dev: error TS2318: Cannot find global type 'IArguments'.
+@dko/database:dev: error TS2318: Cannot find global type 'NewableFunction'.
+@dko/database:dev: error TS2318: Cannot find global type 'Number'.
+@dko/database:dev: error TS2318: Cannot find global type 'Object'.
+@dko/database:dev: error TS2318: Cannot find global type 'RegExp'.
+@dko/database:dev: error TS2318: Cannot find global type 'String'.
+@dko/database:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.dom.d.ts' not found.
+@dko/database:dev:   The file is in the program because:
+@dko/database:dev:     Library 'lib.dom.d.ts' specified in compilerOptions
+@dko/database:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.dom.iterable.d.ts' not found.
+@dko/database:dev:   The file is in the program because:
+@dko/database:dev:     Library 'lib.dom.iterable.d.ts' specified in compilerOptions
+@dko/database:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.es2022.d.ts' not found.
+@dko/database:dev:   The file is in the program because:
+@dko/database:dev:     Library 'lib.es2022.d.ts' specified in compilerOptions
+@dko/database:dev: 
+@dko/database:dev: 6:23:27 PM - Found 13 errors. Watching for file changes.
+lambda:dev: c6:23:27 PM [tsx] change in ./../../packages/database/dist/index.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module 'get-tsconfig'
+lambda:dev: Require stack:
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/cjs/index.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/get-pipe-path-BoR10qr8.cjs
+lambda:dev: - /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at require (node:internal/modules/helpers:147:16)
+lambda:dev:     at Object.<anonymous> (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs:1:211)
+lambda:dev:     at Module._compile (node:internal/modules/cjs/loader:1706:14) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/register-DCnOAxY2.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/cjs/index.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/get-pipe-path-BoR10qr8.cjs',
+lambda:dev:     '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs',
+lambda:dev:     'internal/preload'
+lambda:dev:   ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:27 PM [tsx] change in ./../../packages/database/dist/index.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:28 PM [tsx] change in ./../../packages/trpc/dist/trpc.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:29 PM [tsx] change in ./../../packages/trpc/dist/routers/aws/utils/scheduleParser.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:29 PM [tsx] change in ./../../packages/trpc/dist/routers/aws/utils/schedulerClient.js Rerunning...
+@dko/trpc:dev: src/routers/apiKey/generate.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/apiKey/generateToken.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/apiKey/generateUserToken.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/aws/createGroupReminderSchedule.ts(8,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/createRecurringSchedule.ts(7,8): error TS2307: Cannot find module '@aws-sdk/client-scheduler' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/aws/createRecurringSchedule.ts(18,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/updateGroupReminderSchedule.ts(16,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/utils/groupReminderUtils.ts(9,8): error TS2307: Cannot find module '@aws-sdk/client-scheduler' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/aws/utils/lambdaValidator.ts(168,25): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/utils/schedulerClient.ts(1,33): error TS2307: Cannot find module '@aws-sdk/client-scheduler' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/aws/utils/schedulerClient.ts(5,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/utils/schedulerClient.ts(6,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/aws/utils/schedulerClient.ts(7,27): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/chat/getBulkChatDebts.ts(4,30): error TS2307: Cannot find module 'decimal.js' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/chat/migrateChat.ts(104,11): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/routers/expense/convertCurrencyBulk.ts(7,25): error TS2307: Cannot find module 'decimal.js' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/createExpense.ts(6,25): error TS2307: Cannot find module 'decimal.js' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/createExpense.ts(14,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/createExpensesBulk.ts(11,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/deleteExpense.ts(6,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/updateExpense.ts(6,25): error TS2307: Cannot find module 'decimal.js' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/expense/updateExpense.ts(18,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/settlement/createSettlement.ts(12,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/settlement/settleAllDebts.ts(12,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/snapshot/createSnapshot.ts(4,25): error TS2307: Cannot find module 'decimal.js' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/deleteExpenseNotificationMessage.ts(2,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/editExpenseNotificationMessage.ts(2,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/editExpenseNotificationMessage.ts(13,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getChat.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getChatMember.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/getUserProfilePhotoUrl.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendDebtReminderMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendExpenseNotificationMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendExpenseNotificationMessage.ts(12,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendGroupReminderMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendGroupReminderMessage.ts(13,32): error TS2307: Cannot find module 'telegraf/markup' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendMessage.ts(4,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/telegram/sendSettlementNotificationMessage.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/trpc.ts(3,23): error TS2307: Cannot find module 'superjson' or its corresponding type declarations.
+@dko/trpc:dev: src/trpc.ts(5,26): error TS2307: Cannot find module 'telegraf' or its corresponding type declarations.
+@dko/trpc:dev: src/trpc.ts(12,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/trpc.ts(88,25): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/trpc.ts(95,9): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/trpc.ts(96,9): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/trpc.ts(107,28): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/trpc.ts(185,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/utils/currencyApi.ts(9,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/utils/currencyApi.ts(10,25): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/utils/currencyApi.ts(12,3): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+@dko/trpc:dev: src/utils/debtSimplificatilambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambdalambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1lambda:dev: c6:23:29 PM [tsx] change in ./../../packages/trpc/dist/utils/financial.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:30 PM [tsx] change in ./../../packages/trpc/dist/routers/chat/createChat.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at deflambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237lambda:dev: c6:23:30 PM [tsx] change in ./../../packages/trpc/dist/routers/chat/getChat.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:30 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/getExpenseByChat.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+@dko/trpc:dev: src/routers/apiKey/generate.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/apiKey/generateToken.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/routers/apiKey/generateUserToken.ts(3,20): error TS2307: Cannot find module 'node:crypto' or its corresponding type declarations.
+@dko/trpc:dev: src/lambda:dev: c6:23:31 PM [tsx] change in ./../../packages/trpc/dist/routers/chat/getDebtors.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+@dko/trpc:dev: error TS2318: Cannot find global type 'Array'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'Boolean'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'CallableFunction'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'Function'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'IArguments'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'NewableFunction'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'Number'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'Object'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'RegExp'.
+@dko/trpc:dev: error TS2318: Cannot find global type 'String'.
+@dko/trpc:dev: error TS2688: Cannot find type definition file for 'node-telegram-bot-api'.
+@dko/trpc:dev:   The file is in the program because:
+@dko/trpc:dev:     Entry point for implicit type library 'node-telegram-bot-api'
+@dko/trpc:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.dom.d.ts' not found.
+@dko/trpc:dev:   The file is in the program because:
+@dko/trpc:dev:     Library 'lib.dom.d.ts' specified in compilerOptions
+@dko/trpc:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.dom.iterable.d.ts' not found.
+@dko/trpc:dev:   The file is in the program because:
+@dko/trpc:dev:     Library 'lib.dom.iterable.d.ts' specified in compilerOptions
+@dko/trpc:dev: error TS6053: File '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/typescript@5.8.2/node_modules/typescript/lib/lib.es2022.d.ts' not found.
+@dko/trpc:dev:   The file is in the program because:
+@dko/trpc:dev:     Library 'lib.es2022.d.ts' specified in compilerOptions
+@dko/trpc:dev: 
+@dko/trpc:dev: 6:23:31 PM - Found 14 errors. Watching for file changes.
+lambda:dev: c6:23:31 PM [tsx] change in ./../../packages/trpc/dist/routers/telegram/index.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:31 PM [tsx] change in ./../../packages/trpc/dist/routers/expense/updateExpense.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:32 PM [tsx] change in ./../../packages/trpc/dist/root.js Rerunning...
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:33 PM [tsx] unlink in ./../../packages/trpc/dist/routers/snapshot/getSnapshots.js Rerunning...
+web:dev: 6:23:33 PM [vite] changed tsconfig file detected: /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+lambda:dev: node:internal/modules/cjs/loader:1386
+lambda:dev:   throw err;
+lambda:dev:   ^
+lambda:dev: 
+lambda:dev: Error: Cannot find module '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/tsx@4.19.3/node_modules/tsx/dist/preflight.cjs'
+lambda:dev: Require stack:
+lambda:dev: - internal/preload
+lambda:dev:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+lambda:dev:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+lambda:dev:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+lambda:dev:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+lambda:dev:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+lambda:dev:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+lambda:dev:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+lambda:dev:     at node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+web:dev: 6:23:33 PM [vite] vite.config.ts changed, restarting server...
+web:dev: 6:23:33 PM [vite] .env.local changed, restarting server...
+web:dev: 6:23:33 PM [vite] (client) page reload index.html
+web:dev: 6:23:33 PM [vite] (client) page reload playwright/index.html
+web:dev: 6:23:33 PM [vite] (client) page reload playwright-report/index.html
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT:@dko/database:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database/tsconfig.json'.
+@dko/trpc:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc/tsconfig.json'.
+@dko/database:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/database:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/trpc:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+@dko/database:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+lambda:dev: c6:23:33 PM [tsx] Previous process hasn't exited yet. Force killing...
+@dko/trpc#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+@dko/database#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+
+ Tasks:    1 successful, 5 total
+Cached:    0 cached, 5 total
+  Time:    4m18.427s 
+Failed:    @dko/database#dev, @dko/trpc#dev
+
+ ERROR  run failed: command  exited (1)
+s/packages/trpc/tsconfig.json'.
+@dko/trpc:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/trpc:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+@dko/database:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+lambda:dev: c ELIFECYCLE  Command failed with exit code 2.
+lambda:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+@dko/database#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+
+ Tasks:    1 successful, 5 total
+Cached:    0 cached, 5 total
+  Time:    3m10.989s 
+Failed:    @dko/database#dev, @dko/trpc#dev
+
+ ERROR  run failed: command  exited (1)
+node:internal/modules/cjs/loader:1989:12
+lambda:dev:     at loadPreloadModules (node:internal/process/pre_execution:733:5)
+lambda:dev:     at setupUserModules (node:internal/process/pre_execution:208:5) {
+lambda:dev:   code: 'MODULE_NOT_FOUND',
+lambda:dev:   requireStack: [ 'internal/preload' ]
+lambda:dev: }
+lambda:dev: 
+lambda:dev: Node.js v22.20.0
+lambda:dev: c6:23:33 PM [tsx] unlink in ./../../packages/trpc/dist/routers/chat/getDebtors.js Rerunning...
+web:dev: 6:23:33 PM [vite] changed tsconfig file detected: /Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+web:dev: 6:23:33 PM [vite] vite.config.ts changed, restarting server...
+web:dev: 6:23:33 PM [vite] .env.local changed, restarting server...
+web:dev: 6:23:33 PM [vite] (client) page reload index.html
+web:dev: 6:23:33 PM [vite] (client) page reload playwright/index.html
+web:dev: 6:23:33 PM [vite] (client) page reload playwright-report/index.html
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such f@dko/database:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database/tsconfig.json'.
+@dko/database:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/trpc:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc/tsconfig.json'.
+@dko/database:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/trpc:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/database:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+@dko/trpc:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+lambda:dev: c6:23:33 PM [tsx] Previous process hasn't exited yet. Force killing...
+@dko/database#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database) /usr/local/bin/pnpm run dev exited (1)
+@dko/trpc#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+
+ Tasks:    1 successful, 5 total
+Cached:    0 cached, 5 total
+  Time:    4m50.856s 
+Failed:    @dko/database#dev, @dko/trpc#dev
+
+ ERROR  run failed: command  exited (1)
+apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: Error: ENOENT: no such file or directory, scandir '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/apps/web/src/routes'
+web:dev:     at file:///Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/node_modules/.pnpm/@tanstack+router-generator@1.121.25/node_modules/@tanstack/router-generator/dist/esm/generator.js:142:19
+web:dev: 6:23:33 PM [vite] server restarted.
+@dko/database:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/database/tsconfig.json'.
+@dko/database:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/database:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev: error TS5083: Cannot read file '/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc/tsconfig.json'.
+@dko/trpc:dev:  ELIFECYCLE  Command failed with exit code 1.
+@dko/trpc:dev:  WARN   Local package.json exists, but node_modules missing, did you mean to install?
+@dko/trpc:dev: ERROR: command finished with error: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+lambda:dev: c6:23:33 PM [tsx] Previous process hasn't exited yet. Force killing...
+@dko/trpc#dev: command (/Users/dingruoqian/code/banana-split-tma/.worktree/feat-personal-snapshots/packages/trpc) /usr/local/bin/pnpm run dev exited (1)
+
+ Tasks:    1 successful, 5 total
+Cached:    0 cached, 5 total
+  Time:    3m42.69s 
+Failed:    @dko/trpc#dev
+
+ ERROR  run failed: command  exited (1)
