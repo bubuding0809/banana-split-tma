@@ -73,16 +73,16 @@ describe("generatePayNowString", () => {
     expect(qr.startsWith("000201")).toBe(true);
   });
 
-  it("sets Point of Initiation to 12", () => {
+  it("sets Point of Initiation to 11 (static)", () => {
     const qr = generatePayNowString(PHONE, AMOUNT, NAME);
     const fields = parseAllTlv(qr);
-    expect(fields.get("01")).toBe("12");
+    expect(fields.get("01")).toBe("11");
   });
 
-  it("sets Point of Initiation to 12 even when amount is 0", () => {
+  it("sets Point of Initiation to 11 even when amount is 0", () => {
     const qr = generatePayNowString(PHONE, 0, NAME);
     const fields = parseAllTlv(qr);
-    expect(fields.get("01")).toBe("12");
+    expect(fields.get("01")).toBe("11");
   });
 
   describe("Merchant Account Info (tag 26)", () => {
@@ -122,16 +122,11 @@ describe("generatePayNowString", () => {
       expect(subFields.get("03")).toBe("1");
     });
 
-    it("includes expiry date sub-tag 04 in YYYYMMDD format", () => {
+    it("includes expiry date sub-tag 04 set to 99991231", () => {
       const qr = generatePayNowString(PHONE, AMOUNT, NAME);
       const fields = parseAllTlv(qr);
       const subFields = parseAllTlv(fields.get("26")!);
-      const expiryValue = subFields.get("04")!;
-      expect(expiryValue).toMatch(/^\d{8}$/); // YYYYMMDD
-      // Should be ~5 years in the future
-      const expiryYear = parseInt(expiryValue.slice(0, 4), 10);
-      const currentYear = new Date().getFullYear();
-      expect(expiryYear).toBe(currentYear + 5);
+      expect(subFields.get("04")).toBe("99991231");
     });
   });
 
