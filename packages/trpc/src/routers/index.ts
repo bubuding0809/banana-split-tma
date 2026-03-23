@@ -3,6 +3,7 @@ export { awsRouter } from "./aws/index.js";
 export { chatRouter } from "./chat/index.js";
 export { expenseRouter } from "./expense/index.js";
 export { expenseShareRouter } from "./expenseShare/index.js";
+export { paymentRouter } from "./payment/index.js";
 export { telegramRouter } from "./telegram/index.js";
 export { userRouter } from "./user/index.js";
 export { settlementRouter } from "./settlement/index.js";
