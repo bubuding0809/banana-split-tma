@@ -155,8 +155,6 @@ const ToPayModal = ({
     };
   }, [modalOpen]);
 
-  // Clean up secondary button
-
   useEffect(() => {
     if (!modalOpen) return;
 
