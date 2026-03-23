@@ -329,7 +329,7 @@ const MultiCurrencyBalanceModal = ({
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: `Copy PayNow No. 📲`,
+        text: `Copy Phone No. 📲`,
       });
     }
 
@@ -371,7 +371,7 @@ const MultiCurrencyBalanceModal = ({
             });
             setTimeout(() => {
               secondaryButton.setParams.ifAvailable({
-                text: "Copy PayNow No. 📲",
+                text: "Copy Phone No. 📲",
                 isEnabled: true,
                 isLoaderVisible: false,
               });
