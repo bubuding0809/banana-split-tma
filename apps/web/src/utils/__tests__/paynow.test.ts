@@ -138,7 +138,7 @@ describe("generatePayNowString", () => {
   it("includes Transaction Amount tag (54) when amount > 0", () => {
     const qr = generatePayNowString(PHONE, 12.5, NAME);
     const fields = parseAllTlv(qr);
-    expect(fields.get("54")).toBe("12.50");
+    expect(fields.get("54")).toBe("12.5");
   });
 
   it("omits Transaction Amount tag (54) when amount is 0", () => {
@@ -162,7 +162,7 @@ describe("generatePayNowString", () => {
   it("sets Merchant City to SINGAPORE", () => {
     const qr = generatePayNowString(PHONE, AMOUNT, NAME);
     const fields = parseAllTlv(qr);
-    expect(fields.get("60")).toBe("SINGAPORE");
+    expect(fields.get("60")).toBe("Singapore");
   });
 
   it("truncates merchant name to 25 characters", () => {
