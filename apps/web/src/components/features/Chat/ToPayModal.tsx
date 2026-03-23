@@ -164,7 +164,7 @@ const ToPayModal = ({
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: `Copy PayNow No. 📲`,
+        text: `Copy Phone No. 📲`,
       });
     }
 
@@ -206,7 +206,7 @@ const ToPayModal = ({
           });
           setTimeout(() => {
             secondaryButton.setParams.ifAvailable({
-              text: "Copy PayNow No. 📲",
+              text: "Copy Phone No. 📲",
               isEnabled: true,
               isLoaderVisible: false,
             });
