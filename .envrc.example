@@ -1,0 +1,11 @@
+# Banana Split TMA - MCP Server Credentials
+# Copy this file to .envrc and run `direnv allow`
+
+# Vercel MCP
+export VERCEL_TOKEN="your_vercel_token_here"
+
+# Supabase MCP
+export SUPABASE_TOKEN="your_supabase_token_here"
+
+# Banana Split CLI/MCP
+export BANANA_SPLIT_API_KEY="your_banana_split_api_key_here"
