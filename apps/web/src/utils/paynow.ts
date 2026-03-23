@@ -73,13 +73,13 @@ export function generatePayNowString(
   ];
 
   if (amount > 0) {
-    parts.push(tlv("54", amount.toFixed(2))); // Transaction Amount
+    parts.push(tlv("54", String(amount))); // Transaction Amount
   }
 
   parts.push(
     tlv("58", "SG"), // Country Code
     tlv("59", merchantName.slice(0, 25)), // Merchant Name (creditor's name, max 25 chars per EMV spec)
-    tlv("60", "SINGAPORE") // Merchant City
+    tlv("60", "Singapore") // Merchant City
   );
 
   if (reference) {
