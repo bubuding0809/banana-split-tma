@@ -51,12 +51,12 @@ export function generatePayNowString(
     tlv("00", "SG.PAYNOW"), // GUID
     tlv("01", "0"), // Proxy type: 0 = mobile number
     tlv("02", e164), // Proxy value in E.164 format
-    tlv("03", "0"), // Amount editable: 0 = fixed (payer cannot change it)
+    tlv("03", "1"), // Amount editable: 1 = payer can change
   ].join("");
 
   const parts: string[] = [
     tlv("00", "01"), // Payload Format Indicator
-    tlv("01", "12"), // Point of Initiation: 12 = static QR
+    tlv("01", amount > 0 ? "11" : "12"), // 11 = dynamic (amount pre-filled), 12 = static
     tlv("26", merchantAccountInfo), // PayNow Merchant Account Info
     tlv("52", "0000"), // Merchant Category Code (generic)
     tlv("53", "702"), // Transaction Currency: 702 = SGD
