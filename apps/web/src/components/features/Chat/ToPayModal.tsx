@@ -19,6 +19,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
+import PayNowQR from "./PayNowQR";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -163,7 +164,7 @@ const ToPayModal = ({
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: `Copy Number 📲`,
+        text: `Copy Phone No. 📲`,
       });
     }
 
@@ -205,7 +206,7 @@ const ToPayModal = ({
           });
           setTimeout(() => {
             secondaryButton.setParams.ifAvailable({
-              text: "Copy Number 📲",
+              text: "Copy Phone No. 📲",
               isEnabled: true,
               isLoaderVisible: false,
             });
@@ -272,6 +273,14 @@ const ToPayModal = ({
             }}
           />
         </Placeholder>
+
+        {memberData?.phoneNumber && currency === "SGD" && (
+          <PayNowQR
+            phoneNumber={memberData.phoneNumber}
+            amount={absAmountOwed}
+            merchantName={member.firstName}
+          />
+        )}
       </div>
     </Modal>
   );
