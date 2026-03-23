@@ -22,7 +22,9 @@ function crc16(data: string): string {
  * e.g. "6591234567". SG mobiles start with 8 or 9 after the 65 country code.
  */
 export function isValidSgMobile(phoneNumber: string): boolean {
-  return /^65[89]\d{7}$/.test(phoneNumber);
+  // Strip whitespace in case of formatting like "+65 9123 4567"
+  const cleaned = phoneNumber.replace(/\s+/g, "");
+  return /^\+?65[89]\d{7}$/.test(cleaned);
 }
 
 /**
@@ -40,8 +42,10 @@ export function generatePayNowString(
   merchantName: string,
   reference?: string
 ): string {
+  // Strip any whitespace
+  const cleaned = phoneNumber.replace(/\s+/g, "");
   // PayNow proxy must be E.164 format; Telegram omits the '+' so we add it.
-  const e164 = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+  const e164 = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
 
   const merchantAccountInfo = [
     tlv("00", "SG.PAYNOW"), // GUID
