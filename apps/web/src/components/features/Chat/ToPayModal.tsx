@@ -7,7 +7,6 @@ import {
   initData,
   mainButton,
   popup,
-  secondaryButton,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import {
@@ -19,6 +18,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect } from "react";
 import { assetUrls } from "@/assets/urls";
+import PayNowQR from "./PayNowQR";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -156,23 +156,6 @@ const ToPayModal = ({
   }, [modalOpen]);
 
   // Clean up secondary button
-  useEffect(() => {
-    if (!modalOpen) return;
-
-    if (memberData?.phoneNumber) {
-      secondaryButton.setParams.ifAvailable({
-        isVisible: true,
-        isEnabled: true,
-        text: `Copy Number 📲`,
-      });
-    }
-
-    return () =>
-      secondaryButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-      });
-  }, [memberData?.phoneNumber, modalOpen]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -185,45 +168,6 @@ const ToPayModal = ({
       offMainButtonClick?.();
     };
   }, [handleCreateSettlement, modalOpen]);
-
-  useEffect(() => {
-    if (!modalOpen) return;
-
-    const offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(
-      async () => {
-        if (!memberData?.phoneNumber) {
-          hapticFeedback.notificationOccurred.ifAvailable("error");
-          return;
-        }
-
-        try {
-          await navigator.clipboard.writeText(memberData.phoneNumber);
-          hapticFeedback.notificationOccurred.ifAvailable("success");
-          secondaryButton.setParams.ifAvailable({
-            text: "✅ Copied",
-            isEnabled: false,
-          });
-          setTimeout(() => {
-            secondaryButton.setParams.ifAvailable({
-              text: "Copy Number 📲",
-              isEnabled: true,
-              isLoaderVisible: false,
-            });
-          }, 500);
-        } catch (error) {
-          console.error("Failed to copy to clipboard:", error);
-          hapticFeedback.notificationOccurred.ifAvailable("error");
-          popup.open.ifAvailable({
-            message: "Failed to copy number to clipboard. Please try again.",
-          });
-        }
-      }
-    );
-
-    return () => {
-      offSecondaryButtonClick?.();
-    };
-  }, [memberData?.phoneNumber, modalOpen]);
 
   return (
     <Modal
@@ -272,6 +216,14 @@ const ToPayModal = ({
             }}
           />
         </Placeholder>
+
+        {memberData?.phoneNumber && currency === "SGD" && (
+          <PayNowQR
+            phoneNumber={memberData.phoneNumber}
+            amount={absAmountOwed}
+            merchantName={member.firstName}
+          />
+        )}
       </div>
     </Modal>
   );
