@@ -1,4 +1,4 @@
-import { useStartParams, withForm } from "@/hooks";
+import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { Section, Cell, Badge, Text } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
@@ -21,14 +21,16 @@ const SplitShareConfig = withForm({
   props: {
     step: 2,
     isLastStep: true,
+    onShowFooterChange: (() => {}) as (show: boolean) => void,
+    onFormSubmit: (() => {}) as () => void,
+    chatId: 0,
+    membersExpanded: false,
   },
-  render: function Render({ form }) {
+  render: function Render({ form, chatId }) {
     const tButtonColor = useSignal(themeParams.buttonColor);
     const tButtonTextColor = useSignal(themeParams.buttonTextColor);
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tDesctructiveTextColor = useSignal(themeParams.destructiveTextColor);
-    const tStartParams = useStartParams();
-    const chatId = tStartParams?.chat_id ?? 0;
     const { customSplits, currency } = useStore(form.store, (state) => ({
       customSplits: state.values.customSplits,
       currency: state.values.currency,

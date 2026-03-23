@@ -7,7 +7,7 @@ description: >
   expense splitting, shared costs, or bill splitting.
 metadata:
   author: banananasplitz
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # Banana Split CLI
@@ -61,6 +61,8 @@ Always parse stdout as JSON. Check exit code before reading output.
 | `get-totals`           | `--user-id` (required); `--chat-id`                                                                                                                                   | Total borrowed/lent for a user          |
 | `list-settlements`     | `--chat-id`, `--currency`                                                                                                                                             | List past settlements                   |
 | `create-settlement`    | `--sender-id`, `--receiver-id`, `--amount` (all required); `--chat-id`, `--currency`, `--description`                                                                 | Record a payment                        |
+| `send-group-reminder`  | `--chat-id`                                                                                                                                                           | Send a group debt reminder              |
+| `send-debt-reminder`   | `--debtor-user-id`, `--debtor-name`, `--creditor-name`, `--amount` (all required); `--chat-id`, `--currency`, `--debtor-username`, `--thread-id`                      | Send an individual debt reminder        |
 | `settle-all-debts`     | `--currency` (required); `--chat-id`                                                                                                                                  | Settle all debts in a currency          |
 | `list-snapshots`       | `--chat-id`                                                                                                                                                           | List expense snapshots                  |
 | `get-snapshot`         | `--snapshot-id` (required)                                                                                                                                            | Full snapshot details                   |
