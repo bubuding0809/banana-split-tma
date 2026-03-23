@@ -47,26 +47,17 @@ export function generatePayNowString(
   // PayNow proxy must be E.164 format; Telegram omits the '+' so we add it.
   const e164 = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
 
-  // Default expiry: 5 years from now in YYYYMMDD format
-  const expiry = new Date();
-  expiry.setFullYear(expiry.getFullYear() + 5);
-  const expiryStr = [
-    expiry.getFullYear(),
-    String(expiry.getMonth() + 1).padStart(2, "0"),
-    String(expiry.getDate()).padStart(2, "0"),
-  ].join("");
-
   const merchantAccountInfo = [
     tlv("00", "SG.PAYNOW"), // GUID
     tlv("01", "0"), // Proxy type: 0 = mobile number
     tlv("02", e164), // Proxy value in E.164 format
     tlv("03", "1"), // Amount editable: 1 = payer can change
-    tlv("04", expiryStr), // Expiry date (YYYYMMDD)
+    tlv("04", "99991231"), // Expiry date (YYYYMMDD) — far future
   ].join("");
 
   const parts: string[] = [
     tlv("00", "01"), // Payload Format Indicator
-    tlv("01", "12"), // Point of Initiation: 12 = dynamic QR
+    tlv("01", "11"), // Point of Initiation: 11 = static QR
     tlv("26", merchantAccountInfo), // PayNow Merchant Account Info
     tlv("52", "0000"), // Merchant Category Code (generic)
     tlv("53", "702"), // Transaction Currency: 702 = SGD
