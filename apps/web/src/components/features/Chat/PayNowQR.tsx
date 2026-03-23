@@ -5,27 +5,16 @@ interface PayNowQRProps {
   phoneNumber: string;
   amount: number;
   merchantName: string;
-  reference?: string;
 }
 
 /**
  * Renders a PayNow QR code for the given phone number and amount.
  * Returns null if the phone number is not a valid SG mobile number.
  */
-const PayNowQR = ({
-  phoneNumber,
-  amount,
-  merchantName,
-  reference,
-}: PayNowQRProps) => {
+const PayNowQR = ({ phoneNumber, amount, merchantName }: PayNowQRProps) => {
   if (!isValidSgMobile(phoneNumber)) return null;
 
-  const qrString = generatePayNowString(
-    phoneNumber,
-    amount,
-    merchantName,
-    reference
-  );
+  const qrString = generatePayNowString(phoneNumber, amount, merchantName);
 
   return (
     <div className="flex flex-col items-center gap-2 py-4">
