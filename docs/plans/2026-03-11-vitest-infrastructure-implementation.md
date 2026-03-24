@@ -13,6 +13,7 @@
 ### Task 1: Add Vitest to the Workspace
 
 **Files:**
+
 - Modify: `package.json` (root)
 - Modify: `turbo.json`
 
@@ -32,6 +33,7 @@ Add the `test` task to `turbo.json` in the `pipeline` (or `tasks`) section.
       "outputs": ["coverage/**"]
     },
 ```
+
 (Insert it among the other tasks like `build` or `lint`).
 
 **Step 3: Commit**
@@ -44,6 +46,7 @@ git commit -m "chore: add vitest to workspace"
 ### Task 2: Configure CLI for testing
 
 **Files:**
+
 - Modify: `apps/cli/package.json`
 - Create: `apps/cli/vitest.config.ts`
 
@@ -78,6 +81,7 @@ git commit -m "chore(cli): setup vitest configuration"
 ### Task 3: Write tests for CLI delete-expense
 
 **Files:**
+
 - Create: `apps/cli/src/commands/expense.test.ts`
 
 **Step 1: Write the failing test**
@@ -89,38 +93,38 @@ import { expenseCommands } from "./expense.js";
 describe("delete-expense command", () => {
   it("should fail when expense-id is missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "delete-expense");
-    
+
     // Minimal mock for trpc
     const trpcMock = {} as any;
 
     const result = await cmd?.execute({}, trpcMock);
-    
+
     expect(result).toMatchObject({
       code: "missing_option",
-      message: "--expense-id is required"
+      message: "--expense-id is required",
     });
   });
 
   it("should call trpc.expense.deleteExpense with the correct ID", async () => {
     const cmd = expenseCommands.find((c) => c.name === "delete-expense");
-    
+
     const mutateMock = vi.fn().mockResolvedValue({ message: "Deleted" });
     const trpcMock = {
       expense: {
         deleteExpense: {
-          mutate: mutateMock
-        }
-      }
+          mutate: mutateMock,
+        },
+      },
     } as any;
 
     await cmd?.execute({ "expense-id": "exp-123" }, trpcMock);
-    
+
     expect(mutateMock).toHaveBeenCalledWith({ expenseId: "exp-123" });
   });
 });
 ```
 
-*(Note: We might need to adjust the exact mock structure based on how `run` or `error` functions behave, but this validates the core logic).*
+_(Note: We might need to adjust the exact mock structure based on how `run` or `error` functions behave, but this validates the core logic)._
 
 **Step 2: Run test to verify it passes (or fails correctly)**
 Run: `pnpm --filter=@banananasplitz/cli test`
@@ -138,6 +142,7 @@ git commit -m "test(cli): add tests for delete-expense command"
 ### Task 4: Write tests for CLI delete-settlement
 
 **Files:**
+
 - Create: `apps/cli/src/commands/settlement.test.ts`
 
 **Step 1: Write the failing test**
@@ -149,30 +154,30 @@ import { settlementCommands } from "./settlement.js";
 describe("delete-settlement command", () => {
   it("should fail when settlement-id is missing", async () => {
     const cmd = settlementCommands.find((c) => c.name === "delete-settlement");
-    
+
     const trpcMock = {} as any;
     const result = await cmd?.execute({}, trpcMock);
-    
+
     expect(result).toMatchObject({
       code: "missing_option",
-      message: "--settlement-id is required"
+      message: "--settlement-id is required",
     });
   });
 
   it("should call trpc.settlement.deleteSettlement with the correct ID", async () => {
     const cmd = settlementCommands.find((c) => c.name === "delete-settlement");
-    
+
     const mutateMock = vi.fn().mockResolvedValue({ message: "Deleted" });
     const trpcMock = {
       settlement: {
         deleteSettlement: {
-          mutate: mutateMock
-        }
-      }
+          mutate: mutateMock,
+        },
+      },
     } as any;
 
     await cmd?.execute({ "settlement-id": "set-123" }, trpcMock);
-    
+
     expect(mutateMock).toHaveBeenCalledWith({ settlementId: "set-123" });
   });
 });
@@ -191,6 +196,7 @@ git commit -m "test(cli): add tests for delete-settlement command"
 ### Task 5: Configure MCP for testing
 
 **Files:**
+
 - Modify: `apps/mcp/package.json`
 - Create: `apps/mcp/vitest.config.ts`
 
@@ -225,6 +231,7 @@ git commit -m "chore(mcp): setup vitest configuration"
 ### Task 6: Write tests for MCP tools
 
 **Files:**
+
 - Create: `apps/mcp/src/tools/expense.test.ts`
 - Create: `apps/mcp/src/tools/settlement.test.ts`
 
@@ -244,12 +251,14 @@ describe("MCP Expense Tools", () => {
     const serverMock = {
       registerTool: vi.fn(),
     } as any;
-    
-    const mutateMock = vi.fn().mockResolvedValue({ message: "Deleted successfully" });
+
+    const mutateMock = vi
+      .fn()
+      .mockResolvedValue({ message: "Deleted successfully" });
     const trpcMock = {
       expense: {
-        deleteExpense: { mutate: mutateMock }
-      }
+        deleteExpense: { mutate: mutateMock },
+      },
     } as any;
 
     registerExpenseTools(serverMock, trpcMock);
@@ -262,7 +271,7 @@ describe("MCP Expense Tools", () => {
 
     // The third argument is the handler function (since we mocked toolHandler)
     const handler = callArgs[2];
-    
+
     // Execute handler
     const result = await handler({ expense_id: "exp-123" });
 
@@ -287,12 +296,14 @@ describe("MCP Settlement Tools", () => {
     const serverMock = {
       registerTool: vi.fn(),
     } as any;
-    
-    const mutateMock = vi.fn().mockResolvedValue({ message: "Deleted successfully" });
+
+    const mutateMock = vi
+      .fn()
+      .mockResolvedValue({ message: "Deleted successfully" });
     const trpcMock = {
       settlement: {
-        deleteSettlement: { mutate: mutateMock }
-      }
+        deleteSettlement: { mutate: mutateMock },
+      },
     } as any;
 
     registerSettlementTools(serverMock, trpcMock);
