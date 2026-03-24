@@ -1,4 +1,9 @@
 export const BotMessages = {
+  ADD_MEMBER_SELECT_BUTTON: "👤 Select user(s)",
+  ADD_MEMBER_CANCEL_BUTTON: "❌ Cancel",
+  ADD_MEMBER_START_MESSAGE:
+    "Please select members to add to *{group_title}*\\.",
+  ADD_MEMBER_END_MESSAGE: "Added: {success_list}\\nFailed: {failed_list}",
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
   STATS_CANCELLED: "❌ Statistics cancelled\\.",
   ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",
@@ -99,6 +104,22 @@ or
   BALANCE_HEADER: "*Current Balances*:",
   BALANCE_USER_TEMPLATE:
     "🔵 *{user_mention}* • [🧾𝔹𝕣𝕖𝕒𝕜𝕕𝕠𝕨𝕟🧾]({deep_link_url})\\n> Owes Bubu $10\\n> Owes Shawnn $20\\n",
+
+  EXPENSE_CREATED: "✅ Recorded: *{description}* — {currency} {amount}",
+  EXPENSE_PARSE_HINT:
+    "💡 To log a personal expense, send a message like:\n" +
+    "  `12.50 Lunch`\n" +
+    "  `Grab ride 8.90`\n" +
+    "  `Coffee 5`\n" +
+    "  `15 Dinner yesterday`\n" +
+    "  `500 dinner last saturday`\n" +
+    "  `25.50 Movie tickets, 2 days ago`",
+  ERROR_EXPENSE_CREATE_FAILED: "⚠️ Failed to record expense. Please try again.",
+  ERROR_EXPENSE_NOT_REGISTERED:
+    "⚠️ You need to /start the bot first before logging expenses.",
+  EXPENSE_DELETED: "🗑 *Expense deleted\\.*",
+  ERROR_EXPENSE_DELETE_FAILED:
+    "⚠️ Failed to delete expense. It may have already been removed.",
 };
 
 export const GROUP_JOIN_MESSAGE =

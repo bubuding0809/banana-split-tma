@@ -40,52 +40,7 @@ statsFeature.command("stats", async (ctx, next) => {
   });
 });
 
-function getPeriodRange(periodKey: string): [Date | null, Date | null] {
-  const key = periodKey.replace("stats_period_", "");
-  const now = new Date();
-
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  switch (key) {
-    case "today": {
-      const tomorrow = new Date(todayStart);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      return [todayStart, tomorrow];
-    }
-    case "current_month": {
-      const monthStart = new Date(
-        todayStart.getFullYear(),
-        todayStart.getMonth(),
-        1
-      );
-      return [monthStart, null];
-    }
-    case "last_month": {
-      const thisMonthStart = new Date(
-        todayStart.getFullYear(),
-        todayStart.getMonth(),
-        1
-      );
-      const lastMonthStart = new Date(thisMonthStart);
-      lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
-      return [lastMonthStart, thisMonthStart];
-    }
-    case "last_30_days": {
-      const last30 = new Date(todayStart);
-      last30.setDate(last30.getDate() - 30);
-      return [last30, null];
-    }
-    case "last_12_months": {
-      const last12 = new Date(todayStart);
-      last12.setFullYear(last12.getFullYear() - 1);
-      return [last12, null];
-    }
-    case "all_time":
-      return [null, null];
-    default:
-      return [null, null];
-  }
-}
+import { getPeriodRange } from "../utils/date.js";
 
 // Just typing what trpc returns for the frontend stats array
 interface StatsExpense {
@@ -123,7 +78,9 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       return;
     }
 
-    const [startDt, endDt] = getPeriodRange(data);
+    const { startDt, endDt } = getPeriodRange(
+      data.replace("stats_period_", "")
+    );
 
     const filtered = expenses.filter((exp: StatsExpense) => {
       const expDt = new Date(exp.date);

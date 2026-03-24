@@ -16,6 +16,7 @@
     "@dko/trpc": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
     "@trpc/server": "^11.0.0",
+    "date-fns": "^4.1.0",
     "decimal.js": "^10.5.0",
     "dotenv": "^16.4.5",
     "grammy": "^1.35.0",
