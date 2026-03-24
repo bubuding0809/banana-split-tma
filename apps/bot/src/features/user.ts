@@ -2,14 +2,9 @@ import { Composer, InlineKeyboard } from "grammy";
 import { BotContext } from "../types.js";
 import { TRPCError } from "@trpc/server";
 import { BotMessages } from "./messages.js";
+import { escapeMarkdownV2 } from "../utils/markdown.js";
 
 export const userFeature = new Composer<BotContext>();
-
-function escapeMarkdownV2(text: string): string {
-  // Telegram MarkdownV2 requires escaping these characters:
-  // _ * [ ] ( ) ~ ` > # + - = | { } . !
-  return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
-}
 
 userFeature.command("start", async (ctx) => {
   if (ctx.chat.type !== "private" || !ctx.from) return;

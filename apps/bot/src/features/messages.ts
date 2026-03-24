@@ -55,4 +55,38 @@ or
   SUCCESS_OPERATION_CANCELLED: `Current operation cancelled.`,
   ERROR_USER_CHECK_FAILED: `⚠️ Something went wrong checking user, please try again.`,
   ERROR_USER_CREATE_FAILED: `⚠️ Something went wrong creating user, please try again.`,
+
+  PIN_MESSAGE: "🤑 Split your expense leh 🤑",
+  PIN_MANUAL_INSTRUCTION:
+    "📌 Pin this for quick access, or make me admin and run /pin@{bot_username} again to pin automatically",
+
+  ERROR_TOPIC_ONLY: "⚠️ This command can only be used in a topic.",
+  SUCCESS_TOPIC_SET:
+    "✅ Topic set successfully! I will now use this topic for all messages.",
+  ERROR_TOPIC_SET_FAILED: "⚠️ Failed to set topic. Please try again later.",
+
+  ERROR_SUMMARY_GROUP_ONLY:
+    "⚠️ The 'summary' command can only be used in group chats.",
+  SUMMARY_IN_PROGRESS: "⏳ Generating summary ...",
+  SUMMARY_NO_MESSAGE: "💬 {reason}",
+  ERROR_SUMMARY_FAILED:
+    "⚠️ Failed to generate summary. Please try again later.",
+
+  ERROR_CHASE_PRIVATE_ONLY:
+    "⚠️ The 'chase' command is only available in your private chat with the bot",
+  CHASE_CHOOSE_USER_BUTTON: "Choose user",
+  CHASE_SELECT_USER: "Select user",
+  CHASE_REMINDER: "🤬💩REMINDER: FUCKING PAY BACK {from_username} LEH",
+  SUCCESS_CHASE_SENT: "✅ Successfully reminded {username} to pay up!",
+
+  LIST_CHOOSE_PERIOD: "Choose a period",
+  LIST_CANCELLED: "Cancelled\\.",
+  LIST_EMPTY:
+    "No expenses recorded yet\\. Send a message like `12.50 Lunch` to get started\\!",
+  LIST_NO_EXPENSES_FOR_PERIOD: "No expenses found for *{period_name}*\\.",
+  ERROR_LIST_FAILED: "⚠️ Failed to fetch expenses. Please try again.",
+
+  BALANCE_HEADER: "*Current Balances*:",
+  BALANCE_USER_TEMPLATE:
+    "🔵 *{user_mention}* • [🧾𝔹𝕣𝕖𝕒𝕜𝕕𝕠𝕨𝕟🧾]({deep_link_url})\\n> Owes Bubu $10\\n> Owes Shawnn $20\\n",
 };
