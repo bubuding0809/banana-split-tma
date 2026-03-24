@@ -6,8 +6,8 @@ import { escapeMarkdownV2 } from "../utils/markdown.js";
 
 export const userFeature = new Composer<BotContext>();
 
-userFeature.command("start", async (ctx) => {
-  if (!ctx.from) return;
+userFeature.command("start", async (ctx, next) => {
+  if (!ctx.from) return next();
 
   const startArg = ctx.match;
 

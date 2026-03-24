@@ -96,8 +96,8 @@ const LIST_PERIODS: Record<string, string> = {
   list_period_cancel: "Cancel",
 };
 
-expensesFeature.command("list", async (ctx) => {
-  if (ctx.chat.type !== "private") return;
+expensesFeature.command("list", async (ctx, next) => {
+  if (ctx.chat.type !== "private") return next();
   await ctx.replyWithChatAction("typing");
 
   const keyboard = new InlineKeyboard()
@@ -293,8 +293,8 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
   }
 });
 
-expensesFeature.command("balance", async (ctx) => {
-  if (ctx.chat.type === "private") return;
+expensesFeature.command("balance", async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
   const deepLinkUrl = ChatUtils.createMiniAppUrl(
