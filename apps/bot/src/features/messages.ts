@@ -95,3 +95,18 @@ or
   BALANCE_USER_TEMPLATE:
     "🔵 *{user_mention}* • [🧾𝔹𝕣𝕖𝕒𝕜𝕕𝕠𝕨𝕟🧾]({deep_link_url})\\n> Owes Bubu $10\\n> Owes Shawnn $20\\n",
 };
+
+export const GROUP_JOIN_MESSAGE =
+  "🎉 Hello friends, I am here to help your split your expenses!";
+export const MIGRATION_MESSAGE_GROUP = `
+🔄 *Group Upgraded\\!*
+
+This group has been upgraded to a supergroup\\. The old app button no longer works\\.
+
+*👇 Use this button to access Banana Splitz*
+`;
+export const GROUP_INSTRUCTION = `
+To use me:
+1\\. Use /pin to get a persistent button for the app\\.
+2\\. Pin that message to the top of the chat\\.
+`;

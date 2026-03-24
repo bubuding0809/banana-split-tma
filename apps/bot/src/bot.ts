@@ -16,6 +16,8 @@ bot.use(userFeature);
 bot.use(groupFeature);
 bot.use(expensesFeature);
 bot.use(statsFeature);
+import { botEventsFeature } from "./features/bot_events.js";
+bot.use(botEventsFeature);
 
 // Basic catch-all error handler
 bot.catch((err) => {
