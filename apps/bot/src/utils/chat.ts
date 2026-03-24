@@ -1,4 +1,4 @@
-import { Chat } from "grammy/types";
+import type { Chat } from "grammy/types";
 
 export const ChatUtils = {
   createChatContext(chatId: number, chatType: string): string {

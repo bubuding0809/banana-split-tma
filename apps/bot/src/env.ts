@@ -5,6 +5,8 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 export const env = createEnv({
+  clientPrefix: "PUBLIC_",
+  client: {},
   server: {
     TELEGRAM_BOT_TOKEN: z.string().min(1),
     NODE_ENV: z
