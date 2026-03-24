@@ -299,7 +299,7 @@ expensesFeature.command("balance", async (ctx) => {
   const deepLinkUrl = ChatUtils.createMiniAppUrl(
     env.MINI_APP_DEEPLINK,
     ctx.me.username,
-    "group",
+    ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type),
     "compact"
   );
 
