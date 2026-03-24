@@ -6,6 +6,44 @@ import { ChatUtils } from "../utils/chat.js";
 
 export const groupFeature = new Composer<BotContext>();
 
+groupFeature.command("start", async (ctx) => {
+  if (ctx.chat.type === "private") return;
+  const messageThreadId = ctx.message?.message_thread_id;
+
+  if (messageThreadId) {
+    try {
+      await ctx.trpc.chat.updateChat({
+        chatId: ctx.chat.id,
+        threadId: messageThreadId,
+      });
+    } catch {
+      // Silent failure
+    }
+  }
+
+  const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
+  const url = ChatUtils.createMiniAppUrl(
+    env.MINI_APP_DEEPLINK,
+    ctx.me.username,
+    chatContext,
+    "compact"
+  );
+
+  const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+
+  const pinMessage = await ctx.reply(BotMessages.START_MESSAGE_GROUP, {
+    reply_markup: keyboard,
+    parse_mode: "MarkdownV2",
+    message_thread_id: messageThreadId,
+  });
+
+  try {
+    await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
+  } catch {
+    // Ignore if pinning fails
+  }
+});
+
 groupFeature.command("pin", async (ctx) => {
   const messageThreadId = ctx.message?.message_thread_id;
 

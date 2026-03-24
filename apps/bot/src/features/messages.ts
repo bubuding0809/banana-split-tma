@@ -47,6 +47,11 @@ How to use me?
   START_MESSAGE_EXISTING: `Welcome back to Banana Splitz, {first_name}\\! 🌟 We're thrilled to see you again, here is how to use me\\.
 {usage_guide}`,
 
+  START_MESSAGE_GROUP: `Let's split expenses together\\!
+
+*👇 Everyone, open the app to get started*
+`,
+
   START_MESSAGE_GROUP_REGISTER: `🎉 You are all set!
 
 Learn more about me using /help
