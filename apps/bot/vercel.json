@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "npx turbo-ignore",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/webhook"
+    }
+  ]
+}
