@@ -1,4 +1,4 @@
-import { Composer, InlineKeyboard } from "grammy";
+import { Composer, InlineKeyboard, Keyboard } from "grammy";
 import { BotContext } from "../types.js";
 import { TRPCError } from "@trpc/server";
 import { BotMessages } from "./messages.js";
@@ -10,6 +10,42 @@ userFeature.command("start", async (ctx, next) => {
   if (!ctx.from) return next();
 
   const startArg = ctx.match;
+
+  if (startArg && startArg.startsWith("ADD_MEMBER")) {
+    const groupIdStr = startArg.replace("ADD_MEMBER", "");
+    ctx.session.addMemberGroupId = groupIdStr;
+
+    let chatTitle = "the group";
+    try {
+      const chatInfo = await ctx.api.getChat(groupIdStr);
+      if ("title" in chatInfo) {
+        chatTitle = chatInfo.title || "the group";
+      }
+    } catch {
+      console.error("Could not fetch chat info for", groupIdStr);
+    }
+
+    const keyboard = new Keyboard()
+      .requestUsers(BotMessages.ADD_MEMBER_SELECT_BUTTON, 1, {
+        max_quantity: 10,
+        request_name: true,
+        request_username: true,
+      })
+      .row()
+      .text(BotMessages.ADD_MEMBER_CANCEL_BUTTON)
+      .resized();
+
+    const messageText = BotMessages.ADD_MEMBER_START_MESSAGE.replace(
+      "{group_title}",
+      escapeMarkdownV2(chatTitle)
+    );
+
+    await ctx.reply(messageText, {
+      reply_markup: keyboard,
+      parse_mode: "MarkdownV2",
+    });
+    return;
+  }
 
   await ctx.replyWithChatAction("typing");
 
@@ -133,5 +169,77 @@ userFeature.command("cancel", async (ctx) => {
 
   await ctx.reply(BotMessages.SUCCESS_OPERATION_CANCELLED, {
     message_thread_id: ctx.message?.message_thread_id,
+  });
+});
+
+userFeature.hears(BotMessages.ADD_MEMBER_CANCEL_BUTTON, async (ctx) => {
+  ctx.session.addMemberGroupId = undefined;
+  await ctx.reply(BotMessages.SUCCESS_OPERATION_CANCELLED, {
+    reply_markup: { remove_keyboard: true },
+  });
+});
+
+userFeature.on("message:users_shared", async (ctx, next) => {
+  if (ctx.message.users_shared.request_id !== 1) {
+    return next();
+  }
+
+  const groupIdStr = ctx.session.addMemberGroupId;
+  if (!groupIdStr) {
+    await ctx.reply(
+      "Session expired. Please start the add member process again.",
+      {
+        reply_markup: { remove_keyboard: true },
+      }
+    );
+    return;
+  }
+
+  const users = ctx.message.users_shared.users;
+  const successList: string[] = [];
+  const failedList: string[] = [];
+
+  for (const user of users) {
+    try {
+      try {
+        await ctx.trpc.user.createUser({
+          userId: user.user_id,
+          firstName: user.first_name || "",
+          lastName: user.last_name || null,
+          userName: user.username || null,
+          phoneNumber: null,
+        });
+      } catch (err: unknown) {
+        if ((err as any)?.code !== "CONFLICT") {
+          throw err;
+        }
+      }
+
+      await ctx.trpc.chat.addMember({
+        chatId: Number(groupIdStr),
+        userId: Number(user.user_id),
+      });
+
+      successList.push(
+        user.first_name || user.username || String(user.user_id)
+      );
+    } catch (err) {
+      console.error("Failed to add member", user.user_id, err);
+      failedList.push(user.first_name || user.username || String(user.user_id));
+    }
+  }
+
+  ctx.session.addMemberGroupId = undefined;
+
+  const resultText = BotMessages.ADD_MEMBER_END_MESSAGE.replace(
+    "{success_list}",
+    successList.length ? successList.join(", ") : "None"
+  ).replace(
+    "{failed_list}",
+    failedList.length ? failedList.join(", ") : "None"
+  );
+
+  await ctx.reply(resultText, {
+    reply_markup: { remove_keyboard: true },
   });
 });

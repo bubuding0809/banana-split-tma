@@ -23,7 +23,6 @@ interface Expense {
   }[];
 }
 
-import { statsFeature } from "./stats.js";
 export const expensesFeature = new Composer<BotContext>();
 
 const CHASE_USER_REQUEST = 0;
@@ -86,6 +85,8 @@ expensesFeature.on("message:users_shared", async (ctx) => {
   }
 });
 
+import { getPeriodRange } from "../utils/date.js";
+
 const LIST_PERIODS: Record<string, string> = {
   list_period_today: "Today",
   list_period_current_month: "Current month",
@@ -120,43 +121,6 @@ expensesFeature.command("list", async (ctx, next) => {
   });
 });
 
-function getPeriodRange(periodKey: string): [Date | null, Date | null] {
-  const now = new Date();
-  let startDt: Date | null = null;
-  let endDt: Date | null = null;
-
-  switch (periodKey) {
-    case "list_period_today":
-      startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      endDt = new Date(startDt);
-      endDt.setDate(endDt.getDate() + 1);
-      break;
-    case "list_period_current_month":
-      startDt = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDt = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      break;
-    case "list_period_last_month":
-      startDt = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      endDt = new Date(now.getFullYear(), now.getMonth(), 1);
-      break;
-    case "list_period_last_30_days":
-      startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-      endDt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      break;
-    case "list_period_last_12_months":
-      startDt = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      endDt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      break;
-    case "list_period_all_time":
-    case "list_period_cancel":
-    default:
-      startDt = null;
-      endDt = null;
-      break;
-  }
-  return [startDt, endDt];
-}
-
 expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
   const callbackData = ctx.callbackQuery.data;
   if (!callbackData) return;
@@ -184,7 +148,9 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       return;
     }
 
-    const [startDt, endDt] = getPeriodRange(callbackData);
+    const { startDt, endDt } = getPeriodRange(
+      callbackData.replace("list_period_", "")
+    );
 
     const filtered = expenses.filter((exp: Expense) => {
       const expDt = new Date(exp.date);
@@ -283,8 +249,24 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
     }
 
     const escPeriod = escapeMarkdownV2(periodName);
-    const finalMessage =
+    let finalMessage =
       `*Expenses for ${escPeriod}*\n\n` + daySections.join("\n\n");
+
+    const overallTotals: Record<string, number> = {};
+    for (const exp of filtered) {
+      overallTotals[exp.currency] = new Decimal(
+        overallTotals[exp.currency] || 0
+      )
+        .plus(exp.amount)
+        .toNumber();
+    }
+
+    if (Object.keys(overallTotals).length > 0) {
+      const overallTotalParts = Object.entries(overallTotals).map(
+        ([cur, amt]) => escapeMarkdownV2(`-${amt.toFixed(2)} ${cur}`)
+      );
+      finalMessage += `\n*Overall Total*\n${overallTotalParts.join("\n")}`;
+    }
 
     await ctx.editMessageText(finalMessage, { parse_mode: "MarkdownV2" });
   } catch (error) {
@@ -365,5 +347,97 @@ expensesFeature.command("balance", async (ctx, next) => {
     await ctx.reply("⚠️ Failed to fetch balance. Please try again.", {
       message_thread_id: messageThreadId,
     });
+  }
+});
+
+import { parseExpense } from "../utils/parseExpense.js";
+
+expensesFeature.on("message:text", async (ctx, next) => {
+  if (ctx.chat.type !== "private" || ctx.message.text.startsWith("/")) {
+    return next();
+  }
+
+  const text = ctx.message.text;
+  const parsed = parseExpense(text);
+
+  if (!parsed) {
+    await ctx.reply(BotMessages.EXPENSE_PARSE_HINT, {
+      parse_mode: "Markdown",
+    });
+    return;
+  }
+
+  await ctx.replyWithChatAction("typing");
+
+  try {
+    let exists = false;
+    try {
+      await ctx.trpc.user.getUser({ userId: ctx.from.id });
+      exists = true;
+    } catch (err: unknown) {
+      if ((err as any).code !== "NOT_FOUND") {
+        throw err;
+      }
+    }
+
+    if (!exists) {
+      await ctx.reply(BotMessages.ERROR_EXPENSE_NOT_REGISTERED);
+      return;
+    }
+
+    const expenseDate = parsed.date || new Date();
+
+    const expense = await ctx.trpc.expense.createExpense({
+      chatId: ctx.from.id,
+      creatorId: ctx.from.id,
+      payerId: ctx.from.id,
+      description: parsed.description,
+      amount: parsed.amount,
+      date: expenseDate,
+      splitMode: "EQUAL",
+      participantIds: [ctx.from.id],
+      sendNotification: false,
+      currency: parsed.currency,
+    });
+
+    const currency = expense.currency;
+    const escapedDesc = escapeMarkdownV2(parsed.description);
+    const escapedCurrency = escapeMarkdownV2(currency);
+    const formattedAmount = escapeMarkdownV2(parsed.amount.toFixed(2));
+
+    const confirmation = BotMessages.EXPENSE_CREATED.replace(
+      "{description}",
+      escapedDesc
+    )
+      .replace("{currency}", escapedCurrency)
+      .replace("{amount}", formattedAmount);
+
+    const undoKeyboard = new InlineKeyboard().text(
+      "🗑 Undo",
+      `undo_expense:${expense.id}`
+    );
+
+    await ctx.reply(confirmation, {
+      parse_mode: "MarkdownV2",
+      reply_markup: undoKeyboard,
+    });
+  } catch (error) {
+    console.error("Error creating personal expense:", error);
+    await ctx.reply(BotMessages.ERROR_EXPENSE_CREATE_FAILED);
+  }
+});
+
+expensesFeature.callbackQuery(/^undo_expense:(.+)$/, async (ctx) => {
+  const expenseId = ctx.match[1];
+  if (!expenseId) return;
+  try {
+    await ctx.answerCallbackQuery();
+    await ctx.trpc.expense.deleteExpense({ expenseId });
+    await ctx.editMessageText(BotMessages.EXPENSE_DELETED, {
+      parse_mode: "MarkdownV2",
+    });
+  } catch (error) {
+    console.error("Error undoing expense:", error);
+    await ctx.editMessageText(BotMessages.ERROR_EXPENSE_DELETE_FAILED);
   }
 });

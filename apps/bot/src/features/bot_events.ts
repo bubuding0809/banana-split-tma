@@ -1,7 +1,6 @@
 import { Composer, InlineKeyboard } from "grammy";
 import { BotContext } from "../types.js";
 import {
-  BotMessages,
   GROUP_JOIN_MESSAGE,
   GROUP_INSTRUCTION,
   MIGRATION_MESSAGE_GROUP,
@@ -65,8 +64,8 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
     try {
       await ctx.trpc.chat.getChat({ chatId: chat.id });
       chatExists = true;
-    } catch (e: any) {
-      if (e?.code !== "NOT_FOUND") {
+    } catch (e: unknown) {
+      if ((e as any)?.code !== "NOT_FOUND") {
         throw e;
       }
     }
@@ -91,7 +90,7 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
   }
 });
 
-botEventsFeature.on("message:migrate_to_chat_id", async (ctx, next) => {
+botEventsFeature.on("message:migrate_to_chat_id", async (ctx) => {
   const oldChatId = ctx.chat.id;
   const newChatId = ctx.message.migrate_to_chat_id;
 

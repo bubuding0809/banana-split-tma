@@ -1,6 +1,6 @@
-import { Bot } from "grammy";
+import { Bot, session } from "grammy";
 import { env } from "./env.js";
-import { BotContext } from "./types.js";
+import { BotContext, SessionData } from "./types.js";
 import { trpcMiddleware } from "./middleware/trpc.js";
 import { loggerMiddleware } from "./middleware/logger.js";
 import { userFeature } from "./features/user.js";
@@ -9,6 +9,12 @@ import { expensesFeature } from "./features/expenses.js";
 import { statsFeature } from "./features/stats.js";
 
 export const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
+
+function initial(): SessionData {
+  return {};
+}
+
+bot.use(session({ initial }));
 
 bot.use(loggerMiddleware);
 bot.use(trpcMiddleware);

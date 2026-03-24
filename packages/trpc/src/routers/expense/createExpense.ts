@@ -376,7 +376,11 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
-              threadId: input.threadId ?? (chatForNotification?.threadId ? Number(chatForNotification.threadId) : undefined),
+              threadId:
+                input.threadId ??
+                (chatForNotification?.threadId
+                  ? Number(chatForNotification.threadId)
+                  : undefined),
             },
             teleBot
           );
