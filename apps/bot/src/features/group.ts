@@ -6,8 +6,8 @@ import { ChatUtils } from "../utils/chat.js";
 
 export const groupFeature = new Composer<BotContext>();
 
-groupFeature.command("start", async (ctx) => {
-  if (ctx.chat.type === "private") return;
+groupFeature.command("start", async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
   if (messageThreadId) {
@@ -76,8 +76,8 @@ groupFeature.command("pin", async (ctx) => {
   }
 });
 
-groupFeature.command("set_topic", async (ctx) => {
-  if (ctx.chat.type === "private") return;
+groupFeature.command("set_topic", async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
   if (!messageThreadId || !ChatUtils.isForumChat(ctx.chat)) {

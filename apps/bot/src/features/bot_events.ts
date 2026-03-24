@@ -11,11 +11,11 @@ import { env } from "../env.js";
 
 export const botEventsFeature = new Composer<BotContext>();
 
-botEventsFeature.on("my_chat_member", async (ctx) => {
+botEventsFeature.on("my_chat_member", async (ctx, next) => {
   const chat = ctx.myChatMember.chat;
 
   if (chat.type !== "group" && chat.type !== "supergroup") {
-    return;
+    return next();
   }
 
   const oldStatus = ctx.myChatMember.old_chat_member.status;
@@ -28,7 +28,7 @@ botEventsFeature.on("my_chat_member", async (ctx) => {
     newStatus === "restricted";
 
   if (!wasNotMember || !isNowMember) {
-    return;
+    return next();
   }
 
   console.log(`Bot added to group: ${chat.id}`);
@@ -71,7 +71,7 @@ botEventsFeature.on("my_chat_member", async (ctx) => {
   }
 });
 
-botEventsFeature.on("message:migrate_to_chat_id", async (ctx) => {
+botEventsFeature.on("message:migrate_to_chat_id", async (ctx, next) => {
   const oldChatId = ctx.chat.id;
   const newChatId = ctx.message.migrate_to_chat_id;
 
