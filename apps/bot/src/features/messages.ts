@@ -1,9 +1,9 @@
 export const BotMessages = {
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
-  STATS_CANCELLED: "❌ Statistics cancelled.",
-  ERROR_STATS_FAILED: "❌ Failed to generate statistics.",
-  STATS_EMPTY: "No expenses recorded yet.",
-  STATS_NO_EXPENSES_FOR_PERIOD: "No expenses recorded for *{period_name}*.",
+  STATS_CANCELLED: "❌ Statistics cancelled\\.",
+  ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",
+  STATS_EMPTY: "No expenses recorded yet\\.",
+  STATS_NO_EXPENSES_FOR_PERIOD: "No expenses recorded for *{period_name}*\\.",
   USAGE_GUIDE: `*Track Personal Expenses*: Send me a direct message\\! For example:
 \`\`\`
 15 USD Lunch
