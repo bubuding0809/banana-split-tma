@@ -358,6 +358,9 @@ importers:
       vite:
         specifier: ^6.2.0
         version: 6.2.2(@types/node@22.13.10)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.19.3)(yaml@2.8.0)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@22.13.10)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.19.3)(yaml@2.8.0)
 
   packages/database:
     dependencies:
@@ -449,6 +452,9 @@ importers:
       node-telegram-bot-api:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
+      paynow-generator:
+        specifier: ^1.0.7
+        version: 1.0.7
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
@@ -5314,6 +5320,12 @@ packages:
       }
     engines: { node: ">=10" }
 
+  crc-full@1.1.0:
+    resolution:
+      {
+        integrity: sha512-7YK4t8C9PiekOSnBotYjU2roaaorUXHyT+Xzb12Zgg4DsfG58AxmPk2/wx7XnC9UXyriqRvl3c+U0zFsZkdVYg==,
+      }
+
   create-require@1.1.1:
     resolution:
       {
@@ -8910,6 +8922,12 @@ packages:
     resolution:
       {
         integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==,
+      }
+
+  paynow-generator@1.0.7:
+    resolution:
+      {
+        integrity: sha512-QAtZqrf2M+Jcw3OJuU64VjZmx4B6mYl+DoeRZJNnGSok3hQwnokC6ROs9oEGzGLTe8wT/+WUBr1B7jON2ll1WA==,
       }
 
   pend@1.2.0:
@@ -12673,7 +12691,7 @@ snapshots:
 
   "@jridgewell/gen-mapping@0.3.13":
     dependencies:
-      "@jridgewell/sourcemap-codec": 1.5.0
+      "@jridgewell/sourcemap-codec": 1.5.5
       "@jridgewell/trace-mapping": 0.3.31
 
   "@jridgewell/gen-mapping@0.3.8":
@@ -12703,12 +12721,12 @@ snapshots:
   "@jridgewell/trace-mapping@0.3.31":
     dependencies:
       "@jridgewell/resolve-uri": 3.1.2
-      "@jridgewell/sourcemap-codec": 1.5.0
+      "@jridgewell/sourcemap-codec": 1.5.5
 
   "@jridgewell/trace-mapping@0.3.9":
     dependencies:
       "@jridgewell/resolve-uri": 3.1.2
-      "@jridgewell/sourcemap-codec": 1.5.0
+      "@jridgewell/sourcemap-codec": 1.5.5
 
   "@mapbox/node-pre-gyp@1.0.11":
     dependencies:
@@ -15020,6 +15038,8 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
       yaml: 1.10.2
+
+  crc-full@1.1.0: {}
 
   create-require@1.1.1: {}
 
@@ -17385,6 +17405,10 @@ snapshots:
       util: 0.10.4
 
   pathe@2.0.3: {}
+
+  paynow-generator@1.0.7:
+    dependencies:
+      crc-full: 1.1.0
 
   pend@1.2.0: {}
 
