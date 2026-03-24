@@ -13,7 +13,17 @@ export const env = createEnv({
     VERCEL_URL: z.string().optional(),
     API_KEY: z.string().min(1),
     MINI_APP_DEEPLINK: z.string().min(1),
+    AWS_GROUP_REMINDER_LAMBDA_ARN: z.string().optional(),
+    AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: z.string().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
 });
+
+// Inject required AWS envs directly to process.env so the tRPC backend routers can read them safely
+process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
+  env.AWS_GROUP_REMINDER_LAMBDA_ARN ||
+  "arn:aws:lambda:us-east-1:123456789012:function:GroupReminder";
+process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN =
+  env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN ||
+  "arn:aws:iam::123456789012:role/EventBridgeSchedulerRole";
