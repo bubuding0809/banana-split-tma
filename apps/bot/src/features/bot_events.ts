@@ -9,6 +9,8 @@ import {
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 
+const migratedChatIds = new Set<number>();
+
 export const botEventsFeature = new Composer<BotContext>();
 
 botEventsFeature.on("my_chat_member", async (ctx, next) => {
@@ -28,6 +30,24 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
     newStatus === "restricted";
 
   if (!wasNotMember || !isNowMember) {
+    return next();
+  }
+
+  // Wait briefly in case this is a migration race condition where message:migrate_to_chat_id
+  // hasn't arrived yet but we're getting the my_chat_member upgrade trigger
+  if (chat.type === "supergroup") {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      if (migratedChatIds.has(chat.id)) {
+        break;
+      }
+    }
+  }
+
+  // Skip chats that were just migrated to a supergroup
+  if (migratedChatIds.has(chat.id)) {
+    migratedChatIds.delete(chat.id);
+    console.log(`Skipping my_chat_member for migrated chat ${chat.id}`);
     return next();
   }
 
@@ -76,6 +96,8 @@ botEventsFeature.on("message:migrate_to_chat_id", async (ctx, next) => {
   const newChatId = ctx.message.migrate_to_chat_id;
 
   try {
+    migratedChatIds.add(newChatId);
+
     await ctx.trpc.chat.migrateChat({
       oldChatId,
       newChatId,
