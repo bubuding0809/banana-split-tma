@@ -12,6 +12,7 @@ export const env = createEnv({
       .default("development"),
     VERCEL_URL: z.string().optional(),
     API_KEY: z.string().min(1),
+    MINI_APP_DEEPLINK: z.string().min(1),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
