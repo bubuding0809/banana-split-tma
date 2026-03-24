@@ -5,6 +5,9 @@ import { env } from "../env.js";
 
 const createContext = withCreateTRPCContext({
   TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN,
+  AWS_GROUP_REMINDER_LAMBDA_ARN: env.AWS_GROUP_REMINDER_LAMBDA_ARN || "",
+  AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN:
+    env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN || "",
 });
 
 type ExpressContextOptions = Parameters<typeof createContext>[0];
