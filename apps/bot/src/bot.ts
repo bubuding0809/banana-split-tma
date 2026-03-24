@@ -1,8 +1,11 @@
 import { Bot } from "grammy";
 import { env } from "./env.js";
 import { BotContext } from "./types.js";
+import { trpcMiddleware } from "./middleware/trpc.js";
 
 export const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
+
+bot.use(trpcMiddleware);
 
 // Basic catch-all error handler
 bot.catch((err) => {
