@@ -23,6 +23,7 @@ interface Expense {
   }[];
 }
 
+import { statsFeature } from "./stats.js";
 export const expensesFeature = new Composer<BotContext>();
 
 const CHASE_USER_REQUEST = 0;
