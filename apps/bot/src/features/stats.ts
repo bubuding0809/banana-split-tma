@@ -15,7 +15,8 @@ const STATS_PERIODS: Record<string, string> = {
   stats_period_all_time: "All time",
 };
 
-statsFeature.command("stats", async (ctx) => {
+statsFeature.command("stats", async (ctx, next) => {
+  if (ctx.chat.type !== "private") return next();
   await ctx.api.sendChatAction(ctx.chat.id, "typing");
 
   const keyboard = new InlineKeyboard()

@@ -28,9 +28,9 @@ export const expensesFeature = new Composer<BotContext>();
 
 const CHASE_USER_REQUEST = 0;
 
-expensesFeature.command("chase", async (ctx) => {
+expensesFeature.command("chase", async (ctx, next) => {
   if (ctx.chat.type !== "private") {
-    return ctx.reply(BotMessages.ERROR_CHASE_PRIVATE_ONLY);
+    return next();
   }
 
   const keyboard = new Keyboard()
