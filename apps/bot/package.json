@@ -5,7 +5,6 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch scripts/dev.ts",
-    "build": "tsc",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "start": "vercel dev",
