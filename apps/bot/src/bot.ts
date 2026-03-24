@@ -12,8 +12,8 @@ export const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
 
 bot.use(loggerMiddleware);
 bot.use(trpcMiddleware);
-bot.use(userFeature);
 bot.use(groupFeature);
+bot.use(userFeature);
 bot.use(expensesFeature);
 bot.use(statsFeature);
 import { botEventsFeature } from "./features/bot_events.js";
