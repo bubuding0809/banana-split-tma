@@ -54,10 +54,16 @@ export const migrateChatHandler = async (
     });
 
     if (existingNewChat) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: `Chat with ID ${newChatId} already exists`,
-      });
+      return {
+        status: 200,
+        message: `Chat ${newChatId} already exists, skipping migration.`,
+        migratedRecords: {
+          expenses: 0,
+          settlements: 0,
+          snapshots: 0,
+          schedules: 0,
+        },
+      };
     }
 
     // Use a transaction to ensure data integrity
