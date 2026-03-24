@@ -12,11 +12,12 @@
     "deploy": "vercel"
   },
   "dependencies": {
-    "grammy": "^1.35.0",
     "@dko/trpc": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
-    "zod": "^3.23.8",
-    "dotenv": "^16.4.5"
+    "@trpc/server": "^11.0.0",
+    "dotenv": "^16.4.5",
+    "grammy": "^1.35.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
