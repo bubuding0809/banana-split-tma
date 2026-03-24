@@ -47,33 +47,50 @@ export function generatePayNowString(
   // PayNow proxy must be E.164 format; Telegram omits the '+' so we add it.
   const e164 = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
 
+  const hasAmount = amount > 0;
+
+  // Tag 03 (Editable Amount Indicator) in Tag 26
+  // '0' = Fixed amount (payer cannot change it)
+  // '1' = Editable amount (payer can change it)
+  // According to EMV QR specs, if amount is omitted, this should generally be '1'
+  const editableAmountIndicator = hasAmount ? "0" : "1";
+
   const merchantAccountInfo = [
     tlv("00", "SG.PAYNOW"), // GUID
     tlv("01", "0"), // Proxy type: 0 = mobile number
     tlv("02", e164), // Proxy value in E.164 format
-    tlv("03", "0"), // Amount editable: 0 = fixed (payer cannot change it)
+    tlv("03", editableAmountIndicator), // Amount editable indicator
   ].join("");
+
+  // Point of Initiation (01)
+  // "11" = Static (typically no amount, multiple uses)
+  // "12" = Dynamic (typically has amount, one-time use)
+  const poi = hasAmount ? "12" : "11";
 
   const parts: string[] = [
     tlv("00", "01"), // Payload Format Indicator
-    tlv("01", "12"), // Point of Initiation: 12 = static QR
+    tlv("01", poi), // Point of Initiation
     tlv("26", merchantAccountInfo), // PayNow Merchant Account Info
     tlv("52", "0000"), // Merchant Category Code (generic)
     tlv("53", "702"), // Transaction Currency: 702 = SGD
   ];
 
-  if (amount > 0) {
+  if (hasAmount) {
     parts.push(tlv("54", amount.toFixed(2))); // Transaction Amount
   }
 
+  // EMV Spec: 59 must be present, min length 1, max 25 chars
+  const sanitizedName = merchantName ? merchantName.trim().slice(0, 25) : "NA";
+  const finalMerchantName = sanitizedName.length > 0 ? sanitizedName : "NA";
+
   parts.push(
     tlv("58", "SG"), // Country Code
-    tlv("59", merchantName.slice(0, 25)), // Merchant Name (creditor's name, max 25 chars per EMV spec)
+    tlv("59", finalMerchantName), // Merchant Name
     tlv("60", "SINGAPORE") // Merchant City
   );
 
   if (reference) {
-    parts.push(tlv("62", tlv("01", reference))); // Additional Data: bill ref
+    parts.push(tlv("62", tlv("01", reference.slice(0, 25)))); // Additional Data: bill ref (max 25 chars)
   }
 
   parts.push("6304"); // CRC tag + length placeholder
