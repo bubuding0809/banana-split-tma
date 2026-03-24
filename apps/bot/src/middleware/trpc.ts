@@ -9,17 +9,19 @@ const createContext = withCreateTRPCContext({
 
 type ExpressContextOptions = Parameters<typeof createContext>[0];
 
-export const trpcMiddleware: Middleware<BotContext> = async (ctx, next) => {
-  const trpcCtx = createContext({
-    req: {
-      headers: {
-        "x-api-key": env.API_KEY || "",
-      },
-    } as unknown as ExpressContextOptions["req"],
-    res: {} as unknown as ExpressContextOptions["res"],
-    info: {} as unknown as ExpressContextOptions["info"],
-  });
+const trpcCtx = createContext({
+  req: {
+    headers: {
+      "x-api-key": env.API_KEY,
+    },
+  } as unknown as ExpressContextOptions["req"],
+  res: {} as unknown as ExpressContextOptions["res"],
+  info: {} as unknown as ExpressContextOptions["info"],
+});
 
-  ctx.trpc = appRouter.createCaller(trpcCtx);
+const caller = appRouter.createCaller(trpcCtx);
+
+export const trpcMiddleware: Middleware<BotContext> = async (ctx, next) => {
+  ctx.trpc = caller;
   await next();
 };

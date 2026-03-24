@@ -11,7 +11,7 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
     VERCEL_URL: z.string().optional(),
-    API_KEY: z.string().optional(),
+    API_KEY: z.string().min(1),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
