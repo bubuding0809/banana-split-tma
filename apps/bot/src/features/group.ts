@@ -27,7 +27,7 @@ groupFeature.command("pin", async (ctx) => {
 
   try {
     await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
-  } catch (err) {
+  } catch {
     const instruction = BotMessages.PIN_MANUAL_INSTRUCTION.replace(
       "{bot_username}",
       ctx.me.username
@@ -83,7 +83,7 @@ groupFeature.command("summary", async (ctx) => {
 
     try {
       await ctx.api.deleteMessage(ctx.chat.id, progressMessage.message_id);
-    } catch (e) {
+    } catch {
       // Ignore if deletion fails
     }
 
@@ -100,7 +100,7 @@ groupFeature.command("summary", async (ctx) => {
     console.error("Error generating summary:", error);
     try {
       await ctx.api.deleteMessage(ctx.chat.id, progressMessage.message_id);
-    } catch (e) {
+    } catch {
       // Ignore if deletion fails
     }
     await ctx.reply(BotMessages.ERROR_SUMMARY_FAILED, {

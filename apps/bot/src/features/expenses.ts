@@ -4,6 +4,24 @@ import { BotMessages } from "./messages.js";
 import { escapeMarkdownV2 } from "../utils/markdown.js";
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
+import { Decimal } from "decimal.js";
+
+interface Expense {
+  id: number;
+  description: string;
+  amount: number;
+  currency: string;
+  date: string | Date;
+  creatorId: number;
+  payerId: number;
+  chatId: number;
+  shares: {
+    id: number;
+    expenseId: number;
+    userId: number;
+    amount: number;
+  }[];
+}
 
 export const expensesFeature = new Composer<BotContext>();
 
@@ -56,7 +74,7 @@ expensesFeature.on("message:users_shared", async (ctx) => {
       await ctx.reply(successMessage, {
         reply_markup: { remove_keyboard: true },
       });
-    } catch (error) {
+    } catch {
       await ctx.reply(
         `⚠️ Failed to send message to ${sharedUser.username || sharedUser.first_name || String(sharedUser.user_id)} as they do not have conversation yet.`,
         {
@@ -167,7 +185,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
 
     const [startDt, endDt] = getPeriodRange(callbackData);
 
-    const filtered = expenses.filter((exp: any) => {
+    const filtered = expenses.filter((exp: Expense) => {
       const expDt = new Date(exp.date);
       if (startDt && expDt < startDt) return false;
       if (endDt && expDt >= endDt) return false;
@@ -187,7 +205,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
 
     // Sort descending
     filtered.sort(
-      (a: any, b: any) =>
+      (a: Expense, b: Expense) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
@@ -236,7 +254,9 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
 
       const dayTotals: Record<string, number> = {};
       for (const exp of exps) {
-        dayTotals[exp.currency] = (dayTotals[exp.currency] || 0) + exp.amount;
+        dayTotals[exp.currency] = new Decimal(dayTotals[exp.currency] || 0)
+          .plus(exp.amount)
+          .toNumber();
       }
 
       const totalParts = Object.entries(dayTotals).map(
@@ -247,7 +267,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       const escDayLabel = escapeMarkdownV2(dayLabel);
       const escTotalStr = escapeMarkdownV2(`(${totalStr})`);
 
-      const itemLines = exps.map((exp: any) => {
+      const itemLines = exps.map((exp: Expense) => {
         const escAmt = escapeMarkdownV2(
           parseFloat(exp.amount.toFixed(10)).toString()
         );
@@ -306,7 +326,7 @@ expensesFeature.command("balance", async (ctx) => {
     for (const member of members) {
       const memberId = Number(member.id);
       const memberDebts = debtsResult.debts.filter(
-        (d: any) => d.debtorId === memberId
+        (d) => d.debtorId === memberId
       );
 
       const name = member.firstName || String(memberId);
