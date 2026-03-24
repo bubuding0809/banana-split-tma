@@ -41,12 +41,24 @@ botEventsFeature.on("my_chat_member", async (ctx) => {
       chatPhotoUrl = file.file_path;
     }
 
-    await ctx.trpc.chat.createChat({
-      chatId: chat.id,
-      chatTitle: chat.title || `Group:${chat.id}`,
-      chatType: chat.type,
-      chatPhoto: chatPhotoUrl || undefined,
-    });
+    let chatExists = false;
+    try {
+      await ctx.trpc.chat.getChat({ chatId: chat.id });
+      chatExists = true;
+    } catch (e: any) {
+      if (e?.code !== "NOT_FOUND") {
+        throw e;
+      }
+    }
+
+    if (!chatExists) {
+      await ctx.trpc.chat.createChat({
+        chatId: chat.id,
+        chatTitle: chat.title || `Group:${chat.id}`,
+        chatType: chat.type,
+        chatPhoto: chatPhotoUrl || undefined,
+      });
+    }
 
     await ctx.reply(GROUP_JOIN_MESSAGE);
 
