@@ -7,7 +7,8 @@ import { escapeMarkdownV2 } from "../utils/markdown.js";
 export const userFeature = new Composer<BotContext>();
 
 userFeature.command("start", async (ctx) => {
-  if (ctx.chat.type !== "private" || !ctx.from) return;
+  if (!ctx.from) return;
+
   const startArg = ctx.match;
 
   await ctx.replyWithChatAction("typing");
@@ -111,7 +112,6 @@ userFeature.command("start", async (ctx) => {
 });
 
 userFeature.command("help", async (ctx) => {
-  if (ctx.chat.type !== "private") return;
   await ctx.replyWithChatAction("typing");
 
   const usageGuide = BotMessages.USAGE_GUIDE.replace("{bot_username}", () =>
@@ -129,7 +129,6 @@ userFeature.command("help", async (ctx) => {
 });
 
 userFeature.command("cancel", async (ctx) => {
-  if (ctx.chat.type !== "private") return;
   await ctx.replyWithChatAction("typing");
 
   await ctx.reply(BotMessages.SUCCESS_OPERATION_CANCELLED, {
