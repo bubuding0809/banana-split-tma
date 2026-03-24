@@ -6,6 +6,7 @@ import { loggerMiddleware } from "./middleware/logger.js";
 import { userFeature } from "./features/user.js";
 import { groupFeature } from "./features/group.js";
 import { expensesFeature } from "./features/expenses.js";
+import { statsFeature } from "./features/stats.js";
 
 export const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
 
@@ -14,6 +15,7 @@ bot.use(trpcMiddleware);
 bot.use(userFeature);
 bot.use(groupFeature);
 bot.use(expensesFeature);
+bot.use(statsFeature);
 
 // Basic catch-all error handler
 bot.catch((err) => {

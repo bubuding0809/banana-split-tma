@@ -7,7 +7,6 @@ import { ChatUtils } from "../utils/chat.js";
 export const groupFeature = new Composer<BotContext>();
 
 groupFeature.command("pin", async (ctx) => {
-  if (ctx.chat.type === "private") return;
   const messageThreadId = ctx.message?.message_thread_id;
 
   const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
