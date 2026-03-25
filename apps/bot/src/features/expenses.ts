@@ -351,6 +351,7 @@ expensesFeature.command("balance", async (ctx, next) => {
 });
 
 import { parseExpense } from "../utils/parseExpense.js";
+import { handleAgentMessage } from "./agent.js";
 
 expensesFeature.on("message:text", async (ctx, next) => {
   if (ctx.chat.type !== "private" || ctx.message.text.startsWith("/")) {
@@ -361,10 +362,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
   const parsed = parseExpense(text);
 
   if (!parsed) {
-    await ctx.reply(BotMessages.EXPENSE_PARSE_HINT, {
-      parse_mode: "Markdown",
-    });
-    return;
+    return handleAgentMessage(ctx);
   }
 
   await ctx.replyWithChatAction("typing");
