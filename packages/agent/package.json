@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
+    "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
     "@mastra/core": "latest",
     "@mastra/memory": "^1.10.0",

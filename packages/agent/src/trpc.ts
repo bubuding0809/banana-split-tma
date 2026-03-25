@@ -4,7 +4,11 @@ import { appRouter, withCreateTRPCContext } from "@dko/trpc";
  * Creates a server-side caller for the tRPC routers, using Mastra execution context.
  * Ensures the telegramUserId and chatId are securely extracted and cannot be spoofed.
  */
-export function createTrpcCaller(context: unknown) {
+export function createTrpcCaller(context: unknown): {
+  caller: ReturnType<typeof appRouter.createCaller>;
+  telegramUserId: number;
+  chatId: number;
+} {
   if (!context || typeof context !== "object") {
     throw new Error("Missing or invalid Mastra execution context");
   }
