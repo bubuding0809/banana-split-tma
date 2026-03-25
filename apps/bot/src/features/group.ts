@@ -4,6 +4,8 @@ import { BotMessages } from "./messages.js";
 import { env } from "../env.js";
 import { ChatUtils } from "../utils/chat.js";
 
+import { handleAgentMessage } from "./agent.js";
+
 export const groupFeature = new Composer<BotContext>();
 
 groupFeature.command("start", async (ctx, next) => {
@@ -144,4 +146,33 @@ groupFeature.command("summary", async (ctx) => {
       message_thread_id: messageThreadId,
     });
   }
+});
+
+groupFeature.command(["ask", "do"], async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
+
+  const text = ctx.match;
+  if (!text || text.trim() === "") return;
+
+  await handleAgentMessage(ctx, text.trim());
+});
+
+groupFeature.on("message:text", async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
+
+  const botUsername = ctx.me.username;
+  if (!botUsername) return next();
+
+  const mention = `@${botUsername}`;
+  const text = ctx.message.text;
+
+  if (text.includes(mention)) {
+    const payload = text.replace(new RegExp(mention, "g"), "").trim();
+    if (payload) {
+      await handleAgentMessage(ctx, payload);
+      return;
+    }
+  }
+
+  return next();
 });
