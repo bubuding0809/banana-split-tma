@@ -1,3 +1,4 @@
+import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
@@ -13,6 +14,23 @@ export const listCurrenciesTool = createTool({
       includeRates: true,
       onlyWithRates: false,
     });
-    return JSON.stringify(result);
+    return serializeToolResult(result);
+  },
+});
+
+export const getExchangeRateTool = createTool({
+  id: "getExchangeRateTool",
+  description: "Get the current exchange rate between two currencies.",
+  inputSchema: z.object({
+    baseCurrency: z.string().describe("The source currency code (e.g. USD)"),
+    targetCurrency: z.string().describe("The target currency code (e.g. SGD)"),
+  }),
+  execute: async (data, context) => {
+    const { caller } = createTrpcCaller(context);
+    const result = await caller.currency.getCurrentRate({
+      baseCurrency: data.baseCurrency,
+      targetCurrency: data.targetCurrency,
+    });
+    return serializeToolResult(result);
   },
 });

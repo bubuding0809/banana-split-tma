@@ -1,3 +1,4 @@
+import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
@@ -10,9 +11,11 @@ export const sendGroupReminderTool = createTool({
   execute: async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
-    return caller.telegram.sendGroupReminderMessage({
-      chatId: String(chatId),
-    });
+    return serializeToolResult(
+      await caller.telegram.sendGroupReminderMessage({
+        chatId: String(chatId),
+      })
+    );
   },
 });
 
@@ -50,9 +53,11 @@ export const sendDebtReminderTool = createTool({
   execute: async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
-    return caller.telegram.sendDebtReminderMessage({
-      chatId,
-      ...data,
-    });
+    return serializeToolResult(
+      await caller.telegram.sendDebtReminderMessage({
+        chatId,
+        ...data,
+      })
+    );
   },
 });
