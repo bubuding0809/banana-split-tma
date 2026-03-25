@@ -9,8 +9,6 @@ dotenv.config({
 });
 
 export const env = createEnv({
-  clientPrefix: "PUBLIC_",
-  client: {},
   server: {
     TELEGRAM_BOT_TOKEN: z
       .string()
