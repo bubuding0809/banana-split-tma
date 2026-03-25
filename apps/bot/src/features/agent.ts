@@ -1,5 +1,6 @@
 import { BotContext } from "../types.js";
 import { bananaAgent } from "@repo/agent";
+import { RequestContext } from "@mastra/core/request-context";
 
 export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
   const userMessage = text || ctx.message?.text;
@@ -8,17 +9,20 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
   const thinkingMsg = await ctx.reply("Thinking...");
 
   try {
-    const options: any = {
+    const requestContext = new RequestContext<{
+      telegramUserId: number;
+      chatId: number;
+    }>();
+    requestContext.set("telegramUserId", ctx.from.id);
+    requestContext.set("chatId", ctx.chat.id);
+
+    const streamInfo = await bananaAgent.stream(userMessage, {
       memory: {
         thread: String(ctx.chat.id),
         resource: `telegram-user-${ctx.from.id}`,
       },
-      requestContext: {
-        telegramUserId: ctx.from.id,
-        chatId: ctx.chat.id,
-      },
-    };
-    const streamInfo = await bananaAgent.stream(userMessage, options);
+      requestContext,
+    });
 
     let fullText = "";
     let lastUpdatedText = "";
