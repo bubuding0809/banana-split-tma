@@ -16,12 +16,15 @@
     "@ai-sdk/openai": "latest",
     "@dko/trpc": "workspace:*",
     "@mastra/core": "latest",
+    "@mastra/memory": "^1.10.0",
+    "@mastra/pg": "^1.8.3",
     "mastra": "latest",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.5.0",
     "typescript": "5.4.5"
   }
 }
