@@ -1,9 +1,9 @@
 import { BotContext } from "../types.js";
 import { bananaAgent } from "@repo/agent";
 
-export const handleAgentMessage = async (ctx: BotContext) => {
-  if (!ctx.message?.text || !ctx.chat || !ctx.from) return;
-  const userMessage = ctx.message.text;
+export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
+  const userMessage = text || ctx.message?.text;
+  if (!userMessage || !ctx.chat || !ctx.from) return;
 
   const thinkingMsg = await ctx.reply("Thinking...");
 
