@@ -367,6 +367,9 @@ importers:
       "@prisma/client":
         specifier: ^6.5.0
         version: 6.5.0(prisma@6.5.0(typescript@5.8.2))(typescript@5.8.2)
+      prisma:
+        specifier: ^6.5.0
+        version: 6.5.0(typescript@5.8.2)
     devDependencies:
       "@repo/eslint-config":
         specifier: workspace:*
@@ -380,9 +383,6 @@ importers:
       dotenv-cli:
         specifier: ^8.0.0
         version: 8.0.0
-      prisma:
-        specifier: ^6.5.0
-        version: 6.5.0(typescript@5.8.2)
 
   packages/eslint-config:
     devDependencies:
