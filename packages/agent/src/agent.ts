@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { memory } from "./memory.js";
 import {
   getChatDetailsTool,
@@ -21,7 +21,7 @@ export const bananaAgent = new Agent({
   instructions:
     "You are a helpful Telegram expense tracker bot. You help users manage their shared expenses, settle debts, and keep track of balances.",
   memory,
-  model: openai("gpt-4o"),
+  model: google("gemini-3.1-flash-image-preview"),
   tools: {
     getChatDetailsTool,
     listCurrenciesTool,
