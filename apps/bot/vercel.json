@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "npx turbo-ignore",
+  "regions": ["sin1"],
   "rewrites": [
     {
       "source": "/(.*)",
