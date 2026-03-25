@@ -64,6 +64,26 @@ describe("createTrpcCaller", () => {
     expect(appRouter.createCaller).toHaveBeenCalledWith({ mocked: "context" });
   });
 
+  it("should extract telegramUserId and chatId from RequestContext if available", () => {
+    const context = {
+      requestContext: {
+        get: (key: string) => {
+          if (key === "telegramUserId") return 999;
+          if (key === "chatId") return 888;
+          return undefined;
+        },
+      },
+      // Ensure we don't accidentally fall back to these
+      telegramUserId: 123,
+      chatId: 456,
+    };
+
+    const result = createTrpcCaller(context);
+
+    expect(result.telegramUserId).toBe(999);
+    expect(result.chatId).toBe(888);
+  });
+
   it("should throw error if context is null", () => {
     expect(() => createTrpcCaller(null)).toThrow(
       "Missing or invalid Mastra execution context"

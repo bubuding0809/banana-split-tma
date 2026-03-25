@@ -13,9 +13,20 @@ export function createTrpcCaller(context: unknown): {
     throw new Error("Missing or invalid Mastra execution context");
   }
 
-  const ctx = context as Record<string, unknown>;
-  const telegramUserId = ctx.telegramUserId as number | undefined;
-  const chatId = ctx.chatId as number | undefined;
+  const ctx = context as Record<string, any>;
+
+  // Extract values using RequestContext API if available, fallback to raw object
+  const telegramUserId = (
+    ctx.requestContext && typeof ctx.requestContext.get === "function"
+      ? ctx.requestContext.get("telegramUserId")
+      : ctx.telegramUserId
+  ) as number | undefined;
+
+  const chatId = (
+    ctx.requestContext && typeof ctx.requestContext.get === "function"
+      ? ctx.requestContext.get("chatId")
+      : ctx.chatId
+  ) as number | undefined;
 
   if (typeof telegramUserId !== "number" || typeof chatId !== "number") {
     throw new Error("Context must include numeric telegramUserId and chatId");
