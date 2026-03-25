@@ -66,6 +66,9 @@ importers:
       "@dko/trpc":
         specifier: workspace:*
         version: link:../../packages/trpc
+      "@repo/agent":
+        specifier: workspace:*
+        version: link:../../packages/agent
       "@t3-oss/env-core":
         specifier: ^0.13.8
         version: 0.13.8(typescript@5.4.5)(valibot@1.0.0-beta.14(typescript@5.4.5))(zod@3.25.76)
@@ -367,6 +370,9 @@ importers:
       "@ai-sdk/openai":
         specifier: latest
         version: 3.0.48(zod@3.25.76)
+      "@dko/database":
+        specifier: workspace:^
+        version: link:../database
       "@dko/trpc":
         specifier: workspace:*
         version: link:../trpc
