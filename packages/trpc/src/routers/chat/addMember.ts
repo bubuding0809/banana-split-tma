@@ -86,6 +86,56 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    await assertChatAccess(ctx.session, ctx.db, input.chatId);
+    // We bypass assertChatAccess because a user needs to be able to add themselves
+    // to a chat they belong to in Telegram, but aren't yet in our database for.
+
+    if (ctx.session.authType === "superadmin") {
+      return addMemberHandler(input, ctx.db);
+    }
+
+    if (ctx.session.authType === "chat-api-key") {
+      if (ctx.session.chatId !== input.chatId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This API key does not have access to the requested chat",
+        });
+      }
+    } else {
+      // "telegram" or "user-api-key"
+      if (
+        !ctx.session.user ||
+        Number(ctx.session.user.id) !== Number(input.userId)
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only add yourself to a chat",
+        });
+      }
+
+      // Verify the user is actually a member of the Telegram chat
+      // Skip this check for private chats (where chatId == userId)
+      if (Number(input.chatId) !== Number(input.userId)) {
+        try {
+          const chatMember = await ctx.teleBot.getChatMember(
+            Number(input.chatId),
+            Number(input.userId)
+          );
+
+          if (chatMember.status === "left" || chatMember.status === "kicked") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "User must be an active member of the Telegram group.",
+            });
+          }
+        } catch (error) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message:
+              "Could not verify user's membership in this Telegram chat. The bot might need to be an administrator.",
+          });
+        }
+      }
+    }
+
     return addMemberHandler(input, ctx.db);
   });
