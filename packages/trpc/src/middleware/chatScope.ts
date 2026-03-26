@@ -5,6 +5,7 @@ interface SessionWithScope {
   authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
   chatId: bigint | null;
   user?: { id: bigint | number; [key: string]: any } | null;
+  parsedInitData?: any | null;
 }
 
 /**
