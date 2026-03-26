@@ -108,6 +108,20 @@ userFeature.command("start", async (ctx, next) => {
       phoneNumber: null,
     });
 
+    const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+
+    // If the /start command was sent in a group, auto-add the user as a member
+    if (isGroup) {
+      try {
+        await ctx.trpc.chat.addMember({
+          chatId: ctx.chat.id,
+          userId: ctx.from.id,
+        });
+      } catch {
+        // Silent failure if chat doesn't exist yet or already a member
+      }
+    }
+
     if (startArg === "register") {
       await ctx.api.editMessageText(
         ctx.chat.id,
