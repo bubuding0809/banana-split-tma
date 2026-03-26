@@ -33,6 +33,6 @@ export const getChatHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
-    await assertChatAccess(ctx.session, ctx.db, input.chatId);
+    await assertChatAccess(ctx.session, ctx.db, input.chatId, ctx.teleBot);
     return getChatHandler(input, ctx.db);
   });

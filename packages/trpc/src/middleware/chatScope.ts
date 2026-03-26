@@ -18,7 +18,8 @@ interface SessionWithScope {
 export async function assertChatAccess(
   session: SessionWithScope,
   db: Db,
-  inputChatId: bigint | number
+  inputChatId: bigint | number,
+  teleBot?: any
 ): Promise<void> {
   if (session.authType === "superadmin") return;
 
@@ -51,6 +52,58 @@ export async function assertChatAccess(
   });
 
   if (!isMember) {
+    // If not in DB but we have telebot, fallback to Telegram API verification
+    if (teleBot) {
+      try {
+        const telegramUser = session.user as any;
+        const memberInfo = await teleBot.getChatMember(
+          Number(inputAsBigInt),
+          Number(telegramUser.id)
+        );
+
+        if (
+          ["creator", "administrator", "member", "restricted"].includes(
+            memberInfo.status
+          )
+        ) {
+          // 1. Ensure user exists in database
+          await db.user.upsert({
+            where: { id: BigInt(telegramUser.id) },
+            update: {
+              firstName:
+                telegramUser.first_name || telegramUser.firstName || "",
+              lastName: telegramUser.last_name || telegramUser.lastName || null,
+              username: telegramUser.username || null,
+            },
+            create: {
+              id: BigInt(telegramUser.id),
+              firstName:
+                telegramUser.first_name || telegramUser.firstName || "",
+              lastName: telegramUser.last_name || telegramUser.lastName || null,
+              username: telegramUser.username || null,
+              phoneNumber: null,
+            },
+          });
+
+          // 2. Connect user to the chat
+          await db.chat.update({
+            where: { id: inputAsBigInt },
+            data: {
+              members: { connect: { id: BigInt(telegramUser.id) } },
+            },
+          });
+
+          return; // Successfully lazy-loaded membership!
+        }
+      } catch (err) {
+        // Failed to verify via Telegram API, fall through to FORBIDDEN
+        console.error(
+          `Failed to lazy verify membership for ${session.user.id} in chat ${inputAsBigInt}:`,
+          err
+        );
+      }
+    }
+
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You are not a member of this chat",
