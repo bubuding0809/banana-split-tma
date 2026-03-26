@@ -111,30 +111,6 @@ export default protectedProcedure
           message: "You can only add yourself to a chat",
         });
       }
-
-      // Verify the user is actually a member of the Telegram chat
-      // Skip this check for private chats (where chatId == userId)
-      if (Number(input.chatId) !== Number(input.userId)) {
-        try {
-          const chatMember = await ctx.teleBot.getChatMember(
-            Number(input.chatId),
-            Number(input.userId)
-          );
-
-          if (chatMember.status === "left" || chatMember.status === "kicked") {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "User must be an active member of the Telegram group.",
-            });
-          }
-        } catch (error) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message:
-              "Could not verify user's membership in this Telegram chat. The bot might need to be an administrator.",
-          });
-        }
-      }
     }
 
     return addMemberHandler(input, ctx.db);
