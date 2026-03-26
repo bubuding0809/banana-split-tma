@@ -86,6 +86,8 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    await assertChatAccess(ctx.session, ctx.db, input.chatId);
+    // We intentionally bypass assertChatAccess here because a user needs to be
+    // able to add themselves to a chat even if they are not yet a member
+    // (e.g. when opening the TMA from an inline button in a group).
     return addMemberHandler(input, ctx.db);
   });
