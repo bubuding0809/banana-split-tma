@@ -11,11 +11,6 @@ export default async function (req: any, res: any) {
       .json({ status: "ok", message: "Bot webhook is active" });
   }
 
-  // Initialize bot to fetch bot info (required for ctx.me in webhooks)
-  if (!bot.isInited()) {
-    await bot.init();
-  }
-
   // Telegram webhook payload is parsed by Vercel automatically into req.body
   // Wait for the handler to process the update
   await handler(req, res);
