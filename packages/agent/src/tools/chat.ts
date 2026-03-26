@@ -2,18 +2,19 @@ import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
+import { withToolErrorHandling } from "../utils.js";
 
 export const getChatDetailsTool = createTool({
   id: "getChatDetailsTool",
   description:
     "Get details for the current chat, including members and their balances.",
   inputSchema: z.object({}),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     // Note: Use getChat as getChatDetails was requested but the router exposes getChat
     const result = await caller.chat.getChat({ chatId });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const listChatsTool = createTool({
@@ -25,13 +26,13 @@ export const listChatsTool = createTool({
       .optional()
       .describe("Chat types to exclude"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     const result = await caller.chat.getAllChats({
       excludeTypes: data.excludeTypes,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const getDebtsTool = createTool({
@@ -45,14 +46,14 @@ export const getDebtsTool = createTool({
         "Array of 3-letter currency codes to filter by (e.g. ['USD', 'SGD'])"
       ),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.chat.getBulkChatDebts({
       chatId,
       currencies: data.currencies,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const getSimplifiedDebtsTool = createTool({
@@ -64,14 +65,14 @@ export const getSimplifiedDebtsTool = createTool({
       .string()
       .describe("3-letter currency code (e.g. USD, SGD) — required"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.chat.getSimplifiedDebts({
       chatId,
       currency: data.currency,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const updateChatSettingsTool = createTool({
@@ -87,7 +88,7 @@ export const updateChatSettingsTool = createTool({
       .optional()
       .describe("Update default 3-letter currency code (e.g. USD)"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.chat.updateChat({
       chatId,
@@ -95,5 +96,5 @@ export const updateChatSettingsTool = createTool({
       baseCurrency: data.baseCurrency,
     });
     return serializeToolResult(result);
-  },
+  }),
 });

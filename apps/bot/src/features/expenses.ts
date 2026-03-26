@@ -351,7 +351,6 @@ expensesFeature.command("balance", async (ctx, next) => {
 });
 
 import { parseExpense } from "../utils/parseExpense.js";
-import { handleAgentMessage } from "./agent.js";
 
 expensesFeature.on("message:text", async (ctx, next) => {
   if (ctx.chat.type !== "private" || ctx.message.text.startsWith("/")) {
@@ -362,7 +361,10 @@ expensesFeature.on("message:text", async (ctx, next) => {
   const parsed = parseExpense(text);
 
   if (!parsed) {
-    return handleAgentMessage(ctx);
+    await ctx.reply(BotMessages.ERROR_INVALID_EXPENSE_FORMAT, {
+      parse_mode: "MarkdownV2",
+    });
+    return;
   }
 
   await ctx.replyWithChatAction("typing");

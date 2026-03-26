@@ -2,6 +2,7 @@ import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
+import { withToolErrorHandling } from "../utils.js";
 
 export const getNetShareTool = createTool({
   id: "getNetShare",
@@ -17,7 +18,7 @@ export const getNetShareTool = createTool({
       .max(3)
       .describe("The 3-letter currency code (e.g., USD, SGD)."),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, telegramUserId, chatId } = createTrpcCaller(context);
 
     const balance = await caller.expenseShare.getNetShare({
@@ -28,7 +29,7 @@ export const getNetShareTool = createTool({
     });
 
     return serializeToolResult({ balance });
-  },
+  }),
 });
 
 export const getTotalsTool = createTool({
@@ -36,7 +37,7 @@ export const getTotalsTool = createTool({
   description:
     "Get the total amount borrowed and lent by the current user across all expenses in the chat.",
   inputSchema: z.object({}),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, telegramUserId, chatId } = createTrpcCaller(context);
 
     const [borrowed, lent] = await Promise.all([
@@ -45,7 +46,7 @@ export const getTotalsTool = createTool({
     ]);
 
     return serializeToolResult({ borrowed, lent });
-  },
+  }),
 });
 
 export const listSettlementsTool = createTool({
@@ -57,14 +58,14 @@ export const listSettlementsTool = createTool({
       .optional()
       .describe("Filter by 3-letter currency code"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.settlement.getSettlementByChat({
       chatId,
       currency: data.currency,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const createSettlementTool = createTool({
@@ -83,7 +84,7 @@ export const createSettlementTool = createTool({
       .optional()
       .describe("Optional note about the settlement"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
     const chat = await caller.chat.getChat({ chatId });
@@ -107,7 +108,7 @@ export const createSettlementTool = createTool({
       threadId: chat.threadId ?? undefined,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const deleteSettlementTool = createTool({
@@ -116,13 +117,13 @@ export const deleteSettlementTool = createTool({
   inputSchema: z.object({
     settlementId: z.string().describe("The settlement UUID"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     const result = await caller.settlement.deleteSettlement({
       settlementId: data.settlementId,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const settleAllDebtsTool = createTool({
@@ -140,7 +141,7 @@ export const settleAllDebtsTool = createTool({
       )
       .describe("List of balances to settle"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
     const chat = await caller.chat.getChat({ chatId });
@@ -161,5 +162,5 @@ export const settleAllDebtsTool = createTool({
       threadId: chat.threadId ?? undefined,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
