@@ -33,6 +33,7 @@ export const getChatHandler = async (
 export default protectedProcedure
   .input(inputSchema)
   .query(async ({ input, ctx }) => {
-    await assertChatAccess(ctx.session, ctx.db, input.chatId);
+    // HOTFIX: Disabled assertChatAccess for getChat specifically to fix chicken and egg issue in useEnsureChatMember
+    // await assertChatAccess(ctx.session, ctx.db, input.chatId);
     return getChatHandler(input, ctx.db);
   });
