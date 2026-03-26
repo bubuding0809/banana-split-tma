@@ -82,7 +82,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   let authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram" =
     "superadmin";
   let chatId: bigint | null = null;
-  let parsedInitData: any | null = null;
 
   // Check for API key authentication
   if (apiKey) {
@@ -109,8 +108,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
           if (botToken) {
             try {
               validateInitData(parts[1], botToken);
-              parsedInitData = parseInitData(parts[1]);
-              user = parsedInitData.user ?? null;
+              user = parseInitData(parts[1]).user ?? null;
             } catch {
               // Ignore - API key is the primary auth method
             }
@@ -199,8 +197,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       }
       validateInitData(initData, botToken);
 
-      parsedInitData = parseInitData(initData);
-      user = parsedInitData.user ?? null;
+      user = parseInitData(initData).user ?? null;
       authType = "telegram";
     } catch (error) {
       throw new TRPCError({
@@ -230,7 +227,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         user,
         authType,
         chatId,
-        parsedInitData,
       },
     },
   });

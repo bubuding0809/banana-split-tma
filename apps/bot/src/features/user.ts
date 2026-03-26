@@ -58,8 +58,8 @@ userFeature.command("start", async (ctx, next) => {
     try {
       await ctx.trpc.user.getUser({ userId: ctx.from.id });
       exists = true;
-    } catch (err: unknown) {
-      if ((err as any).code === "NOT_FOUND") {
+    } catch (err) {
+      if (err instanceof TRPCError && err.code === "NOT_FOUND") {
         exists = false;
       } else {
         throw err;
@@ -107,20 +107,6 @@ userFeature.command("start", async (ctx, next) => {
       userName: ctx.from.username || null,
       phoneNumber: null,
     });
-
-    const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
-
-    // If the /start command was sent in a group, auto-add the user as a member
-    if (isGroup) {
-      try {
-        await ctx.trpc.chat.addMember({
-          chatId: ctx.chat.id,
-          userId: ctx.from.id,
-        });
-      } catch {
-        // Silent failure if chat doesn't exist yet or already a member
-      }
-    }
 
     if (startArg === "register") {
       await ctx.api.editMessageText(
