@@ -10,6 +10,34 @@ groupFeature.command("start", async (ctx, next) => {
   if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
+  // Auto-register the user if they don't exist yet, then add them to the group
+  if (ctx.from) {
+    try {
+      try {
+        await ctx.trpc.user.getUser({ userId: ctx.from.id });
+      } catch (err: unknown) {
+        if ((err as any)?.code === "NOT_FOUND") {
+          await ctx.trpc.user.createUser({
+            userId: ctx.from.id,
+            firstName: ctx.from.first_name,
+            lastName: ctx.from.last_name || null,
+            userName: ctx.from.username || null,
+            phoneNumber: null,
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      await ctx.trpc.chat.addMember({
+        chatId: ctx.chat.id,
+        userId: ctx.from.id,
+      });
+    } catch {
+      // Silent failure if user is already a member or other error
+    }
+  }
+
   if (messageThreadId) {
     try {
       await ctx.trpc.chat.updateChat({
