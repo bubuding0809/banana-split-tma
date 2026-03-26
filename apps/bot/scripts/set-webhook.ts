@@ -1,16 +1,24 @@
 import { bot } from "../src/bot.js";
-import { env } from "../src/env.js";
 
 async function setWebhook() {
-  if (!env.VERCEL_URL) {
-    throw new Error("VERCEL_URL is not set");
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+    console.log("Skipping webhook setup for non-production environment.");
+    return;
   }
 
-  const url = `https://${env.VERCEL_URL}/api/webhook`;
+  // Fallback gracefully instead of failing the build
+  if (!process.env.VERCEL_URL) {
+    console.warn("⚠️ VERCEL_URL is not set. Skipping webhook setup.");
+    return;
+  }
+
+  const url = `https://${process.env.VERCEL_URL}/api/webhook`;
   console.log(`Setting webhook to: ${url}`);
 
   await bot.api.setWebhook(url);
   console.log("Webhook set successfully!");
 }
 
-setWebhook().catch(console.error);
+setWebhook().catch((error) => {
+  console.error("Failed to set webhook:", error);
+});

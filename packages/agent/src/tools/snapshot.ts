@@ -2,16 +2,17 @@ import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
+import { withToolErrorHandling } from "../utils.js";
 
 export const listSnapshotsTool = createTool({
   id: "listSnapshotsTool",
   description: "List all expense snapshots in a chat.",
   inputSchema: z.object({}),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.snapshot.getByChat({ chatId });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const getSnapshotTool = createTool({
@@ -20,13 +21,13 @@ export const getSnapshotTool = createTool({
   inputSchema: z.object({
     snapshotId: z.string().describe("The UUID of the snapshot to retrieve"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     const result = await caller.snapshot.getDetails({
       snapshotId: data.snapshotId,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const createSnapshotTool = createTool({
@@ -39,7 +40,7 @@ export const createSnapshotTool = createTool({
       .array(z.string())
       .describe("List of expense UUIDs to include"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId, telegramUserId } = createTrpcCaller(context);
     const result = await caller.snapshot.create({
       chatId,
@@ -48,7 +49,7 @@ export const createSnapshotTool = createTool({
       expenseIds: data.expenseIds,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const updateSnapshotTool = createTool({
@@ -61,7 +62,7 @@ export const updateSnapshotTool = createTool({
       .array(z.string())
       .describe("List of expense UUIDs to include"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     const result = await caller.snapshot.update({
       snapshotId: data.snapshotId,
@@ -70,7 +71,7 @@ export const updateSnapshotTool = createTool({
       expenseIds: data.expenseIds,
     });
     return serializeToolResult(result);
-  },
+  }),
 });
 
 export const deleteSnapshotTool = createTool({
@@ -79,11 +80,11 @@ export const deleteSnapshotTool = createTool({
   inputSchema: z.object({
     snapshotId: z.string().describe("The snapshot UUID"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     const result = await caller.snapshot.delete({
       snapshotId: data.snapshotId,
     });
     return serializeToolResult(result);
-  },
+  }),
 });

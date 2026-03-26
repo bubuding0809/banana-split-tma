@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createTool } from "@mastra/core/tools";
 import { createTrpcCaller } from "../trpc.js";
 import { SplitMode } from "@dko/database";
+import { withToolErrorHandling } from "../utils.js";
 
 export const listExpensesTool = createTool({
   id: "list-expenses",
@@ -13,12 +14,12 @@ export const listExpensesTool = createTool({
       .optional()
       .describe("Filter by 3-letter currency code (e.g. USD)"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     return serializeToolResult(
       await caller.expense.getExpenseByChat({ chatId, currency: data.currency })
     );
-  },
+  }),
 });
 
 export const getExpenseDetailsTool = createTool({
@@ -27,12 +28,12 @@ export const getExpenseDetailsTool = createTool({
   inputSchema: z.object({
     expenseId: z.string().describe("The ID of the expense to retrieve"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     return serializeToolResult(
       await caller.expense.getExpenseDetails({ expenseId: data.expenseId })
     );
-  },
+  }),
 });
 
 export const createExpenseTool = createTool({
@@ -83,7 +84,7 @@ export const createExpenseTool = createTool({
       .optional()
       .describe("Date of the expense (defaults to now)"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId, telegramUserId } = createTrpcCaller(context);
 
     return serializeToolResult(
@@ -94,7 +95,7 @@ export const createExpenseTool = createTool({
         sendNotification: true,
       })
     );
-  },
+  }),
 });
 
 export const updateExpenseTool = createTool({
@@ -130,7 +131,7 @@ export const updateExpenseTool = createTool({
       .describe("Telegram User ID of the person who paid the expense"),
     date: z.coerce.date().optional().describe("Date of the expense"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId, telegramUserId } = createTrpcCaller(context);
 
     return serializeToolResult(
@@ -141,7 +142,7 @@ export const updateExpenseTool = createTool({
         sendNotification: true,
       })
     );
-  },
+  }),
 });
 
 export const bulkImportExpensesTool = createTool({
@@ -180,7 +181,7 @@ export const bulkImportExpensesTool = createTool({
       .min(1)
       .describe("Array of expenses to import"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
     return serializeToolResult(
       await caller.expense.createExpensesBulk({
@@ -188,7 +189,7 @@ export const bulkImportExpensesTool = createTool({
         expenses: data.expenses,
       })
     );
-  },
+  }),
 });
 
 export const deleteExpenseTool = createTool({
@@ -197,10 +198,10 @@ export const deleteExpenseTool = createTool({
   inputSchema: z.object({
     expenseId: z.string().describe("The ID of the expense to delete"),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller } = createTrpcCaller(context);
     return serializeToolResult(
       await caller.expense.deleteExpense({ expenseId: data.expenseId })
     );
-  },
+  }),
 });

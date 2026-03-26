@@ -5,11 +5,13 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch scripts/dev.ts",
+    "build": "tsx scripts/set-webhook.ts && tsx scripts/set-commands.ts",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "start": "vercel dev",
     "deploy": "vercel",
-    "set-webhook": "tsx scripts/set-webhook.ts"
+    "set-webhook": "tsx scripts/set-webhook.ts",
+    "set-commands": "tsx scripts/set-commands.ts"
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
@@ -17,10 +19,15 @@
     "@repo/agent": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
     "@trpc/server": "^11.0.0",
+    "ai": "^5.0.30",
     "date-fns": "^4.1.0",
     "decimal.js": "^10.5.0",
     "dotenv": "^16.4.5",
-    "grammy": "^1.35.0",
+    "grammy": "^1.41.1",
+    "marked": "^17.0.5",
+    "marked-terminal": "^7.3.0",
+    "snarkdown": "^2.0.0",
+    "telegramify-markdown": "^1.3.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

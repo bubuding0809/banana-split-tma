@@ -148,15 +148,6 @@ groupFeature.command("summary", async (ctx) => {
   }
 });
 
-groupFeature.command(["ask", "do"], async (ctx, next) => {
-  if (ctx.chat.type === "private") return next();
-
-  const text = ctx.match;
-  if (!text || text.trim() === "") return;
-
-  await handleAgentMessage(ctx, text.trim());
-});
-
 groupFeature.on("message", async (ctx, next) => {
   if (ctx.chat.type === "private") return next();
 

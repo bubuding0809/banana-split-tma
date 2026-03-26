@@ -2,13 +2,14 @@ import { serializeToolResult } from "../serialize.js";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createTrpcCaller } from "../trpc.js";
+import { withToolErrorHandling } from "../utils.js";
 
 export const sendGroupReminderTool = createTool({
   id: "sendGroupReminder",
   description:
     "Send a reminder message to the entire Telegram group about all outstanding debts.",
   inputSchema: z.object({}),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
     return serializeToolResult(
@@ -16,7 +17,7 @@ export const sendGroupReminderTool = createTool({
         chatId: String(chatId),
       })
     );
-  },
+  }),
 });
 
 export const sendDebtReminderTool = createTool({
@@ -50,7 +51,7 @@ export const sendDebtReminderTool = createTool({
         "Optional Telegram thread/topic ID where the reminder should be sent."
       ),
   }),
-  execute: async (data, context) => {
+  execute: withToolErrorHandling(async (data, context) => {
     const { caller, chatId } = createTrpcCaller(context);
 
     return serializeToolResult(
@@ -59,5 +60,5 @@ export const sendDebtReminderTool = createTool({
         ...data,
       })
     );
-  },
+  }),
 });
