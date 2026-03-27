@@ -1,5 +1,3 @@
-import { bot } from "../src/bot.js";
-
 async function setCommands() {
   // Prevent running in Vercel preview environments so we don't accidentally
   // update the global production bot commands while testing a PR.
@@ -15,6 +13,9 @@ async function setCommands() {
     console.warn("⚠️ TELEGRAM_BOT_TOKEN is not set. Skipping command setup.");
     return;
   }
+
+  // Dynamic import so env validation doesn't run during preview builds
+  const { bot } = await import("../src/bot.js");
 
   console.log("Setting bot commands...");
 

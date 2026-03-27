@@ -1,5 +1,3 @@
-import { bot } from "../src/bot.js";
-
 async function setWebhook() {
   if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
     console.log("Skipping webhook setup for non-production environment.");
@@ -11,6 +9,9 @@ async function setWebhook() {
     console.warn("⚠️ VERCEL_URL is not set. Skipping webhook setup.");
     return;
   }
+
+  // Dynamic import so env validation doesn't run during preview builds
+  const { bot } = await import("../src/bot.js");
 
   const url = `https://${process.env.VERCEL_URL}/api/webhook`;
   console.log(`Setting webhook to: ${url}`);
