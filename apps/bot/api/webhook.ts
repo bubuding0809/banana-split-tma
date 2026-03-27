@@ -1,7 +1,9 @@
-import { webhookCallback } from "grammy";
 import { bot } from "../src/bot.js";
+import { waitUntil } from "@vercel/functions";
 
-const handler = webhookCallback(bot, "next-js");
+// Vercel Serverless Functions will timeout and return 504 if they exceed this limit.
+// We set it to 60s (maximum for Hobby plan) to allow the LLM time to generate.
+export const maxDuration = 60;
 
 export default async function (req: any, res: any) {
   // Prevent crash when webhook URL is visited in browser (GET request)
@@ -11,7 +13,20 @@ export default async function (req: any, res: any) {
       .json({ status: "ok", message: "Bot webhook is active" });
   }
 
-  // Telegram webhook payload is parsed by Vercel automatically into req.body
-  // Wait for the handler to process the update
-  await handler(req, res);
+  if (req.method === "POST" && req.body) {
+    // 1. Process the Telegram update in the background
+    // `waitUntil` prevents Vercel from freezing the instance until the promise resolves,
+    // even after we send the 200 OK HTTP response below.
+    waitUntil(
+      bot.handleUpdate(req.body).catch((err) => {
+        console.error("Error handling update in background:", err);
+      })
+    );
+
+    // 2. Acknowledge Telegram webhook IMMEDIATELY
+    // This prevents Telegram from hitting a 10s timeout and infinitely retrying the webhook
+    return res.status(200).json({ status: "ok" });
+  }
+
+  return res.status(400).json({ error: "Invalid request" });
 }

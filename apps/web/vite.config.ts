@@ -2,6 +2,8 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
+import { ValidateEnv } from "@julr/vite-plugin-validate-env";
+import { z } from "zod";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,6 +14,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      ValidateEnv({
+        validator: "standard",
+        schema: {
+          VITE_TRPC_URL: z.string().url("Must be a valid URL"),
+          VITE_API_KEY: z.string().optional(),
+          VITE_ALLOWED_HOSTS: z.string().optional(),
+          VITE_TELEGRAM_BOT_DEEP_LINK: z
+            .string()
+            .url("Must be a valid Telegram deep link")
+            .startsWith("https://t.me/", "Must be a valid t.me link"),
+        },
+      }),
       tanstackRouter({
         target: "react",
         autoCodeSplitting: true,
