@@ -9,3 +9,6 @@ export SUPABASE_TOKEN="your_supabase_token_here"
 
 # Banana Split CLI/MCP
 export BANANA_SPLIT_API_KEY="your_banana_split_api_key_here"
+
+# Gemini Agent
+export GOOGLE_GENERATIVE_AI_API_KEY="your_google_api_key_here"

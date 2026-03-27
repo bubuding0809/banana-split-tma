@@ -4,6 +4,8 @@ import { BotMessages } from "./messages.js";
 import { env } from "../env.js";
 import { ChatUtils } from "../utils/chat.js";
 
+import { handleAgentMessage } from "./agent.js";
+
 export const groupFeature = new Composer<BotContext>();
 
 groupFeature.command("start", async (ctx, next) => {
@@ -144,4 +146,55 @@ groupFeature.command("summary", async (ctx) => {
       message_thread_id: messageThreadId,
     });
   }
+});
+
+groupFeature.on("message", async (ctx, next) => {
+  if (ctx.chat.type === "private") return next();
+
+  const botUsername = ctx.me.username;
+  if (!botUsername) return next();
+
+  // Handle both standard text messages and media captions
+  const text = ctx.message.text || ctx.message.caption || "";
+
+  // Telegram natively identifies mentions in entities
+  const entities = ctx.message.entities || ctx.message.caption_entities || [];
+
+  // Check if mentioned explicitly in entities
+  const hasMentionEntity = entities.some(
+    (entity) =>
+      entity.type === "mention" &&
+      text
+        .substring(entity.offset, entity.offset + entity.length)
+        .toLowerCase() === `@${botUsername.toLowerCase()}`
+  );
+
+  // Fallback regex matching just in case
+  const mentionRegex = new RegExp(`@${botUsername}\\b`, "i");
+  const isMentioned = hasMentionEntity || mentionRegex.test(text);
+
+  // Check if it's a direct reply to one of the bot's messages
+  const isReplyToBot = ctx.message.reply_to_message?.from?.id === ctx.me.id;
+
+  if (isMentioned || isReplyToBot) {
+    // Strip all mentions of the bot (case-insensitive, global) to get the actual command payload
+    const payload = text
+      .replace(new RegExp(`@${botUsername}\\b`, "gi"), "")
+      .trim();
+
+    // Provide a fallback message if the user just tagged the bot (e.g., with an image) or replied without text
+    let finalPayload = payload;
+    if (!finalPayload) {
+      if (ctx.message.photo || ctx.message.video || ctx.message.document) {
+        finalPayload = "I sent a media file/image.";
+      } else {
+        finalPayload = "Hello!"; // Default trigger to wake the bot up if they just send "@botname"
+      }
+    }
+
+    await handleAgentMessage(ctx, finalPayload);
+    return;
+  }
+
+  return next();
 });
