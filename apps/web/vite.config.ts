@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
         validator: "standard",
         schema: {
           VITE_TRPC_URL: z.string().url("Must be a valid URL"),
-          VITE_API_KEY: z.string().min(1, "API Key is required"),
+          VITE_API_KEY: z.string().optional(),
           VITE_ALLOWED_HOSTS: z.string().optional(),
           VITE_TELEGRAM_BOT_DEEP_LINK: z
             .string()
