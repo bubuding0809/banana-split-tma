@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           VITE_TELEGRAM_BOT_DEEP_LINK: z
             .string()
             .url("Must be a valid Telegram deep link")
-            .optional(),
+            .startsWith("https://t.me/", "Must be a valid t.me link"),
         },
       }),
       tanstackRouter({
