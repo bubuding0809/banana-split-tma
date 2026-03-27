@@ -182,7 +182,7 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
       }
     }
 
-    if (fullText !== lastUpdatedText) {
+    if (fullText) {
       const finalMsg = fullText.trim()
         ? renderTelegramHtml(fullText)
         : "I couldn't generate a response.";
