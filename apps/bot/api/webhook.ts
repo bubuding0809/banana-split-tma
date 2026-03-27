@@ -18,7 +18,12 @@ export default async function (req: any, res: any) {
     // `waitUntil` prevents Vercel from freezing the instance until the promise resolves,
     // even after we send the 200 OK HTTP response below.
     waitUntil(
-      bot.handleUpdate(req.body).catch((err) => {
+      (async () => {
+        if (!bot.isInited()) {
+          await bot.init();
+        }
+        await bot.handleUpdate(req.body);
+      })().catch((err) => {
         console.error("Error handling update in background:", err);
       })
     );
