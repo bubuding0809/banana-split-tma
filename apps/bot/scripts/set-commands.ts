@@ -52,10 +52,6 @@ async function setCommands() {
         description: "Get a summary of all unsettled group expenses",
       },
       {
-        command: "balance",
-        description: "Get current balances and settle debts",
-      },
-      {
         command: "set_topic",
         description: "Set the active topic/thread for the bot",
       },
