@@ -15,6 +15,7 @@ export const env = createEnv({
     MINI_APP_DEEPLINK: z.string().min(1),
     AWS_GROUP_REMINDER_LAMBDA_ARN: z.string().optional(),
     AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: z.string().optional(),
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

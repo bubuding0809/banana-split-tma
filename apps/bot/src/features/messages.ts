@@ -49,6 +49,14 @@ Say goodbye to awkward bill\\-splitting and hello to hassle\\-free group expense
 How to use me?
 {usage_guide}`,
 
+  ERROR_INVALID_EXPENSE_FORMAT: `❌ *I didn't quite get that*
+
+If you're trying to record an expense, please use this format:
+\`15 USD Lunch\`
+
+To talk to my AI agent or ask questions, use:
+\`/ask <your message>\``,
+
   START_MESSAGE_EXISTING: `Welcome back to Banana Splitz, {first_name}\\! 🌟 We're thrilled to see you again, here is how to use me\\.
 {usage_guide}`,
 

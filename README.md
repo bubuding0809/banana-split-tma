@@ -376,6 +376,21 @@ turbo run build --filter=[HEAD^1]
 
 ## Troubleshooting
 
+### Telegram Bot Group Mentions Not Working
+
+By default, Telegram bots operate under **Privacy Mode** when added to group chats. This strictly limits the messages Telegram's servers send to your backend.
+A non-admin bot in Privacy Mode will **only** receive:
+
+1. Messages starting with a slash command (e.g., `/ask`).
+2. Messages that directly reply to the bot.
+
+If a user simply types a message containing an autocomplete mention (e.g., `@YourBotName list expenses`), **Telegram drops the message** and the bot never sees it.
+
+**How to fix it:**
+
+1. **(Recommended)** Promote the bot to **Administrator** in the group chat. Telegram automatically bypasses Privacy Mode for admins, allowing the Mastra Agent to intercept regular text mentions.
+2. **(Alternative)** Disable Privacy Mode globally via `@BotFather` by sending `/setprivacy`, selecting your bot, and choosing `Disable`. **Crucial:** For this to apply to an existing group, you must kick the bot from the group and re-add it.
+
 ### Database Connection Issues
 
 If you're having trouble connecting to the database:

@@ -361,8 +361,8 @@ expensesFeature.on("message:text", async (ctx, next) => {
   const parsed = parseExpense(text);
 
   if (!parsed) {
-    await ctx.reply(BotMessages.EXPENSE_PARSE_HINT, {
-      parse_mode: "Markdown",
+    await ctx.reply(BotMessages.ERROR_INVALID_EXPENSE_FORMAT, {
+      parse_mode: "MarkdownV2",
     });
     return;
   }
