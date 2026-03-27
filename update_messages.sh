@@ -1,0 +1,2 @@
+sed -i '' 's/ADD_MEMBER_START_MESSAGE: "Please select members to add to \*{group_title}\*\\.",/ADD_MEMBER_START_MESSAGE: "Please select members to add to \\*{group_title}\\*\\\\.",/g' apps/bot/src/features/messages.ts
+sed -i '' 's/ADD_MEMBER_END_MESSAGE: "Added {success_list} to the group\\.\\nFailed: {failed_list}",/ADD_MEMBER_END_MESSAGE: "Added {success_list} to the group\\\\.\\\\nFailed: {failed_list}",/g' apps/bot/src/features/messages.ts
