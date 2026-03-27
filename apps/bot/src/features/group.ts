@@ -176,6 +176,9 @@ groupFeature.on("message", async (ctx, next) => {
   // Check if it's a direct reply to one of the bot's messages
   const isReplyToBot = ctx.message.reply_to_message?.from?.id === ctx.me.id;
 
+  // If the message explicitly starts with a slash, let other command handlers process it
+  if (text.startsWith("/")) return next();
+
   if (isMentioned || isReplyToBot) {
     // Strip all mentions of the bot (case-insensitive, global) to get the actual command payload
     const payload = text
