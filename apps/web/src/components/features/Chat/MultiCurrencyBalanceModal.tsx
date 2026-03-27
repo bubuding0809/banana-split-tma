@@ -161,7 +161,7 @@ const MultiCurrencyBalanceModal = ({
   });
 
   const isDebtor = balanceType === "debtor";
-  const title = isDebtor ? "Send Reminders?" : `Settle Debts?`;
+  const title = "Settle Debts?";
   const body = isDebtor
     ? "You"
     : `${member.firstName} ${member.lastName ?? ""}`;
@@ -310,7 +310,7 @@ const MultiCurrencyBalanceModal = ({
       mainButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
-        text: isDebtor ? "Send Reminders ✅" : "Settle All ✅",
+        text: "Settle All ✅",
       });
     }
 
