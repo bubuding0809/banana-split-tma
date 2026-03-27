@@ -171,13 +171,37 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
 
         // Try the new Telegram native streaming API
         if (sanitizedText.trim().length > 0) {
-          await ctx.api
-            .sendMessageDraft(ctx.chat.id, draftId, sanitizedText, {
-              parse_mode: "HTML",
-            })
-            .catch((e) =>
-              console.error("Edit message error (draft throttle):", e)
-            );
+          if (ctx.chat.type === "private") {
+            // Native draft streaming is only supported in private chats
+            await ctx.api
+              .sendMessageDraft(ctx.chat.id, draftId, sanitizedText, {
+                parse_mode: "HTML",
+              })
+              .catch((e) =>
+                console.error("Edit message error (draft throttle):", e)
+              );
+          } else {
+            // Use standard message editing for group chats
+            if (!replyMsg) {
+              replyMsg = await ctx
+                .reply(sanitizedText, { parse_mode: "HTML" })
+                .catch((e) => {
+                  console.error("Send initial group message error:", e);
+                  return null;
+                });
+            } else {
+              await ctx.api
+                .editMessageText(
+                  ctx.chat.id,
+                  replyMsg.message_id,
+                  sanitizedText,
+                  {
+                    parse_mode: "HTML",
+                  }
+                )
+                .catch((e) => console.error("Edit group message error:", e));
+            }
+          }
         }
       }
     }
@@ -189,10 +213,17 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
 
       // Check if message is too long, we need to chunk it
       if (finalMsg.length > 4000) {
-        // Clear the draft manually since we are breaking it up into multiple standard messages
-        await ctx.api
-          .sendMessageDraft(ctx.chat.id, draftId, "")
-          .catch(() => {});
+        if (ctx.chat.type === "private") {
+          // Clear the draft manually since we are breaking it up into multiple standard messages
+          await ctx.api
+            .sendMessageDraft(ctx.chat.id, draftId, "")
+            .catch(() => {});
+        } else if (replyMsg) {
+          // Delete the streaming message so we can resend it cleanly in chunks
+          await ctx.api
+            .deleteMessage(ctx.chat.id, replyMsg.message_id)
+            .catch(() => {});
+        }
 
         // Intelligent chunking that respects paragraph and line breaks
         const chunks = splitTelegramHtmlChunks(finalMsg, 4000);
@@ -204,15 +235,37 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
           }
         }
       } else {
-        // Clear the draft manually before sending the final message
-        await ctx.api
-          .sendMessageDraft(ctx.chat.id, draftId, "")
-          .catch(() => {});
+        if (ctx.chat.type === "private") {
+          // Clear the draft manually before sending the final message
+          await ctx.api
+            .sendMessageDraft(ctx.chat.id, draftId, "")
+            .catch(() => {});
 
-        // Send the final completed message
-        await ctx
-          .reply(finalMsg, { parse_mode: "HTML" })
-          .catch((e) => console.error("Edit message error (final reply):", e));
+          // Send the final completed message
+          await ctx
+            .reply(finalMsg, { parse_mode: "HTML" })
+            .catch((e) =>
+              console.error("Edit message error (final reply):", e)
+            );
+        } else {
+          // Edit the group message to the final state
+          if (replyMsg) {
+            await ctx.api
+              .editMessageText(ctx.chat.id, replyMsg.message_id, finalMsg, {
+                parse_mode: "HTML",
+              })
+              .catch((e) =>
+                console.error("Edit final group message error:", e)
+              );
+          } else {
+            // Fallback if no initial streaming message was sent
+            await ctx
+              .reply(finalMsg, { parse_mode: "HTML" })
+              .catch((e) =>
+                console.error("Send final group message error:", e)
+              );
+          }
+        }
       }
     }
   } catch (error) {
