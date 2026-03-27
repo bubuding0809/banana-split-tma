@@ -182,7 +182,7 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
       }
     }
 
-    if (fullText !== lastUpdatedText) {
+    if (fullText) {
       const finalMsg = fullText.trim()
         ? renderTelegramHtml(fullText)
         : "I couldn't generate a response.";
@@ -204,7 +204,12 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
           }
         }
       } else {
-        // Send the final completed message (this automatically clears the draft)
+        // Clear the draft manually before sending the final message
+        await ctx.api
+          .sendMessageDraft(ctx.chat.id, draftId, "")
+          .catch(() => {});
+
+        // Send the final completed message
         await ctx
           .reply(finalMsg, { parse_mode: "HTML" })
           .catch((e) => console.error("Edit message error (final reply):", e));
