@@ -120,6 +120,11 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
       requestContext,
       system: systemPrompt,
       maxSteps: 10, // Increased to 10 to give ample room for complex tool chains and retries
+      providerOptions: {
+        google: {
+          reasoningEffort: "low",
+        },
+      },
     });
 
     let lastUpdatedText = "";
