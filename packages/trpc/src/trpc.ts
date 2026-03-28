@@ -110,10 +110,27 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
           message: "Agent request missing user or chat context",
         });
       }
+
+      let parsedChatId: bigint;
+      let parsedUserId: number;
+
+      try {
+        parsedChatId = BigInt(agentChatId as string);
+        parsedUserId = Number(agentUserId);
+        if (isNaN(parsedUserId)) {
+          throw new Error("Invalid user ID format");
+        }
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid agent user or chat ID format",
+        });
+      }
+
       authType = "agent";
-      chatId = BigInt(agentChatId as string);
+      chatId = parsedChatId;
       user = {
-        id: Number(agentUserId),
+        id: parsedUserId,
         first_name: "Agent Impersonator",
       } as TelegramUser;
     } else {
