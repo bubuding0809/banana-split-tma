@@ -18,21 +18,17 @@ The enhancement involves three main components:
 Telegram's `startapp` parameter has a strict 64-character limit and only accepts `[a-zA-Z0-9_-]`. Our current Base64-encoded JSON approach (`{"chat_id":-1001234567890,"chat_type":"g"}`) is already ~95 characters when adding a UUID, which fails.
 
 We will introduce a new, compact, versioned string format:
-`[version]_[chatId]_[entityType]_[entityId]`
+`[version]-[chatType]-[chatIdBase36]-[entityType]-[entityIdBase64Url]`
 
-*   **`version`:** `1` (Allows future format changes without breaking old links).
-*   **`chatId`:** The Telegram chat ID. For supergroups, the `-100` prefix is removed to save 4 characters. The frontend/backend will automatically prepend `-100` if the chat ID is positive and the context implies a group, or we handle it via explicit type if needed. *Correction: To avoid ambiguity, we will include the full chat ID (e.g., `-1001234567890`) but remove the `-` sign and denote it with a type flag if necessary. Let's refine this:*
+*   **`version`:** `v1` (2 chars)
+*   **`chatType`:** `g` (group) or `p` (private) (1 char)
+*   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). (approx 8 chars)
+*   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
+*   **`entityIdBase64Url`:** The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
 
-**Final Protocol Format:**
-`[version]_[chatType]_[chatIdBase36]_[entityType]_[entityIdBase64Url]`
+*Note on Delimiters:* We use hyphens (`-`) as the delimiter instead of underscores (`_`) because Base64URL encoding can produce underscores. Using hyphens prevents delimiter collision when splitting the string during decoding.
 
-*   `version`: `v1` (2 chars)
-*   `chatType`: `g` (group) or `p` (private) (1 char)
-*   `chatIdBase36`: The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). (approx 8 chars)
-*   `entityType`: `s` (snapshot), `e` (expense), `p` (payment) (1 char)
-*   `entityIdBase64Url`: The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
-
-*Example:* `v1_g_1d4x9g2i_s_Ej5FZibEtOkVkJmFBdAAA`
+*Example:* `v1-g-1d4x9g2i-s-Ej5FZibEtOkVkJmFBdAAA`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
 
 ### 2. Backend Implementation (tRPC)
@@ -42,12 +38,12 @@ We will introduce a new, compact, versioned string format:
 *   **Output:** `{ success: boolean, messageId: number }`
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot. If the user does not have access, throw a `FORBIDDEN` TRPCError.
 *   **Action:**
-    1.  Fetches snapshot details including all expenses, shares, and members.
+    1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
     2.  Aggregates the total damage (net sum of shares) per user.
     3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
     4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper (which reads the bot username via `teleBot.getMe()`) and passes the `v1` payload to the `app` type parameter.
     5.  Constructs the Telegram MarkdownV2 message.
-    6.  Sends the message to the `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
+    6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
 
 **Message Format Example:**
 ```markdown
@@ -67,9 +63,12 @@ Total spent: **SGD 633.96** (47 expenses)
 ### 3. Frontend Implementation
 
 **Decoding (`useStartParams.ts`):**
-*   Update `parseRawParams` to first check if the string starts with `v1_`.
-*   If `v1_`: Split by `_`. Decode the Base36 chat ID, and re-apply the negative sign by multiplying by `-1` for group chats (indicated by the `g` chatType flag). Decode the unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
-*   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
+*   Update `parseRawParams` to first check if the string starts with `v1-`.
+*   If `v1-`: Split by `-`.
+    *   Decode the Base36 chat ID, and re-apply the negative sign by multiplying by `-1` for group chats (indicated by the `g` chatType flag).
+    *   Since Base64URL can contain hyphens (which we used as our delimiter), we must safely extract the UUID portion. The safest method is to split by `-`, take the first 4 segments (`version`, `chatType`, `chatId`, `entityType`), and join all remaining segments back together with hyphens to reconstruct the full `entityIdBase64Url`.
+    *   Decode the reconstructed unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
+*   If not `v1-`: Fallback to the legacy Base64-encoded JSON parsing.
 *   Return a normalized object matching a new `startParamSchema`:
     ```typescript
     {
@@ -92,11 +91,11 @@ Total spent: **SGD 633.96** (47 expenses)
 
 ## Error Handling
 *   **Deep Link Parsing:** If the `v1` string is malformed, it should gracefully fallback to standard chat initialization without the entity redirect.
-*   **Message Sending:** Handle Telegram API errors (e.g., bot lacks permissions) and display a user-friendly error toast via the frontend mutation `onError`.
+*   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions or an invalid chat), the backend MUST throw a `TRPCError` (e.g., `INTERNAL_SERVER_ERROR` or `FORBIDDEN`). The frontend will catch this via the mutation's `onError` callback and display a user-friendly error toast or popup.
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large numbers) and UUIDs to ensure no data loss or corruption.
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`).
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 *   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text.
 
