@@ -17,7 +17,7 @@
     "@ai-sdk/google": "^2.0.11",
     "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
-    "@mastra/core": "latest",
+    "@mastra/core": "^1.16.0",
     "@mastra/memory": "^1.10.0",
     "@mastra/pg": "^1.8.3",
     "mastra": "latest",
