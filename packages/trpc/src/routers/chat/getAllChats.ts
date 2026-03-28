@@ -25,7 +25,12 @@ export const getAllChatsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   session: {
-    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
+    authType:
+      | "superadmin"
+      | "chat-api-key"
+      | "user-api-key"
+      | "telegram"
+      | "agent";
     user?: { id: bigint | number; [key: string]: any } | null;
   }
 ) => {

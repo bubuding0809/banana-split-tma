@@ -77,14 +77,71 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const { headers } = req;
   const apiKey = headers["x-api-key"];
   const authorization = headers["authorization"];
+  const agentKey = headers["x-agent-key"];
+  const agentUserId = headers["x-agent-user-id"];
+  const agentChatId = headers["x-agent-chat-id"];
 
   let user: TelegramUser | null = null;
-  let authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram" =
-    "superadmin";
+  let authType:
+    | "superadmin"
+    | "chat-api-key"
+    | "user-api-key"
+    | "telegram"
+    | "agent" = "superadmin";
   let chatId: bigint | null = null;
 
+  // Check for internal agent authentication
+  if (agentKey && process.env.INTERNAL_AGENT_KEY) {
+    const validAgentKey = process.env.INTERNAL_AGENT_KEY;
+    // Hash both to prevent timing attacks and length mismatch crashes
+    const expectedHash = crypto
+      .createHash("sha256")
+      .update(validAgentKey)
+      .digest();
+    const providedHash = crypto
+      .createHash("sha256")
+      .update(agentKey as string)
+      .digest();
+
+    if (crypto.timingSafeEqual(expectedHash, providedHash)) {
+      if (!agentUserId || !agentChatId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Agent request missing user or chat context",
+        });
+      }
+
+      let parsedChatId: bigint;
+      let parsedUserId: number;
+
+      try {
+        parsedChatId = BigInt(agentChatId as string);
+        parsedUserId = Number(agentUserId);
+        if (isNaN(parsedUserId)) {
+          throw new Error("Invalid user ID format");
+        }
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid agent user or chat ID format",
+        });
+      }
+
+      authType = "agent";
+      chatId = parsedChatId;
+      user = {
+        id: parsedUserId,
+        first_name: "Agent Impersonator",
+      } as TelegramUser;
+    } else {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid agent key",
+      });
+    }
+  }
   // Check for API key authentication
-  if (apiKey) {
+  else if (apiKey) {
     const validApiKey = process.env.API_KEY;
 
     // Path 1: Superadmin key (existing env-based API key)

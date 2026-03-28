@@ -4,6 +4,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
 import { validateCurrency } from "../../utils/currencyApi.js";
+import { assertUsersInChat } from "../../utils/chatValidation.js";
 import {
   createExpenseHandler,
   outputSchema as expenseOutputSchema,
@@ -80,6 +81,15 @@ export const createExpensesBulkHandler = async (
   db: Db,
   teleBot: Telegram
 ) => {
+  const allUserIds = new Set<bigint>();
+  for (const expense of input.expenses) {
+    allUserIds.add(expense.payerId);
+    if (expense.creatorId) allUserIds.add(expense.creatorId);
+    expense.participantIds.forEach((id) => allUserIds.add(id));
+    expense.customSplits?.forEach((split) => allUserIds.add(split.userId));
+  }
+  await assertUsersInChat(db, input.chatId, Array.from(allUserIds));
+
   // Fetch chat once — validates existence and provides baseCurrency for all expenses
   const chat = await db.chat.findUnique({
     where: { id: input.chatId },

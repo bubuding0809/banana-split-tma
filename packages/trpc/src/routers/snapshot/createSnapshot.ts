@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { Decimal } from "decimal.js";
+import { assertUsersInChat } from "../../utils/chatValidation.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -18,6 +19,8 @@ export const createSnapshotHandler = async (
   db: Db
 ) => {
   console.log("Start createSnapshotHandler");
+  await assertUsersInChat(db, input.chatId, [input.creatorId]);
+
   // First verify all expenses exist and belong to the chat
   const expenses = await db.expense.findMany({
     where: {

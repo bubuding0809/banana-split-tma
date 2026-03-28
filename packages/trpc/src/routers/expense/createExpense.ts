@@ -10,6 +10,7 @@ import {
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
+import { assertUsersInChat } from "../../utils/chatValidation.js";
 import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
 
@@ -265,6 +266,14 @@ export const createExpenseHandler = async (
   teleBot: Telegram
 ) => {
   try {
+    // Assert all users are members of the chat
+    await assertUsersInChat(db, input.chatId, [
+      input.creatorId,
+      input.payerId,
+      ...input.participantIds,
+      ...(input.customSplits?.map((s) => s.userId) || []),
+    ]);
+
     // Determine the currency to use
     let currency = input.currency;
     if (!currency) {

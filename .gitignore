@@ -44,3 +44,13 @@ yarn-error.log*
 .worktrees/
 
 .worktree/
+
+opencode.json
+
+# Vercel Environment files (Pulled from vercel env pull)
+.env.*.bot
+.env.*.lambda
+.env.*.web
+.env.prod.*
+.env.preview.*
+.env.development.*

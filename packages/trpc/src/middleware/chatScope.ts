@@ -1,8 +1,13 @@
 import { Db } from "../trpc.js";
 import { TRPCError } from "@trpc/server";
 
-interface SessionWithScope {
-  authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
+export interface SessionWithScope {
+  authType:
+    | "superadmin"
+    | "chat-api-key"
+    | "user-api-key"
+    | "telegram"
+    | "agent";
   chatId: bigint | null;
   user?: { id: bigint | number; [key: string]: any } | null;
 }

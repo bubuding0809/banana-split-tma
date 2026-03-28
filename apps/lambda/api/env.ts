@@ -16,6 +16,12 @@ export const env = createEnv({
     API_KEY: z
       .string()
       .min(1, "API_KEY is required for API key authentication"),
+    INTERNAL_AGENT_KEY: z
+      .string()
+      .min(
+        1,
+        "INTERNAL_AGENT_KEY is required for internal agent communication"
+      ),
   },
   runtimeEnv: process.env,
 });
