@@ -21,4 +21,13 @@ describe("Base62 Utils", () => {
     const encoded = encodeBase62(largeNum);
     expect(decodeBase62(encoded)).toBe(largeNum);
   });
+
+  it("should throw an error when encoding a negative number", () => {
+    expect(() => encodeBase62(-1n)).toThrow("Cannot encode negative numbers");
+  });
+
+  it("should throw an error when decoding an invalid character", () => {
+    expect(() => decodeBase62("12-34")).toThrow("Invalid base62 character: -");
+    expect(() => decodeBase62("!")).toThrow("Invalid base62 character: !");
+  });
 });
