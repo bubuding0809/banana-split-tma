@@ -10,6 +10,7 @@ import {
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
+import { assertUsersInChat } from "../../utils/chatValidation.js";
 import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
 import {
   editExpenseMessageHandler,
@@ -270,6 +271,13 @@ export const updateExpenseHandler = async (
   teleBot: Telegram
 ) => {
   try {
+    // Assert all users are members of the chat
+    await assertUsersInChat(db, input.chatId, [
+      input.payerId,
+      ...input.participantIds,
+      ...(input.customSplits?.map((s) => s.userId) || []),
+    ]);
+
     // First, verify that the expense exists and user has permission to edit it
     const existingExpense = await db.expense.findUnique({
       where: { id: input.expenseId },

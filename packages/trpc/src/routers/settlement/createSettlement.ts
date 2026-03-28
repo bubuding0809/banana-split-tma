@@ -8,6 +8,7 @@ import {
   FINANCIAL_THRESHOLDS,
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
+import { assertUsersInChat } from "../../utils/chatValidation.js";
 import { sendSettlementNotificationMessageHandler } from "../telegram/sendSettlementNotificationMessage.js";
 import { Telegram } from "telegraf";
 
@@ -86,43 +87,10 @@ export const createSettlementHandler = async (
     }
 
     // Verify both users exist in the specified chat
-    const chatMembers = await db.chat.findFirst({
-      where: {
-        id: input.chatId,
-      },
-      select: {
-        members: {
-          select: {
-            id: true,
-          },
-        },
-      },
-    });
-
-    if (!chatMembers) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Chat not found",
-      });
-    }
-
-    const memberIds = new Set(
-      chatMembers.members.map((member) => member.id.toString())
-    );
-
-    if (!memberIds.has(input.senderId.toString())) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Sender is not a member of this chat",
-      });
-    }
-
-    if (!memberIds.has(input.receiverId.toString())) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Receiver is not a member of this chat",
-      });
-    }
+    await assertUsersInChat(db, input.chatId, [
+      input.senderId,
+      input.receiverId,
+    ]);
 
     // Create the settlement
     const settlement = await db.settlement.create({
