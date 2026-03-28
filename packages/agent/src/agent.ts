@@ -3,7 +3,6 @@ import { google } from "@ai-sdk/google";
 import { memory } from "./memory.js";
 import {
   getChatDetailsTool,
-  listChatsTool,
   getDebtsTool,
   getSimplifiedDebtsTool,
   updateChatSettingsTool,
@@ -39,7 +38,6 @@ export const bananaAgent = new Agent({
   model: google(process.env.AGENT_MODEL || "gemini-3.1-flash-lite-preview"),
   tools: {
     getChatDetailsTool,
-    listChatsTool,
     getDebtsTool,
     getSimplifiedDebtsTool,
     updateChatSettingsTool,
