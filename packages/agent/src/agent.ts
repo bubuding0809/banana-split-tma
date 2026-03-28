@@ -36,7 +36,7 @@ export const bananaAgent = new Agent({
   instructions:
     "You are a helpful Telegram expense tracker bot. You help users manage their shared expenses, settle debts, and keep track of balances.",
   memory,
-  model: google("gemini-3.1-flash-image-preview"),
+  model: google("gemini-3.1-pro-preview"),
   tools: {
     getChatDetailsTool,
     listChatsTool,

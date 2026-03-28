@@ -114,7 +114,7 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
         thread: String(ctx.chat.id),
         resource: `telegram-user-${ctx.from.id}`,
         options: {
-          lastMessages: 15,
+          lastMessages: 50, // Keep a healthy sliding window that leverages the new gemini-3.1-pro-preview 2m context
         },
       },
       requestContext,
