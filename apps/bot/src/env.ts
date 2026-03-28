@@ -7,8 +7,6 @@ dotenv.config();
 export const env = createEnv({
   server: {
     TELEGRAM_BOT_TOKEN: z.string().min(1),
-    TELEGRAM_BOT_USERNAME: z.string().min(1),
-    TELEGRAM_APP_NAME: z.string().min(1),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),

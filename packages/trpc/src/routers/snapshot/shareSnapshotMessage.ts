@@ -23,9 +23,7 @@ export const shareSnapshotMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   teleBot: Telegram,
-  userId: bigint,
-  botUsername: string,
-  appName: string
+  userId: bigint
 ) => {
   // 1. Fetch snapshot details
   const snapshot = await db.expenseSnapshot.findUnique({
@@ -178,11 +176,8 @@ export const shareSnapshotMessageHandler = async (
     payload = "mock_payload";
   }
 
-  const deepLink = createDeepLinkedUrl(
-    `${botUsername}/${appName}`,
-    payload,
-    "app"
-  );
+  const botInfo = await teleBot.getMe();
+  const deepLink = createDeepLinkedUrl(botInfo.username, payload, "app");
   const keyboard = inlineKeyboard([
     { text: "View Snapshot 📊", url: deepLink },
   ]);
@@ -223,8 +218,6 @@ export default protectedProcedure
       input,
       ctx.db,
       ctx.teleBot,
-      BigInt(ctx.session.user.id),
-      ctx.botUsername,
-      ctx.appName
+      BigInt(ctx.session.user.id)
     );
   });

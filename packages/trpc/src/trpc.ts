@@ -27,19 +27,13 @@ import "telegraf/types"; // Required to ensure types are portable
  */
 const createTRPCContext = ({
   botToken,
-  botUsername,
-  appName,
   ...rest
 }: Record<string, unknown> & {
   botToken: string;
-  botUsername: string;
-  appName: string;
 }) => {
   return {
     db: prisma as typeof prisma,
     teleBot: new Telegram(botToken),
-    botUsername,
-    appName,
     request: rest.req,
     response: rest.res,
     info: rest.info,
@@ -55,8 +49,6 @@ export const withCreateTRPCContext = (
     createTRPCContext({
       ...expressContext,
       botToken: env.TELEGRAM_BOT_TOKEN || "",
-      botUsername: env.TELEGRAM_BOT_USERNAME || "",
-      appName: env.TELEGRAM_APP_NAME || "app",
     });
 };
 

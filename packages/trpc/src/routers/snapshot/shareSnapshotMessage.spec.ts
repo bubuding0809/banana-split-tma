@@ -9,13 +9,15 @@ const mockDb = {
     update: vi.fn(),
   },
 } as unknown as PrismaClient;
-const mockTeleBot = { sendMessage: vi.fn() };
+const mockTeleBot = {
+  sendMessage: vi.fn(),
+  getMe: vi.fn(),
+};
 
 describe("shareSnapshotMessage procedure", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.stubEnv("TELEGRAM_BOT_USERNAME", "testbot");
-    vi.stubEnv("TELEGRAM_APP_NAME", "testapp");
+    mockTeleBot.getMe.mockResolvedValue({ username: "testbot" });
   });
 
   it("should throw NOT_FOUND if snapshot does not exist", async () => {
@@ -26,9 +28,7 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n,
-        "testbot",
-        "testapp"
+        123n
       )
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
@@ -46,9 +46,7 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n,
-        "testbot",
-        "testapp"
+        123n
       )
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -70,9 +68,7 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n,
-        "testbot",
-        "testapp"
+        123n
       )
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
@@ -133,9 +129,7 @@ describe("shareSnapshotMessage procedure", () => {
       { snapshotId: "123e4567-e89b-12d3-a456-426614174000" },
       mockDb,
       mockTeleBot as any,
-      123n,
-      "testbot",
-      "testapp"
+      123n
     );
 
     expect(mockDb.expenseSnapshot.update).toHaveBeenCalled();
@@ -188,9 +182,7 @@ describe("shareSnapshotMessage procedure", () => {
       { snapshotId: "mock-id" },
       mockDb,
       mockTeleBot as any,
-      123n,
-      "testbot",
-      "testapp"
+      123n
     );
 
     const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];

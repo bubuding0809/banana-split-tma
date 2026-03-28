@@ -1,5 +1,5 @@
 import { Chat } from "grammy/types";
-import { encodeV1DeepLink } from "@dko/trpc/src/utils/deepLinkProtocol";
+import { encodeV1DeepLink } from "@dko/trpc";
 
 export const ChatUtils = {
   createChatContext(
