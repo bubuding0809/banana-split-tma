@@ -22,7 +22,7 @@ We will introduce a new, compact, versioned string format:
 
 *   **`version`:** `v1` (2 chars)
 *   **`chatType`:** `g` (group) or `p` (private) (1 char)
-*   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). (approx 8 chars)
+*   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 8 chars)
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
 *   **`entityIdBase64Url`:** The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
 
@@ -41,7 +41,7 @@ We will introduce a new, compact, versioned string format:
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
     2.  Aggregates the total damage (net sum of shares) per user.
     3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
-    4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME`) instead of calling `teleBot.getMe()`.
+    4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME`) instead of calling `teleBot.getMe()`. This env variable MUST be strictly validated by the backend's environment schema (e.g., Zod).
     5.  Constructs the Telegram MarkdownV2 message.
     6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
 
@@ -65,14 +65,14 @@ Total spent: **SGD 633.96** (47 expenses)
 **Decoding (`useStartParams.ts`):**
 *   Update `parseRawParams` to first check if the string starts with `v1_`.
 *   If `v1_`: Split by `_`.
-    *   Decode the Base36 chat ID, and re-apply the negative sign by multiplying by `-1` for group chats (indicated by the `g` chatType flag).
+    *   Decode the Base36 chat ID string into a `BigInt`, and re-apply the negative sign by multiplying by `-1n` for group chats (indicated by the `g` chatType flag).
     *   Since Base64URL can contain underscores (which we used as our delimiter), we must safely extract the UUID portion. The safest method is to split by `_`, take the first 4 segments (`version`, `chatType`, `chatId`, `entityType`), and join all remaining segments back together with underscores to reconstruct the full `entityIdBase64Url`.
     *   Decode the reconstructed unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
-*   Return a normalized object matching a new `startParamSchema`:
+*   Return a normalized object matching a new `startParamSchema`. The schema must type `chat_id` as a `number` temporarily if the rest of the app expects it, but should ideally parse to a safe representation or ensure bounds checking:
     ```typescript
     {
-      chat_id: number,
+      chat_id: number, // The app currently uses numbers for chat IDs in URLs, ensure we handle conversion carefully
       chat_type: string,
       entity_type?: 's' | 'e' | 'p',
       entity_id?: string
@@ -88,7 +88,7 @@ Total spent: **SGD 633.96** (47 expenses)
 *   Add a Share `IconButton` (lucide-react `Share` or `Send`) to the modal header.
 *   On click, prompt a Telegram SDK `popup` for confirmation ("Share this snapshot to the group chat?").
 *   On confirm, trigger the `shareSnapshotMessage` mutation.
-*   Show success haptic feedback and a small visual confirmation (or close the modal).
+*   On success, close the modal immediately and display a success toast/popup indicating the message was shared.
 
 ## Error Handling
 *   **Deep Link Parsing:** If the `v1` string is malformed, it should gracefully fallback to standard chat initialization without the entity redirect.
@@ -96,9 +96,10 @@ Total spent: **SGD 633.96** (47 expenses)
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`).
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`).
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 *   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text.
+*   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
 *   **Frontend Routing Tests:** Verify that initializing the application with a `v1` deep link correctly parses the parameters, performs the routing to the target chat, and triggers the `SnapshotDetailsModal` auto-open logic.
 
 ## Future Extensions
