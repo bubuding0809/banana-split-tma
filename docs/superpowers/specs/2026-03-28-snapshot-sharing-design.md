@@ -25,7 +25,7 @@ We will introduce a new, compact, versioned string format:
 *   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 8 chars)
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
 *   **`entityIdBase62`:** The 36-char UUID encoded to a Base62 string. (22 chars). *Note: Base62 only uses `[a-zA-Z0-9]`, completely eliminating any delimiter collision issues with `_` or `-`, meaning we can safely split the string by `_` during parsing without needing a "must be final segment" constraint.*
-*   **Base62 Implementation:** To avoid adding external dependencies, the monorepo should include a custom Base62 encoding/decoding utility function in the shared `utils` package.
+*   **Base62 Implementation:** To avoid adding external dependencies, the monorepo should include a custom Base62 encoding/decoding utility function in the shared `utils` package. The UUID string MUST be stripped of hyphens and parsed as a 128-bit hex string into a JavaScript `BigInt` (`BigInt('0x' + hexString)`) before performing the Base62 division to ensure lossless conversion.
 
 *Example:* `v1_g_1d4x9g2i_s_7N42dgm5tFLK9N8MT7fXbc`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
@@ -37,7 +37,7 @@ We will introduce a new, compact, versioned string format:
 *   **Output:** `{ success: boolean }` *(Note: Since this is a fire-and-forget message, we do not return the `messageId` to the frontend).*
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot by querying the local database (e.g., `ChatMember` table). If the user does not have access, throw a `FORBIDDEN` TRPCError.
 *   **Database Schema Changes:** Add a `lastSharedAt` column (type `DateTime?`) to the `ExpenseSnapshot` Prisma model to enforce serverless-friendly rate limiting.
-*   **Rate Limiting:** To prevent group chat spam, the backend MUST query the `lastSharedAt` column and reject requests if the snapshot was shared within the last 60 seconds.
+*   **Rate Limiting:** To prevent group chat spam, the backend MUST query the `lastSharedAt` column and reject requests if the snapshot was shared within the last 60 seconds by throwing a `TOO_MANY_REQUESTS` TRPCError.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
     2.  Aggregates the net balance (Total Paid - Total Share) per user. **CRITICAL:** This aggregation MUST use the `Decimal.js` utility functions from `@/utils/financial.ts` to prevent floating-point calculation errors.
@@ -97,11 +97,11 @@ Total spent: **SGD 633.96** (47 expenses)
 
 ## Error Handling
 *   **Deep Link Parsing:** If the `v1` string is malformed or the resulting `chat_id` fails the safe bounds check, it should gracefully fallback to standard chat initialization without the entity redirect.
-*   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions, rate limits, or an invalid chat), the backend MUST throw a `TRPCError` (e.g., `INTERNAL_SERVER_ERROR` or `FORBIDDEN`). The frontend will catch this via the mutation's `onError` callback and display a user-friendly error toast or popup.
+*   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions, an invalid chat, etc.), the backend MUST throw an `INTERNAL_SERVER_ERROR` or `FORBIDDEN` TRPCError. If the rate limit is hit, throw a `TOO_MANY_REQUESTS` TRPCError. The frontend will catch these via the mutation's `onError` callback and display a contextual, user-friendly error toast or popup.
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption.
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption. Include a test specifically verifying that a 128-bit hex string with leading zeros encodes and decodes properly.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 *   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content and static characters are properly escaped for MarkdownV2 formatting.
 *   **Integration Tests for Backend Rate Limiting:** Add a test verifying that calling `shareSnapshotMessage` twice within 60 seconds correctly rejects the second call to protect against chat spamming.
