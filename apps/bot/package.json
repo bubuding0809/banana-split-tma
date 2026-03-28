@@ -8,6 +8,7 @@
     "build": "tsx scripts/set-webhook.ts && tsx scripts/set-commands.ts",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
+    "test": "vitest run",
     "start": "vercel dev",
     "deploy": "vercel",
     "set-webhook": "tsx scripts/set-webhook.ts",

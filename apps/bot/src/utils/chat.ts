@@ -1,13 +1,15 @@
 import { Chat } from "grammy/types";
+import { encodeV1DeepLink } from "@dko/trpc/src/utils/deepLinkProtocol";
 
 export const ChatUtils = {
-  createChatContext(chatId: number, chatType: string): string {
-    const chatContext = {
-      chat_id: chatId,
-      chat_type: chatType === "private" ? "p" : "g",
-    };
-    const jsonStr = JSON.stringify(chatContext);
-    return Buffer.from(jsonStr, "utf-8").toString("base64");
+  createChatContext(
+    chatId: bigint | number,
+    type: "private" | "group" | "supergroup" | "channel"
+  ): string {
+    // Map bot chat types to the 1-character format used in our deep link protocol
+    const mappedType = type === "private" ? "p" : "g";
+    const bigIntChatId = typeof chatId === "bigint" ? chatId : BigInt(chatId);
+    return encodeV1DeepLink(bigIntChatId, mappedType);
   },
 
   createMiniAppUrl(
