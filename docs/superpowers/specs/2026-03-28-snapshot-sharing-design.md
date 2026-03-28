@@ -46,7 +46,7 @@ We will introduce a new, compact, versioned string format:
     3.  Filters out users who do not owe money (Net Balance >= 0). For the remaining users, their "Damage" is the absolute value of their negative Net Balance (how much they need to pay to settle their portion of the snapshot).
     4.  Sorts users by highest damage to lowest.
     5.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username AND the telegram app short name should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME` and `process.env.TELEGRAM_APP_NAME`) instead of calling `teleBot.getMe()`. These env variables MUST be strictly validated by the backend's environment schema (e.g., Zod).
-    6.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content AND static template brackets (totals, decimals, usernames, parentheses) are properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
+    6.  Constructs the Telegram MarkdownV2 message. **CRITICAL:** Only dynamic variables (usernames) and literal text characters should be passed through the `escapeMarkdown` utility. Markdown formatting syntax (like `**` for bold text) MUST NOT be escaped. Also, currency amounts MUST be formatted using the shared `formatCurrencyWithCode` utility before escaping, reading the base currency from the chat record.
     7.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
     8.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
 
@@ -94,7 +94,7 @@ Total spent: **SGD 633.96** (47 expenses)
 *   Add a Share `IconButton` (lucide-react `Share` or `Send`) to the modal header.
 *   Disable the button and show a spinner while the mutation is in progress to prevent accidental double-clicks from the user.
 *   On click, prompt a Telegram SDK `popup` for confirmation ("Share this snapshot to the group chat?").
-*   On confirm, trigger the `shareSnapshotMessage` mutation.
+*   On confirm, trigger the `shareSnapshotMessage` mutation. Include `hapticFeedback.impactOccurred('light')` to conform to UI guidelines.
 *   On success, close the modal immediately and display a success toast/popup indicating the message was shared.
 
 ## Error Handling
