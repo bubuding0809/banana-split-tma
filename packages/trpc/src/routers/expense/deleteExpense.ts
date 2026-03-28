@@ -20,7 +20,12 @@ export const deleteExpenseHandler = async (
   db: Db,
   teleBot: Telegram,
   session: {
-    authType: "superadmin" | "chat-api-key" | "user-api-key" | "telegram";
+    authType:
+      | "superadmin"
+      | "chat-api-key"
+      | "user-api-key"
+      | "telegram"
+      | "agent";
     chatId: bigint | null;
   }
 ) => {
