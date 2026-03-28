@@ -17,7 +17,12 @@ export async function assertUsersInChat(
 
   const chat = await db.chat.findUnique({
     where: { id: chatBigInt },
-    select: { members: { select: { id: true } } },
+    select: {
+      members: {
+        where: { id: { in: uniqueIds } },
+        select: { id: true },
+      },
+    },
   });
 
   if (!chat) {
