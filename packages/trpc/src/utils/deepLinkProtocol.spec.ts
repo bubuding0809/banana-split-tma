@@ -11,7 +11,7 @@ describe("Deep Link Protocol v1", () => {
     const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
 
     // Check format
-    expect(encoded).toMatch(/^v1_g_[a-zA-Z0-9]+_s_[a-zA-Z0-9]+$/);
+    expect(encoded).toMatch(/^v1_g_-?[a-zA-Z0-9]+_s_[a-zA-Z0-9]+$/);
 
     // Ensure it's under 64 characters
     expect(encoded.length).toBeLessThan(64);
@@ -30,6 +30,7 @@ describe("Deep Link Protocol v1", () => {
     const encoded = encodeV1DeepLink(-1n, "p", "s", uuidWithLeadingZeros);
     const decoded = decodeV1DeepLink(encoded);
     expect(decoded?.entity_id).toBe(uuidWithLeadingZeros);
+    expect(decoded?.chat_id).toBe("-1");
   });
 
   it("should return null for invalid v1 strings", () => {
