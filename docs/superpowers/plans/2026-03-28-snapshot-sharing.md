@@ -48,7 +48,7 @@ describe("Base62 Utils", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `turbo run test --filter=@dko/trpc`
+Run: `turbo run test --filter=@dko/trpc` (or equivalent test runner depending on the monorepo setup)
 Expected: FAIL with "encodeBase62 not defined"
 
 - [ ] **Step 3: Write minimal implementation**
@@ -686,6 +686,11 @@ describe("Frontend Deep Link Parser", () => {
       entity_id: "123e4567-e89b-12d3-a456-426614174000"
     });
   });
+
+  it("should fall back gracefully if bounds checking fails", () => {
+    // A test to ensure we delete the entity redirect if it falls out of bounds
+    // Note: since chat_id parses successfully above, we test the useStartParams hook behavior directly or mock it
+  });
 });
 ```
 
@@ -784,11 +789,6 @@ git commit -m "feat(web): update startParams hook to decode v1 deep link protoco
 ```tsx
 // apps/web/src/routes/_tma/chat.$chatId.spec.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
-import { render } from "@testing-library/react";
-
-// In a real application, you'd import the component or a simplified hook wrapper.
-// Here we write a test to explicitly verify the router mock and deep link logic.
 
 const mockNavigate = vi.fn();
 const mockSetItem = vi.fn();
@@ -889,7 +889,7 @@ describe("chat.$chatId Deep Link Routing", () => {
       
       // Navigate to snapshots page and pass the ID in search params to auto-open modal
       navigate({
-        to: "/_tma/chat/$chatId_/snapshots", // Fix route path with underscore
+        to: "/_tma/chat/$chatId_/snapshots", 
         params: { chatId: chatId.toString() },
         search: { snapshotId: startParams.entity_id },
         replace: true // Use replace to keep history clean
@@ -904,9 +904,12 @@ describe("chat.$chatId Deep Link Routing", () => {
 
 ```tsx
 // apps/web/src/components/features/Snapshot/SnapshotPage.tsx
+// Add import if missing: import { getRouteApi } from "@tanstack/react-router";
+// Ensure correct route api is used (e.g. /_tma/chat/$chatId_/snapshots)
+const routeApi = getRouteApi('/_tma/chat/$chatId_/snapshots'); // Adjust path as necessary for your actual router config
+
 // Inside SnapshotPage component:
-  // Add this hook to read search params
-  const search = Route.useSearch() as { snapshotId?: string }; // Adjust based on your actual route definition
+  const search = routeApi.useSearch();
   
   // State for the modal
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(search.snapshotId || null);
@@ -926,10 +929,6 @@ describe("chat.$chatId Deep Link Routing", () => {
       });
     }
   };
-
-  // Setup the TRPC query here or inside the modal, but if the modal handles it and returns a 404 error, 
-  // the modal component itself or an error boundary should call handleModalClose(false) and trigger a popup.
-  // For safety, we pass handleModalClose to the modal.
 
   // Render modal
   {selectedSnapshotId && (
@@ -983,10 +982,12 @@ git commit -m "feat(web): handle deep link routing and modal auto-opening for sn
 ```tsx
 // apps/web/src/components/features/Snapshot/SnapshotDetailsModal.tsx
 // Imports:
-import { Send } from "lucide-react"; // Or Share
-import { hapticFeedback, popup } from "@telegram-apps/sdk-react";
+import { Send } from "lucide-react"; 
+import { hapticFeedback, popup, useSignal, themeParams } from "@telegram-apps/sdk-react";
+import { IconButton, Spinner } from "@telegram-apps/telegram-ui";
 
 // Inside component:
+  const tButtonColor = useSignal(themeParams.buttonColor);
   const trpcUtils = trpc.useUtils();
   
   const shareSnapshotMutation = trpc.snapshot.shareMessage.useMutation({
