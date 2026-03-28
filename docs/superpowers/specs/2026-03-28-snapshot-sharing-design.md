@@ -21,7 +21,7 @@ We will introduce a new, compact, versioned string format:
 `[version]_[chatId]_[entityType]_[entityId]`
 
 *   **`version`:** `1` (Allows future format changes without breaking old links).
-*   **`chatId`:** The Telegram chat ID. For supergroups, the `-100` prefix is removed to save 4 characters. The frontend/backend will automatically prepend `-100` if the chat ID is positive and the context implies a group, or we handle it via explicit type if needed. *Correction: To avoid ambiguity, we will include the full chat ID (e.g., `-1001234567890`) but remove the `-` sign and denote it with a type flag if necessary. Actually, the simplest approach is `[version]_[chatType]_[chatId]_[entityType]_[entityId]`. Let's refine this:*
+*   **`chatId`:** The Telegram chat ID. For supergroups, the `-100` prefix is removed to save 4 characters. The frontend/backend will automatically prepend `-100` if the chat ID is positive and the context implies a group, or we handle it via explicit type if needed. *Correction: To avoid ambiguity, we will include the full chat ID (e.g., `-1001234567890`) but remove the `-` sign and denote it with a type flag if necessary. Let's refine this:*
 
 **Final Protocol Format:**
 `[version]_[chatType]_[chatIdBase36]_[entityType]_[entityIdBase64Url]`
@@ -30,7 +30,7 @@ We will introduce a new, compact, versioned string format:
 *   `chatType`: `g` (group) or `p` (private) (1 char)
 *   `chatIdBase36`: The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). (approx 8 chars)
 *   `entityType`: `s` (snapshot), `e` (expense), `p` (payment) (1 char)
-*   `entityIdBase64Url`: The 36-char UUID stripped of hyphens and encoded to Base64URL (22 chars).
+*   `entityIdBase64Url`: The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
 
 *Example:* `v1_g_1d4x9g2i_s_Ej5FZibEtOkVkJmFBdAAA`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
@@ -39,6 +39,7 @@ We will introduce a new, compact, versioned string format:
 
 **New Procedure:** `snapshotRouter.shareSnapshotMessage`
 *   **Input:** `snapshotId: string (UUID)`
+*   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot. If the user does not have access, throw a `FORBIDDEN` TRPCError.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members.
     2.  Aggregates the total damage (net sum of shares) per user.
@@ -57,11 +58,15 @@ Total spent: **SGD 633.96** (47 expenses)
 • @ruoqian: SGD 233.96
 ```
 
+**Edge Cases for Message Format:**
+*   **0 Expenses:** If the snapshot contains no expenses, the message will still display the total (0.00) and expense count (0), but the "Your Damage" section will be entirely omitted.
+*   **0 Damage for All Users:** If the net damage for all users calculates to exactly 0 (e.g., fully settled expenses included in the snapshot), the "Your Damage" section will also be omitted.
+
 ### 3. Frontend Implementation
 
 **Decoding (`useStartParams.ts`):**
 *   Update `parseRawParams` to first check if the string starts with `v1_`.
-*   If `v1_`: Split by `_`. Decode the Base36 chat ID (re-applying `-100` if it's a group `g`). Decode the Base64URL entity ID back to a standard UUID format.
+*   If `v1_`: Split by `_`. Decode the Base36 chat ID, and re-apply the negative sign by multiplying by `-1` for group chats (indicated by the `g` chatType flag). Decode the unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
 *   Return a normalized object matching a new `startParamSchema`:
     ```typescript
@@ -86,6 +91,11 @@ Total spent: **SGD 633.96** (47 expenses)
 ## Error Handling
 *   **Deep Link Parsing:** If the `v1` string is malformed, it should gracefully fallback to standard chat initialization without the entity redirect.
 *   **Message Sending:** Handle Telegram API errors (e.g., bot lacks permissions) and display a user-friendly error toast via the frontend mutation `onError`.
+
+## Testability
+This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large numbers) and UUIDs to ensure no data loss or corruption.
+*   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 
 ## Future Extensions
 *   The `v1` protocol trivially supports deep linking to specific expenses (`entity_type=e`) or settlements (`entity_type=p`) in future PRs simply by updating the frontend router to handle those entity types.
