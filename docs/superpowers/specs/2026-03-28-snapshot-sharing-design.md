@@ -25,6 +25,7 @@ We will introduce a new, compact, versioned string format:
 *   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 8 chars)
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
 *   **`entityIdBase62`:** The 36-char UUID encoded to a Base62 string. (22 chars). *Note: Base62 only uses `[a-zA-Z0-9]`, completely eliminating any delimiter collision issues with `_` or `-`, meaning we can safely split the string by `_` during parsing without needing a "must be final segment" constraint.*
+*   **Base62 Implementation:** To avoid adding external dependencies, the monorepo should include a custom Base62 encoding/decoding utility function in the shared `utils` package.
 
 *Example:* `v1_g_1d4x9g2i_s_7N42dgm5tFLK9N8MT7fXbc`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
@@ -33,9 +34,10 @@ We will introduce a new, compact, versioned string format:
 
 **New Procedure:** `snapshotRouter.shareSnapshotMessage`
 *   **Input:** `snapshotId: string (UUID)`
-*   **Output:** `{ success: boolean, messageId: number }`
+*   **Output:** `{ success: boolean }` *(Note: Since this is a fire-and-forget message, we do not return the `messageId` to the frontend).*
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot by querying the local database (e.g., `ChatMember` table). If the user does not have access, throw a `FORBIDDEN` TRPCError.
-*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism. Since the architecture uses serverless AWS Lambda, an in-memory cache is insufficient. The backend should record the share action by adding a `lastSharedAt` timestamp column to the `ExpenseSnapshot` database table and reject requests if the snapshot was shared within the last 60 seconds.
+*   **Database Schema Changes:** Add a `lastSharedAt` column (type `DateTime?`) to the `ExpenseSnapshot` Prisma model to enforce serverless-friendly rate limiting.
+*   **Rate Limiting:** To prevent group chat spam, the backend MUST query the `lastSharedAt` column and reject requests if the snapshot was shared within the last 60 seconds.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
     2.  Aggregates the net balance (Total Paid - Total Share) per user. **CRITICAL:** This aggregation MUST use the `Decimal.js` utility functions from `@/utils/financial.ts` to prevent floating-point calculation errors.
@@ -45,7 +47,6 @@ We will introduce a new, compact, versioned string format:
     6.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content AND static template brackets (totals, decimals, usernames, parentheses) are properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
     7.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
     8.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
-    9.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
 
 **Message Format Example:**
 ```markdown
