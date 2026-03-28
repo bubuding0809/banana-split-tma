@@ -18,17 +18,19 @@ The enhancement involves three main components:
 Telegram's `startapp` parameter has a strict 64-character limit and only accepts `[a-zA-Z0-9_-]`. Our current Base64-encoded JSON approach (`{"chat_id":-1001234567890,"chat_type":"g"}`) is already ~95 characters when adding a UUID, which fails.
 
 We will introduce a new, compact, versioned string format:
-`[version]_[chatType]_[chatIdBase36]_[entityType]_[entityIdBase62]`
+`[version]_[chatType]_[chatIdBase62]_[entityType]_[entityIdBase62]`
 
 *   **`version`:** `v1` (2 chars)
 *   **`chatType`:** `g` (group) or `p` (private) (1 char)
-*   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 8 chars)
+*   **`chatIdBase62`:** The absolute value of the chat ID encoded in Base62 (e.g., `1001234567890` -> `1E2R4w`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 7 chars)
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
 *   **`entityIdBase62`:** The 36-char UUID encoded to a Base62 string. (22 chars). *Note: Base62 only uses `[a-zA-Z0-9]`, completely eliminating any delimiter collision issues with `_` or `-`, meaning we can safely split the string by `_` during parsing without needing a "must be final segment" constraint.*
-*   **Base62 Implementation:** To avoid adding external dependencies, the monorepo should include a custom Base62 encoding/decoding utility function in the shared `utils` package. The UUID string MUST be stripped of hyphens and parsed as a 128-bit hex string into a JavaScript `BigInt` (`BigInt('0x' + hexString)`) before performing the Base62 division to ensure lossless conversion.
+*   **Base62 Implementation:** To avoid adding external dependencies and simplify logic, the monorepo should include a single custom Base62 encoding/decoding utility function in the shared `utils` package that operates on `BigInt`. 
+    *   For the Chat ID, simply pass the absolute `BigInt` value.
+    *   For the UUID string, it MUST be stripped of hyphens and parsed as a 128-bit hex string into a JavaScript `BigInt` (`BigInt('0x' + hexString)`) before performing the Base62 division. When decoding, the resulting hex string MUST be padded with leading zeros to exactly 32 characters before the standard UUID hyphens are re-inserted to prevent data loss.
 
-*Example:* `v1_g_1d4x9g2i_s_7N42dgm5tFLK9N8MT7fXbc`
-*Total Length:* ~38 characters. (Well within the 64-char limit).
+*Example:* `v1_g_1E2R4w_s_7N42dgm5tFLK9N8MT7fXbc`
+*Total Length:* ~37 characters. (Well within the 64-char limit).
 
 ### 2. Backend Implementation (tRPC)
 
@@ -69,8 +71,8 @@ Total spent: **SGD 633.96** (47 expenses)
 **Decoding (`useStartParams.ts`):**
 *   Update `parseRawParams` to first check if the string starts with `v1_`.
 *   If `v1_`: Split by `_`.
-    *   Decode the Base36 chat ID string into a `BigInt`, and re-apply the negative sign by multiplying by `-1n` for group chats (indicated by the `g` chatType flag).
-    *   Decode the Base62 entity ID back to a standard UUID format string.
+    *   Decode the Base62 chat ID string into a `BigInt`, and re-apply the negative sign by multiplying by `-1n` for group chats (indicated by the `g` chatType flag).
+    *   Decode the Base62 entity ID back to a 32-character hex string (padding with leading zeros if necessary) and format it as a standard UUID.
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
 *   Return a normalized object matching a new `startParamSchema`. To ensure future-proof compatibility with 64-bit Telegram IDs, the schema should represent the decoded BigInt as a string, and the frontend hooks should pass it as such. However, if the rest of the app strictly requires a number, a `Number.isSafeInteger()` bounds check MUST be applied before casting.
     ```typescript
@@ -101,7 +103,7 @@ Total spent: **SGD 633.96** (47 expenses)
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption. Include a test specifically verifying that a 128-bit hex string with leading zeros encodes and decodes properly.
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption. Include a test specifically verifying that a 128-bit hex string with leading zeros encodes and decodes properly (padding logic).
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 *   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content and static characters are properly escaped for MarkdownV2 formatting.
 *   **Integration Tests for Backend Rate Limiting:** Add a test verifying that calling `shareSnapshotMessage` twice within 60 seconds correctly rejects the second call to protect against chat spamming.
