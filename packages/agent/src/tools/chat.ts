@@ -17,24 +17,6 @@ export const getChatDetailsTool = createTool({
   }),
 });
 
-export const listChatsTool = createTool({
-  id: "listChatsTool",
-  description: "List all expense-tracking chats/groups the user is part of.",
-  inputSchema: z.object({
-    excludeTypes: z
-      .array(z.enum(["private", "group", "supergroup", "channel", "sender"]))
-      .optional()
-      .describe("Chat types to exclude"),
-  }),
-  execute: withToolErrorHandling(async (data, context) => {
-    const { caller } = createTrpcCaller(context);
-    const result = await caller.chat.getAllChats({
-      excludeTypes: data.excludeTypes,
-    });
-    return serializeToolResult(result);
-  }),
-});
-
 export const getDebtsTool = createTool({
   id: "getDebtsTool",
   description: "Get all outstanding debts in a chat.",
