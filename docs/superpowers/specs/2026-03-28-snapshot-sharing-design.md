@@ -44,6 +44,7 @@ We will introduce a new, compact, versioned string format:
     4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME`) instead of calling `teleBot.getMe()`. This env variable MUST be strictly validated by the backend's environment schema (e.g., Zod).
     5.  Constructs the Telegram MarkdownV2 message.
     6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
+    7.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
 
 **Message Format Example:**
 ```markdown
@@ -69,10 +70,10 @@ Total spent: **SGD 633.96** (47 expenses)
     *   Since Base64URL can contain underscores (which we used as our delimiter), we must safely extract the UUID portion. The safest method is to split by `_`, take the first 4 segments (`version`, `chatType`, `chatId`, `entityType`), and join all remaining segments back together with underscores to reconstruct the full `entityIdBase64Url`.
     *   Decode the reconstructed unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
-*   Return a normalized object matching a new `startParamSchema`. The schema must type `chat_id` as a `number` temporarily if the rest of the app expects it, but should ideally parse to a safe representation or ensure bounds checking:
+*   Return a normalized object matching a new `startParamSchema`. To bridge the gap between BigInt precision and the frontend's current routing parameter expectations, the parsed BigInt MUST be cast to a Number, wrapped in a strict `Number.isSafeInteger()` validation bounds check.
     ```typescript
     {
-      chat_id: number, // The app currently uses numbers for chat IDs in URLs, ensure we handle conversion carefully
+      chat_id: number, // Must be validated as a safe integer
       chat_type: string,
       entity_type?: 's' | 'e' | 'p',
       entity_id?: string
@@ -91,12 +92,12 @@ Total spent: **SGD 633.96** (47 expenses)
 *   On success, close the modal immediately and display a success toast/popup indicating the message was shared.
 
 ## Error Handling
-*   **Deep Link Parsing:** If the `v1` string is malformed, it should gracefully fallback to standard chat initialization without the entity redirect.
+*   **Deep Link Parsing:** If the `v1` string is malformed or the resulting `chat_id` fails the safe integer bounds check, it should gracefully fallback to standard chat initialization without the entity redirect.
 *   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions or an invalid chat), the backend MUST throw a `TRPCError` (e.g., `INTERNAL_SERVER_ERROR` or `FORBIDDEN`). The frontend will catch this via the mutation's `onError` callback and display a user-friendly error toast or popup.
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`).
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`), and ensure the `Number.isSafeInteger` check is applied.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
 *   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text.
 *   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
