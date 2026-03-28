@@ -144,7 +144,6 @@ model ExpenseSnapshot {
   currency  String    @default("SGD")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  lastSharedAt DateTime? // Used to rate-limit sharing to Telegram groups
 
   @@index([chatId]) // Optimizes queries filtering snapshots by chat
   @@index([creatorId]) // Improves performance when looking up snapshots created by a user

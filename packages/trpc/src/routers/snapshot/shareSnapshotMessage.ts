@@ -12,7 +12,6 @@ import { inlineKeyboard } from "telegraf/markup";
 import { Telegram } from "telegraf";
 import { Prisma } from "@dko/database";
 
-const RATE_LIMIT_SECONDS = 60;
 const MAX_DISPLAYED_USERS = 15;
 
 const inputSchema = z.object({
@@ -59,18 +58,6 @@ export const shareSnapshotMessageHandler = async (
       code: "FORBIDDEN",
       message: "Not a member of this chat",
     });
-  }
-
-  // 3. Rate Limit check
-  if (snapshot.lastSharedAt) {
-    const diffSeconds =
-      (new Date().getTime() - snapshot.lastSharedAt.getTime()) / 1000;
-    if (diffSeconds < RATE_LIMIT_SECONDS) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: `Please wait ${RATE_LIMIT_SECONDS} seconds before sharing again.`,
-      });
-    }
   }
 
   // 4. Calculate total damage and individual net balances
@@ -182,16 +169,11 @@ export const shareSnapshotMessageHandler = async (
     { text: "View Snapshot 📊", url: deepLink },
   ]);
 
-  // 8. Send message and update rate limit
+  // 8. Send message
   try {
     await teleBot.sendMessage(Number(snapshot.chatId), message, {
       parse_mode: "MarkdownV2",
       ...keyboard,
-    });
-
-    await db.expenseSnapshot.update({
-      where: { id: snapshot.id },
-      data: { lastSharedAt: new Date() },
     });
 
     return { success: true };

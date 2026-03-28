@@ -51,28 +51,6 @@ describe("shareSnapshotMessage procedure", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("should throw TOO_MANY_REQUESTS if shared within the last 60 seconds", async () => {
-    const recentDate = new Date();
-    recentDate.setSeconds(recentDate.getSeconds() - 30); // 30 seconds ago
-
-    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
-      id: "mock-id",
-      lastSharedAt: recentDate,
-      chat: { members: [{ userId: 123n }] },
-      expenses: [],
-      creator: { firstName: "Test" },
-    });
-
-    await expect(
-      shareSnapshotMessageHandler(
-        { snapshotId: "mock-id" },
-        mockDb,
-        mockTeleBot as any,
-        123n
-      )
-    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
-  });
-
   it("should format message correctly, truncate >15 users, and omit 0 damage", async () => {
     // Generate 16 users who owe money
     const shares = Array.from({ length: 16 }).map((_, i) => ({
@@ -132,7 +110,6 @@ describe("shareSnapshotMessage procedure", () => {
       123n
     );
 
-    expect(mockDb.expenseSnapshot.update).toHaveBeenCalled();
     expect(mockTeleBot.sendMessage).toHaveBeenCalled();
 
     const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
