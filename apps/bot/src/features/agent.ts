@@ -113,9 +113,6 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
       memory: {
         thread: String(ctx.chat.id),
         resource: `telegram-user-${ctx.from.id}`,
-        options: {
-          lastMessages: 6,
-        },
       },
       requestContext,
       system: systemPrompt,
