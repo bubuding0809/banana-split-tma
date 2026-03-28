@@ -37,12 +37,13 @@ We will introduce a new, compact, versioned string format:
 *   **Input:** `snapshotId: string (UUID)`
 *   **Output:** `{ success: boolean, messageId: number }`
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot by querying the local database (e.g., `ChatMember` table). If the user does not have access, throw a `FORBIDDEN` TRPCError.
+*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism (e.g., a simple cache or DB check to ensure a specific snapshot cannot be shared to the same chat more than once per minute).
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
     2.  Aggregates the total damage (net sum of shares) per user.
     3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
     4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME`) instead of calling `teleBot.getMe()`. This env variable MUST be strictly validated by the backend's environment schema (e.g., Zod).
-    5.  Constructs the Telegram MarkdownV2 message.
+    5.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content (totals, decimals, usernames/display names) is properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
     6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
     7.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
 
@@ -87,19 +88,20 @@ Total spent: **SGD 633.96** (47 expenses)
 
 **UI (`SnapshotDetailsModal.tsx`):**
 *   Add a Share `IconButton` (lucide-react `Share` or `Send`) to the modal header.
+*   Disable the button and show a spinner while the mutation is in progress to prevent accidental double-clicks from the user.
 *   On click, prompt a Telegram SDK `popup` for confirmation ("Share this snapshot to the group chat?").
 *   On confirm, trigger the `shareSnapshotMessage` mutation.
 *   On success, close the modal immediately and display a success toast/popup indicating the message was shared.
 
 ## Error Handling
 *   **Deep Link Parsing:** If the `v1` string is malformed or the resulting `chat_id` fails the safe integer bounds check, it should gracefully fallback to standard chat initialization without the entity redirect.
-*   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions or an invalid chat), the backend MUST throw a `TRPCError` (e.g., `INTERNAL_SERVER_ERROR` or `FORBIDDEN`). The frontend will catch this via the mutation's `onError` callback and display a user-friendly error toast or popup.
+*   **Message Sending:** If `teleBot.sendMessage` fails (e.g., due to missing bot permissions, rate limits, or an invalid chat), the backend MUST throw a `TRPCError` (e.g., `INTERNAL_SERVER_ERROR` or `FORBIDDEN`). The frontend will catch this via the mutation's `onError` callback and display a user-friendly error toast or popup.
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
 *   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`), and ensure the `Number.isSafeInteger` check is applied.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
-*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text.
+*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text. Specifically verify that all dynamic content (totals, user display names) is properly escaped for MarkdownV2 formatting.
 *   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
 *   **Frontend Routing Tests:** Verify that initializing the application with a `v1` deep link correctly parses the parameters, performs the routing to the target chat, and triggers the `SnapshotDetailsModal` auto-open logic.
 
