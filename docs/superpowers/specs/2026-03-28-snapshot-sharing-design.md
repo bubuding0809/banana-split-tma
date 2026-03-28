@@ -46,16 +46,16 @@ We will introduce a new, compact, versioned string format:
     3.  Filters out users who do not owe money (Net Balance >= 0). For the remaining users, their "Damage" is the absolute value of their negative Net Balance (how much they need to pay to settle their portion of the snapshot).
     4.  Sorts users by highest damage to lowest.
     5.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username AND the telegram app short name should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME` and `process.env.TELEGRAM_APP_NAME`) instead of calling `teleBot.getMe()`. These env variables MUST be strictly validated by the backend's environment schema (e.g., Zod).
-    6.  Constructs the Telegram MarkdownV2 message. **CRITICAL:** Only dynamic variables (usernames) and literal text characters should be passed through the `escapeMarkdown` utility. Markdown formatting syntax (like `**` for bold text) MUST NOT be escaped. Also, currency amounts MUST be formatted using the shared `formatCurrencyWithCode` utility before escaping, reading the base currency from the chat record.
+    6.  Constructs the Telegram MarkdownV2 message. **CRITICAL:** Only dynamic variables (usernames) and literal text characters should be passed through the `escapeMarkdown` utility. Markdown formatting syntax (like `*` for bold text) MUST NOT be escaped. Also, currency amounts MUST be formatted using the shared `formatCurrencyWithCode` utility before escaping, reading the base currency from the chat record.
     7.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
     8.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
 
 **Message Format Example:**
 ```markdown
-📊 **Mar 26 totals** shared by @ting
-Total spent: **SGD 633.96** (47 expenses)
+📊 *Mar 26 totals* shared by @ting
+Total spent: *SGD 633.96* (47 expenses)
 
-📉 **Group Damage:**
+📉 *Group Damage:*
 • @ting: SGD 400.00
 • @ruoqian: SGD 233.96
 ```
@@ -73,6 +73,7 @@ Total spent: **SGD 633.96** (47 expenses)
 *   If `v1_`: Split by `_`.
     *   Decode the Base62 chat ID string into a `BigInt`, and re-apply the negative sign by multiplying by `-1n` for group chats (indicated by the `g` chatType flag).
     *   Decode the Base62 entity ID back to a 32-character hex string (padding with leading zeros if necessary) and format it as a standard UUID.
+    *   *Note on Omitted Segments:* The parser MUST safely handle `v1` strings where the entity segments (`entityType` and `entityId`) are omitted (e.g., `v1_g_1E2R4w`), returning `undefined` for those properties.
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
 *   Return a normalized object matching a new `startParamSchema`. To ensure future-proof compatibility with 64-bit Telegram IDs, the schema should represent the decoded BigInt as a string, and the frontend hooks should pass it as such. However, if the rest of the app strictly requires a number, a `Number.isSafeInteger()` bounds check MUST be applied before casting.
     ```typescript
@@ -87,6 +88,7 @@ Total spent: **SGD 633.96** (47 expenses)
 **Routing (`chat.$chatId.tsx` and `SnapshotPage.tsx`):**
 *   When a chat context is initialized in the main chat route (e.g., `_tma/chat.$chatId.tsx`), check if `entity_type` and `entity_id` exist in `startParams`.
 *   If `entity_type === 's'`, use TanStack router to navigate to the snapshots sub-route (`/_tma/chat/$chatId_/snapshots`) and pass `?snapshotId=${entity_id}` in the search parameters.
+*   *Critical State Cleanup:* After successfully navigating to the entity, the application state or URL params MUST be cleared so that if the user clicks "Back" to return to the chat view, they are not caught in an infinite redirect loop caused by the stale `startParams`.
 *   The `SnapshotPage.tsx` component will read `snapshotId` from its search parameters.
 *   **Edge Case:** If `snapshotId` exists but the backend query returns a 404 (e.g., the snapshot was deleted after the link was shared), the app should simply clear the search parameter and remain on the Snapshot list page, optionally showing a toast "Snapshot no longer exists." If it exists, it automatically opens the `SnapshotDetailsModal`.
 
@@ -105,7 +107,7 @@ Total spent: **SGD 633.96** (47 expenses)
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
 *   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption. Include a test specifically verifying that a 128-bit hex string with leading zeros encodes and decodes properly (padding logic).
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
-*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content and static characters are properly escaped for MarkdownV2 formatting.
+*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content and static characters are properly escaped for MarkdownV2 formatting, and that the specific edge cases (missing usernames, 0 damage omissions, and >15 user truncation) generate the exact expected Markdown strings.
 *   **Integration Tests for Backend Rate Limiting:** Add a test verifying that calling `shareSnapshotMessage` twice within 60 seconds correctly rejects the second call to protect against chat spamming.
 *   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
 *   **Frontend Routing Tests:** Verify that initializing the application with a `v1` deep link correctly parses the parameters, performs the routing to the target chat, and triggers the `SnapshotDetailsModal` auto-open logic.
