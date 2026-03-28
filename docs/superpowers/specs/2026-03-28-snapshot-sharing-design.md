@@ -26,7 +26,7 @@ We will introduce a new, compact, versioned string format:
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
 *   **`entityIdBase64Url`:** The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
 
-*Note on Delimiters:* We use underscores (`_`) as the delimiter. Because Base64URL encoding uses both hyphens (`-`) and underscores (`_`) in its alphabet, delimiter collision is unavoidable given Telegram's allowed `startapp` character set (`[a-zA-Z0-9_-]`). We will handle this during decoding by splitting a limited number of segments and re-joining the rest.
+*Note on Delimiters & Structure Constraints:* We use underscores (`_`) as the delimiter. Because Base64URL encoding uses both hyphens (`-`) and underscores (`_`) in its alphabet, delimiter collision is unavoidable given Telegram's allowed `startapp` character set. We will handle this during decoding by splitting the string into segments and explicitly re-joining all segments *after* the `entityType` segment. Because of this parsing strategy, **the `entityIdBase64Url` MUST ALWAYS be the final segment in the `v1` string format**; future protocol extensions cannot append segments after it.
 
 *Example:* `v1_g_1d4x9g2i_s_Ej5FZibEtOkVkJmFBdAAA`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
@@ -37,15 +37,16 @@ We will introduce a new, compact, versioned string format:
 *   **Input:** `snapshotId: string (UUID)`
 *   **Output:** `{ success: boolean, messageId: number }`
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot by querying the local database (e.g., `ChatMember` table). If the user does not have access, throw a `FORBIDDEN` TRPCError.
-*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism (e.g., a simple cache or DB check to ensure a specific snapshot cannot be shared to the same chat more than once per minute).
+*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism. Since the architecture uses serverless AWS Lambda, an in-memory cache is insufficient. The backend should record the share action (e.g., by adding a `lastSharedAt` timestamp column to the `Snapshot` database table) and reject requests if the snapshot was shared within the last 60 seconds.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
-    2.  Aggregates the total damage (net sum of shares) per user.
+    2.  Aggregates the total damage (net sum of shares) per user. **CRITICAL:** This aggregation MUST use the `Decimal.js` utility functions from `@/utils/financial.ts` to prevent floating-point calculation errors.
     3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
     4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME`) instead of calling `teleBot.getMe()`. This env variable MUST be strictly validated by the backend's environment schema (e.g., Zod).
     5.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content (totals, decimals, usernames/display names) is properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
     6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
-    7.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
+    7.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
+    8.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
 
 **Message Format Example:**
 ```markdown
@@ -101,7 +102,7 @@ Total spent: **SGD 633.96** (47 expenses)
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
 *   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`), and ensure the `Number.isSafeInteger` check is applied.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
-*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text. Specifically verify that all dynamic content (totals, user display names) is properly escaped for MarkdownV2 formatting.
+*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content (totals, user display names) is properly escaped for MarkdownV2 formatting.
 *   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
 *   **Frontend Routing Tests:** Verify that initializing the application with a `v1` deep link correctly parses the parameters, performs the routing to the target chat, and triggers the `SnapshotDetailsModal` auto-open logic.
 
