@@ -2,8 +2,12 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node",
-    include: ["src/**/__tests__/**/*.test.ts", "src/**/*.spec.ts"],
+    environment: "happy-dom",
+    include: [
+      "src/**/__tests__/**/*.test.{ts,tsx}",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.ts",
+    ],
   },
   resolve: {
     alias: {

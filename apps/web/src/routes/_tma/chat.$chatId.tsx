@@ -43,7 +43,7 @@ function ChatIdRoute() {
       sessionStorage.setItem(deepLinkConsumedKey, "true");
 
       // Navigate to snapshots page and pass the ID in search params to auto-open modal
-      (navigate as any)({
+      navigate({
         to: "/chat/$chatId/snapshots",
         params: { chatId: chatId.toString() },
         search: { snapshotId: startParams.entity_id },

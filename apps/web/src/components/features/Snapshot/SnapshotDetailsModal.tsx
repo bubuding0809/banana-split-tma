@@ -84,11 +84,13 @@ const SnapshotDetailsModal = ({
 
   useEffect(() => {
     if (error?.data?.code === "NOT_FOUND") {
-      popup.open({
-        title: "Snapshot Not Found",
-        message: "This snapshot has been deleted or does not exist.",
-        buttons: [{ type: "ok", id: "ok" }],
-      });
+      if (popup.isSupported()) {
+        popup.open({
+          title: "Snapshot Not Found",
+          message: "This snapshot has been deleted or does not exist.",
+          buttons: [{ type: "ok", id: "ok" }],
+        });
+      }
       onOpenChange(false);
     }
   }, [error, onOpenChange]);

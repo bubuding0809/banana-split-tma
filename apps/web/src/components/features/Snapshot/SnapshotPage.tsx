@@ -95,7 +95,7 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   );
 
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(
-    (search as any).snapshotId || null
+    search.snapshotId || null
   );
 
   const handleModalClose = (open: boolean) => {
@@ -103,7 +103,7 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
       setSelectedSnapshotId(null);
       // Remove snapshotId from URL search params
       navigate({
-        search: (prev: any) => {
+        search: (prev) => {
           const newSearch = { ...prev };
           delete newSearch.snapshotId;
           return newSearch;
