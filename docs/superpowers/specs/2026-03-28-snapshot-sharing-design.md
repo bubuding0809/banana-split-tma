@@ -18,17 +18,15 @@ The enhancement involves three main components:
 Telegram's `startapp` parameter has a strict 64-character limit and only accepts `[a-zA-Z0-9_-]`. Our current Base64-encoded JSON approach (`{"chat_id":-1001234567890,"chat_type":"g"}`) is already ~95 characters when adding a UUID, which fails.
 
 We will introduce a new, compact, versioned string format:
-`[version]_[chatType]_[chatIdBase36]_[entityType]_[entityIdBase64Url]`
+`[version]_[chatType]_[chatIdBase36]_[entityType]_[entityIdBase62]`
 
 *   **`version`:** `v1` (2 chars)
 *   **`chatType`:** `g` (group) or `p` (private) (1 char)
 *   **`chatIdBase36`:** The absolute value of the chat ID encoded in Base36 (e.g., `1001234567890` -> `1d4x9g2i`). This must be generated from and decoded back to a `BigInt` to prevent precision loss for large Telegram IDs. (approx 8 chars)
 *   **`entityType`:** `s` (snapshot), `e` (expense), `p` (payment) (1 char)
-*   **`entityIdBase64Url`:** The 36-char UUID stripped of hyphens, parsed into a 16-byte array, and encoded to an unpadded Base64URL string (22 chars).
+*   **`entityIdBase62`:** The 36-char UUID encoded to a Base62 string. (22 chars). *Note: Base62 only uses `[a-zA-Z0-9]`, completely eliminating any delimiter collision issues with `_` or `-`, meaning we can safely split the string by `_` during parsing without needing a "must be final segment" constraint.*
 
-*Note on Delimiters & Structure Constraints:* We use underscores (`_`) as the delimiter. Because Base64URL encoding uses both hyphens (`-`) and underscores (`_`) in its alphabet, delimiter collision is unavoidable given Telegram's allowed `startapp` character set. We will handle this during decoding by splitting the string into segments and explicitly re-joining all segments *after* the `entityType` segment. Because of this parsing strategy, **the `entityIdBase64Url` MUST ALWAYS be the final segment in the `v1` string format**; future protocol extensions cannot append segments after it.
-
-*Example:* `v1_g_1d4x9g2i_s_Ej5FZibEtOkVkJmFBdAAA`
+*Example:* `v1_g_1d4x9g2i_s_7N42dgm5tFLK9N8MT7fXbc`
 *Total Length:* ~38 characters. (Well within the 64-char limit).
 
 ### 2. Backend Implementation (tRPC)
@@ -37,16 +35,17 @@ We will introduce a new, compact, versioned string format:
 *   **Input:** `snapshotId: string (UUID)`
 *   **Output:** `{ success: boolean, messageId: number }`
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot by querying the local database (e.g., `ChatMember` table). If the user does not have access, throw a `FORBIDDEN` TRPCError.
-*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism. Since the architecture uses serverless AWS Lambda, an in-memory cache is insufficient. The backend should record the share action (e.g., by adding a `lastSharedAt` timestamp column to the `Snapshot` database table) and reject requests if the snapshot was shared within the last 60 seconds.
+*   **Rate Limiting:** To prevent group chat spam, the backend MUST implement a rate-limiting mechanism. Since the architecture uses serverless AWS Lambda, an in-memory cache is insufficient. The backend should record the share action by adding a `lastSharedAt` timestamp column to the `ExpenseSnapshot` database table and reject requests if the snapshot was shared within the last 60 seconds.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members. The target chat ID is derived directly from this fetched snapshot record.
-    2.  Aggregates the total damage (net sum of shares) per user. **CRITICAL:** This aggregation MUST use the `Decimal.js` utility functions from `@/utils/financial.ts` to prevent floating-point calculation errors.
-    3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
-    4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username AND the telegram app short name should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME` and `process.env.TELEGRAM_APP_NAME`) instead of calling `teleBot.getMe()`. These env variables MUST be strictly validated by the backend's environment schema (e.g., Zod).
-    5.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content (totals, decimals, usernames/display names) is properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
-    6.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
-    7.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
-    8.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
+    2.  Aggregates the net balance (Total Paid - Total Share) per user. **CRITICAL:** This aggregation MUST use the `Decimal.js` utility functions from `@/utils/financial.ts` to prevent floating-point calculation errors.
+    3.  Filters out users who do not owe money (Net Balance >= 0). For the remaining users, their "Damage" is the absolute value of their negative Net Balance (how much they need to pay to settle their portion of the snapshot).
+    4.  Sorts users by highest damage to lowest.
+    5.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper. To avoid unnecessary network calls, the bot username AND the telegram app short name should be read from the environment configuration (e.g., `process.env.TELEGRAM_BOT_USERNAME` and `process.env.TELEGRAM_APP_NAME`) instead of calling `teleBot.getMe()`. These env variables MUST be strictly validated by the backend's environment schema (e.g., Zod).
+    6.  Constructs the Telegram MarkdownV2 message, ensuring that **all dynamic content AND static template brackets (totals, decimals, usernames, parentheses) are properly escaped** using the `escapeMarkdown` utility to satisfy Telegram's strict MarkdownV2 parsing rules.
+    7.  Sends the message to the derived `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
+    8.  Updates the `lastSharedAt` database timestamp for the snapshot to enforce rate limits.
+    9.  *Note on Message Tracking:* This is a fire-and-forget message. Unlike individual expense notifications, snapshot summary messages do not need to be tracked or persisted in the database for future automated updates.
 
 **Message Format Example:**
 ```markdown
@@ -61,7 +60,7 @@ Total spent: **SGD 633.96** (47 expenses)
 **Edge Cases for Message Format:**
 *   **Missing Usernames:** If a user does not have a `@username`, the message MUST use Telegram's MarkdownV2 inline mention syntax (e.g., `[First Name](tg://user?id=123456)`) by utilizing our existing `mentionMarkdown` utility.
 *   **0 Expenses:** If the snapshot contains no expenses, the message will still display the total (0.00) and expense count (0), but the "Group Damage" section will be entirely omitted.
-*   **0 Damage for All Users:** If the net damage for all users calculates to exactly 0 (e.g., fully settled expenses included in the snapshot), the "Group Damage" section will also be omitted.
+*   **0 Damage for All Users:** If *every individual user's* damage calculates to exactly 0 (e.g., fully settled expenses included in the snapshot), the "Group Damage" section will also be omitted.
 *   **Large Groups:** To prevent excessively long messages that spam the chat, the "Group Damage" list MUST be truncated to the top 15 users. If there are more than 15 users with damage, append a final line stating `and [X] others...`.
 
 ### 3. Frontend Implementation
@@ -70,8 +69,7 @@ Total spent: **SGD 633.96** (47 expenses)
 *   Update `parseRawParams` to first check if the string starts with `v1_`.
 *   If `v1_`: Split by `_`.
     *   Decode the Base36 chat ID string into a `BigInt`, and re-apply the negative sign by multiplying by `-1n` for group chats (indicated by the `g` chatType flag).
-    *   Since Base64URL can contain underscores (which we used as our delimiter), we must safely extract the UUID portion. The safest method is to split by `_`, take the first 4 segments (`version`, `chatType`, `chatId`, `entityType`), and join all remaining segments back together with underscores to reconstruct the full `entityIdBase64Url`.
-    *   Decode the reconstructed unpadded Base64URL entity ID back to a standard UUID format string (16-byte array -> hex string with hyphens).
+    *   Decode the Base62 entity ID back to a standard UUID format string.
 *   If not `v1_`: Fallback to the legacy Base64-encoded JSON parsing.
 *   Return a normalized object matching a new `startParamSchema`. To ensure future-proof compatibility with 64-bit Telegram IDs, the schema should represent the decoded BigInt as a string, and the frontend hooks should pass it as such. However, if the rest of the app strictly requires a number, a `Number.isSafeInteger()` bounds check MUST be applied before casting.
     ```typescript
@@ -102,9 +100,9 @@ Total spent: **SGD 633.96** (47 expenses)
 
 ## Testability
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
-*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs to ensure no data loss or corruption. Specifically include tests where the Base64URL UUID string naturally contains hyphens (`-`) or underscores (`_`), and ensure the type safety bounds are applied.
+*   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large `BigInt` numbers) and UUIDs (via Base62) to ensure no data loss or corruption.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
-*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. specifically verify that all dynamic content (totals, user display names) is properly escaped for MarkdownV2 formatting.
+*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely using `Decimal.js` and users sort correctly in the output text. Specifically verify that all dynamic content and static characters are properly escaped for MarkdownV2 formatting.
 *   **Integration Tests for Backend Rate Limiting:** Add a test verifying that calling `shareSnapshotMessage` twice within 60 seconds correctly rejects the second call to protect against chat spamming.
 *   **Integration Tests for Backend Authorization:** Add a test verifying that `shareSnapshotMessage` correctly throws a `FORBIDDEN` error if the calling user is not a member of the snapshot's chat.
 *   **Frontend Routing Tests:** Verify that initializing the application with a `v1` deep link correctly parses the parameters, performs the routing to the target chat, and triggers the `SnapshotDetailsModal` auto-open logic.
