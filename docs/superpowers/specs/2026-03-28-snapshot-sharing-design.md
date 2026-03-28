@@ -39,12 +39,13 @@ We will introduce a new, compact, versioned string format:
 
 **New Procedure:** `snapshotRouter.shareSnapshotMessage`
 *   **Input:** `snapshotId: string (UUID)`
+*   **Output:** `{ success: boolean, messageId: number }`
 *   **Authorization:** The backend MUST verify that the requesting user is a member of the chat associated with the snapshot. If the user does not have access, throw a `FORBIDDEN` TRPCError.
 *   **Action:**
     1.  Fetches snapshot details including all expenses, shares, and members.
     2.  Aggregates the total damage (net sum of shares) per user.
     3.  Sorts users by highest damage to lowest (ignoring 0 or positive balances).
-    4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter.
+    4.  Generates the deep link using the new `v1` protocol string for the `startapp` parameter. The inline button URL is constructed using our existing `createDeepLinkedUrl` helper (which reads the bot username via `teleBot.getMe()`) and passes the `v1` payload to the `app` type parameter.
     5.  Constructs the Telegram MarkdownV2 message.
     6.  Sends the message to the `chatId` via `teleBot.sendMessage` with an inline keyboard button `[View Snapshot 📊]`.
 
@@ -59,6 +60,7 @@ Total spent: **SGD 633.96** (47 expenses)
 ```
 
 **Edge Cases for Message Format:**
+*   **Missing Usernames:** If a user does not have a `@username`, the message MUST use Telegram's MarkdownV2 inline mention syntax (e.g., `[First Name](tg://user?id=123456)`) by utilizing our existing `mentionMarkdown` utility.
 *   **0 Expenses:** If the snapshot contains no expenses, the message will still display the total (0.00) and expense count (0), but the "Your Damage" section will be entirely omitted.
 *   **0 Damage for All Users:** If the net damage for all users calculates to exactly 0 (e.g., fully settled expenses included in the snapshot), the "Your Damage" section will also be omitted.
 
@@ -96,6 +98,7 @@ Total spent: **SGD 633.96** (47 expenses)
 This enhancement introduces critical core routing logic that must be robust. The following automated tests are required:
 *   **Unit Tests for `v1` Protocol Encoder/Decoder:** Test the round-trip conversion of various Chat IDs (positive, negative, large numbers) and UUIDs to ensure no data loss or corruption.
 *   **Unit Tests for Legacy Fallback:** Test that valid Base64 JSON strings are still correctly parsed by `parseRawParams` to ensure backward compatibility.
+*   **Unit Tests for Backend Message Logic:** Add unit/integration tests for the damage aggregation logic within `shareSnapshotMessage` to ensure sums calculate precisely (using Decimal.js) and users sort correctly in the output text.
 
 ## Future Extensions
 *   The `v1` protocol trivially supports deep linking to specific expenses (`entity_type=e`) or settlements (`entity_type=p`) in future PRs simply by updating the frontend router to handle those entity types.
