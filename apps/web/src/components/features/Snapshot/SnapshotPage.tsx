@@ -84,6 +84,7 @@ interface SnapshotPageProps {
 }
 
 const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
+  const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const globalNavigate = useNavigate();
   const tButtonColor = useSignal(themeParams.buttonColor);
@@ -94,8 +95,23 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   );
 
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(
-    null
+    (search as any).snapshotId || null
   );
+
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      setSelectedSnapshotId(null);
+      // Remove snapshotId from URL search params
+      navigate({
+        search: (prev: any) => {
+          const newSearch = { ...prev };
+          delete newSearch.snapshotId;
+          return newSearch;
+        },
+        replace: true,
+      });
+    }
+  };
 
   const { data: snapshots, isLoading } = trpc.snapshot.getByChat.useQuery({
     chatId,
@@ -139,10 +155,6 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
 
   const handleSnapshotClick = (snapshotId: string) => {
     setSelectedSnapshotId(snapshotId);
-  };
-
-  const handleCloseDetails = () => {
-    setSelectedSnapshotId(null);
   };
 
   if (isLoading) {
@@ -263,9 +275,7 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
         <SnapshotDetailsModal
           snapshotId={selectedSnapshotId}
           open={!!selectedSnapshotId}
-          onOpenChange={(open) => {
-            if (!open) handleCloseDetails();
-          }}
+          onOpenChange={handleModalClose}
         />
       )}
     </>

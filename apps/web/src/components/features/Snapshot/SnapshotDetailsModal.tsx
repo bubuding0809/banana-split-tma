@@ -69,15 +69,29 @@ const SnapshotDetailsModal = ({
   }, []);
 
   // * Queries =====================================================================================
-  const { data: snapShotDetails, status: snapShotDetailsStatus } =
-    trpc.snapshot.getDetails.useQuery(
-      {
-        snapshotId,
-      },
-      {
-        enabled: open,
-      }
-    );
+  const {
+    data: snapShotDetails,
+    status: snapShotDetailsStatus,
+    error,
+  } = trpc.snapshot.getDetails.useQuery(
+    {
+      snapshotId,
+    },
+    {
+      enabled: open,
+    }
+  );
+
+  useEffect(() => {
+    if (error?.data?.code === "NOT_FOUND") {
+      popup.open({
+        title: "Snapshot Not Found",
+        message: "This snapshot has been deleted or does not exist.",
+        buttons: [{ type: "ok", id: "ok" }],
+      });
+      onOpenChange(false);
+    }
+  }, [error, onOpenChange]);
 
   const { data: chatData } = trpc.chat.getChat.useQuery(
     {
