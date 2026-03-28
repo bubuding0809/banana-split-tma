@@ -273,6 +273,7 @@ export const updateExpenseHandler = async (
   try {
     // Assert all users are members of the chat
     await assertUsersInChat(db, input.chatId, [
+      input.creatorId,
       input.payerId,
       ...input.participantIds,
       ...(input.customSplits?.map((s) => s.userId) || []),
