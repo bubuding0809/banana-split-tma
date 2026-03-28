@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement a scalable `v1` deep-linking protocol and Telegram integration to share snapshot damage summaries directly into group chats.
+**Goal:** Implement a scalable `v1` deep-linking protocol and Telegram integration to share snapshot damage summaries directly into group chats, and update the bot app to use the new protocol.
 
-**Architecture:** A unified custom Base62 encoding protocol compresses Telegram Chat IDs and Snapshot UUIDs to safely fit inside the strict 64-character `startapp` limit. The backend generates a Telegram MarkdownV2 message displaying the total spent and a truncated list of individual damage amounts (using Decimal.js for precise financial math), protected by a 60-second rate limit. The frontend decodes the deep link and automatically routes the user to open the snapshot details modal.
+**Architecture:** A unified custom Base62 encoding protocol compresses Telegram Chat IDs and Snapshot UUIDs to safely fit inside the strict 64-character `startapp` limit. The backend generates a Telegram MarkdownV2 message displaying the total spent and a truncated list of individual damage amounts (using Decimal.js for precise financial math), protected by a 60-second rate limit. The frontend decodes the deep link and automatically routes the user to open the snapshot details modal. Finally, the standalone Telegram bot application (`apps/bot`) is updated to utilize the new protocol, ensuring consistency across the monorepo while preserving backward compatibility for legacy links.
 
 **Tech Stack:** TypeScript, React, Tailwind CSS, tRPC, Prisma, Decimal.js, Telegram Mini Apps SDK, Telegraf.
 
@@ -1056,6 +1056,55 @@ Expected: PASS
 ```bash
 git add apps/web/src/components/features/Snapshot/SnapshotDetailsModal.tsx
 git commit -m "feat(web): add share button, haptic feedback, and logic to snapshot details modal"
+```
+
+---
+
+### Task 9: Update Telegram Bot to Use v1 Deep Linking Protocol
+
+**Files:**
+- Modify: `apps/bot/src/utils/chat.ts`
+- Modify: `apps/bot/src/utils/chat.spec.ts` (if exists)
+
+- [ ] **Step 1: Write failing tests for bot context generation**
+
+```typescript
+// apps/bot/src/utils/chat.spec.ts
+import { describe, it, expect } from "vitest";
+import { createChatContext } from "./chat.js";
+
+describe("Bot Chat Utils", () => {
+  it("should generate a v1 deep link for the chat context", () => {
+    const payload = createChatContext(-1001234567890n, "group");
+    // Should start with v1_g_ and a Base62 encoded chat ID
+    expect(payload).toMatch(/^v1_g_[a-zA-Z0-9]+$/);
+  });
+});
+```
+
+- [ ] **Step 2: Update `createChatContext` implementation**
+
+```typescript
+// apps/bot/src/utils/chat.ts
+import { encodeV1DeepLink } from "@dko/trpc/src/utils/deepLinkProtocol";
+
+export function createChatContext(chatId: bigint, type: "private" | "group" | "supergroup" | "channel"): string {
+  // Map bot chat types to the 1-character format used in our deep link protocol
+  const mappedType = type === "private" ? "p" : "g";
+  return encodeV1DeepLink(chatId, mappedType);
+}
+```
+
+- [ ] **Step 3: Run test and types check**
+
+Run: `turbo run test --filter=bot` and `turbo run check-types --filter=bot`
+Expected: PASS
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add apps/bot/src/utils/chat.ts apps/bot/src/utils/chat.spec.ts
+git commit -m "feat(bot): update createChatContext to generate v1 deep linking protocol payloads"
 ```
 
 ---
