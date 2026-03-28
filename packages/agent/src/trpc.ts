@@ -45,7 +45,9 @@ export function createTrpcCaller(context: unknown): {
   const trpcCtx = createContext({
     req: {
       headers: {
-        "x-api-key": process.env.API_KEY || "",
+        "x-agent-key": process.env.INTERNAL_AGENT_KEY || "",
+        "x-agent-user-id": telegramUserId.toString(),
+        "x-agent-chat-id": chatId.toString(),
       },
     } as unknown as ExpressContextOptions["req"],
     res: {} as unknown as ExpressContextOptions["res"],

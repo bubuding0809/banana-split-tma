@@ -22,7 +22,7 @@ describe("createTrpcCaller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TELEGRAM_BOT_TOKEN = "test-token";
-    process.env.API_KEY = "test-api-key";
+    process.env.INTERNAL_AGENT_KEY = "test-agent-key";
     process.env.AWS_GROUP_REMINDER_LAMBDA_ARN = "test-lambda-arn";
     process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN = "test-role-arn";
   });
@@ -47,14 +47,16 @@ describe("createTrpcCaller", () => {
       AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: "test-role-arn",
     });
 
-    // Verify context generation uses the API key
+    // Verify context generation uses the agent keys
     const createContextMock = vi.mocked(withCreateTRPCContext).mock.results[0]
       ?.value;
     expect(createContextMock).toHaveBeenCalledWith(
       expect.objectContaining({
         req: expect.objectContaining({
           headers: {
-            "x-api-key": "test-api-key",
+            "x-agent-key": "test-agent-key",
+            "x-agent-user-id": "12345",
+            "x-agent-chat-id": "67890",
           },
         }),
       })
