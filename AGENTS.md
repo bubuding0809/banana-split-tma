@@ -286,6 +286,14 @@ packages/trpc/src/routers/
 
 ## Development Workflows
 
+### Git Workflows for Features and Hotfixes
+
+**CRITICAL**: When starting any new feature or hotfix, you MUST use isolated git worktrees rather than checking out branches in the main workspace.
+
+1. Invoke the `using-git-worktrees` superpower skill to create an isolated environment.
+2. Perform all development, testing, and hotfixing within that specific worktree.
+3. This prevents dirty states, protects the main workspace, and allows for clean, parallel development contexts.
+
 ### Monorepo Commands
 
 - `turbo dev` - Start all development servers
