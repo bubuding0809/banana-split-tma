@@ -58,8 +58,8 @@ userFeature.command("start", async (ctx, next) => {
     try {
       await ctx.trpc.user.getUser({ userId: ctx.from.id });
       exists = true;
-    } catch (err) {
-      if (err instanceof TRPCError && err.code === "NOT_FOUND") {
+    } catch (err: any) {
+      if (err?.code === "NOT_FOUND") {
         exists = false;
       } else {
         throw err;
