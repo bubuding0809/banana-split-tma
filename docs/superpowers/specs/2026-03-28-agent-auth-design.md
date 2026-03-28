@@ -28,8 +28,9 @@ The backend tRPC server must be able to recognize trusted requests from the Mast
     - `x-agent-chat-id`: The extracted `chatId`.
 - **tRPC Auth Middleware (`packages/trpc/src/trpc.ts`):**
   - The `protectedProcedure` middleware will be updated to check for `x-agent-key`.
-  - If `x-agent-key` is present and matches `INTERNAL_AGENT_KEY` (using `crypto.timingSafeEqual`), the session `authType` will be set to `"agent"`.
-  - The session's `user` object will be populated with the `id` from `x-agent-user-id`, and `chatId` from `x-agent-chat-id`.
+  - **Secure Comparison:** To prevent timing attacks and `crypto.timingSafeEqual` length-mismatch crashes, the incoming `x-agent-key` and the environment `INTERNAL_AGENT_KEY` will both be hashed (e.g., SHA-256) before comparison.
+  - If the hashes match, the session `authType` will be set to `"agent"`.
+  - The session's `user` object will be populated by safely casting the `x-agent-user-id` header to a `Number`/`BigInt`, and `chatId` will be cast from `x-agent-chat-id` (accounting for negative Telegram chat IDs). If the headers fail to parse, a `TRPCError(UNAUTHORIZED)` is thrown.
   - **Crucially:** This check will run _independently_ of the existing API Key and Telegram InitData paths, ensuring zero regressions for existing integrations.
 
 ### 2. Restricting Chat Scope Access
@@ -40,15 +41,16 @@ By changing the agent's `authType` from `"superadmin"` to `"agent"`, the agent b
   - The `assertChatAccess` middleware currently allows `"superadmin"` to bypass all checks.
   - For the new `"agent"` authType, `assertChatAccess` will fall through to the standard database verification step: it will query the `Chat` table to verify that the `session.user` (the user interacting with the bot) is an active member of the `inputChatId`.
   - If the LLM hallucinates or attempts to inject a different `chatId` into a tool call, the database check will fail, and a `TRPCError(FORBIDDEN)` will be thrown.
+  - _Note on Future Global Scopes:_ If the agent eventually supports cross-chat queries (e.g., "What are all my debts?"), those specific endpoints must use `assertNotChatScoped` rather than `assertChatAccess`, explicitly relying on `session.user.id` to filter results globally.
 
 ### 3. Composable Participant Validation
 
-While `assertChatAccess` ensures the _creator_ has access to the chat, it does not verify that the _participants_ (payer, debtors, creditors) specified by the LLM actually belong to the chat. We need a composable layer to enforce this.
+While `assertChatAccess` ensures the _creator_ has access to the chat, it does not verify that the _participants_ (payer, debtors, creditors) specified by the LLM actually belong to the chat. We need a composable utility to enforce this.
 
-- **New Utility (`packages/trpc/src/middleware/chatScope.ts`):**
+- **New Utility (`packages/trpc/src/utils/chatValidation.ts`):**
 
   - Create an `assertUsersInChat(db: Db, chatId: bigint | number, userIds: (bigint | number)[])` function.
-  - This function will query the database for the chat's members.
+  - This function will deduplicate the `userIds` array and query the database for the chat's members.
   - If any of the provided `userIds` are not present in the chat's member list, it will throw a `TRPCError(BAD_REQUEST)` with a clear message indicating which users are missing.
 
 - **Integration Points:**
@@ -60,6 +62,6 @@ While `assertChatAccess` ensures the _creator_ has access to the chat, it does n
 
 ## Rollout Strategy & Deployment
 
-1.  **Environment Variables**: Ensure `INTERNAL_AGENT_KEY` is added to all `.env.prod.*` files and the Vercel/AWS environments before deployment. Provide a secure random default in `.env.example`.
+1.  **Environment Variables**: Ensure `INTERNAL_AGENT_KEY` is added to all `.env.prod.*` files and the Vercel/AWS environments before deployment. Provide a secure random default in `.env.example`. _Note on Key Rotation:_ Ensure the backend is deployed and successfully reading the new key _before_ deploying the bot/agent service to avoid 401 Unauthorized errors during the rollout window.
 2.  **Implementation**: Update `packages/trpc`, `packages/agent`, and the backend endpoints. Ensure TypeScript type checks and linting pass (`pnpm turbo check-types lint`).
 3.  **Testing**: Verify existing API integrations (superadmin, Telegram Mini App) function normally to ensure zero regressions. Verify the agent cannot create an expense using a `participantId` that is not in the test chat.
