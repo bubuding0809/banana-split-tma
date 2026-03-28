@@ -11,7 +11,8 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "dev": "tsc --watch --preserveWatchOutput",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "npx vitest run"
   },
   "keywords": [],
   "author": "",
