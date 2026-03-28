@@ -12,6 +12,7 @@ export const env = createEnv({
       .default("development"),
     VERCEL_URL: z.string().optional(),
     API_KEY: z.string().min(1),
+    INTERNAL_AGENT_KEY: z.string().min(1),
     MINI_APP_DEEPLINK: z.string().min(1),
     AWS_GROUP_REMINDER_LAMBDA_ARN: z.string().optional(),
     AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: z.string().optional(),
