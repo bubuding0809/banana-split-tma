@@ -11,12 +11,6 @@ function validateEnvironment() {
   if (!AWS_REGION) {
     throw new Error("AWS_REGION environment variable is required");
   }
-
-  if (IS_VERCEL_RUNTIME && !AWS_ROLE_ARN) {
-    throw new Error(
-      "AWS_ROLE_ARN environment variable is required for Vercel runtime"
-    );
-  }
 }
 
 // Singleton scheduler client instance
@@ -35,7 +29,7 @@ export function getSchedulerClient(): SchedulerClient {
   validateEnvironment();
 
   // Configuration for Vercel runtime (with credentials)
-  if (IS_VERCEL_RUNTIME) {
+  if (IS_VERCEL_RUNTIME && AWS_ROLE_ARN) {
     schedulerClientInstance = new SchedulerClient({
       credentials: awsCredentialsProvider({
         roleArn: AWS_ROLE_ARN,
@@ -59,7 +53,7 @@ export function getSchedulerClient(): SchedulerClient {
 export function createSchedulerClient(): SchedulerClient {
   validateEnvironment();
 
-  if (IS_VERCEL_RUNTIME) {
+  if (IS_VERCEL_RUNTIME && AWS_ROLE_ARN) {
     return new SchedulerClient({
       credentials: awsCredentialsProvider({
         roleArn: AWS_ROLE_ARN,
