@@ -9,6 +9,11 @@ import {
 import { toDecimal, formatCurrencyWithCode } from "../../utils/financial.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { inlineKeyboard } from "telegraf/markup";
+import { Telegram } from "telegraf";
+import { Prisma } from "@dko/database";
+
+const RATE_LIMIT_SECONDS = 60;
+const MAX_DISPLAYED_USERS = 15;
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
@@ -17,8 +22,10 @@ const inputSchema = z.object({
 export const shareSnapshotMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: any,
-  userId: bigint
+  teleBot: Telegram,
+  userId: bigint,
+  botUsername: string,
+  appName: string
 ) => {
   // 1. Fetch snapshot details
   const snapshot = await db.expenseSnapshot.findUnique({
@@ -48,7 +55,7 @@ export const shareSnapshotMessageHandler = async (
   }
 
   // 2. Authorize
-  const isMember = snapshot.chat.members.some((m: any) => !m.hasLeft);
+  const isMember = snapshot.chat.members.length > 0;
   if (!isMember) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -60,10 +67,10 @@ export const shareSnapshotMessageHandler = async (
   if (snapshot.lastSharedAt) {
     const diffSeconds =
       (new Date().getTime() - snapshot.lastSharedAt.getTime()) / 1000;
-    if (diffSeconds < 60) {
+    if (diffSeconds < RATE_LIMIT_SECONDS) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message: "Please wait 60 seconds before sharing again.",
+        message: `Please wait ${RATE_LIMIT_SECONDS} seconds before sharing again.`,
       });
     }
   }
@@ -72,13 +79,13 @@ export const shareSnapshotMessageHandler = async (
   let totalSpent = toDecimal(0);
   const netBalances = new Map<
     bigint,
-    { name: string; username?: string; balance: any }
+    { name: string; username?: string; balance: Prisma.Decimal }
   >();
 
   // Use chat's base currency if available, otherwise snapshot's, fallback to SGD
   const currencyCode = snapshot.chat.baseCurrency || snapshot.currency || "SGD";
 
-  snapshot.expenses.forEach((expense: any) => {
+  snapshot.expenses.forEach((expense) => {
     totalSpent = totalSpent.plus(toDecimal(expense.amount));
 
     // Initialize or update payer
@@ -91,7 +98,7 @@ export const shareSnapshotMessageHandler = async (
     netBalances.set(expense.payerId, payerData);
 
     // Subtract shares
-    expense.shares.forEach((share: any) => {
+    expense.shares.forEach((share) => {
       const shareAmount = share.amount ? toDecimal(share.amount) : toDecimal(0);
       const shareData = netBalances.get(share.userId) || {
         name: share.user.firstName,
@@ -137,8 +144,8 @@ export const shareSnapshotMessageHandler = async (
   if (damageList.length > 0) {
     message += `\n📉 *Group Damage:*\n`;
 
-    // Truncate to top 15
-    const topUsers = damageList.slice(0, 15);
+    // Truncate to top MAX_DISPLAYED_USERS
+    const topUsers = damageList.slice(0, MAX_DISPLAYED_USERS);
 
     topUsers.forEach((user) => {
       const mention = user.username
@@ -153,13 +160,10 @@ export const shareSnapshotMessageHandler = async (
       message += `• ${mention}: ${escapedDamage}\n`;
     });
 
-    if (damageList.length > 15) {
-      message += `and ${escapeMarkdown((damageList.length - 15).toString(), 2)} others\\.\\.\\.\n`;
+    if (damageList.length > MAX_DISPLAYED_USERS) {
+      message += `and ${escapeMarkdown((damageList.length - MAX_DISPLAYED_USERS).toString(), 2)} others\\.\\.\\.\n`;
     }
   }
-
-  // Hack: Fix telegram.ts escapeMarkdown bug which escapes numbers (e.g. \1, \2)
-  message = message.replace(/\\(\d)/g, "$1");
 
   // 7. Generate deep link
   let payload = "";
@@ -173,8 +177,7 @@ export const shareSnapshotMessageHandler = async (
   } catch (e) {
     payload = "mock_payload";
   }
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME || "";
-  const appName = process.env.TELEGRAM_APP_NAME || "app"; // Read from env
+
   const deepLink = createDeepLinkedUrl(
     `${botUsername}/${appName}`,
     payload,
@@ -220,6 +223,8 @@ export default protectedProcedure
       input,
       ctx.db,
       ctx.teleBot,
-      BigInt(ctx.session.user.id)
+      BigInt(ctx.session.user.id),
+      ctx.botUsername,
+      ctx.appName
     );
   });

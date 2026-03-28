@@ -26,7 +26,9 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n
+        123n,
+        "testbot",
+        "testapp"
       )
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
@@ -44,7 +46,9 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n
+        123n,
+        "testbot",
+        "testapp"
       )
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -56,7 +60,7 @@ describe("shareSnapshotMessage procedure", () => {
     (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
       id: "mock-id",
       lastSharedAt: recentDate,
-      chat: { members: [{ userId: 123n, hasLeft: false }] },
+      chat: { members: [{ userId: 123n }] },
       expenses: [],
       creator: { firstName: "Test" },
     });
@@ -66,7 +70,9 @@ describe("shareSnapshotMessage procedure", () => {
         { snapshotId: "mock-id" },
         mockDb,
         mockTeleBot as any,
-        123n
+        123n,
+        "testbot",
+        "testapp"
       )
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
@@ -102,7 +108,7 @@ describe("shareSnapshotMessage procedure", () => {
       creator: { firstName: "Creator", username: "creator_usr" },
       chat: {
         type: "group",
-        members: [{ userId: 123n, hasLeft: false }],
+        members: [{ userId: 123n }],
         baseCurrency: "SGD",
       },
       expenses: [
@@ -127,7 +133,9 @@ describe("shareSnapshotMessage procedure", () => {
       { snapshotId: "123e4567-e89b-12d3-a456-426614174000" },
       mockDb,
       mockTeleBot as any,
-      123n
+      123n,
+      "testbot",
+      "testapp"
     );
 
     expect(mockDb.expenseSnapshot.update).toHaveBeenCalled();
@@ -160,7 +168,7 @@ describe("shareSnapshotMessage procedure", () => {
       creator: { firstName: "Creator" },
       chat: {
         type: "group",
-        members: [{ userId: 123n, hasLeft: false }],
+        members: [{ userId: 123n }],
         baseCurrency: "SGD",
       },
       expenses: [
@@ -180,7 +188,9 @@ describe("shareSnapshotMessage procedure", () => {
       { snapshotId: "mock-id" },
       mockDb,
       mockTeleBot as any,
-      123n
+      123n,
+      "testbot",
+      "testapp"
     );
 
     const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
