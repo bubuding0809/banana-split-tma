@@ -24,3 +24,5 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export { appRouter, trpcExpress, withCreateTRPCContext, openApiDocument };
 export type { AppRouter, RouterInputs, RouterOutputs };
+
+export * from "./utils/deepLinkProtocol.js";
