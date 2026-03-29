@@ -6,11 +6,16 @@ import {
   mentionMarkdown,
   createDeepLinkedUrl,
 } from "../../utils/telegram.js";
-import { toDecimal, formatCurrencyWithCode } from "../../utils/financial.js";
+import {
+  toDecimal,
+  formatCurrencyWithCode,
+  isSignificantBalance,
+} from "../../utils/financial.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { inlineKeyboard } from "telegraf/markup";
 import { Telegram } from "telegraf";
 import { Prisma } from "@dko/database";
+import { getMultipleRatesHandler } from "../currency/getMultipleRates.js";
 
 const MAX_DISPLAYED_USERS = 15;
 
@@ -60,51 +65,80 @@ export const shareSnapshotMessageHandler = async (
     });
   }
 
-  // 4. Calculate total damage and individual net balances
+  // 4. Calculate total spent and individual sum of shares
   let totalSpent = toDecimal(0);
-  const netBalances = new Map<
+  const userShares = new Map<
     bigint,
-    { name: string; username?: string; balance: Prisma.Decimal }
+    { name: string; username?: string; amount: Prisma.Decimal }
   >();
 
   // Use chat's base currency if available, otherwise snapshot's, fallback to SGD
   const currencyCode = snapshot.chat.baseCurrency || snapshot.currency || "SGD";
 
+  // 4a. Fetch conversion rates for foreign currencies
+  const targetCurrencies = Array.from(
+    new Set(
+      snapshot.expenses
+        .map((e) => e.currency)
+        .filter((c) => c !== currencyCode && !!c)
+    )
+  );
+
+  let ratesMap: Record<string, { rate: number }> = {};
+  if (targetCurrencies.length > 0) {
+    try {
+      const rateResult = await getMultipleRatesHandler(
+        {
+          baseCurrency: currencyCode,
+          targetCurrencies,
+          fallbackBaseCurrency: "USD",
+          autoRefresh: true,
+        },
+        db
+      );
+      ratesMap = rateResult.rates;
+    } catch (error) {
+      console.warn("Failed to fetch rates for snapshot sharing", error);
+    }
+  }
+
   snapshot.expenses.forEach((expense) => {
-    totalSpent = totalSpent.plus(toDecimal(expense.amount));
+    // Determine conversion rate
+    let rate = 1;
+    if (expense.currency !== currencyCode) {
+      rate = ratesMap[expense.currency]?.rate || 1;
+    }
 
-    // Initialize or update payer
-    const payerData = netBalances.get(expense.payerId) || {
-      name: expense.payer.firstName,
-      username: expense.payer.username || undefined,
-      balance: toDecimal(0),
-    };
-    payerData.balance = payerData.balance.plus(toDecimal(expense.amount));
-    netBalances.set(expense.payerId, payerData);
+    // Convert amount to base currency
+    const amountInBaseCurrency = toDecimal(expense.amount).dividedBy(rate);
 
-    // Subtract shares
+    totalSpent = totalSpent.plus(amountInBaseCurrency);
+
+    // Sum shares
     expense.shares.forEach((share) => {
       const shareAmount = share.amount ? toDecimal(share.amount) : toDecimal(0);
-      const shareData = netBalances.get(share.userId) || {
+      const shareAmountInBaseCurrency = shareAmount.dividedBy(rate);
+
+      const shareData = userShares.get(share.userId) || {
         name: share.user.firstName,
         username: share.user.username || undefined,
-        balance: toDecimal(0),
+        amount: toDecimal(0),
       };
-      shareData.balance = shareData.balance.minus(shareAmount);
-      netBalances.set(share.userId, shareData);
+      shareData.amount = shareData.amount.plus(shareAmountInBaseCurrency);
+      userShares.set(share.userId, shareData);
     });
   });
 
-  // 5. Filter for users who owe money (negative net balance) and sort by highest damage
-  const damageList = Array.from(netBalances.entries())
-    .filter(([_, data]) => data.balance.isNegative())
+  // 5. Filter for users who have non-zero shares and sort by highest spent
+  const damageList = Array.from(userShares.entries())
+    .filter(([_, data]) => isSignificantBalance(data.amount))
     .map(([id, data]) => ({
       id,
       name: data.name,
       username: data.username,
-      damage: data.balance.abs(), // Damage is positive representation of debt
+      amount: data.amount,
     }))
-    .sort((a, b) => b.damage.comparedTo(a.damage));
+    .sort((a, b) => b.amount.comparedTo(a.amount));
 
   // 6. Format Telegram Message
   const creatorMention = snapshot.creator.username
@@ -138,10 +172,11 @@ export const shareSnapshotMessageHandler = async (
         : mentionMarkdown(Number(user.id), user.name, 2);
 
       const formattedDamage = formatCurrencyWithCode(
-        user.damage.toNumber(),
+        user.amount.toNumber(),
         currencyCode
       ).replace(/\u00A0/g, " ");
       const escapedDamage = escapeMarkdown(formattedDamage, 2);
+
       message += `• ${mention}: ${escapedDamage}\n`;
     });
 
