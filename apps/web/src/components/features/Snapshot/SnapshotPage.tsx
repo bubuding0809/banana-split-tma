@@ -7,6 +7,7 @@ import {
   Button,
   Info,
   ButtonCell,
+  Snackbar,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import { Aperture, Plus } from "lucide-react";
@@ -97,6 +98,8 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(
     search.snapshotId || null
   );
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handleModalClose = (open: boolean) => {
     if (!open) {
@@ -276,7 +279,16 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
           snapshotId={selectedSnapshotId}
           open={!!selectedSnapshotId}
           onOpenChange={handleModalClose}
+          onShareSuccess={() =>
+            setToastMessage("Snapshot shared successfully!")
+          }
         />
+      )}
+
+      {toastMessage && (
+        <Snackbar onClose={() => setToastMessage(null)} duration={3000}>
+          {toastMessage}
+        </Snackbar>
       )}
     </>
   );
