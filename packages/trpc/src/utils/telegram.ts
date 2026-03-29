@@ -49,7 +49,7 @@ export function escapeMarkdown(
   }
 
   // Create regex pattern - escape special regex characters in escapeChars
-  const escapedChars = escapeChars.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedChars = escapeChars.replace(/[.*+?^${}()|[\]\\\-]/g, "\\$&");
   const regex = new RegExp(`([${escapedChars}])`, "g");
 
   return text.replace(regex, "\\$1");

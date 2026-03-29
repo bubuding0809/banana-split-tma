@@ -5,6 +5,7 @@ import SnapShotPage from "@/components/features/Snapshot/SnapshotPage";
 
 const searchSchema = z.object({
   title: z.string().optional(),
+  snapshotId: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId_/snapshots")({

@@ -10,6 +10,7 @@ import {
   Info,
   Placeholder,
   Button,
+  Spinner,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import {
@@ -20,7 +21,7 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import { X, TrendingDown, RefreshCcw, Pencil } from "lucide-react";
+import { X, TrendingDown, RefreshCcw, Pencil, Send } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { useCallback, useRef, useEffect, useMemo, memo } from "react";
@@ -69,15 +70,31 @@ const SnapshotDetailsModal = ({
   }, []);
 
   // * Queries =====================================================================================
-  const { data: snapShotDetails, status: snapShotDetailsStatus } =
-    trpc.snapshot.getDetails.useQuery(
-      {
-        snapshotId,
-      },
-      {
-        enabled: open,
+  const {
+    data: snapShotDetails,
+    status: snapShotDetailsStatus,
+    error,
+  } = trpc.snapshot.getDetails.useQuery(
+    {
+      snapshotId,
+    },
+    {
+      enabled: open,
+    }
+  );
+
+  useEffect(() => {
+    if (error?.data?.code === "NOT_FOUND") {
+      if (popup.isSupported()) {
+        popup.open({
+          title: "Snapshot Not Found",
+          message: "This snapshot has been deleted or does not exist.",
+          buttons: [{ type: "ok", id: "ok" }],
+        });
       }
-    );
+      onOpenChange(false);
+    }
+  }, [error, onOpenChange]);
 
   const { data: chatData } = trpc.chat.getChat.useQuery(
     {
@@ -126,7 +143,61 @@ const SnapshotDetailsModal = ({
     },
   });
 
+  const shareSnapshotMutation = trpc.snapshot.shareSnapshotMessage.useMutation({
+    onSuccess: () => {
+      if (hapticFeedback.isSupported())
+        hapticFeedback.notificationOccurred("success");
+      onOpenChange(false);
+      // Show explicit success feedback as requested in spec
+      if (popup.isSupported()) {
+        popup.open({
+          title: "Success",
+          message: "Snapshot shared successfully!",
+          buttons: [{ type: "ok", id: "ok" }],
+        });
+      }
+    },
+    onError: (err) => {
+      if (hapticFeedback.isSupported())
+        hapticFeedback.notificationOccurred("error");
+      if (popup.isSupported()) {
+        popup.open({
+          title: "Error",
+          message:
+            err.data?.code === "TOO_MANY_REQUESTS"
+              ? "Please wait a minute before sharing this snapshot again."
+              : "Failed to share snapshot. Please try again.",
+          buttons: [{ type: "ok", id: "ok" }],
+        });
+      }
+    },
+  });
+
   // * Handlers ====================================================================================
+  const handleShareClick = () => {
+    if (popup.isSupported()) {
+      popup
+        .open({
+          title: "Share Snapshot",
+          message: "Share this snapshot to the group chat?",
+          buttons: [
+            { type: "cancel", id: "cancel" },
+            { id: "share", type: "default", text: "Share" },
+          ],
+        })
+        .then((buttonId) => {
+          if (buttonId === "share") {
+            if (hapticFeedback.isSupported())
+              hapticFeedback.impactOccurred("light");
+            shareSnapshotMutation.mutate({ snapshotId });
+          }
+        });
+    } else {
+      // Fallback if not running in Telegram client
+      shareSnapshotMutation.mutate({ snapshotId });
+    }
+  };
+
   const handleEdit = useCallback(() => {
     if (!snapShotDetails) return;
 
@@ -340,6 +411,23 @@ const SnapshotDetailsModal = ({
           }
           after={
             <div className="flex items-center gap-2">
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={handleShareClick}
+                className="p-1"
+                disabled={shareSnapshotMutation.isPending}
+              >
+                {shareSnapshotMutation.isPending ? (
+                  <Spinner size="s" />
+                ) : (
+                  <Send
+                    size={20}
+                    strokeWidth={3}
+                    style={{ color: tButtonColor }}
+                  />
+                )}
+              </IconButton>
               <IconButton
                 size="s"
                 mode="gray"
