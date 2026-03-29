@@ -36,12 +36,14 @@ interface SnapshotDetailsModalProps {
   snapshotId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onShareSuccess?: () => void;
 }
 
 const SnapshotDetailsModal = ({
   snapshotId,
   open,
   onOpenChange,
+  onShareSuccess,
 }: SnapshotDetailsModalProps) => {
   const trpcUtils = trpc.useUtils();
   const navigate = useNavigate();
@@ -148,13 +150,9 @@ const SnapshotDetailsModal = ({
       if (hapticFeedback.isSupported())
         hapticFeedback.notificationOccurred("success");
       onOpenChange(false);
-      // Show explicit success feedback as requested in spec
-      if (popup.isSupported()) {
-        popup.open({
-          title: "Success",
-          message: "Snapshot shared successfully!",
-          buttons: [{ type: "ok", id: "ok" }],
-        });
+
+      if (onShareSuccess) {
+        onShareSuccess();
       }
     },
     onError: (err) => {
