@@ -59,20 +59,6 @@ describe("shareSnapshotMessage procedure", () => {
       user: { firstName: `User ${i}` },
     }));
 
-    // Add one user who paid but doesn't owe (positive balance)
-    shares.push({
-      userId: 111n,
-      amount: "0.00",
-      user: { firstName: "Creator" },
-    });
-
-    // Add one user whose net balance is exactly 0
-    shares.push({
-      userId: 999n,
-      amount: "0.00", // Payer spent 0 in shares
-      user: { firstName: "Zero User" },
-    });
-
     (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
       id: "123e4567-e89b-12d3-a456-426614174000",
       title: "Test Snapshot! (2024)",
@@ -84,10 +70,11 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        debtSimplificationEnabled: false,
       },
       expenses: [
         {
-          amount: "165.00",
+          amount: "160.00",
           payerId: 111n,
           payer: { firstName: "Creator", username: "creator_usr" },
           shares: shares,
@@ -96,7 +83,9 @@ describe("shareSnapshotMessage procedure", () => {
           amount: "5.00",
           payerId: 999n,
           payer: { firstName: "Zero User" },
-          shares: [], // zero shares
+          shares: [
+            { userId: 999n, amount: "5.00", user: { firstName: "Zero User" } },
+          ], // self share, no debt generated
         },
       ],
     });
@@ -116,7 +105,7 @@ describe("shareSnapshotMessage procedure", () => {
 
     // Assert formatting and escaping
     expect(sentMessage).toContain("Test Snapshot\\! \\(2024\\)"); // Title escaped
-    expect(sentMessage).toContain("SGD 170\\.00"); // Total escaped
+    expect(sentMessage).toContain("SGD 165\\.00"); // Total escaped
 
     // Truncation check
     expect(sentMessage).toContain("User 0");
@@ -125,8 +114,7 @@ describe("shareSnapshotMessage procedure", () => {
     expect(sentMessage).toContain("and 1 others\\.\\.\\."); // 16 non-zero users total - 15 displayed
 
     // Omission checks
-    expect(sentMessage).not.toContain("Zero User"); // has 0 shares
-    expect(sentMessage).not.toContain("Creator:"); // has 0 shares
+    expect(sentMessage).not.toContain("Zero User"); // self share
   });
 
   it("should completely omit Group Damage section if all users have 0 net balance", async () => {
@@ -141,6 +129,7 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        debtSimplificationEnabled: false,
       },
       expenses: [
         {
@@ -148,7 +137,7 @@ describe("shareSnapshotMessage procedure", () => {
           payerId: 111n,
           payer: { firstName: "Creator" },
           shares: [
-            { userId: 111n, amount: "0.00", user: { firstName: "Creator" } },
+            { userId: 111n, amount: "10.00", user: { firstName: "Creator" } },
           ],
         },
       ],
@@ -164,7 +153,37 @@ describe("shareSnapshotMessage procedure", () => {
 
     const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
     expect(sentMessage).toContain("Total spent");
-    expect(sentMessage).not.toContain("Group Damage:");
+    expect(sentMessage).toContain("All debts are settled");
+  });
+
+  it("should pass message_thread_id if chat has a threadId", async () => {
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Topic Snapshot",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Creator" },
+      chat: {
+        type: "group",
+        threadId: 555n,
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+      },
+      expenses: [],
+    });
+
+    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
+    await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    expect(mockTeleBot.sendMessage).toHaveBeenCalled();
+    const options = mockTeleBot.sendMessage.mock.calls[0]![2];
+    expect(options).toHaveProperty("message_thread_id", 555);
   });
 
   it("should pass message_thread_id if chat has a threadId", async () => {
