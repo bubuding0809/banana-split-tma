@@ -173,6 +173,9 @@ export const shareSnapshotMessageHandler = async (
   try {
     await teleBot.sendMessage(Number(snapshot.chatId), message, {
       parse_mode: "MarkdownV2",
+      ...(snapshot.chat.threadId
+        ? { message_thread_id: Number(snapshot.chat.threadId) }
+        : {}),
       ...keyboard,
     });
 

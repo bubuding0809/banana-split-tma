@@ -166,4 +166,34 @@ describe("shareSnapshotMessage procedure", () => {
     expect(sentMessage).toContain("Total spent");
     expect(sentMessage).not.toContain("Group Damage:");
   });
+
+  it("should pass message_thread_id if chat has a threadId", async () => {
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Topic Snapshot",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Creator" },
+      chat: {
+        type: "group",
+        threadId: 555n,
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+      },
+      expenses: [],
+    });
+
+    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
+    await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    expect(mockTeleBot.sendMessage).toHaveBeenCalled();
+    const options = mockTeleBot.sendMessage.mock.calls[0]![2];
+    expect(options).toHaveProperty("message_thread_id", 555);
+  });
 });
