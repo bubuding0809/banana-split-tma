@@ -54,3 +54,6 @@ opencode.json
 .env.prod.*
 .env.preview.*
 .env.development.*
+
+# Local worktrees
+.worktrees/
