@@ -69,7 +69,7 @@ describe("shareSnapshotMessage procedure", () => {
     // Add one user whose net balance is exactly 0
     shares.push({
       userId: 999n,
-      amount: "5.00",
+      amount: "0.00", // Payer spent 0 in shares
       user: { firstName: "Zero User" },
     });
 
@@ -94,9 +94,9 @@ describe("shareSnapshotMessage procedure", () => {
         },
         {
           amount: "5.00",
-          payerId: 999n, // Zero User paid 5, and their share above is 5, net = 0
+          payerId: 999n,
           payer: { firstName: "Zero User" },
-          shares: [],
+          shares: [], // zero shares
         },
       ],
     });
@@ -121,15 +121,15 @@ describe("shareSnapshotMessage procedure", () => {
     // Truncation check
     expect(sentMessage).toContain("User 0");
     expect(sentMessage).toContain("User 14");
-    expect(sentMessage).not.toContain("User 15"); // 16th user omitted
-    expect(sentMessage).toContain("and 1 others\\.\\.\\.");
+    expect(sentMessage).not.toContain("User 15"); // 16th negative user omitted
+    expect(sentMessage).toContain("and 1 others\\.\\.\\."); // 16 non-zero users total - 15 displayed
 
     // Omission checks
-    expect(sentMessage).not.toContain("Zero User");
-    expect(sentMessage).not.toContain("damage.*Creator");
+    expect(sentMessage).not.toContain("Zero User"); // has 0 shares
+    expect(sentMessage).not.toContain("Creator:"); // has 0 shares
   });
 
-  it("should completely omit Group Damage section if all users have 0 net damage", async () => {
+  it("should completely omit Group Damage section if all users have 0 net balance", async () => {
     (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
       id: "mock-id",
       title: "Empty Damage",
@@ -148,7 +148,7 @@ describe("shareSnapshotMessage procedure", () => {
           payerId: 111n,
           payer: { firstName: "Creator" },
           shares: [
-            { userId: 111n, amount: "10.00", user: { firstName: "Creator" } },
+            { userId: 111n, amount: "0.00", user: { firstName: "Creator" } },
           ],
         },
       ],
