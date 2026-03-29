@@ -1,6 +1,6 @@
 import { useLaunchParams } from "@telegram-apps/sdk-react";
 import { z } from "zod";
-import { decodeV1DeepLink } from "@dko/trpc";
+import { decodeV1DeepLink } from "@dko/trpc/src/utils/deepLinkProtocol";
 
 const startParamSchema = z.object({
   chat_id: z.union([z.number(), z.string()]).optional(),

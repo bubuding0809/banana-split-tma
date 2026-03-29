@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { parseRawParams } from "./useStartParams";
 
 // We need to mock the v1 decoder so we don't depend on trpc utils directly here
-vi.mock("@dko/trpc", () => ({
+vi.mock("@dko/trpc/src/utils/deepLinkProtocol", () => ({
   decodeV1DeepLink: vi.fn((raw) => {
     if (raw === "v1_g_1E2R4w_s_7N42dgm5tFLK9N8MT7fXbc") {
       return {
