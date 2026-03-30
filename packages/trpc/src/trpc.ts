@@ -292,27 +292,24 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 export const adminProcedure = t.procedure.use(async ({ ctx, next }) => {
   const req = ctx.request as CreateExpressContextOptions["req"];
   const { headers } = req;
-  const adminApiKey = headers["x-admin-api-key"];
+  const apiKey = headers["x-api-key"];
 
-  // Delay import of env so we don't crash when just loading the router in dev
-  const { env } = await import("./env.js");
-
-  if (!env.ADMIN_API_KEY) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Admin API Key is not configured on the server",
-    });
-  }
-
-  if (!adminApiKey || typeof adminApiKey !== "string") {
+  if (!apiKey || typeof apiKey !== "string") {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Invalid or missing Admin API Key",
+      message: "Invalid or missing API Key",
     });
   }
 
-  const providedKey = Buffer.from(adminApiKey);
-  const expectedKey = Buffer.from(env.ADMIN_API_KEY);
+  if (!process.env.API_KEY) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "API_KEY is not configured on the server",
+    });
+  }
+
+  const providedKey = Buffer.from(apiKey);
+  const expectedKey = Buffer.from(process.env.API_KEY);
 
   if (
     providedKey.length !== expectedKey.length ||
@@ -320,7 +317,7 @@ export const adminProcedure = t.procedure.use(async ({ ctx, next }) => {
   ) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Invalid or missing Admin API Key",
+      message: "Invalid or missing API Key",
     });
   }
 

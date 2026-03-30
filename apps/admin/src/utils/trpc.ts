@@ -15,7 +15,7 @@ export const trpcClient = trpcReact.createClient({
       transformer: superjson,
       headers() {
         return {
-          "x-admin-api-key": import.meta.env.VITE_ADMIN_API_KEY || "",
+          "x-api-key": import.meta.env.VITE_API_KEY || "",
         };
       },
     }),

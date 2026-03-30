@@ -11,19 +11,16 @@ export function BroadcastDashboard() {
   const [selectedUsers, setSelectedUsers] = useState<bigint[]>([]);
   const [testUserId, setTestUserId] = useState<string>("");
 
-  // @ts-expect-error admin router is not yet fully implemented in TRPC backend
   const { data: users } = trpcReact.admin.getUsers.useQuery();
-  // @ts-expect-error backend not fully updated
   const testBroadcast = trpcReact.admin.testBroadcast.useMutation();
-  // @ts-expect-error backend not fully updated
   const broadcastMessage = trpcReact.admin.broadcastMessage.useMutation();
 
   const handleTestSend = async () => {
     if (!message || !testUserId) return;
 
-    let parsedId: bigint;
+    let parsedId: number;
     try {
-      parsedId = BigInt(testUserId.trim());
+      parsedId = Number(BigInt(testUserId.trim()));
     } catch {
       alert("Please enter a valid numeric Telegram User ID.");
       return;
@@ -63,7 +60,10 @@ export function BroadcastDashboard() {
     try {
       const result = await broadcastMessage.mutateAsync({
         message,
-        targetUserIds: targetMode === "specific" ? selectedUsers : undefined,
+        targetUserIds:
+          targetMode === "specific"
+            ? selectedUsers.map((id) => Number(id))
+            : undefined,
       });
       alert(
         `Broadcast complete! Sent: ${result?.successCount}, Failed: ${result?.failCount}`

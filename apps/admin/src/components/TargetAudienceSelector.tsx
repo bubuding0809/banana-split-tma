@@ -14,7 +14,6 @@ export function TargetAudienceSelector({
   selectedUsers,
   setSelectedUsers,
 }: TargetAudienceSelectorProps) {
-  // @ts-expect-error admin router is not yet fully implemented in TRPC backend
   const { data: users, isLoading, error } = trpcReact.admin.getUsers.useQuery();
 
   const handleToggleUser = (userId: bigint) => {
