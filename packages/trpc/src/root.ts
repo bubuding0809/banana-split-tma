@@ -11,10 +11,12 @@ import {
   snapshotRouter,
   telegramRouter,
   userRouter,
+  adminRouter,
 } from "./routers/index.js";
 import { createTRPCRouter } from "./trpc.js";
 
 export const appRouter = createTRPCRouter({
+  admin: adminRouter,
   ai: aiRouter,
   apiKey: apiKeyRouter,
   aws: awsRouter,

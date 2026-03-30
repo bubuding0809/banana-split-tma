@@ -1,21 +1,21 @@
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { QueryClient } from "@tanstack/react-query";
+import { httpBatchLink } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
 import superjson from "superjson";
 import type { AppRouter } from "@dko/trpc";
-import dotenv from "dotenv";
 
-// Load environment variables
-dotenv.config();
+export const queryClient = new QueryClient();
 
-export const trpcClient = createTRPCClient<AppRouter>({
+export const trpcReact = createTRPCReact<AppRouter>();
+
+export const trpcClient = trpcReact.createClient({
   links: [
     httpBatchLink({
-      url: process.env.TRPC_URL ?? "http://localhost:3001/api/trpc",
+      url: import.meta.env.VITE_TRPC_URL || "http://localhost:3000/api/trpc",
       transformer: superjson,
       headers() {
         return {
-          ...(process.env.API_KEY && {
-            "x-api-key": process.env.API_KEY,
-          }),
+          "x-api-key": import.meta.env.VITE_API_KEY || "",
         };
       },
     }),

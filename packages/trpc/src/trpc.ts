@@ -288,3 +288,44 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+export const adminProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const req = ctx.request as CreateExpressContextOptions["req"];
+  const { headers } = req;
+  const apiKey = headers["x-api-key"];
+
+  if (!apiKey || typeof apiKey !== "string") {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or missing API Key",
+    });
+  }
+
+  if (!process.env.API_KEY) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "API_KEY is not configured on the server",
+    });
+  }
+
+  const providedKey = Buffer.from(apiKey);
+  const expectedKey = Buffer.from(process.env.API_KEY);
+
+  if (
+    providedKey.length !== expectedKey.length ||
+    !crypto.timingSafeEqual(providedKey, expectedKey)
+  ) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or missing API Key",
+    });
+  }
+
+  return next({
+    ctx: {
+      session: {
+        authType: "admin" as const,
+      },
+    },
+  });
+});

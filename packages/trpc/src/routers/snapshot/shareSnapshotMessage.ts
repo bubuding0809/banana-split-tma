@@ -250,11 +250,15 @@ export const shareSnapshotMessageHandler = async (
       }
       debtsByDebtor.get(debt.debtorId)!.push(debt);
     });
-    
+
     // Sort debtors by highest total debt first
     const sortedDebtors = Array.from(debtsByDebtor.keys()).sort((a, b) => {
-      const totalA = debtsByDebtor.get(a)!.reduce((sum, d) => sum + d.amount, 0);
-      const totalB = debtsByDebtor.get(b)!.reduce((sum, d) => sum + d.amount, 0);
+      const totalA = debtsByDebtor
+        .get(a)!
+        .reduce((sum, d) => sum + d.amount, 0);
+      const totalB = debtsByDebtor
+        .get(b)!
+        .reduce((sum, d) => sum + d.amount, 0);
       return totalB - totalA;
     });
 
@@ -263,7 +267,7 @@ export const shareSnapshotMessageHandler = async (
     topDebtors.forEach((debtorId) => {
       const creditors = debtsByDebtor.get(debtorId)!;
       const debtor = memberMap.get(BigInt(debtorId));
-      
+
       if (!debtor) return;
 
       let debtorMention = "";
@@ -309,7 +313,7 @@ export const shareSnapshotMessageHandler = async (
         `\nand ${escapeMarkdown((sortedDebtors.length - MAX_DISPLAYED_USERS).toString(), 2)} others\\.\\.\\.`
       );
     }
-    
+
     if (snapshot.chat.debtSimplificationEnabled) {
       messageLines.push(
         "\n>Debts simplification is enabled\\. What you see is the minimal set of debts to settle among members\\."

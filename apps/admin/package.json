@@ -4,18 +4,38 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --fix",
+    "start": "vite preview",
+    "check-types": "tsc -b"
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
+    "@tanstack/react-query": "^5.69.0",
     "@trpc/client": "^11.0.0",
+    "@trpc/react-query": "^11.0.0",
+    "@trpc/server": "^11.0.0",
+    "@uiw/react-md-editor": "^4.1.0",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
-    "superjson": "^2.2.2"
+    "lucide-react": "^0.518.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "superjson": "^2.2.2",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
+    "@tailwindcss/vite": "^4.1.10",
     "@types/node": "^22.10.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react-swc": "^3.8.0",
+    "tailwindcss": "^4.1.10",
     "tsx": "^4.7.1",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vite": "^6.2.0"
   }
 }

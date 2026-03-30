@@ -10,3 +10,4 @@ export { settlementRouter } from "./settlement/index.js";
 export { currencyRouter } from "./currency/index.js";
 export { snapshotRouter } from "./snapshot/index.js";
 export { apiKeyRouter } from "./apiKey/index.js";
+export { adminRouter } from "./admin/index.js";
