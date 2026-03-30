@@ -345,6 +345,16 @@ pnpm dev:tunnel    # Start tunnels + dev servers
 3. Authenticate: `tailscale up`
 4. Enable Funnel in admin console: https://login.tailscale.com/admin/dns
 
+### Vercel CLI
+
+> **Skill**: Load `vercel-cli` skill before using Vercel CLI commands.
+
+The `VERCEL_TOKEN` for use with `vercel --token` is stored in `.envrc` at the project root.
+
+```bash
+VERCEL_TOKEN=$(grep VERCEL_TOKEN .envrc | cut -d'"' -f2) vercel projects list
+```
+
 ### Pre-commit Hooks
 
 - Husky setup with lint-staged
