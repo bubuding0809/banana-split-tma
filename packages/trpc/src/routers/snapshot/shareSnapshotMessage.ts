@@ -16,6 +16,7 @@ import { inlineKeyboard } from "telegraf/markup";
 import { Telegram } from "telegraf";
 import { Prisma } from "@dko/database";
 import { getMultipleRatesHandler } from "../currency/getMultipleRates.js";
+import { simplifyDebts } from "../../utils/debtSimplification.js";
 
 const MAX_DISPLAYED_USERS = 15;
 
@@ -65,12 +66,17 @@ export const shareSnapshotMessageHandler = async (
     });
   }
 
-  // 4. Calculate total spent and individual sum of shares
+  // 4. Calculate total spent and individual net balances
   let totalSpent = toDecimal(0);
-  const userShares = new Map<
-    bigint,
-    { name: string; username?: string; amount: Prisma.Decimal }
-  >();
+
+  // Track member info to easily render mentions later
+  const memberMap = new Map<bigint, { name: string; username?: string }>();
+
+  // Track net balance for each user: positive = creditor, negative = debtor
+  const netBalances = new Map<bigint, Prisma.Decimal>();
+
+  // Track pairwise unsimplified debts: key is `${debtorId}_${creditorId}`
+  const pairwiseDebts = new Map<string, Prisma.Decimal>();
 
   // Use chat's base currency if available, otherwise snapshot's, fallback to SGD
   const currencyCode = snapshot.chat.baseCurrency || snapshot.currency || "SGD";
@@ -114,31 +120,100 @@ export const shareSnapshotMessageHandler = async (
 
     totalSpent = totalSpent.plus(amountInBaseCurrency);
 
+    // Member tracking
+    memberMap.set(expense.payerId, {
+      name: expense.payer.firstName,
+      username: expense.payer.username || undefined,
+    });
+
+    // Update payer net balance
+    const payerBalance = netBalances.get(expense.payerId) || toDecimal(0);
+    netBalances.set(expense.payerId, payerBalance.plus(amountInBaseCurrency));
+
     // Sum shares
     expense.shares.forEach((share) => {
+      // Member tracking
+      memberMap.set(share.userId, {
+        name: share.user.firstName,
+        username: share.user.username || undefined,
+      });
+
       const shareAmount = share.amount ? toDecimal(share.amount) : toDecimal(0);
       const shareAmountInBaseCurrency = shareAmount.dividedBy(rate);
 
-      const shareData = userShares.get(share.userId) || {
-        name: share.user.firstName,
-        username: share.user.username || undefined,
-        amount: toDecimal(0),
-      };
-      shareData.amount = shareData.amount.plus(shareAmountInBaseCurrency);
-      userShares.set(share.userId, shareData);
+      // Update share net balance
+      const shareBalance = netBalances.get(share.userId) || toDecimal(0);
+      netBalances.set(
+        share.userId,
+        shareBalance.minus(shareAmountInBaseCurrency)
+      );
+
+      // Update unsimplified pairwise debts
+      if (
+        share.userId !== expense.payerId &&
+        shareAmountInBaseCurrency.greaterThan(0)
+      ) {
+        const key1 = `${share.userId}_${expense.payerId}`; // A owes B
+        const key2 = `${expense.payerId}_${share.userId}`; // B owes A
+
+        const currentDebt = pairwiseDebts.get(key1) || toDecimal(0);
+        const currentReverseDebt = pairwiseDebts.get(key2) || toDecimal(0);
+
+        if (currentReverseDebt.greaterThan(0)) {
+          if (currentReverseDebt.greaterThan(shareAmountInBaseCurrency)) {
+            pairwiseDebts.set(
+              key2,
+              currentReverseDebt.minus(shareAmountInBaseCurrency)
+            );
+          } else {
+            pairwiseDebts.delete(key2);
+            if (shareAmountInBaseCurrency.greaterThan(currentReverseDebt)) {
+              pairwiseDebts.set(
+                key1,
+                shareAmountInBaseCurrency.minus(currentReverseDebt)
+              );
+            }
+          }
+        } else {
+          pairwiseDebts.set(key1, currentDebt.plus(shareAmountInBaseCurrency));
+        }
+      }
     });
   });
 
-  // 5. Filter for users who have non-zero shares and sort by highest spent
-  const damageList = Array.from(userShares.entries())
-    .filter(([_, data]) => isSignificantBalance(data.amount))
-    .map(([id, data]) => ({
-      id,
-      name: data.name,
-      username: data.username,
-      amount: data.amount,
-    }))
-    .sort((a, b) => b.amount.comparedTo(a.amount));
+  // 5. Generate Debt Summary
+  let debtSummary: Array<{
+    debtorId: number;
+    creditorId: number;
+    amount: number;
+  }> = [];
+
+  if (snapshot.chat.debtSimplificationEnabled) {
+    const numericBalances = new Map<number, number>();
+    netBalances.forEach((balance, userId) => {
+      numericBalances.set(Number(userId), balance.toNumber());
+    });
+
+    const simplified = simplifyDebts(numericBalances);
+    debtSummary = simplified.map((debt) => ({
+      debtorId: debt.fromUserId,
+      creditorId: debt.toUserId,
+      amount: debt.amount,
+    }));
+  } else {
+    pairwiseDebts.forEach((amount, key) => {
+      if (isSignificantBalance(amount)) {
+        const [debtorStr, creditorStr] = key.split("_");
+        if (debtorStr && creditorStr) {
+          debtSummary.push({
+            debtorId: Number(debtorStr),
+            creditorId: Number(creditorStr),
+            amount: amount.toNumber(),
+          });
+        }
+      }
+    });
+  }
 
   // 6. Format Telegram Message
   const creatorMention = snapshot.creator.username
@@ -157,33 +232,98 @@ export const shareSnapshotMessageHandler = async (
   const escapedTitle = escapeMarkdown(snapshot.title, 2);
 
   // NOTE: Static formatting like `*` for bold must NOT be escaped, only the dynamic values and literal chars
-  let message = `📊 *${escapedTitle}* shared by ${creatorMention}\n`;
-  message += `Total spent: *${escapedTotal}* \\(${snapshot.expenses.length} expenses\\)\n`;
+  const messageLines: string[] = [
+    `📊 *${escapedTitle}* shared by ${creatorMention}`,
+    `Total spent: *${escapedTotal}* \\(${snapshot.expenses.length} expenses\\)`,
+  ];
 
-  if (damageList.length > 0) {
-    message += `\n📉 *Group Damage:*\n`;
+  if (debtSummary.length > 0) {
+    // Group debts by debtor
+    const debtsByDebtor = new Map<
+      number,
+      Array<{ creditorId: number; amount: number }>
+    >();
 
-    // Truncate to top MAX_DISPLAYED_USERS
-    const topUsers = damageList.slice(0, MAX_DISPLAYED_USERS);
-
-    topUsers.forEach((user) => {
-      const mention = user.username
-        ? `@${escapeMarkdown(user.username, 2)}`
-        : mentionMarkdown(Number(user.id), user.name, 2);
-
-      const formattedDamage = formatCurrencyWithCode(
-        user.amount.toNumber(),
-        currencyCode
-      ).replace(/\u00A0/g, " ");
-      const escapedDamage = escapeMarkdown(formattedDamage, 2);
-
-      message += `• ${mention}: ${escapedDamage}\n`;
+    debtSummary.forEach((debt) => {
+      if (!debtsByDebtor.has(debt.debtorId)) {
+        debtsByDebtor.set(debt.debtorId, []);
+      }
+      debtsByDebtor.get(debt.debtorId)!.push(debt);
     });
 
-    if (damageList.length > MAX_DISPLAYED_USERS) {
-      message += `and ${escapeMarkdown((damageList.length - MAX_DISPLAYED_USERS).toString(), 2)} others\\.\\.\\.\n`;
+    // Sort debtors by highest total debt first
+    const sortedDebtors = Array.from(debtsByDebtor.keys()).sort((a, b) => {
+      const totalA = debtsByDebtor
+        .get(a)!
+        .reduce((sum, d) => sum + d.amount, 0);
+      const totalB = debtsByDebtor
+        .get(b)!
+        .reduce((sum, d) => sum + d.amount, 0);
+      return totalB - totalA;
+    });
+
+    const topDebtors = sortedDebtors.slice(0, MAX_DISPLAYED_USERS);
+
+    topDebtors.forEach((debtorId) => {
+      const creditors = debtsByDebtor.get(debtorId)!;
+      const debtor = memberMap.get(BigInt(debtorId));
+
+      if (!debtor) return;
+
+      let debtorMention = "";
+      if (debtor.username) {
+        debtorMention = `@${escapeMarkdown(debtor.username, 2)}`;
+      } else {
+        debtorMention = mentionMarkdown(
+          debtorId,
+          debtor.username || debtor.name || "Unknown",
+          2
+        );
+      }
+
+      messageLines.push(`\n🙇 ${debtorMention}`);
+
+      // Sort creditors by name for consistent ordering
+      creditors.sort((a, b) => {
+        const creditorA = memberMap.get(BigInt(a.creditorId));
+        const creditorB = memberMap.get(BigInt(b.creditorId));
+        const nameA = creditorA?.username || creditorA?.name || "Unknown";
+        const nameB = creditorB?.username || creditorB?.name || "Unknown";
+        return nameA.localeCompare(nameB);
+      });
+
+      creditors.forEach((creditor, index) => {
+        const creditorMember = memberMap.get(BigInt(creditor.creditorId));
+        if (!creditorMember) return;
+
+        const formattedAmount = escapeMarkdown(
+          formatCurrencyWithCode(creditor.amount, currencyCode),
+          2
+        );
+        const prefix = index === creditors.length - 1 ? "┗" : "┣";
+
+        messageLines.push(
+          `${prefix} Owes ${escapeMarkdown(creditorMember.name, 2)}: ${formattedAmount}`
+        );
+      });
+    });
+
+    if (sortedDebtors.length > MAX_DISPLAYED_USERS) {
+      messageLines.push(
+        `\nand ${escapeMarkdown((sortedDebtors.length - MAX_DISPLAYED_USERS).toString(), 2)} others\\.\\.\\.`
+      );
     }
+
+    if (snapshot.chat.debtSimplificationEnabled) {
+      messageLines.push(
+        "\n>Debts simplification is enabled\\. What you see is the minimal set of debts to settle among members\\."
+      );
+    }
+  } else {
+    messageLines.push("\n>✅ All debts are settled\\!");
   }
+
+  const message = messageLines.join("\n");
 
   // 7. Generate deep link
   let payload = "";

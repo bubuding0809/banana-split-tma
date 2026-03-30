@@ -48,6 +48,7 @@
     "@playwright/experimental-ct-react": "^1.58.2",
     "@repo/eslint-config": "workspace:*",
     "@tanstack/router-plugin": "^1.121.25",
+    "@vercel/config": "^0.1.0",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
