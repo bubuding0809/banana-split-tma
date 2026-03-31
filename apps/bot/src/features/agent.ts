@@ -59,16 +59,29 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
         if (file.file_path) {
           const fileUrl = `https://api.telegram.org/file/bot${ctx.api.token}/${file.file_path}`;
 
-          // Mastra CoreMessage array format for Multi-modal inputs
-          finalMessagePayload = [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: userMessage },
-                { type: "image", image: new URL(fileUrl) },
-              ],
-            },
-          ];
+          // Pre-validate that the image URL is accessible before sending to Mastra
+          // Mastra will try to download it for memory storage, so if it's not accessible, skip the image
+          let imageUrlValid = false;
+          try {
+            const response = await fetch(fileUrl, { method: "HEAD" });
+            imageUrlValid = response.ok;
+          } catch {
+            imageUrlValid = false;
+          }
+
+          if (imageUrlValid) {
+            // Mastra CoreMessage array format for Multi-modal inputs
+            finalMessagePayload = [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: userMessage },
+                  { type: "image", image: new URL(fileUrl) },
+                ],
+              },
+            ];
+          }
+          // If image URL is not valid (404 etc), fall through to text-only message
         }
       }
     }
