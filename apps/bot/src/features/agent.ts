@@ -59,29 +59,33 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
         if (file.file_path) {
           const fileUrl = `https://api.telegram.org/file/bot${ctx.api.token}/${file.file_path}`;
 
-          // Pre-validate that the image URL is accessible before sending to Mastra
-          // Mastra will try to download it for memory storage, so if it's not accessible, skip the image
-          let imageUrlValid = false;
+          // Download image and convert to base64 to avoid URL accessibility issues
+          // Mastra would otherwise try to download the URL for memory storage
           try {
-            const response = await fetch(fileUrl, { method: "HEAD" });
-            imageUrlValid = response.ok;
-          } catch {
-            imageUrlValid = false;
-          }
+            const response = await fetch(fileUrl);
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              const base64 = Buffer.from(uint8Array).toString("base64");
+              // Detect mime type from file_id extension or default to jpeg
+              const mimeType = photo.file_id.includes("/")
+                ? "image/jpeg"
+                : "image/jpeg";
+              const dataUrl = `data:${mimeType};base64,${base64}`;
 
-          if (imageUrlValid) {
-            // Mastra CoreMessage array format for Multi-modal inputs
-            finalMessagePayload = [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: userMessage },
-                  { type: "image", image: new URL(fileUrl) },
-                ],
-              },
-            ];
+              finalMessagePayload = [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: userMessage },
+                    { type: "image", image: dataUrl },
+                  ],
+                },
+              ];
+            }
+          } catch {
+            // If download fails, fall through to text-only message
           }
-          // If image URL is not valid (404 etc), fall through to text-only message
         }
       }
     }
