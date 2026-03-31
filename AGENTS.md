@@ -152,6 +152,7 @@ const tButtonColor = useSignal(themeParams.buttonColor);
 - Prefer interface over type for object shapes
 - Use branded types for IDs when needed
 - Leverage Prisma-generated types
+- **Never use `any`** - Use `unknown` with proper type narrowing, or cast through `unknown` if absolutely necessary (e.g., `value as unknown as ExpectedType`)
 
 ### Component Patterns
 
