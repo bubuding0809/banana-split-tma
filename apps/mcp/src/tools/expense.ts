@@ -44,7 +44,16 @@ export function registerExpenseTools(server: McpServer, trpc: TrpcClient) {
           content: [{ type: "text" as const, text: "No expenses found." }],
         };
       }
-      const text = expenses
+      const text = (
+        expenses as Array<{
+          date?: string;
+          description?: string;
+          amount: string;
+          currency: string;
+          payerId: number;
+          id: number;
+        }>
+      )
         .map((e) => {
           const date = e.date
             ? new Date(e.date).toLocaleDateString()

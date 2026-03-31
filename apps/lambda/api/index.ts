@@ -58,7 +58,7 @@ router.use("/panel", async (_req, res) => {
 
   // Only render the panel in development
   res.send(
-    renderTrpcPanel(appRouter, {
+    renderTrpcPanel(appRouter as any, {
       url: "/api/trpc",
       meta: {
         title: "DKO TRPC API",

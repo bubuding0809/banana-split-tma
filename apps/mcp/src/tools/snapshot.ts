@@ -38,7 +38,14 @@ export function registerSnapshotTools(server: McpServer, trpc: TrpcClient) {
           content: [{ type: "text" as const, text: "No snapshots found." }],
         };
       }
-      const text = snapshots
+      const text = (
+        snapshots as Array<{
+          title?: string;
+          creator?: { firstName?: string };
+          expenses?: unknown[];
+          id: number;
+        }>
+      )
         .map((s) => {
           const expenseCount = s.expenses?.length ?? 0;
           return `- **${s.title || "Untitled"}** by ${s.creator?.firstName || "Unknown"} (${expenseCount} expenses) [ID: ${s.id}]`;

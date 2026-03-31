@@ -44,7 +44,16 @@ export function registerSettlementTools(server: McpServer, trpc: TrpcClient) {
           content: [{ type: "text" as const, text: "No settlements found." }],
         };
       }
-      const text = settlements
+      const text = (
+        settlements as Array<{
+          date?: string;
+          senderId: number;
+          receiverId: number;
+          amount: string;
+          currency: string;
+          id: number;
+        }>
+      )
         .map((s) => {
           const date = s.date
             ? new Date(s.date).toLocaleDateString()

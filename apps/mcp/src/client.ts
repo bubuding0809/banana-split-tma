@@ -7,8 +7,8 @@ import type { AppRouter } from "@dko/trpc";
 export type TrpcClient = ReturnType<typeof createTrpcClient>;
 
 /** Creates a tRPC client authenticated with the given API key. */
-export function createTrpcClient(apiKey: string) {
-  return createTRPCClient<AppRouter>({
+export function createTrpcClient(apiKey: string): any {
+  return createTRPCClient({
     links: [
       httpBatchLink({
         url: env.apiUrl,

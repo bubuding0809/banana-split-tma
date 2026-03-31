@@ -5,7 +5,7 @@ const main = async () => {
   const chats = await trpcClient.chat.getAllChats.query({});
   console.log(`Found ${chats.length} chats. Initializing reminders...`);
 
-  const requests = chats.map(async ({ id }) => {
+  const requests = chats.map(async ({ id }: { id: number }) => {
     try {
       const { scheduleArn } =
         await trpcClient.aws.createGroupReminderSchedule.mutate({

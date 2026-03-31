@@ -4,8 +4,8 @@ import type { AppRouter } from "@dko/trpc";
 
 export type TrpcClient = ReturnType<typeof createTrpcClient>;
 
-export function createTrpcClient(apiKey: string, apiUrl: string) {
-  return createTRPCClient<AppRouter>({
+export function createTrpcClient(apiKey: string, apiUrl: string): any {
+  return createTRPCClient({
     links: [
       httpBatchLink({
         url: apiUrl,

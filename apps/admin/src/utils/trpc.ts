@@ -6,7 +6,7 @@ import type { AppRouter } from "@dko/trpc";
 
 export const queryClient = new QueryClient();
 
-export const trpcReact = createTRPCReact<AppRouter>();
+export const trpcReact = createTRPCReact() as any;
 
 export const trpcClient = trpcReact.createClient({
   links: [

@@ -54,7 +54,14 @@ export function registerChatTools(server: McpServer, trpc: TrpcClient) {
       const text =
         chats.length === 0
           ? "No chats found."
-          : chats
+          : (
+              chats as Array<{
+                title: string;
+                id: string;
+                type: string;
+                baseCurrency: string;
+              }>
+            )
               .map(
                 (c) =>
                   `- **${c.title}** (ID: ${c.id}, type: ${c.type}, currency: ${c.baseCurrency})`
@@ -93,7 +100,14 @@ export function registerChatTools(server: McpServer, trpc: TrpcClient) {
     toolHandler("banana_get_chat", async ({ chat_id }) => {
       const resolvedChatId = await resolveChatId(trpc, chat_id);
       const chat = await trpc.chat.getChat.query({ chatId: resolvedChatId });
-      const members = chat.members
+      const members = (
+        chat.members as Array<{
+          firstName?: string;
+          lastName?: string;
+          username?: string;
+          id: number;
+        }>
+      )
         .map(
           (m) =>
             `  - ${m.firstName || ""} ${m.lastName || ""}`.trim() +
@@ -158,7 +172,14 @@ export function registerChatTools(server: McpServer, trpc: TrpcClient) {
           ],
         };
       }
-      const text = result.debts
+      const text = (
+        result.debts as Array<{
+          debtorId: number;
+          creditorId: number;
+          amount: string;
+          currency: string;
+        }>
+      )
         .map(
           (d) =>
             `- User ${d.debtorId} owes User ${d.creditorId}: ${d.amount} ${d.currency}`
@@ -209,12 +230,21 @@ export function registerChatTools(server: McpServer, trpc: TrpcClient) {
           currency,
         });
         const memberMap = new Map(
-          result.chatMembers.map((m) => [
-            m.id,
-            m.username || m.firstName || `User ${m.id}`,
-          ])
+          (
+            result.chatMembers as Array<{
+              id: number;
+              username?: string;
+              firstName?: string;
+            }>
+          ).map((m) => [m.id, m.username || m.firstName || `User ${m.id}`])
         );
-        const debts = result.simplifiedDebts
+        const debts = (
+          result.simplifiedDebts as Array<{
+            fromUserId: number;
+            toUserId: number;
+            amount: string;
+          }>
+        )
           .map(
             (d) =>
               `- ${memberMap.get(d.fromUserId) || d.fromUserId} -> ${memberMap.get(d.toUserId) || d.toUserId}: ${d.amount} ${currency}`
