@@ -32,7 +32,6 @@
     "ai": "^5.0.30",
     "decimal.js": "^10.5.0",
     "node-telegram-bot-api": "^0.66.0",
-    "paynow-generator": "^1.0.7",
     "superjson": "^2.2.2",
     "telegraf": "^4.16.3",
     "trpc-to-openapi": "^2.3.1",

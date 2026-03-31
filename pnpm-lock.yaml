@@ -403,9 +403,6 @@ importers:
       node-telegram-bot-api:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
-      paynow-generator:
-        specifier: ^1.0.7
-        version: 1.0.7
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
@@ -5136,12 +5133,6 @@ packages:
       }
     engines: { node: ">=10" }
 
-  crc-full@1.1.0:
-    resolution:
-      {
-        integrity: sha512-7YK4t8C9PiekOSnBotYjU2roaaorUXHyT+Xzb12Zgg4DsfG58AxmPk2/wx7XnC9UXyriqRvl3c+U0zFsZkdVYg==,
-      }
-
   create-require@1.1.1:
     resolution:
       {
@@ -8729,12 +8720,6 @@ packages:
     resolution:
       {
         integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==,
-      }
-
-  paynow-generator@1.0.7:
-    resolution:
-      {
-        integrity: sha512-QAtZqrf2M+Jcw3OJuU64VjZmx4B6mYl+DoeRZJNnGSok3hQwnokC6ROs9oEGzGLTe8wT/+WUBr1B7jON2ll1WA==,
       }
 
   pend@1.2.0:
@@ -14688,8 +14673,6 @@ snapshots:
       path-type: 4.0.0
       yaml: 1.10.2
 
-  crc-full@1.1.0: {}
-
   create-require@1.1.1: {}
 
   cross-spawn@7.0.6:
@@ -17034,10 +17017,6 @@ snapshots:
       util: 0.10.4
 
   pathe@2.0.3: {}
-
-  paynow-generator@1.0.7:
-    dependencies:
-      crc-full: 1.1.0
 
   pend@1.2.0: {}
 
