@@ -23,7 +23,6 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@vercel/config": "^0.1.0",
     "@types/express": "^5.0.1",
     "@types/node": "^20.11.17",
     "eslint": "^9.21.0",
