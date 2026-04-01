@@ -78,7 +78,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LAMBDA }}
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/lambda/vercel.ts
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/lambda/vercel.json
 
   deploy-web:
     needs: [filter, migrate]
@@ -96,7 +96,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/web/vercel.ts
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/web/vercel.json
 
   deploy-bot:
     needs: [filter, migrate]
@@ -114,4 +114,4 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/bot/vercel.ts
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --local-config=apps/bot/vercel.json

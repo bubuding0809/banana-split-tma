@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
+  "ignoreCommand": "npx turbo-ignore",
+  "regions": ["fra1"],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/webhook"
+    }
+  ]
+}
