@@ -85,12 +85,12 @@ const AmountFormStep = withForm({
         form.setFieldMeta("date", (prev) => ({ ...prev, isTouched: true }));
 
         if (
-          form.state.fieldMeta.amount.errors.length ||
-          form.state.fieldMeta.description.errors.length ||
-          form.state.fieldMeta.date.errors.length
+          form.state.fieldMeta.amount?.errors.length ||
+          form.state.fieldMeta.description?.errors.length ||
+          form.state.fieldMeta.date?.errors.length
         ) {
           // Focus the first field with errors
-          if (form.state.fieldMeta.amount.errors.length) {
+          if (form.state.fieldMeta.amount?.errors.length) {
             amountInputRef.current?.scrollIntoView({
               behavior: "smooth",
               block: "center",
@@ -98,7 +98,7 @@ const AmountFormStep = withForm({
             amountInputRef.current?.focus({
               preventScroll: true,
             });
-          } else if (form.state.fieldMeta.description.errors.length) {
+          } else if (form.state.fieldMeta.description?.errors.length) {
             descriptionFieldRef.current?.scrollIntoView({
               behavior: "smooth",
               block: "center",

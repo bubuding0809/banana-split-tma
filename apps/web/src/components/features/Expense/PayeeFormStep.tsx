@@ -70,7 +70,7 @@ const PayeeFormStep = withForm({
         form.validateSync("change");
         form.setFieldMeta("payee", (prev) => ({ ...prev, isTouched: true }));
 
-        if (form.state.fieldMeta.payee.errors.length) {
+        if (form.state.fieldMeta.payee?.errors.length) {
           return hapticFeedback.notificationOccurred("warning");
         }
         hapticFeedback.notificationOccurred("success");

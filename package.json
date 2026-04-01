@@ -32,6 +32,11 @@
     "vercel": "^50.0.0",
     "vitest": "^4.0.18"
   },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.8.2"
+    }
+  },
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"

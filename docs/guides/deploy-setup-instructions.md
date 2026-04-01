@@ -9,16 +9,13 @@ To enable the automated deployment pipeline, you need to configure the following
 1. **`DATABASE_URL`**: The connection string for your production PostgreSQL database. This is required for the `migrate` job to run Prisma migrations automatically when the schema changes.
 
 2. **`VERCEL_TOKEN`**: A personal access token from your Vercel account.
-
    - Go to Vercel > Account Settings > Tokens.
    - Create a new token with appropriate permissions.
 
 3. **`VERCEL_ORG_ID`**: Your Vercel organization ID or personal account ID.
-
    - This can be found in your Vercel Account Settings, or by running `vercel link` locally and checking the generated `.vercel/project.json` file.
 
 4. **`VERCEL_PROJECT_ID_LAMBDA`**: The Vercel Project ID for the `apps/lambda` application.
-
    - Create a project on Vercel for this app, or link it locally to retrieve the ID.
 
 5. **`VERCEL_PROJECT_ID_WEB`**: The Vercel Project ID for the `apps/web` application.
@@ -30,14 +27,12 @@ To enable the automated deployment pipeline, you need to configure the following
 The `.github/workflows/deploy.yml` pipeline orchestrates the entire CD process:
 
 1. **Path Filtering (`filter` job)**: Determines which parts of the monorepo have changed.
-
    - `db`: Detects changes in `packages/database/prisma/schema.prisma`.
    - `lambda`: Detects changes in `apps/lambda` or `packages/`.
    - `web`: Detects changes in `apps/web` or `packages/`.
    - `bot`: Detects changes in `apps/bot` or `packages/`.
 
 2. **Database Migrations (`migrate` job)**:
-
    - Runs conditionally **only** if `schema.prisma` was modified.
    - Executes `pnpm --filter database db:deploy` against your production database using the provided `DATABASE_URL` secret.
 

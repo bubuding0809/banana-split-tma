@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { formOptions } from "@tanstack/react-form";
-import { COMMON_TIMEZONES, DAYS_OF_WEEK } from "@/constants/timezones";
+import {
+  COMMON_TIMEZONES,
+  DAYS_OF_WEEK,
+  type Timezone,
+  type DayOfWeek,
+} from "@/constants/timezones";
 
 /**
  * Schema for editing reminder schedule
@@ -29,8 +34,8 @@ export type EditReminderScheduleFormData = z.infer<
  */
 export const editReminderScheduleFormOpts = formOptions({
   defaultValues: {
-    timezone: "Asia/Singapore" as const,
-    dayOfWeek: "sunday" as const,
+    timezone: "Asia/Singapore" as Timezone,
+    dayOfWeek: "sunday" as DayOfWeek,
     time: "21:00",
   },
   validators: {
