@@ -74,6 +74,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install @vercel/config
+        run: npm install @vercel/config
+
       - name: Deploy to Vercel
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -92,6 +95,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install @vercel/config
+        run: npm install @vercel/config
+
       - name: Deploy to Vercel
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -109,6 +115,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Install @vercel/config
+        run: npm install @vercel/config
 
       - name: Deploy to Vercel
         env:
