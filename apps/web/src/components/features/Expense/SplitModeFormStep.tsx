@@ -98,7 +98,7 @@ const SplitModeFormStep = withForm({
       }
 
       const hasErrors = Object.values(form.state.fieldMeta).some(
-        (meta) => meta.errors.length > 0
+        (meta) => (meta?.errors.length ?? 0) > 0
       );
       if (hasErrors) {
         return hapticFeedback.notificationOccurred("warning");

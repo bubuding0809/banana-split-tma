@@ -15,7 +15,7 @@ export const pgMemory = new Memory({
 
 export const memory = pgMemory;
 
-export async function clearBrokenMemorySessions(): Promise<string[]> {
+export const clearBrokenMemorySessions = async (): Promise<string[]> => {
   const TELEGRAM_URL_PATTERN = "api.telegram.org/file";
   const deletedThreads: string[] = [];
 
@@ -39,4 +39,4 @@ export async function clearBrokenMemorySessions(): Promise<string[]> {
   }
 
   return deletedThreads;
-}
+};

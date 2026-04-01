@@ -177,7 +177,7 @@ declare module '@tanstack/react-router' {
     '/_tma': {
       id: '/_tma'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof TmaRouteImport
       parentRoute: typeof rootRouteImport
     }
