@@ -14,6 +14,9 @@ importers:
         specifier: ^2.8.0
         version: 2.9.3
     devDependencies:
+      "@vercel/config":
+        specifier: ^0.1.0
+        version: 0.1.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -5462,6 +5465,13 @@ packages:
     peerDependencies:
       typescript: 5.8.2
 
+  "@vercel/config@0.1.0":
+    resolution:
+      {
+        integrity: sha512-fZSW+xYGgKnptVTRBlk6aUBEkEQNGufPqxMMKZ66EKPGkTvPBmcjxEVBny6ugoAdnIsfmbMd8mxH1C/ANKXfkQ==,
+      }
+    hasBin: true
+
   "@vercel/detect-agent@1.2.1":
     resolution:
       {
@@ -5753,6 +5763,12 @@ packages:
     resolution:
       {
         integrity: sha512-Ci5xTjVTJY/JLZXpCXpLehMft97i9fH34nu9PGav6DtwkVUF6TOPX86U0W0niQjMZ5n6/ZP0BwcJK2LOozKaGw==,
+      }
+
+  "@vercel/routing-utils@6.1.1":
+    resolution:
+      {
+        integrity: sha512-kUJn6CRuLvua5xvDZTJu1rC8GLdniC8D5VIzoJKm0dUdcUxv3LEx+pi8dokxWS+YM7cIs1Z3Y8ms/BDW1iBzzA==,
       }
 
   "@vercel/ruby@2.0.4":
@@ -11717,6 +11733,13 @@ packages:
       }
     engines: { node: ^14.13.1 || >=16.0.0 }
 
+  pretty-cache-header@1.0.0:
+    resolution:
+      {
+        integrity: sha512-xtXazslu25CdnGnUkByU1RoOjK55TqwatJkjjJLg5ZAdz2Lngko/mmaUgeET36P2GMlNwh3fdM7FWBO717pNcw==,
+      }
+    engines: { node: ">=12.13" }
+
   pretty-format@27.5.1:
     resolution:
       {
@@ -13291,6 +13314,13 @@ packages:
         integrity: sha512-MyqZCTGLDZ77u4k+jqg4UlrzPTPZ49NDlaekU6uuFaJLzPIN1woaRXCbGeqOfxwc3Y37ZROGAJ614Rdv7Olt+g==,
       }
     engines: { node: ">=10" }
+
+  timestring@6.0.0:
+    resolution:
+      {
+        integrity: sha512-wMctrWD2HZZLuIlchlkE2dfXJh7J2KDI9Dwl+2abPYg0mswQHfOAyQW3jJg1pY5VfttSINZuKcXoB3FGypVklA==,
+      }
+    engines: { node: ">=8" }
 
   tiny-invariant@1.3.3:
     resolution:
@@ -17789,6 +17819,12 @@ snapshots:
       - rollup
       - supports-color
 
+  "@vercel/config@0.1.0":
+    dependencies:
+      "@vercel/routing-utils": 6.1.1
+      pretty-cache-header: 1.0.0
+      zod: 3.25.76
+
   "@vercel/detect-agent@1.2.1": {}
 
   "@vercel/elysia@0.1.55(rollup@4.60.1)":
@@ -18232,6 +18268,13 @@ snapshots:
   "@vercel/routing-utils@3.1.0":
     dependencies:
       path-to-regexp: 6.1.0
+    optionalDependencies:
+      ajv: 6.14.0
+
+  "@vercel/routing-utils@6.1.1":
+    dependencies:
+      path-to-regexp: 6.1.0
+      path-to-regexp-updated: path-to-regexp@6.3.0
     optionalDependencies:
       ajv: 6.14.0
 
@@ -22100,6 +22143,10 @@ snapshots:
 
   pretty-bytes@6.1.1: {}
 
+  pretty-cache-header@1.0.0:
+    dependencies:
+      timestring: 6.0.0
+
   pretty-format@27.5.1:
     dependencies:
       ansi-regex: 5.0.1
@@ -23256,6 +23303,8 @@ snapshots:
   time-span@4.0.0:
     dependencies:
       convert-hrtime: 3.0.0
+
+  timestring@6.0.0: {}
 
   tiny-invariant@1.3.3: {}
 
