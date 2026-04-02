@@ -460,6 +460,9 @@ importers:
       "@ai-sdk/openai":
         specifier: ^3.0.49
         version: 3.0.49(zod@3.25.76)
+      "@ai-sdk/provider":
+        specifier: ^3.0.8
+        version: 3.0.8
       "@dko/database":
         specifier: workspace:^
         version: link:../database
