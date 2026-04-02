@@ -43,6 +43,12 @@ describe("getAgentModel", () => {
     // but verifying the result string confirms it took the minimax path.
   });
 
+  it("should throw an error if Minimax is used without an API key", () => {
+    process.env.AGENT_PROVIDER = "minimax";
+    delete process.env.MINIMAX_API_KEY;
+    expect(() => getAgentModel()).toThrow("MINIMAX_API_KEY is required");
+  });
+
   it("should throw an error for unsupported provider", () => {
     process.env.AGENT_PROVIDER = "unsupported";
     expect(() => getAgentModel()).toThrow(
