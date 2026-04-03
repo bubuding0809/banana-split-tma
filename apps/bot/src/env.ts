@@ -16,12 +16,27 @@ export const env = createEnv({
     MINI_APP_DEEPLINK: z.string().min(1),
     AWS_GROUP_REMINDER_LAMBDA_ARN: z.string().optional(),
     AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: z.string().optional(),
-    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
     AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
+    AGENT_PROVIDER: z.enum(["google", "minimax"]).default("google"),
+    MINIMAX_API_KEY: z.string().optional(),
+    MINIMAX_BASE_URL: z.string().default("https://api.minimax.chat/v1"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
 });
+
+if (env.AGENT_PROVIDER === "google" && !env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  throw new Error(
+    "❌ GOOGLE_GENERATIVE_AI_API_KEY is required when AGENT_PROVIDER is 'google'"
+  );
+}
+
+if (env.AGENT_PROVIDER === "minimax" && !env.MINIMAX_API_KEY) {
+  throw new Error(
+    "❌ MINIMAX_API_KEY is required when AGENT_PROVIDER is 'minimax'"
+  );
+}
 
 // Inject required AWS envs directly to process.env so the tRPC backend routers can read them safely
 process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
