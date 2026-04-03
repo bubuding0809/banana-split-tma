@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.11",
-    "@ai-sdk/openai": "^3.0.49",
     "@ai-sdk/provider": "^3.0.8",
     "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
@@ -24,6 +23,7 @@
     "@mastra/pg": "^1.8.3",
     "mastra": "latest",
     "superjson": "^2.2.2",
+    "vercel-minimax-ai-provider": "^0.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

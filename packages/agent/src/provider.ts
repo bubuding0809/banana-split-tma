@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createMinimaxOpenAI } from "vercel-minimax-ai-provider";
 import type { LanguageModelV2, LanguageModelV3 } from "@ai-sdk/provider";
 
 export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
@@ -16,12 +16,11 @@ export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
         "MINIMAX_API_KEY is required when using minimax provider"
       );
     }
-    const minimax = createOpenAI({
-      name: "minimax",
+    const minimax = createMinimaxOpenAI({
       apiKey: process.env.MINIMAX_API_KEY,
-      baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.chat/v1",
+      baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1",
     });
-    return minimax.chat(modelName || "abab6.5-chat");
+    return minimax(modelName || "abab6.5-chat");
   }
 
   throw new Error(`Unsupported AGENT_PROVIDER: ${provider}`);

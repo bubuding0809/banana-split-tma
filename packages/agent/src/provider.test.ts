@@ -7,11 +7,9 @@ vi.mock("@ai-sdk/google", () => ({
   google: vi.fn((model) => `mocked-google-${model}`),
 }));
 
-vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: vi.fn(() => {
-    const fn = vi.fn((model) => `mocked-openai-${model}`) as any;
-    fn.chat = vi.fn((model) => `mocked-openai-chat-${model}`);
-    return fn;
+vi.mock("vercel-minimax-ai-provider", () => ({
+  createMinimaxOpenAI: vi.fn(() => {
+    return vi.fn((model) => `mocked-minimax-${model}`);
   }),
 }));
 
@@ -42,8 +40,8 @@ describe("getAgentModel", () => {
     process.env.MINIMAX_BASE_URL = "https://test.url";
 
     const model = getAgentModel();
-    expect(model).toBe("mocked-openai-chat-minimax-test");
-    // Note: testing internal call arguments of the mocked createOpenAI is complex,
+    expect(model).toBe("mocked-minimax-minimax-test");
+    // Note: testing internal call arguments of the mocked createMinimaxOpenAI is complex,
     // but verifying the result string confirms it took the minimax path.
   });
 
