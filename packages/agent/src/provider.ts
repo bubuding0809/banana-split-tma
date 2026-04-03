@@ -21,7 +21,7 @@ export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
       apiKey: process.env.MINIMAX_API_KEY,
       baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.chat/v1",
     });
-    return minimax(modelName || "abab6.5-chat");
+    return minimax.chat(modelName || "abab6.5-chat");
   }
 
   throw new Error(`Unsupported AGENT_PROVIDER: ${provider}`);
