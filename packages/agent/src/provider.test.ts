@@ -8,7 +8,7 @@ vi.mock("@ai-sdk/google", () => ({
 }));
 
 vi.mock("vercel-minimax-ai-provider", () => ({
-  createMinimaxOpenAI: vi.fn(() => {
+  createMinimax: vi.fn(() => {
     return vi.fn((model) => `mocked-minimax-${model}`);
   }),
 }));
@@ -41,7 +41,7 @@ describe("getAgentModel", () => {
 
     const model = getAgentModel();
     expect(model).toBe("mocked-minimax-minimax-test");
-    // Note: testing internal call arguments of the mocked createMinimaxOpenAI is complex,
+    // Note: testing internal call arguments of the mocked createMinimax is complex,
     // but verifying the result string confirms it took the minimax path.
   });
 
