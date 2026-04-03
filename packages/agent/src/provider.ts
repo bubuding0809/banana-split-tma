@@ -1,6 +1,8 @@
 import { google } from "@ai-sdk/google";
 import { createMinimax } from "vercel-minimax-ai-provider";
+import { wrapLanguageModel } from "ai";
 import type { LanguageModelV2, LanguageModelV3 } from "@ai-sdk/provider";
+import { truncateMiddleware } from "./truncate-middleware.js";
 
 export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
   const provider = process.env.AGENT_PROVIDER || "google";
@@ -23,7 +25,14 @@ export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
       config.baseURL = process.env.MINIMAX_BASE_URL;
     }
     const minimax = createMinimax(config);
-    return minimax(modelName || "MiniMax-M2.5");
+    const model = minimax(modelName || "MiniMax-M2.5");
+
+    // Wrap model to limit context history for Minimax to avoid overflow
+    // @ts-ignore
+    return wrapLanguageModel({
+      model: model as any,
+      middleware: truncateMiddleware(15) as any, // keep last 15 messages (including system)
+    });
   }
 
   throw new Error(`Unsupported AGENT_PROVIDER: ${provider}`);
