@@ -20,7 +20,7 @@ export const env = createEnv({
     AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
     AGENT_PROVIDER: z.enum(["google", "minimax"]).default("google"),
     MINIMAX_API_KEY: z.string().optional(),
-    MINIMAX_BASE_URL: z.string().default("https://api.minimax.chat/v1"),
+    MINIMAX_BASE_URL: z.string().default("https://api.minimax.io/v1"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
