@@ -35,16 +35,16 @@ fi
 echo -e "${BLUE}Starting Tailscale Funnel...${NC}"
 echo -e "Machine: ${MACHINE_NAME}\n"
 
-# Start backend funnel on port 443 (maps to localhost:8081)
-echo -e "Starting backend tunnel (8081 -> 443)..."
-tailscale funnel --bg --https=443 http://localhost:8081
+# Start backend funnel on port 8081 (maps to localhost:8081)
+echo -e "Starting backend tunnel (8081 -> 8081)..."
+tailscale funnel --bg --https=8081 http://localhost:8081
 
 # Start frontend funnel on port 8443 (maps to localhost:5173)
 echo -e "Starting frontend tunnel (5173 -> 8443)..."
 tailscale funnel --bg --https=8443 http://localhost:5173
 
 # Display URLs
-BACKEND_URL="https://${MACHINE_NAME}"
+BACKEND_URL="https://${MACHINE_NAME}:8081"
 FRONTEND_URL="https://${MACHINE_NAME}:8443"
 
 echo -e "\n${GREEN}Tunnels Ready!${NC}"
