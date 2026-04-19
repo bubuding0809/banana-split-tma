@@ -25,4 +25,11 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 export { appRouter, trpcExpress, withCreateTRPCContext, openApiDocument };
 export type { AppRouter, RouterInputs, RouterOutputs };
 
+export { broadcast } from "./services/broadcast.js";
+export type {
+  BroadcastFailure,
+  BroadcastMedia,
+  BroadcastResult,
+} from "./services/broadcast.js";
+
 export * from "./utils/deepLinkProtocol.js";

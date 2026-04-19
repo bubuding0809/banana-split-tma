@@ -34,7 +34,10 @@ export function AudienceBar(props: Props) {
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-3">
+      <PopoverContent
+        align="start"
+        className="w-[min(360px,calc(100vw-16px))] p-3"
+      >
         <AudiencePopover {...props} />
       </PopoverContent>
     </Popover>
