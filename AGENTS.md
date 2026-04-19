@@ -325,6 +325,35 @@ pnpm dev:tunnel   # Starts Tailscale funnels + all dev servers
 # Ctrl+C to stop; tunnels tear down automatically.
 ```
 
+### Environment Variables by App
+
+Each app validates its required env at boot (mostly via `@t3-oss/env-core`, see each app's `env.ts` / `src/env.ts`). Use the `.env.example` file as the canonical template — if the schema ever drifts from the example, trust the schema and update the example.
+
+| App / Package                | Env file to create                                        | Template                                 | Validation schema                                                          |
+| ---------------------------- | --------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| `apps/web` (TMA frontend)    | `apps/web/.env.local`                                     | `apps/web/.env.example`                  | `apps/web/vite.config.ts` (validated via `@julr/vite-plugin-validate-env`) |
+| `apps/admin` (admin UI)      | `apps/admin/.env.local`                                   | `apps/admin/.env.example`                | `apps/admin/src/utils/trpc.ts`                                             |
+| `apps/bot` (Telegram bot)    | `apps/bot/.env`                                           | `apps/bot/.env.example`                  | `apps/bot/src/env.ts`                                                      |
+| `apps/lambda` (API/tRPC)     | `apps/lambda/env/.env.development` (or `.env.production`) | `apps/lambda/env/.env.<env>.example`     | `apps/lambda/api/env.ts`                                                   |
+| `apps/mcp` (MCP server)      | `apps/mcp/.env.development` / `.env.production`           | committed in repo (edit values directly) | none                                                                       |
+| `packages/database` (Prisma) | `packages/database/.env`                                  | `packages/database/.env.example`         | `packages/database/prisma/schema.prisma` (env() references)                |
+
+**Cross-app variable consistency rules** — these have to match across apps to authenticate:
+
+- `API_KEY` on `apps/bot` **must equal** `API_KEY` on `apps/lambda` (bot calls lambda's tRPC with `x-api-key`). Same value also goes into `VITE_API_KEY` on `apps/web` and `apps/admin`.
+- `INTERNAL_AGENT_KEY` on `apps/bot` **must equal** `INTERNAL_AGENT_KEY` on `apps/lambda`.
+- `TELEGRAM_BOT_TOKEN` on `apps/bot` and `apps/lambda` both point at the **same** bot — use `@BananaSplitzStgBot` (the staging bot) for local dev, not the prod bot.
+- `MINI_APP_DEEPLINK` in `apps/bot` is the Telegram deep link (`https://t.me/<BotUsername>?startapp`), **not** your tunnel URL. The tunnel URL goes into `VITE_TRPC_URL` in `apps/web/.env.local` (pointing at your `:8081` backend funnel).
+
+**Mini App URL confusion — common setup mistake**:
+
+There are two different "mini app URLs", and they go in different places:
+
+1. `MINI_APP_DEEPLINK` (`apps/bot/.env`): `https://t.me/BananaSplitzStgBot?startapp` — the Telegram deep link the bot posts in "Open App" buttons. Always a `t.me/...` URL, always the bot username, never changes day-to-day.
+2. **The TMA URL registered with BotFather** (`/setmenubutton` → "Configure Mini App" → Main App URL): `https://<your-tailscale>.ts.net:8443/home` — where Telegram actually loads the web app from. This is per-developer and per-machine; each contributor sets their own via BotFather.
+
+If users open the bot and land on the wrong app, check (2). If the "Open App" button in bot messages is broken, check (1).
+
 **Quick DB operations**:
 
 - `docker compose up -d postgres` — start the DB container
