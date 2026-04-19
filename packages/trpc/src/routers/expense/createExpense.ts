@@ -352,11 +352,20 @@ export const createExpenseHandler = async (
             }),
             db.chat.findUnique({
               where: { id: input.chatId },
-              select: { type: true, threadId: true },
+              select: {
+                type: true,
+                threadId: true,
+                notificationsEnabled: true,
+              },
             }),
           ]);
 
-        if (creator && payer && participants.length > 0) {
+        if (
+          chatForNotification?.notificationsEnabled !== false &&
+          creator &&
+          payer &&
+          participants.length > 0
+        ) {
           // Map splits to participants with user info
           const participantsWithAmounts = splits.map((split) => {
             const participant = participants.find((p) => p.id === split.userId);

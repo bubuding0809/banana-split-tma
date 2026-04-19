@@ -13,9 +13,10 @@ import {
   Navigation,
   Section,
   Skeleton,
+  Switch,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { ChevronsUpDown, Phone, X } from "lucide-react";
+import { Bell, ChevronsUpDown, Phone, X } from "lucide-react";
 import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
@@ -59,12 +60,14 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   // * Mutations ===================================================================================
   const updateChatMutation = trpc.chat.updateChat.useMutation({
-    onMutate: ({ baseCurrency }) => {
+    onMutate: ({ baseCurrency, notificationsEnabled }) => {
       trpcUtils.chat.getChat.setData({ chatId }, (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          baseCurrency: baseCurrency ?? "SGD",
+          baseCurrency: baseCurrency ?? prev.baseCurrency,
+          notificationsEnabled:
+            notificationsEnabled ?? prev.notificationsEnabled,
         };
       });
     },
@@ -77,6 +80,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         return {
           ...prev,
           baseCurrency: dChatData?.baseCurrency ?? "SGD",
+          notificationsEnabled: dChatData?.notificationsEnabled ?? true,
         };
       });
     },
@@ -156,6 +160,26 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         onError: () => {
           alert(`Something went wrong, try again later.`);
           hapticFeedback.notificationOccurred("error");
+        },
+      }
+    );
+  };
+
+  const handleNotificationsToggle = () => {
+    const newValue = !(dChatData?.notificationsEnabled ?? true);
+
+    updateChatMutation.mutate(
+      {
+        chatId,
+        notificationsEnabled: newValue,
+      },
+      {
+        onError: () => {
+          alert(`Something went wrong, try again later.`);
+          hapticFeedback.notificationOccurred("error");
+        },
+        onSuccess: () => {
+          hapticFeedback.notificationOccurred("success");
         },
       }
     );
@@ -281,6 +305,27 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
           </Cell>
         )}
       </Section>
+
+      {!isPrivateChat && (
+        <Section
+          header="Notifications"
+          footer="When off, the bot won't post to this group when expenses are added or settlements are recorded."
+        >
+          <Cell
+            Component="label"
+            before={<Bell size={20} />}
+            after={
+              <Switch
+                checked={dChatData?.notificationsEnabled ?? true}
+                onChange={handleNotificationsToggle}
+              />
+            }
+            onClick={handleNotificationsToggle}
+          >
+            Group notifications
+          </Cell>
+        </Section>
+      )}
 
       {!isPrivateChat && <RecurringRemindersSection chatId={chatId} />}
 
