@@ -1,14 +1,23 @@
-import express, { Router } from "express";
+import express, { Router, type Request, type Response } from "express";
 import cors from "cors";
+import multer from "multer";
+import crypto from "node:crypto";
+import { Telegram } from "telegraf";
+import { prisma } from "@dko/database";
 
 import {
   appRouter,
   trpcExpress,
   withCreateTRPCContext,
   openApiDocument,
+  broadcast,
+  type BroadcastMedia,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import { env } from "./env.js";
+
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 //* Create an express app
 const app = express();
@@ -33,6 +42,104 @@ router.use(
     router: appRouter,
     createContext: withCreateTRPCContext(env),
   })
+);
+
+//* Admin broadcast with media attachment (multipart/form-data)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_VIDEO_BYTES },
+});
+
+function isAuthorizedAdmin(req: Request): boolean {
+  const provided = req.header("x-api-key");
+  const expected = env.API_KEY;
+  if (!provided || !expected) return false;
+  if (provided.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+}
+
+router.post(
+  "/admin/broadcast",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    if (!isAuthorizedAdmin(req)) {
+      res.status(401).json({ error: "Invalid or missing API Key" });
+      return;
+    }
+
+    const message =
+      typeof req.body.message === "string" ? req.body.message : "";
+    let targetUserIds: number[] | undefined;
+    const rawTargets = req.body.targetUserIds;
+    if (typeof rawTargets === "string" && rawTargets.length > 0) {
+      try {
+        const parsed = JSON.parse(rawTargets);
+        if (
+          !Array.isArray(parsed) ||
+          !parsed.every((n) => typeof n === "number")
+        ) {
+          res
+            .status(400)
+            .json({ error: "targetUserIds must be a JSON array of numbers" });
+          return;
+        }
+        if (parsed.length > 200) {
+          res.status(400).json({ error: "targetUserIds exceeds max of 200" });
+          return;
+        }
+        targetUserIds = parsed;
+      } catch {
+        res.status(400).json({ error: "targetUserIds must be valid JSON" });
+        return;
+      }
+    }
+
+    let media: BroadcastMedia | undefined;
+    if (req.file) {
+      const mime = req.file.mimetype;
+      if (mime.startsWith("image/")) {
+        if (req.file.size > MAX_PHOTO_BYTES) {
+          res.status(413).json({ error: "Image exceeds 10 MB limit" });
+          return;
+        }
+        media = {
+          kind: "photo",
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+        };
+      } else if (mime.startsWith("video/")) {
+        media = {
+          kind: "video",
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+        };
+      } else {
+        res.status(400).json({ error: `Unsupported media type: ${mime}` });
+        return;
+      }
+    }
+
+    if (!message.trim() && !media) {
+      res.status(400).json({ error: "Broadcast requires a message or media." });
+      return;
+    }
+
+    try {
+      const result = await broadcast(
+        {
+          db: prisma,
+          teleBot: new Telegram(env.TELEGRAM_BOT_TOKEN || ""),
+        },
+        { message, targetUserIds, media }
+      );
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Admin broadcast failed:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
 );
 
 router.get("/swagger", (_req, res) => {

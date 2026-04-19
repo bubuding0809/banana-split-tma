@@ -75,7 +75,7 @@ export function AudiencePopover({
   };
 
   return (
-    <div className="flex min-h-0 w-[360px] flex-1 flex-col gap-2">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
       <div className="bg-muted grid shrink-0 grid-cols-2 gap-1 rounded-md p-1">
         <button
           onClick={() => onTargetModeChange("all")}
