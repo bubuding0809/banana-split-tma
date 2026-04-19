@@ -1,14 +1,14 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { trpcClient, trpcReact, queryClient } from "./utils/trpc";
-import { BroadcastDashboard } from "./components/BroadcastDashboard";
+import { BroadcastPage } from "./components/broadcast/BroadcastPage";
+import { Toaster } from "@/components/ui/sonner";
 
 export function App() {
   return (
     <trpcReact.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-gray-100 p-8">
-          <BroadcastDashboard />
-        </div>
+        <BroadcastPage />
+        <Toaster richColors closeButton position="bottom-right" />
       </QueryClientProvider>
     </trpcReact.Provider>
   );
