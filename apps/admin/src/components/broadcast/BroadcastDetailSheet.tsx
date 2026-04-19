@@ -12,6 +12,7 @@ import { DeliveryRow } from "./DeliveryRow";
 import type { DeliveryStatus } from "@dko/trpc";
 import { toast } from "sonner";
 import { RetractConfirmDialog } from "./actions/RetractConfirmDialog";
+import { EditBroadcastDialog } from "./actions/EditBroadcastDialog";
 
 type Props = {
   broadcastId: string | null;
@@ -27,6 +28,7 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
   const [retractOpen, setRetractOpen] = useState<"all" | "selected" | null>(
     null
   );
+  const [editOpen, setEditOpen] = useState<"all" | "selected" | null>(null);
 
   const detail = trpcReact.admin.broadcastGet.useQuery(
     { broadcastId: broadcastId ?? "" },
@@ -34,6 +36,7 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
   );
 
   const retract = trpcReact.admin.broadcastRetract.useMutation();
+  const edit = trpcReact.admin.broadcastEdit.useMutation();
 
   const onRetractConfirm = async () => {
     if (!broadcastId) return;
@@ -95,7 +98,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
                 {detail.data.text}
               </pre>
               <div className="flex gap-2 pt-2">
-                <Button size="sm" variant="outline" disabled>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditOpen("all")}
+                >
                   Edit all
                 </Button>
                 <Button
@@ -157,7 +164,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
                   >
                     Retract
                   </Button>
-                  <Button size="sm" variant="outline" disabled>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditOpen("selected")}
+                  >
                     Edit
                   </Button>
                   <Button size="sm" variant="outline" disabled>
@@ -179,6 +190,40 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
           isRetracting={retract.isPending}
           onConfirm={onRetractConfirm}
           onOpenChange={(o) => !o && setRetractOpen(null)}
+        />
+        <EditBroadcastDialog
+          open={editOpen !== null}
+          count={
+            editOpen === "selected"
+              ? selected.size
+              : (detail.data?.deliveries.length ?? 0)
+          }
+          currentKind={detail.data?.mediaKind ?? null}
+          initialText={detail.data?.text ?? ""}
+          isSubmitting={edit.isPending}
+          onOpenChange={(o) => !o && setEditOpen(null)}
+          onConfirm={async ({ text }) => {
+            if (!broadcastId) return;
+            const deliveryIds =
+              editOpen === "selected" ? Array.from(selected) : undefined;
+            try {
+              const res = await edit.mutateAsync({
+                broadcastId,
+                deliveryIds,
+                text,
+              });
+              const ok = res.results.filter((r) => r.ok).length;
+              const skipped = res.results.filter((r) => r.skipped).length;
+              toast.success(
+                `Edited ${ok}${skipped ? ` — ${skipped} skipped` : ""}.`
+              );
+              setEditOpen(null);
+              setSelected(new Set());
+              detail.refetch();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Edit failed");
+            }
+          }}
         />
       </SheetContent>
     </Sheet>
