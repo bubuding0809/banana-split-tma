@@ -2,9 +2,7 @@ import { routes, type VercelConfig } from "@vercel/config/v1";
 
 export const config: VercelConfig = {
   git: {
-    deploymentEnabled: {
-      main: false,
-    },
+    deploymentEnabled: false,
   },
   ignoreCommand: "npx turbo-ignore",
   regions: ["fra1"],
