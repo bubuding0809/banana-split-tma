@@ -75,8 +75,8 @@ export function AudiencePopover({
   };
 
   return (
-    <div className="flex w-[360px] flex-col gap-2">
-      <div className="bg-muted grid grid-cols-2 gap-1 rounded-md p-1">
+    <div className="flex min-h-0 w-[360px] flex-1 flex-col gap-2">
+      <div className="bg-muted grid shrink-0 grid-cols-2 gap-1 rounded-md p-1">
         <button
           onClick={() => onTargetModeChange("all")}
           className={cn(
@@ -103,13 +103,16 @@ export function AudiencePopover({
       </div>
 
       {targetMode === "specific" && (
-        <Command shouldFilter={false} className="rounded-md border">
+        <Command
+          shouldFilter={false}
+          className="flex min-h-0 flex-1 flex-col rounded-md border"
+        >
           <CommandInput
             placeholder="Search by name or @username…"
             value={query}
             onValueChange={setQuery}
           />
-          <CommandList className="max-h-64">
+          <CommandList className="max-h-64 flex-1">
             {isLoading && <CommandEmpty>Loading users…</CommandEmpty>}
             {!isLoading && pinned.length === 0 && rest.length === 0 && (
               <CommandEmpty>No users match.</CommandEmpty>
