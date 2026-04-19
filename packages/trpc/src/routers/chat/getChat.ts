@@ -22,6 +22,7 @@ export const getChatHandler = async (
     ...chat,
     threadId: chat?.threadId ? Number(chat.threadId) : undefined,
     debtSimplificationEnabled: chat?.debtSimplificationEnabled ?? false,
+    notificationsEnabled: chat?.notificationsEnabled ?? true,
     members:
       chat?.members.map((m) => ({
         ...m,
