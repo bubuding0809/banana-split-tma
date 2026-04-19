@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
@@ -19,10 +19,12 @@ const inputSchema = z.object({
     .default("SGD"),
   description: z.string().optional(),
   threadId: z.number().optional(),
+  force: z.boolean().default(false),
 });
 
 export const sendSettlementNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
+  db: Db,
   teleBot: Telegram
 ) => {
   // Validate business logic
@@ -31,6 +33,17 @@ export const sendSettlementNotificationMessageHandler = async (
       code: "BAD_REQUEST",
       message: "Invalid chat ID. Cannot send message to chat ID 0.",
     });
+  }
+
+  // Respect the per-chat notification preference unless caller explicitly forces.
+  if (!input.force) {
+    const chat = await db.chat.findUnique({
+      where: { id: BigInt(input.chatId) },
+      select: { notifyOnSettlement: true },
+    });
+    if (!chat?.notifyOnSettlement) {
+      return null;
+    }
   }
 
   // Format the amount as currency with error handling
@@ -78,8 +91,12 @@ export const sendSettlementNotificationMessageHandler = async (
 };
 
 export default protectedProcedure
-  .input(inputSchema)
+  .input(inputSchema.omit({ force: true }))
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return sendSettlementNotificationMessageHandler(input, ctx.teleBot);
+    return sendSettlementNotificationMessageHandler(
+      { ...input, force: false },
+      ctx.db,
+      ctx.teleBot
+    );
   });

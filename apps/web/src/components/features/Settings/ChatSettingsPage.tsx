@@ -60,14 +60,14 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   // * Mutations ===================================================================================
   const updateChatMutation = trpc.chat.updateChat.useMutation({
-    onMutate: ({ baseCurrency, notificationsEnabled }) => {
+    onMutate: ({ baseCurrency, notifyOnExpense, notifyOnSettlement }) => {
       trpcUtils.chat.getChat.setData({ chatId }, (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
           baseCurrency: baseCurrency ?? prev.baseCurrency,
-          notificationsEnabled:
-            notificationsEnabled ?? prev.notificationsEnabled,
+          notifyOnExpense: notifyOnExpense ?? prev.notifyOnExpense,
+          notifyOnSettlement: notifyOnSettlement ?? prev.notifyOnSettlement,
         };
       });
     },
@@ -80,7 +80,8 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
         return {
           ...prev,
           baseCurrency: dChatData?.baseCurrency ?? "SGD",
-          notificationsEnabled: dChatData?.notificationsEnabled ?? true,
+          notifyOnExpense: dChatData?.notifyOnExpense ?? true,
+          notifyOnSettlement: dChatData?.notifyOnSettlement ?? true,
         };
       });
     },
@@ -165,13 +166,33 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
     );
   };
 
-  const handleNotificationsToggle = () => {
-    const newValue = !(dChatData?.notificationsEnabled ?? true);
+  const handleNotifyOnExpenseToggle = () => {
+    const newValue = !(dChatData?.notifyOnExpense ?? true);
 
     updateChatMutation.mutate(
       {
         chatId,
-        notificationsEnabled: newValue,
+        notifyOnExpense: newValue,
+      },
+      {
+        onError: () => {
+          alert(`Something went wrong, try again later.`);
+          hapticFeedback.notificationOccurred("error");
+        },
+        onSuccess: () => {
+          hapticFeedback.notificationOccurred("success");
+        },
+      }
+    );
+  };
+
+  const handleNotifyOnSettlementToggle = () => {
+    const newValue = !(dChatData?.notifyOnSettlement ?? true);
+
+    updateChatMutation.mutate(
+      {
+        chatId,
+        notifyOnSettlement: newValue,
       },
       {
         onError: () => {
@@ -309,20 +330,33 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       {!isPrivateChat && (
         <Section
           header="Notifications"
-          footer="When off, the bot won't post to this group when expenses are added or settlements are recorded."
+          footer="Choose which events should notify this group. Reminders you send manually are unaffected."
         >
           <Cell
             Component="label"
             before={<Bell size={20} />}
             after={
               <Switch
-                checked={dChatData?.notificationsEnabled ?? true}
-                onChange={handleNotificationsToggle}
+                checked={dChatData?.notifyOnExpense ?? true}
+                onChange={handleNotifyOnExpenseToggle}
               />
             }
-            onClick={handleNotificationsToggle}
+            onClick={handleNotifyOnExpenseToggle}
           >
-            Group notifications
+            Expense added
+          </Cell>
+          <Cell
+            Component="label"
+            before={<Bell size={20} />}
+            after={
+              <Switch
+                checked={dChatData?.notifyOnSettlement ?? true}
+                onChange={handleNotifyOnSettlementToggle}
+              />
+            }
+            onClick={handleNotifyOnSettlementToggle}
+          >
+            Settlement recorded
           </Cell>
         </Section>
       )}

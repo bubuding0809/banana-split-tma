@@ -10,21 +10,29 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Check if Tailscale is installed
-if ! command -v tailscale &> /dev/null; then
-  echo -e "${RED}Error: Tailscale is not installed.${NC}"
-  echo -e "Install with: ${BLUE}brew install tailscale${NC}"
+# Resolve the Tailscale CLI: prefer the one on PATH, fall back to the Mac App
+# Store binary. (A bare symlink to the Mac app binary doesn't work — it fails
+# the bundle-identifier check — so we keep the real path handy.)
+MAC_APP_TAILSCALE="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+TAILSCALE=""
+if command -v tailscale &> /dev/null && tailscale version &> /dev/null; then
+  TAILSCALE="tailscale"
+elif [ -x "$MAC_APP_TAILSCALE" ] && "$MAC_APP_TAILSCALE" version &> /dev/null; then
+  TAILSCALE="$MAC_APP_TAILSCALE"
+else
+  echo -e "${RED}Error: Tailscale is not installed (or its CLI is broken).${NC}"
+  echo -e "Install via the Mac App Store, or: ${BLUE}brew install tailscale${NC}"
   exit 1
 fi
 
 # Check if Tailscale is running
-if ! tailscale status &> /dev/null; then
+if ! "$TAILSCALE" status &> /dev/null; then
   echo -e "${YELLOW}Error: Tailscale not running. Run 'tailscale up' first.${NC}"
   exit 1
 fi
 
 # Get machine name for URLs
-MACHINE_NAME=$(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
+MACHINE_NAME=$("$TAILSCALE" status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
 
 if [ -z "$MACHINE_NAME" ] || [ "$MACHINE_NAME" = "null" ]; then
   echo -e "${RED}Error: Could not get Tailscale DNS name.${NC}"
@@ -37,11 +45,11 @@ echo -e "Machine: ${MACHINE_NAME}\n"
 
 # Start backend funnel on port 8081 (maps to localhost:8081)
 echo -e "Starting backend tunnel (8081 -> 8081)..."
-tailscale funnel --bg --https=8081 http://localhost:8081
+"$TAILSCALE" funnel --bg --https=8081 http://localhost:8081
 
 # Start frontend funnel on port 8443 (maps to localhost:5173)
 echo -e "Starting frontend tunnel (5173 -> 8443)..."
-tailscale funnel --bg --https=8443 http://localhost:5173
+"$TAILSCALE" funnel --bg --https=8443 http://localhost:5173
 
 # Display URLs
 BACKEND_URL="https://${MACHINE_NAME}:8081"
