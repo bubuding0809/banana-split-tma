@@ -18,9 +18,18 @@ import {
 import { Copy, Check, Key, Plus, Trash2, X } from "lucide-react";
 import { useState, useCallback } from "react";
 
+const getAgentPrompt = (
+  token: string
+) => `Hey agent, please install and configure the Banana Split CLI for this project:
+1. Run \`npm install -g @banananasplitz/cli\`
+2. Run \`banana login --api-key ${token}\`
+3. Install the skill by evaluating \`banana install-skill\`, extracting the \`skill_path\` from the JSON, and copying that directory into your skills folder.
+4. Confirm you can read the skill, then run \`banana list-chats\` to verify the connection and discover the chats you can access.`;
+
 const UserAccessTokensSection = () => {
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
@@ -65,6 +74,15 @@ const UserAccessTokensSection = () => {
     }
   }, [newRawKey]);
 
+  const handleCopyPrompt = useCallback(() => {
+    if (newRawKey) {
+      navigator.clipboard.writeText(getAgentPrompt(newRawKey));
+      setCopiedPrompt(true);
+      hapticFeedback.impactOccurred("light");
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    }
+  }, [newRawKey]);
+
   const handleRevoke = useCallback(
     (tokenId: string) => {
       if (
@@ -81,6 +99,7 @@ const UserAccessTokensSection = () => {
   const handleCloseModal = useCallback(() => {
     setNewRawKey(null);
     setCopied(false);
+    setCopiedPrompt(false);
   }, []);
 
   return (
@@ -174,11 +193,31 @@ const UserAccessTokensSection = () => {
       >
         <div className="flex flex-col gap-4 px-4 pb-6 pt-2">
           <Text className="text-sm text-gray-500">
-            For security, this API key will not be shown again. Please copy it
-            now.
+            Copy this setup prompt to your AI agent (Claude Code, OpenCode,
+            Cursor, etc.). For security, the key won&apos;t be shown again.
           </Text>
 
+          <div className="relative">
+            <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border bg-gray-50 p-4 font-mono text-xs dark:bg-gray-800">
+              {newRawKey ? getAgentPrompt(newRawKey) : ""}
+            </pre>
+          </div>
+
+          <Button
+            size="l"
+            stretched
+            mode="filled"
+            onClick={handleCopyPrompt}
+            before={copiedPrompt ? <Check size={20} /> : <Copy size={20} />}
+            style={{ backgroundColor: copiedPrompt ? "#22c55e" : tButtonColor }}
+          >
+            {copiedPrompt ? "Copied Prompt!" : "Copy Agent Setup Prompt"}
+          </Button>
+
           <div className="mt-2 flex flex-col gap-2 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+            <Text className="text-xs font-medium text-gray-500">
+              Or copy just the raw key:
+            </Text>
             <code className="break-all rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
               {newRawKey}
             </code>
@@ -198,7 +237,7 @@ const UserAccessTokensSection = () => {
                   : { color: tButtonColor, borderColor: tButtonColor }
               }
             >
-              {copied ? "Copied Key" : "Copy API Key"}
+              {copied ? "Copied Key" : "Copy API Key Only"}
             </Button>
           </div>
         </div>
