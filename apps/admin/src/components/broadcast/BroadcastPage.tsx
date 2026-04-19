@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { trpcReact } from "../../utils/trpc";
 import { useUsers } from "@/hooks/useUsers";
@@ -64,6 +64,18 @@ export function BroadcastPage() {
     }
   };
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isCmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
+      if (isCmdEnter && !disabledReason && !broadcast.isPending) {
+        e.preventDefault();
+        setConfirmOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [disabledReason, broadcast.isPending]);
+
   return (
     <div className="flex h-screen flex-col">
       <header className="bg-background flex items-center justify-between border-b px-6 py-4">
@@ -88,9 +100,9 @@ export function BroadcastPage() {
       </main>
 
       <footer className="bg-background flex flex-col gap-2 border-t px-6 py-3">
-        {disabledReason && (
-          <p className="text-muted-foreground text-xs">{disabledReason}</p>
-        )}
+        <p className="text-muted-foreground text-xs">
+          {disabledReason ?? "Press ⌘↵ / Ctrl↵ to broadcast."}
+        </p>
         <div className="flex items-center justify-between">
           <AudienceBar
             targetMode={targetMode}
