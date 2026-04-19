@@ -10,11 +10,16 @@ import { TelegramPreview } from "./TelegramPreview";
 import { AudienceBar } from "./AudienceBar";
 import { BroadcastButton } from "./BroadcastButton";
 import { ConfirmBroadcastDialog } from "./ConfirmBroadcastDialog";
-import { FailuresDialog, type BroadcastFailure } from "./FailuresDialog";
+import { BroadcastResultsDialog } from "./BroadcastResultsDialog";
 import { AttachmentPicker, type Attachment } from "./AttachmentPicker";
 import type { TargetMode } from "./AudiencePopover";
 import { broadcastWithMedia } from "@/lib/broadcastWithMedia";
 import type { Session } from "@/hooks/useSession";
+import type {
+  BroadcastFailure,
+  BroadcastResult,
+  BroadcastSuccess,
+} from "@dko/trpc";
 
 type Props = {
   session: Session;
@@ -27,8 +32,9 @@ export function BroadcastPage({ session, onLogout }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<bigint[]>([]);
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successes, setSuccesses] = useState<BroadcastSuccess[]>([]);
   const [failures, setFailures] = useState<BroadcastFailure[]>([]);
-  const [failuresOpen, setFailuresOpen] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const { users } = useUsers();
@@ -61,6 +67,32 @@ export function BroadcastPage({ session, onLogout }: Props) {
     });
   };
 
+  const runBroadcast = async (
+    targetUserIds: number[] | undefined
+  ): Promise<BroadcastResult> => {
+    return attachment
+      ? broadcastWithMedia({
+          message,
+          targetUserIds,
+          file: attachment.file,
+        })
+      : broadcastText.mutateAsync({ message, targetUserIds });
+  };
+
+  const summarizeResult = (result: BroadcastResult) => {
+    setSuccesses(result.successes);
+    setFailures(result.failures);
+    setResultsOpen(true);
+    if (result.failCount === 0) {
+      const n = result.successCount;
+      toast.success(`Sent to ${n} ${n === 1 ? "user" : "users"}.`);
+    } else {
+      toast.warning(
+        `Sent to ${result.successCount}, failed for ${result.failCount}.`
+      );
+    }
+  };
+
   const handleConfirm = async () => {
     setIsSending(true);
     const targetUserIds =
@@ -69,33 +101,27 @@ export function BroadcastPage({ session, onLogout }: Props) {
         : undefined;
 
     try {
-      const result = attachment
-        ? await broadcastWithMedia({
-            message,
-            targetUserIds,
-            file: attachment.file,
-          })
-        : await broadcastText.mutateAsync({ message, targetUserIds });
-
+      const result = await runBroadcast(targetUserIds);
       setConfirmOpen(false);
-      const fail = result?.failCount ?? 0;
-      const success = result?.successCount ?? 0;
-      if (fail === 0) {
-        toast.success(
-          `Sent to ${success} ${success === 1 ? "user" : "users"}.`
-        );
-      } else {
-        setFailures(result?.failures ?? []);
-        toast.warning(`Sent to ${success}, failed for ${fail}.`, {
-          action: {
-            label: "View failures",
-            onClick: () => setFailuresOpen(true),
-          },
-        });
-      }
+      summarizeResult(result);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Broadcast failed — ${msg}`);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleRetryFailed = async () => {
+    const retryIds = failures.map((f) => f.userId);
+    if (retryIds.length === 0) return;
+    setIsSending(true);
+    try {
+      const result = await runBroadcast(retryIds);
+      summarizeResult(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Retry failed — ${msg}`);
     } finally {
       setIsSending(false);
     }
@@ -183,10 +209,13 @@ export function BroadcastPage({ session, onLogout }: Props) {
         isSending={isSending}
         onConfirm={handleConfirm}
       />
-      <FailuresDialog
-        open={failuresOpen}
-        onOpenChange={setFailuresOpen}
+      <BroadcastResultsDialog
+        open={resultsOpen}
+        onOpenChange={setResultsOpen}
+        successes={successes}
         failures={failures}
+        isRetrying={isSending}
+        onRetry={handleRetryFailed}
       />
     </div>
   );
