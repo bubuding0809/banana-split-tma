@@ -135,9 +135,6 @@ importers:
       "@tailwindcss/vite":
         specifier: ^4.1.10
         version: 4.2.2(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
-      "@types/marked":
-        specifier: ^6.0.0
-        version: 6.0.0
       "@types/node":
         specifier: ^22.10.5
         version: 22.19.15
@@ -6004,13 +6001,6 @@ packages:
       {
         integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
       }
-
-  "@types/marked@6.0.0":
-    resolution:
-      {
-        integrity: sha512-jmjpa4BwUsmhxcfsgUit/7A9KbrC48Q0q8KvnY107ogcjGgTFDlIL3RpihNpx2Mu1hM4mdFQjoVc4O6JoGKHsA==,
-      }
-    deprecated: This is a stub types definition. marked provides its own type definitions, so you do not need this installed.
 
   "@types/mdast@3.0.15":
     resolution:
@@ -19405,10 +19395,6 @@ snapshots:
   "@types/http-errors@2.0.5": {}
 
   "@types/json-schema@7.0.15": {}
-
-  "@types/marked@6.0.0":
-    dependencies:
-      marked: 17.0.5
 
   "@types/mdast@3.0.15":
     dependencies:
