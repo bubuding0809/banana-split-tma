@@ -2,16 +2,29 @@ name: PR Checks
 
 on:
   pull_request:
-    paths:
-      - 'packages/database/prisma/**'
-      - 'packages/database/package.json'
-      - '.github/workflows/pr-checks.yml'
 
 concurrency:
   group: pr-checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  lockfile-sync:
+    name: pnpm lockfile ↔ package.json sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Verify lockfile matches package.json
+        run: pnpm install --frozen-lockfile
+
   schema-sync:
     name: Prisma schema ↔ migrations sync
     runs-on: ubuntu-latest

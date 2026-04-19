@@ -6,3 +6,14 @@ pnpm run lint
 
 # Run type checking on all TypeScript projects
 pnpm run check-types
+
+# Verify pnpm-lock.yaml matches package.json when either is staged
+if git diff --cached --name-only | grep -qE '^(package\.json|pnpm-lock\.yaml|.*/package\.json)$'; then
+  echo "📦 package.json or pnpm-lock.yaml staged — verifying lockfile is in sync..."
+  pnpm install --frozen-lockfile || {
+    echo ""
+    echo "❌ pnpm-lock.yaml is out of sync with package.json."
+    echo "   Run 'pnpm install' and stage the updated lockfile, then commit again."
+    exit 1
+  }
+fi
