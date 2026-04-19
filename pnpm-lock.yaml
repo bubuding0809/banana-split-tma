@@ -62,6 +62,9 @@ importers:
       "@radix-ui/react-slot":
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.0.10)(react@19.2.4)
+      "@t3-oss/env-core":
+        specifier: ^0.13.8
+        version: 0.13.11(typescript@5.8.2)(valibot@1.0.0-beta.14(typescript@5.8.2))(zod@4.3.6)
       "@tanstack/react-query":
         specifier: ^5.69.0
         version: 5.96.0(react@19.2.4)
@@ -86,6 +89,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      cookie:
+        specifier: ^1.1.1
+        version: 1.1.1
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -95,6 +101,9 @@ importers:
       isomorphic-dompurify:
         specifier: ^3.9.0
         version: 3.9.0
+      jose:
+        specifier: ^6.2.2
+        version: 6.2.2
       lucide-react:
         specifier: ^1.8.0
         version: 1.8.0(react@19.2.4)
@@ -135,6 +144,9 @@ importers:
       "@tailwindcss/vite":
         specifier: ^4.1.10
         version: 4.2.2(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
+      "@types/cookie":
+        specifier: ^1.0.0
+        version: 1.0.0
       "@types/node":
         specifier: ^22.10.5
         version: 22.19.15
@@ -144,6 +156,9 @@ importers:
       "@types/react-dom":
         specifier: ^19.0.4
         version: 19.0.4(@types/react@19.0.10)
+      "@vercel/node":
+        specifier: ^5.7.11
+        version: 5.7.11(rollup@4.60.1)
       "@vitejs/plugin-react-swc":
         specifier: ^3.8.0
         version: 3.11.0(@swc/helpers@0.5.20)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
@@ -5945,6 +5960,13 @@ packages:
         integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==,
       }
 
+  "@types/cookie@1.0.0":
+    resolution:
+      {
+        integrity: sha512-mGFXbkDQJ6kAXByHS7QAggRXgols0mAdP4MuXgloGY1tXokvzaFFM4SMqWvf7AH0oafI7zlFJwoGWzmhDqTZ9w==,
+      }
+    deprecated: This is a stub types definition. cookie provides its own type definitions, so you do not need this installed.
+
   "@types/cors@2.8.19":
     resolution:
       {
@@ -6353,6 +6375,12 @@ packages:
         integrity: sha512-GnavaJQPt1tm9qxFdghMsN1Sf2P+Bo3fIG3iEKJBuYTLahWm17AZrH+/Hh1A+R3nRgS3De5BJ2/fDgh0VV2QZA==,
       }
 
+  "@vercel/build-utils@13.19.0":
+    resolution:
+      {
+        integrity: sha512-sEGu9b/fM98//e+B186t4lgEBdbA7o6XSfDusfDH0/tqCfnAVq+lZfT0IDxauIVLGXruG0ydpuYJrqRw31zsHA==,
+      }
+
   "@vercel/build-utils@7.3.0":
     resolution:
       {
@@ -6586,6 +6614,12 @@ packages:
     resolution:
       {
         integrity: sha512-Lu6ToUYz8oMdYwN+6OR9KCh2MbkAloBu5YFKlEmIc51Je9Q21W/kqBneA3ZuWlMMpYHstz1E19GL+tqHb7yFdw==,
+      }
+
+  "@vercel/node@5.7.11":
+    resolution:
+      {
+        integrity: sha512-U2y8YOeSFdSNBQA1VwChy0yPVIDPNPJiNuAx2fuj1ZljAUZYL85/hYM/S6JHtZZ77ZaqM+qtGdvXlvLvoVRgfQ==,
       }
 
   "@vercel/oidc@2.0.2":
@@ -8000,6 +8034,13 @@ packages:
         integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==,
       }
     engines: { node: ">= 0.6" }
+
+  cookie@1.1.1:
+    resolution:
+      {
+        integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==,
+      }
+    engines: { node: ">=18" }
 
   copy-anything@4.0.5:
     resolution:
@@ -18991,6 +19032,12 @@ snapshots:
       valibot: 1.0.0-beta.14(typescript@5.8.2)
       zod: 3.25.76
 
+  "@t3-oss/env-core@0.13.11(typescript@5.8.2)(valibot@1.0.0-beta.14(typescript@5.8.2))(zod@4.3.6)":
+    optionalDependencies:
+      typescript: 5.8.2
+      valibot: 1.0.0-beta.14(typescript@5.8.2)
+      zod: 4.3.6
+
   "@tailwindcss/node@4.2.2":
     dependencies:
       "@jridgewell/remapping": 2.3.5
@@ -19412,6 +19459,10 @@ snapshots:
     dependencies:
       "@types/node": 20.19.37
 
+  "@types/cookie@1.0.0":
+    dependencies:
+      cookie: 1.1.1
+
   "@types/cors@2.8.19":
     dependencies:
       "@types/node": 20.19.37
@@ -19538,7 +19589,7 @@ snapshots:
   "@types/send@0.17.6":
     dependencies:
       "@types/mime": 1.3.5
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
 
   "@types/send@1.2.1":
     dependencies:
@@ -19728,6 +19779,12 @@ snapshots:
       undici: 6.24.1
 
   "@vercel/build-utils@13.12.0":
+    dependencies:
+      "@vercel/python-analysis": 0.11.0
+      cjs-module-lexer: 1.2.3
+      es-module-lexer: 1.5.0
+
+  "@vercel/build-utils@13.19.0":
     dependencies:
       "@vercel/python-analysis": 0.11.0
       cjs-module-lexer: 1.2.3
@@ -20082,6 +20139,35 @@ snapshots:
       "@edge-runtime/vm": 3.2.0
       "@types/node": 20.11.0
       "@vercel/build-utils": 13.12.0
+      "@vercel/error-utils": 2.0.3
+      "@vercel/nft": 1.5.0(rollup@4.60.1)
+      "@vercel/static-config": 3.2.0
+      async-listen: 3.0.0
+      cjs-module-lexer: 1.2.3
+      edge-runtime: 2.5.9
+      es-module-lexer: 1.4.1
+      esbuild: 0.27.0
+      etag: 1.8.1
+      mime-types: 2.1.35
+      node-fetch: 2.6.9
+      path-to-regexp: 6.1.0
+      path-to-regexp-updated: path-to-regexp@6.3.0
+      ts-morph: 12.0.0
+      tsx: 4.21.0
+      typescript: 5.8.2
+      undici: 5.28.4
+    transitivePeerDependencies:
+      - encoding
+      - rollup
+      - supports-color
+
+  "@vercel/node@5.7.11(rollup@4.60.1)":
+    dependencies:
+      "@edge-runtime/node-utils": 2.3.0
+      "@edge-runtime/primitives": 4.1.0
+      "@edge-runtime/vm": 3.2.0
+      "@types/node": 20.11.0
+      "@vercel/build-utils": 13.19.0
       "@vercel/error-utils": 2.0.3
       "@vercel/nft": 1.5.0(rollup@4.60.1)
       "@vercel/static-config": 3.2.0
@@ -21002,6 +21088,8 @@ snapshots:
   cookie-signature@1.2.2: {}
 
   cookie@0.7.2: {}
+
+  cookie@1.1.1: {}
 
   copy-anything@4.0.5:
     dependencies:

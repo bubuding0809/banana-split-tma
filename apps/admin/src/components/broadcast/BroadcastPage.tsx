@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { trpcReact } from "../../utils/trpc";
 import { useUsers } from "@/hooks/useUsers";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import { MessageComposer } from "./MessageComposer";
 import { TelegramPreview } from "./TelegramPreview";
 import { AudienceBar } from "./AudienceBar";
@@ -12,8 +14,14 @@ import { FailuresDialog, type BroadcastFailure } from "./FailuresDialog";
 import { AttachmentPicker, type Attachment } from "./AttachmentPicker";
 import type { TargetMode } from "./AudiencePopover";
 import { broadcastWithMedia } from "@/lib/broadcastWithMedia";
+import type { Session } from "@/hooks/useSession";
 
-export function BroadcastPage() {
+type Props = {
+  session: Session;
+  onLogout: () => void;
+};
+
+export function BroadcastPage({ session, onLogout }: Props) {
   const [message, setMessage] = useState("");
   const [targetMode, setTargetMode] = useState<TargetMode>("all");
   const [selectedUserIds, setSelectedUserIds] = useState<bigint[]>([]);
@@ -114,9 +122,20 @@ export function BroadcastPage() {
             Draft
           </Badge>
         </div>
-        <p className="text-muted-foreground text-xs">
-          Compose once · deliver to every Telegram Mini App user
-        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-muted-foreground text-xs">
+            {session.username ? `@${session.username}` : session.firstName}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLogout}
+            className="h-7 gap-1.5 px-2 text-xs"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </Button>
+        </div>
       </header>
 
       <main className="grid flex-1 gap-4 overflow-hidden px-6 py-4 lg:grid-cols-[55fr_45fr]">
