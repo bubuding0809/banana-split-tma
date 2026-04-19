@@ -1,17 +1,18 @@
 import { z } from "zod";
 import { adminProcedure } from "../../trpc.js";
-import { broadcast } from "../../services/broadcast.js";
+import { createBroadcast } from "../../services/broadcast.js";
 
 export default adminProcedure
   .input(
     z.object({
-      message: z.string(),
-      targetUserIds: z.array(z.number()).max(200).optional(),
+      message: z.string().min(1).max(4096),
+      targetUserIds: z.array(z.number()).max(500).optional(),
     })
   )
   .mutation(({ input, ctx }) =>
-    broadcast(ctx, {
+    createBroadcast(ctx, {
       message: input.message,
       targetUserIds: input.targetUserIds,
+      createdByTelegramId: null,
     })
   );
