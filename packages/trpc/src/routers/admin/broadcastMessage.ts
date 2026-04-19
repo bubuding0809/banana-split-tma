@@ -1,4 +1,5 @@
 import { z } from "zod";
+import telegramifyMarkdown from "telegramify-markdown";
 import { adminProcedure } from "../../trpc.js";
 
 export default adminProcedure
@@ -30,6 +31,8 @@ export default adminProcedure
       });
     }
 
+    const telegramMessage = telegramifyMarkdown(input.message, "escape");
+
     let successCount = 0;
     let failCount = 0;
     const failures: { userId: number; error: string }[] = [];
@@ -37,7 +40,7 @@ export default adminProcedure
     for (const user of usersToMessage) {
       const userId = Number(user.id);
       try {
-        await ctx.teleBot.sendMessage(userId, input.message, {
+        await ctx.teleBot.sendMessage(userId, telegramMessage, {
           parse_mode: "MarkdownV2",
         });
         successCount++;
