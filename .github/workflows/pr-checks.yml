@@ -58,6 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+      - name: Seed env files from examples
+        run: |
+          for f in $(find apps packages -name '.env.example' -not -path '*/node_modules/*'); do
+            cp "$f" "${f%.example}"
+          done
       - name: Build
         run: pnpm build
 
