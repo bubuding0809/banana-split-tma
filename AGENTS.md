@@ -287,6 +287,81 @@ packages/trpc/src/routers/
 
 ## Development Workflows
 
+### Local Development Setup
+
+**Prerequisites** (install once per machine):
+
+- Node.js 22+ and `pnpm` (enable with `corepack enable`)
+- Docker Desktop or OrbStack (for the local Postgres container)
+- Tailscale — either the [Mac App Store app](https://apps.apple.com/us/app/tailscale/id1475387142) or `brew install tailscale`
+  - If you installed via the Mac App Store, the `tailscale` CLI is not on PATH by default. Add `alias tailscale='/Applications/Tailscale.app/Contents/MacOS/Tailscale'` to your `~/.zshrc` for interactive use. The `scripts/tunnel.sh` script already falls back to this binary automatically.
+
+**First-time setup** (run once per clone):
+
+```bash
+git clone git@github.com:bubuding0809/banana-split-tma.git
+cd banana-split-tma
+pnpm install
+
+# Copy env examples and fill in secrets
+cp packages/database/.env.example packages/database/.env
+cp apps/web/.env.example apps/web/.env.local
+# Edit apps/web/.env.local with your Tailscale URLs — see "Local Development Tunneling" below.
+# Ask a teammate for VITE_API_KEY and the Telegram bot token if the project uses them.
+
+# Start local Postgres (pinned to postgres:17 in docker-compose.yaml; data persists in a named volume)
+docker compose up -d postgres
+
+# Apply all migrations to the local DB
+pnpm --filter @dko/database exec prisma migrate deploy
+
+# (One-time) set up the Tailscale tunnel — see "Local Development Tunneling" below.
+```
+
+**Daily workflow**:
+
+```bash
+pnpm dev:tunnel   # Starts Tailscale funnels + all dev servers
+# Ctrl+C to stop; tunnels tear down automatically.
+```
+
+### Environment Variables by App
+
+Each app validates its required env at boot (mostly via `@t3-oss/env-core`, see each app's `env.ts` / `src/env.ts`). Use the `.env.example` file as the canonical template — if the schema ever drifts from the example, trust the schema and update the example.
+
+| App / Package                | Env file to create                                        | Template                                 | Validation schema                                                          |
+| ---------------------------- | --------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| `apps/web` (TMA frontend)    | `apps/web/.env.local`                                     | `apps/web/.env.example`                  | `apps/web/vite.config.ts` (validated via `@julr/vite-plugin-validate-env`) |
+| `apps/admin` (admin UI)      | `apps/admin/.env.local`                                   | `apps/admin/.env.example`                | `apps/admin/src/utils/trpc.ts`                                             |
+| `apps/bot` (Telegram bot)    | `apps/bot/.env`                                           | `apps/bot/.env.example`                  | `apps/bot/src/env.ts`                                                      |
+| `apps/lambda` (API/tRPC)     | `apps/lambda/env/.env.development` (or `.env.production`) | `apps/lambda/env/.env.<env>.example`     | `apps/lambda/api/env.ts`                                                   |
+| `apps/mcp` (MCP server)      | `apps/mcp/.env.development` / `.env.production`           | committed in repo (edit values directly) | none                                                                       |
+| `packages/database` (Prisma) | `packages/database/.env`                                  | `packages/database/.env.example`         | `packages/database/prisma/schema.prisma` (env() references)                |
+
+**Cross-app variable consistency rules** — these have to match across apps to authenticate:
+
+- `API_KEY` on `apps/bot` **must equal** `API_KEY` on `apps/lambda` (bot calls lambda's tRPC with `x-api-key`). Same value also goes into `VITE_API_KEY` on `apps/web` and `apps/admin`.
+- `INTERNAL_AGENT_KEY` on `apps/bot` **must equal** `INTERNAL_AGENT_KEY` on `apps/lambda`.
+- `TELEGRAM_BOT_TOKEN` on `apps/bot` and `apps/lambda` both point at the **same** bot — use `@BananaSplitzStgBot` (the staging bot) for local dev, not the prod bot.
+- `MINI_APP_DEEPLINK` in `apps/bot` is the Telegram deep link (`https://t.me/<BotUsername>?startapp`), **not** your tunnel URL. The tunnel URL goes into `VITE_TRPC_URL` in `apps/web/.env.local` (pointing at your `:8081` backend funnel).
+
+**Mini App URL confusion — common setup mistake**:
+
+There are two different "mini app URLs", and they go in different places:
+
+1. `MINI_APP_DEEPLINK` (`apps/bot/.env`): `https://t.me/BananaSplitzStgBot?startapp={command}` — the Telegram deep link **template** the bot posts in "Open App" buttons. The `{command}` placeholder is required — `apps/bot/src/utils/chat.ts:createMiniAppUrl` substitutes it with the encoded chat context. `{botusername}` and `{mode}` are optional substitutions. Always a `t.me/...` URL (staging vs prod bot), never your tunnel URL.
+2. **The TMA URL registered with BotFather** (`/setmenubutton` → "Configure Mini App" → Main App URL): `https://<your-tailscale>.ts.net:8443/home` — where Telegram actually loads the web app from. This is per-developer and per-machine; each contributor sets their own via BotFather.
+
+If users open the bot and land on the wrong app, check (2). If the "Open App" button in bot messages is broken, check (1).
+
+**Quick DB operations**:
+
+- `docker compose up -d postgres` — start the DB container
+- `docker compose stop postgres` — stop it without losing data
+- `docker compose down -v` — stop **and wipe** the data volume (destructive)
+- `pnpm --filter @dko/database exec prisma studio` — open a DB GUI in the browser
+- `pnpm --filter @dko/database exec prisma migrate dev --name <change>` — author a new migration from schema changes
+
 ### Git Workflows for Features and Hotfixes
 
 **CRITICAL**: When starting any new feature or hotfix, you MUST use isolated git worktrees rather than checking out branches in the main workspace.
@@ -317,9 +392,9 @@ Uses Tailscale Funnel for persistent HTTPS tunnels to expose local dev servers t
 
 **URL pattern**:
 
-- Frontend: `https://<your-tailscale-hostname>:8443`
-- Backend: `https://<your-tailscale-hostname>`
-- API: `https://<your-tailscale-hostname>/api/trpc`
+- Frontend: `https://<your-tailscale-hostname>:8443` (proxies to Vite on `localhost:5173`)
+- Backend: `https://<your-tailscale-hostname>:8081` (proxies to the Lambda/Express API on `localhost:8081`)
+- API: `https://<your-tailscale-hostname>:8081/api/trpc`
 
 **Daily workflow**:
 
@@ -341,10 +416,9 @@ pnpm dev:tunnel    # Start tunnels + dev servers
 
 **First-time setup**:
 
-1. Install: `brew install tailscale`
-2. Start daemon: `sudo tailscaled install-system-daemon`
-3. Authenticate: `tailscale up`
-4. Enable Funnel in admin console: https://login.tailscale.com/admin/dns
+1. Install Tailscale — either the [Mac App Store app](https://apps.apple.com/us/app/tailscale/id1475387142) (daemon auto-starts) or `brew install tailscale` followed by `sudo tailscaled install-system-daemon`.
+2. Authenticate: `tailscale up`
+3. Enable Funnel in admin console: https://login.tailscale.com/admin/dns
 
 ### Vercel CLI
 
