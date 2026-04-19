@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { marked } from "marked";
 import DOMPurify from "isomorphic-dompurify";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Attachment } from "./AttachmentPicker";
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -16,14 +17,15 @@ function renderMessage(md: string): string {
   return DOMPurify.sanitize(html);
 }
 
-type Props = { value: string };
+type Props = { value: string; attachment?: Attachment | null };
 
-export function TelegramPreview({ value }: Props) {
+export function TelegramPreview({ value, attachment }: Props) {
   const trimmed = useMemo(() => value.trim(), [value]);
   const html = useMemo(
     () => (trimmed ? renderMessage(trimmed) : ""),
     [trimmed]
   );
+  const hasContent = Boolean(trimmed) || Boolean(attachment);
 
   return (
     <div className="flex h-full flex-col gap-2 rounded-lg bg-stone-900 p-4">
@@ -33,7 +35,7 @@ export function TelegramPreview({ value }: Props) {
 
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
         <AnimatePresence initial={false} mode="wait">
-          {!trimmed ? (
+          {!hasContent ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -41,7 +43,7 @@ export function TelegramPreview({ value }: Props) {
               exit={{ opacity: 0 }}
               className="m-auto text-sm text-stone-500"
             >
-              Start typing to see a preview.
+              Start typing or attach media to see a preview.
             </motion.div>
           ) : (
             <motion.div
@@ -50,9 +52,16 @@ export function TelegramPreview({ value }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="bg-primary/80 text-primary-foreground telegram-bubble max-w-[85%] self-start rounded-2xl px-4 py-3 text-sm shadow-sm"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+              className="bg-primary/80 text-primary-foreground telegram-bubble max-w-[85%] self-start overflow-hidden rounded-2xl text-sm shadow-sm"
+            >
+              {attachment && <AttachmentMedia attachment={attachment} />}
+              {trimmed && (
+                <div
+                  className="px-4 py-3"
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              )}
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -61,5 +70,25 @@ export function TelegramPreview({ value }: Props) {
         Approximate preview. Telegram MarkdownV2 rendering may differ.
       </p>
     </div>
+  );
+}
+
+function AttachmentMedia({ attachment }: { attachment: Attachment }) {
+  if (attachment.kind === "photo") {
+    return (
+      <img
+        src={attachment.previewUrl}
+        alt=""
+        className="block max-h-96 w-full object-cover"
+      />
+    );
+  }
+  return (
+    <video
+      src={attachment.previewUrl}
+      controls
+      playsInline
+      className="block max-h-96 w-full bg-black object-contain"
+    />
   );
 }
