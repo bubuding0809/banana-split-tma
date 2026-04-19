@@ -15,7 +15,8 @@ export const inputSchema = z.object({
   type: z.nativeEnum(ChatType).optional(),
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean().optional(),
-  notificationsEnabled: z.boolean().optional(),
+  notifyOnExpense: z.boolean().optional(),
+  notifyOnSettlement: z.boolean().optional(),
 });
 
 export const outputSchema = z.object({
@@ -26,7 +27,8 @@ export const outputSchema = z.object({
   threadId: z.number().optional(),
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean(),
-  notificationsEnabled: z.boolean(),
+  notifyOnExpense: z.boolean(),
+  notifyOnSettlement: z.boolean(),
   updatedAt: z.date(),
 });
 
@@ -55,7 +57,8 @@ export const updateChatHandler = async (
       type?: ChatType;
       baseCurrency?: string;
       debtSimplificationEnabled?: boolean;
-      notificationsEnabled?: boolean;
+      notifyOnExpense?: boolean;
+      notifyOnSettlement?: boolean;
     } = {};
 
     if (input.threadId !== undefined) {
@@ -76,8 +79,11 @@ export const updateChatHandler = async (
     if (input.debtSimplificationEnabled !== undefined) {
       updateData.debtSimplificationEnabled = input.debtSimplificationEnabled;
     }
-    if (input.notificationsEnabled !== undefined) {
-      updateData.notificationsEnabled = input.notificationsEnabled;
+    if (input.notifyOnExpense !== undefined) {
+      updateData.notifyOnExpense = input.notifyOnExpense;
+    }
+    if (input.notifyOnSettlement !== undefined) {
+      updateData.notifyOnSettlement = input.notifyOnSettlement;
     }
 
     const updatedChat = await db.chat.update({

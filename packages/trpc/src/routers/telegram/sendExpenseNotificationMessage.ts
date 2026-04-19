@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import {
@@ -36,6 +36,7 @@ const inputSchema = z.object({
     .length(3, "Currency must be a 3-letter code")
     .default("SGD"),
   threadId: z.number().optional(),
+  force: z.boolean().default(false),
 });
 
 // Exported type for use in other handlers
@@ -125,6 +126,7 @@ Total: ${formattedTotalAmount}
 
 export const sendExpenseNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
+  db: Db,
   teleBot: Telegram
 ) => {
   // Validate business logic
@@ -140,6 +142,17 @@ export const sendExpenseNotificationMessageHandler = async (
       code: "BAD_REQUEST",
       message: "Cannot send expense notification without participants.",
     });
+  }
+
+  // Respect the per-chat notification preference unless caller explicitly forces.
+  if (!input.force) {
+    const chat = await db.chat.findUnique({
+      where: { id: BigInt(input.chatId) },
+      select: { notifyOnExpense: true },
+    });
+    if (!chat?.notifyOnExpense) {
+      return null;
+    }
   }
 
   const message = formatExpenseMessage(
@@ -185,8 +198,12 @@ export const sendExpenseNotificationMessageHandler = async (
 };
 
 export default protectedProcedure
-  .input(inputSchema)
+  .input(inputSchema.omit({ force: true }))
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return sendExpenseNotificationMessageHandler(input, ctx.teleBot);
+    return sendExpenseNotificationMessageHandler(
+      { ...input, force: false },
+      ctx.db,
+      ctx.teleBot
+    );
   });

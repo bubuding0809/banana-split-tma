@@ -25,7 +25,8 @@ model Chat {
   threadId                   BigInt?
   baseCurrency               String            @default("SGD")
   debtSimplificationEnabled  Boolean           @default(false)
-  notificationsEnabled       Boolean           @default(true)
+  notifyOnExpense            Boolean           @default(true)
+  notifyOnSettlement         Boolean           @default(true)
   members                    User[]
   expenses                   Expense[]
   transfers                  Settlement[]

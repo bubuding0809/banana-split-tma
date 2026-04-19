@@ -457,7 +457,9 @@ export const updateExpenseHandler = async (
                   participants: participantsWithAmounts,
                   currency: currency,
                   threadId,
+                  force: false,
                 },
+                db,
                 teleBot
               );
             }
@@ -477,7 +479,9 @@ export const updateExpenseHandler = async (
                 participants: participantsWithAmounts,
                 currency: currency,
                 threadId,
+                force: false,
               },
+              db,
               teleBot
             );
           }

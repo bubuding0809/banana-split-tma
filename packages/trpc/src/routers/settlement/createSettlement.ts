@@ -104,29 +104,24 @@ export const createSettlementHandler = async (
       },
     });
 
-    // Send notification if requested and the group has notifications enabled
+    // Send notification if requested (handler gates on chat.notifyOnSettlement)
     if (input.sendNotification && input.creditorName && input.debtorName) {
       try {
-        const chatForNotification = await db.chat.findUnique({
-          where: { id: input.chatId },
-          select: { notificationsEnabled: true },
-        });
-
-        if (chatForNotification?.notificationsEnabled !== false) {
-          await sendSettlementNotificationMessageHandler(
-            {
-              chatId: Number(input.chatId),
-              creditorUserId: Number(input.receiverId), // creditor receives the money
-              creditorName: input.creditorName,
-              creditorUsername: input.creditorUsername,
-              debtorName: input.debtorName,
-              amount: input.amount,
-              currency: currency,
-              threadId: input.threadId,
-            },
-            teleBot
-          );
-        }
+        await sendSettlementNotificationMessageHandler(
+          {
+            chatId: Number(input.chatId),
+            creditorUserId: Number(input.receiverId), // creditor receives the money
+            creditorName: input.creditorName,
+            creditorUsername: input.creditorUsername,
+            debtorName: input.debtorName,
+            amount: input.amount,
+            currency: currency,
+            threadId: input.threadId,
+            force: false,
+          },
+          db,
+          teleBot
+        );
       } catch (notificationError) {
         console.error(
           "Failed to send settlement notification:",

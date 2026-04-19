@@ -355,17 +355,11 @@ export const createExpenseHandler = async (
               select: {
                 type: true,
                 threadId: true,
-                notificationsEnabled: true,
               },
             }),
           ]);
 
-        if (
-          chatForNotification?.notificationsEnabled !== false &&
-          creator &&
-          payer &&
-          participants.length > 0
-        ) {
+        if (creator && payer && participants.length > 0) {
           // Map splits to participants with user info
           const participantsWithAmounts = splits.map((split) => {
             const participant = participants.find((p) => p.id === split.userId);
@@ -380,7 +374,7 @@ export const createExpenseHandler = async (
             };
           });
 
-          // Send expense notification
+          // Send expense notification (handler gates on chat.notifyOnExpense)
           const messageId = await sendExpenseNotificationMessageHandler(
             {
               chatId: Number(input.chatId),
@@ -399,7 +393,9 @@ export const createExpenseHandler = async (
                 (chatForNotification?.threadId
                   ? Number(chatForNotification.threadId)
                   : undefined),
+              force: false,
             },
+            db,
             teleBot
           );
 

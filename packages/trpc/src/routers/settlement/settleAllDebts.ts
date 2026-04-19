@@ -113,7 +113,7 @@ export const settleAllDebtsHandler = async (
       return createdSettlements;
     });
 
-    // Send notification if requested and names are provided
+    // Send notification if requested (handler gates on chat.notifyOnSettlement)
     if (input.sendNotification && input.creditorName && input.debtorName) {
       try {
         await Promise.allSettled(
@@ -128,7 +128,9 @@ export const settleAllDebtsHandler = async (
                 amount: Math.abs(balance.amount),
                 currency: balance.currency,
                 threadId: input.threadId,
+                force: false,
               },
+              db,
               teleBot
             )
           )
