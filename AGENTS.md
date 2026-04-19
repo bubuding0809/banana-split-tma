@@ -349,7 +349,7 @@ Each app validates its required env at boot (mostly via `@t3-oss/env-core`, see 
 
 There are two different "mini app URLs", and they go in different places:
 
-1. `MINI_APP_DEEPLINK` (`apps/bot/.env`): `https://t.me/BananaSplitzStgBot?startapp` — the Telegram deep link the bot posts in "Open App" buttons. Always a `t.me/...` URL, always the bot username, never changes day-to-day.
+1. `MINI_APP_DEEPLINK` (`apps/bot/.env`): `https://t.me/BananaSplitzStgBot?startapp={command}` — the Telegram deep link **template** the bot posts in "Open App" buttons. The `{command}` placeholder is required — `apps/bot/src/utils/chat.ts:createMiniAppUrl` substitutes it with the encoded chat context. `{botusername}` and `{mode}` are optional substitutions. Always a `t.me/...` URL (staging vs prod bot), never your tunnel URL.
 2. **The TMA URL registered with BotFather** (`/setmenubutton` → "Configure Mini App" → Main App URL): `https://<your-tailscale>.ts.net:8443/home` — where Telegram actually loads the web app from. This is per-developer and per-machine; each contributor sets their own via BotFather.
 
 If users open the bot and land on the wrong app, check (2). If the "Open App" button in bot messages is broken, check (1).
