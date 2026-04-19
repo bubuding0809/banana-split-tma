@@ -1,7 +1,9 @@
 #!/bin/bash
 # Stop all Tailscale Funnels
 
-set -e
+# Note: no `set -e` — cleanup is best-effort. `funnel off` errors with
+# "handler does not exist" when the funnel is already gone (or was never
+# started on that port), which is fine during Ctrl-C teardown.
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -20,5 +22,8 @@ else
 fi
 
 echo -e "${BLUE}Stopping Tailscale Funnels...${NC}"
-"$TAILSCALE" funnel off
+# Stop each funnel we started in scripts/tunnel.sh. Silence stderr so the
+# "handler does not exist" message doesn't leak out on repeated teardown.
+"$TAILSCALE" funnel --https=8081 off 2>/dev/null || true
+"$TAILSCALE" funnel --https=8443 off 2>/dev/null || true
 echo -e "${GREEN}Done!${NC}"
