@@ -36,6 +36,16 @@ export function BroadcastHistoryPage() {
   );
 
   const resend = trpcReact.admin.broadcastResend.useMutation();
+  const resume = trpcReact.admin.broadcastResumeSend.useMutation();
+  const onResume = async (id: string) => {
+    try {
+      const r = await resume.mutateAsync({ broadcastId: id });
+      toast.success(`Resumed — delivered to ${r.successCount}.`);
+      list.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Resume failed");
+    }
+  };
   const onResendFailures = async (id: string) => {
     try {
       const r = await resend.mutateAsync({
@@ -165,6 +175,15 @@ export function BroadcastHistoryPage() {
                                 Resend to failures
                               </DropdownMenuItem>
                             )}
+                            {b.status === "SENDING" &&
+                              Date.now() - new Date(b.createdAt).getTime() >
+                                10 * 60_000 && (
+                                <DropdownMenuItem
+                                  onSelect={() => onResume(b.id)}
+                                >
+                                  Resume send
+                                </DropdownMenuItem>
+                              )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

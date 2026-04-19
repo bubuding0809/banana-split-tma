@@ -2,6 +2,7 @@ import type { Telegram } from "telegraf";
 import type { Db } from "../trpc.js";
 import telegramifyMarkdown from "telegramify-markdown";
 import { selectEditMethod, type CurrentKind } from "./broadcastEditMethod.js";
+import { createBroadcast } from "./broadcast.js";
 
 export type DeliveryActionResult = {
   deliveryId: string;
@@ -176,4 +177,36 @@ export async function editDelivery(
     });
     return { ...base, ok: false, error: msg };
   }
+}
+
+export async function resumeSend(
+  ctx: { db: Db; teleBot: Telegram },
+  broadcastId: string
+): Promise<{ successCount: number; failCount: number }> {
+  const b = await ctx.db.broadcast.findUnique({
+    where: { id: broadcastId },
+    include: {
+      deliveries: {
+        where: { status: "PENDING" },
+        select: { userId: true },
+      },
+    },
+  });
+  if (!b) return { successCount: 0, failCount: 0 };
+  const targetUserIds = b.deliveries.map((d) => Number(d.userId));
+  if (targetUserIds.length === 0) {
+    await ctx.db.broadcast.update({
+      where: { id: broadcastId },
+      data: { status: "SENT" },
+    });
+    return { successCount: 0, failCount: 0 };
+  }
+  const result = await createBroadcast(ctx, {
+    message: b.text,
+    targetUserIds,
+    media: undefined,
+    createdByTelegramId: b.createdByTelegramId,
+    parentBroadcastId: b.id,
+  });
+  return { successCount: result.successCount, failCount: result.failCount };
 }
