@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   filter:
     runs-on: ubuntu-latest
@@ -56,7 +60,11 @@ jobs:
 
       - name: Prepare database env
         if: needs.filter.outputs.db == 'true'
-        run: echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > packages/database/.env.production
+        run: |
+          {
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
+            echo "DIRECT_URL=${{ secrets.DIRECT_URL }}"
+          } > packages/database/.env.production
 
       - name: Run DB Migration
         if: needs.filter.outputs.db == 'true'
