@@ -5,6 +5,7 @@ import broadcastList from "./broadcastList.js";
 import broadcastGet from "./broadcastGet.js";
 import broadcastRetract from "./broadcastRetract.js";
 import broadcastEdit from "./broadcastEdit.js";
+import broadcastResend from "./broadcastResend.js";
 
 export const adminRouter = createTRPCRouter({
   getUsers,
@@ -13,4 +14,5 @@ export const adminRouter = createTRPCRouter({
   broadcastGet,
   broadcastRetract,
   broadcastEdit,
+  broadcastResend,
 });
