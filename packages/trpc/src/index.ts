@@ -37,3 +37,10 @@ export type {
 } from "./services/broadcast.js";
 
 export * from "./utils/deepLinkProtocol.js";
+
+export type DeliveryStatus =
+  | "PENDING"
+  | "SENT"
+  | "FAILED"
+  | "RETRACTED"
+  | "EDITED";
