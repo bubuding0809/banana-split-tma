@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       force_deploy_apps:
-        description: "Force-deploy lambda/web/bot regardless of path filters"
+        description: "Force-deploy lambda/web/bot/admin regardless of path filters"
         type: boolean
         default: false
 
@@ -22,6 +22,7 @@ jobs:
       lambda: ${{ steps.filter.outputs.lambda }}
       web: ${{ steps.filter.outputs.web }}
       bot: ${{ steps.filter.outputs.bot }}
+      admin: ${{ steps.filter.outputs.admin }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -36,6 +37,9 @@ jobs:
               - 'packages/**'
             bot:
               - 'apps/bot/**'
+              - 'packages/**'
+            admin:
+              - 'apps/admin/**'
               - 'packages/**'
 
   migrate:
@@ -139,4 +143,29 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+
+  deploy-admin:
+    needs: [filter, migrate]
+    if: needs.filter.outputs.admin == 'true' || inputs.force_deploy_apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
