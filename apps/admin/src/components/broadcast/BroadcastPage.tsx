@@ -1,0 +1,124 @@
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { trpcReact } from "../../utils/trpc";
+import { useUsers } from "@/hooks/useUsers";
+import { Badge } from "@/components/ui/badge";
+import { MessageComposer } from "./MessageComposer";
+import { TelegramPreview } from "./TelegramPreview";
+import { AudienceBar } from "./AudienceBar";
+import { BroadcastButton } from "./BroadcastButton";
+import { ConfirmBroadcastDialog } from "./ConfirmBroadcastDialog";
+import { FailuresDialog, type BroadcastFailure } from "./FailuresDialog";
+import type { TargetMode } from "./AudiencePopover";
+
+export function BroadcastPage() {
+  const [message, setMessage] = useState("");
+  const [targetMode, setTargetMode] = useState<TargetMode>("all");
+  const [selectedUserIds, setSelectedUserIds] = useState<bigint[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [failures, setFailures] = useState<BroadcastFailure[]>([]);
+  const [failuresOpen, setFailuresOpen] = useState(false);
+
+  const { users } = useUsers();
+  const broadcast = trpcReact.admin.broadcastMessage.useMutation();
+
+  const recipientCount =
+    targetMode === "all" ? users.length : selectedUserIds.length;
+
+  const disabledReason = useMemo(() => {
+    if (!message.trim()) return "Write a message to enable broadcast.";
+    if (targetMode === "specific" && selectedUserIds.length === 0) {
+      return "Select at least one user.";
+    }
+    return null;
+  }, [message, targetMode, selectedUserIds]);
+
+  const handleConfirm = async () => {
+    try {
+      const result = await broadcast.mutateAsync({
+        message,
+        targetUserIds:
+          targetMode === "specific"
+            ? selectedUserIds.map((id) => Number(id))
+            : undefined,
+      });
+      setConfirmOpen(false);
+      const fail = result?.failCount ?? 0;
+      const success = result?.successCount ?? 0;
+      if (fail === 0) {
+        toast.success(
+          `Sent to ${success} ${success === 1 ? "user" : "users"}.`
+        );
+      } else {
+        setFailures(result?.failures ?? []);
+        toast.warning(`Sent to ${success}, failed for ${fail}.`, {
+          action: {
+            label: "View failures",
+            onClick: () => setFailuresOpen(true),
+          },
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Broadcast failed — ${msg}`);
+    }
+  };
+
+  return (
+    <div className="flex h-screen flex-col">
+      <header className="bg-background flex items-center justify-between border-b px-6 py-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold tracking-tight">Broadcast</h1>
+          <Badge variant="secondary" className="font-normal">
+            Draft
+          </Badge>
+        </div>
+        <p className="text-muted-foreground text-xs">
+          Compose once · deliver to every Telegram Mini App user
+        </p>
+      </header>
+
+      <main className="grid flex-1 gap-4 overflow-hidden px-6 py-4 lg:grid-cols-[55fr_45fr]">
+        <MessageComposer
+          value={message}
+          onChange={setMessage}
+          disabled={broadcast.isPending}
+        />
+        <TelegramPreview value={message} />
+      </main>
+
+      <footer className="bg-background flex flex-col gap-2 border-t px-6 py-3">
+        {disabledReason && (
+          <p className="text-muted-foreground text-xs">{disabledReason}</p>
+        )}
+        <div className="flex items-center justify-between">
+          <AudienceBar
+            targetMode={targetMode}
+            onTargetModeChange={setTargetMode}
+            selectedUserIds={selectedUserIds}
+            onSelectedUserIdsChange={setSelectedUserIds}
+          />
+          <BroadcastButton
+            disabled={Boolean(disabledReason)}
+            isSending={broadcast.isPending}
+            onClick={() => setConfirmOpen(true)}
+          />
+        </div>
+      </footer>
+
+      <ConfirmBroadcastDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        recipientCount={recipientCount}
+        messageSnippet={message.slice(0, 200)}
+        isSending={broadcast.isPending}
+        onConfirm={handleConfirm}
+      />
+      <FailuresDialog
+        open={failuresOpen}
+        onOpenChange={setFailuresOpen}
+        failures={failures}
+      />
+    </div>
+  );
+}
