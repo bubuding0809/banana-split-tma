@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       force_deploy_apps:
-        description: 'Force-deploy lambda/web/bot regardless of path filters'
+        description: "Force-deploy lambda/web/bot regardless of path filters"
         type: boolean
         default: false
 
@@ -78,8 +78,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install @vercel/config
-        run: npm install @vercel/config
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Deploy to Vercel
         env:
@@ -99,8 +103,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install @vercel/config
-        run: npm install @vercel/config
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Deploy to Vercel
         env:
@@ -120,8 +128,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install @vercel/config
-        run: npm install @vercel/config
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Deploy to Vercel
         env:
