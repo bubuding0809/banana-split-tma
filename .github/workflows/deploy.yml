@@ -13,7 +13,6 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      db: ${{ steps.filter.outputs.db }}
       lambda: ${{ steps.filter.outputs.lambda }}
       web: ${{ steps.filter.outputs.web }}
       bot: ${{ steps.filter.outputs.bot }}
@@ -23,8 +22,6 @@ jobs:
         id: filter
         with:
           filters: |
-            db:
-              - 'packages/database/prisma/schema.prisma'
             lambda:
               - 'apps/lambda/**'
               - 'packages/**'
@@ -36,30 +33,24 @@ jobs:
               - 'packages/**'
 
   migrate:
-    needs: filter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: needs.filter.outputs.db == 'true'
 
       - name: Setup Node.js
-        if: needs.filter.outputs.db == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Setup pnpm
-        if: needs.filter.outputs.db == 'true'
         uses: pnpm/action-setup@v3
         with:
           version: 9
 
       - name: Install dependencies
-        if: needs.filter.outputs.db == 'true'
         run: pnpm install
 
       - name: Prepare database env
-        if: needs.filter.outputs.db == 'true'
         run: |
           {
             echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
@@ -67,7 +58,6 @@ jobs:
           } > packages/database/.env.production
 
       - name: Run DB Migration
-        if: needs.filter.outputs.db == 'true'
         run: pnpm --filter database db:deploy
 
   deploy-lambda:
