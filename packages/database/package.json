@@ -9,6 +9,7 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
+    "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",

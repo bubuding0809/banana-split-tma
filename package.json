@@ -7,6 +7,8 @@
     "lint": "turbo run lint",
     "test:ct": "turbo run test:ct",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
+    "test": "turbo run test",
     "check-types": "turbo run check-types",
     "start": "turbo run start",
     "prepare": "husky || true",

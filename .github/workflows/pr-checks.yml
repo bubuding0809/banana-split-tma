@@ -7,23 +7,73 @@ concurrency:
   group: pr-checks-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_COLOR: 3
+
 jobs:
   lockfile-sync:
     name: pnpm lockfile ↔ package.json sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - uses: pnpm/action-setup@v3
         with:
           version: 9
-
       - name: Verify lockfile matches package.json
         run: pnpm install --frozen-lockfile
+
+  format:
+    name: Format (prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Prettier check
+        run: pnpm format:check
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Lint
+        run: pnpm lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Typecheck
+        run: pnpm check-types
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Seed env files from examples
+        run: |
+          for f in $(find apps packages -name '.env.example' -not -path '*/node_modules/*'); do
+            cp "$f" "${f%.example}"
+          done
+      - name: Build
+        run: pnpm build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Test
+        run: pnpm test
 
   schema-sync:
     name: Prisma schema ↔ migrations sync
@@ -46,20 +96,8 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Install dependencies
-        run: pnpm install
-
+      - uses: ./.github/actions/setup
       - name: Apply all migrations to shadow DB
         run: pnpm --filter @dko/database exec prisma migrate deploy
-
       - name: Assert schema matches migrations
         run: pnpm --filter @dko/database exec prisma migrate status

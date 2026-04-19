@@ -1,2 +1,9 @@
 apps/web/src/routeTree.gen.ts
 .claude/
+.agents/
+
+# Generated code
+packages/database/generated/
+
+# Long-form design docs, not meant to be prettier-formatted
+docs/
