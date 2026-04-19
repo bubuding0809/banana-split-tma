@@ -5,16 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 marked.setOptions({ breaks: true, gfm: true });
 
-function splitIntoBubbles(raw: string): string[] {
-  const trimmed = raw.trim();
-  if (!trimmed) return [];
-  return trimmed
-    .split(/\n{2,}/g)
-    .map((b) => b.trim())
-    .filter(Boolean);
-}
-
-function renderBubble(md: string): string {
+function renderMessage(md: string): string {
   const html = marked.parse(md, { async: false }) as string;
   return DOMPurify.sanitize(html);
 }
@@ -22,7 +13,11 @@ function renderBubble(md: string): string {
 type Props = { value: string };
 
 export function TelegramPreview({ value }: Props) {
-  const bubbles = useMemo(() => splitIntoBubbles(value), [value]);
+  const trimmed = useMemo(() => value.trim(), [value]);
+  const html = useMemo(
+    () => (trimmed ? renderMessage(trimmed) : ""),
+    [trimmed]
+  );
 
   return (
     <div className="flex h-full flex-col gap-2 rounded-lg bg-stone-900 p-4">
@@ -31,8 +26,8 @@ export function TelegramPreview({ value }: Props) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {bubbles.length === 0 ? (
+        <AnimatePresence initial={false} mode="wait">
+          {!trimmed ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -43,17 +38,15 @@ export function TelegramPreview({ value }: Props) {
               Start typing to see a preview.
             </motion.div>
           ) : (
-            bubbles.map((b, i) => (
-              <motion.div
-                key={`${i}-${b.slice(0, 24)}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="bg-primary/80 text-primary-foreground max-w-[85%] self-start rounded-2xl px-3 py-2 text-sm shadow-sm"
-                dangerouslySetInnerHTML={{ __html: renderBubble(b) }}
-              />
-            ))
+            <motion.div
+              key="bubble"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="bg-primary/80 text-primary-foreground prose prose-sm prose-invert max-w-[85%] self-start rounded-2xl px-3 py-2 text-sm shadow-sm [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_p]:my-1"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
           )}
         </AnimatePresence>
       </div>
