@@ -1,6 +1,14 @@
 import telegramifyMarkdown from "telegramify-markdown";
 import type { Telegram } from "telegraf";
 import type { Db } from "../trpc.js";
+import { withRateLimit } from "./withRateLimit.js";
+import {
+  createBroadcastRows,
+  finalizeBroadcast,
+  markDeliveryFailed,
+  markDeliverySent,
+  resolveRecipients,
+} from "./broadcastPersistence.js";
 
 const RATE_LIMIT_DELAY_MS = 100;
 
@@ -17,106 +25,137 @@ export type BroadcastRecipient = {
 };
 
 export type BroadcastSuccess = BroadcastRecipient;
-
 export type BroadcastFailure = BroadcastRecipient & { error: string };
 
 export type BroadcastResult = {
+  broadcastId: string;
   successCount: number;
   failCount: number;
   successes: BroadcastSuccess[];
   failures: BroadcastFailure[];
 };
 
-type BroadcastOptions = {
+export type CreateBroadcastOptions = {
   message: string;
   targetUserIds?: number[];
   media?: BroadcastMedia;
+  createdByTelegramId: bigint | null;
+  parentBroadcastId?: string;
 };
 
-type BroadcastContext = {
+export type BroadcastContext = {
   db: Db;
   teleBot: Telegram;
 };
 
-type TargetUser = { id: bigint; username: string | null; firstName: string };
-
-async function resolveTargets(
-  db: Db,
-  targetUserIds?: number[]
-): Promise<TargetUser[]> {
-  const select = { id: true, username: true, firstName: true } as const;
-  if (targetUserIds === undefined) {
-    return db.user.findMany({ select });
-  }
-  if (targetUserIds.length === 0) return [];
-  return db.user.findMany({
-    where: { id: { in: targetUserIds.map((id) => BigInt(id)) } },
-    select,
-  });
-}
-
-export async function broadcast(
+export async function createBroadcast(
   ctx: BroadcastContext,
-  { message, targetUserIds, media }: BroadcastOptions
+  opts: CreateBroadcastOptions
 ): Promise<BroadcastResult> {
-  const users = await resolveTargets(ctx.db, targetUserIds);
-  const caption = message.trim()
-    ? telegramifyMarkdown(message, "escape")
+  const recipients = await resolveRecipients(ctx.db, opts.targetUserIds);
+  const caption = opts.message.trim()
+    ? telegramifyMarkdown(opts.message, "escape")
     : undefined;
+
+  const { broadcastId, deliveryIdByUserId } = await createBroadcastRows(
+    ctx.db,
+    {
+      createdByTelegramId: opts.createdByTelegramId,
+      text: opts.message,
+      mediaKind:
+        opts.media?.kind === "photo"
+          ? "PHOTO"
+          : opts.media?.kind === "video"
+            ? "VIDEO"
+            : null,
+      mediaFileId: null,
+      mediaFileName: opts.media?.filename ?? null,
+      parentBroadcastId: opts.parentBroadcastId ?? null,
+      recipients,
+    }
+  );
 
   let cachedFileId: string | undefined;
   const successes: BroadcastSuccess[] = [];
   const failures: BroadcastFailure[] = [];
 
-  for (const user of users) {
-    const userId = Number(user.id);
+  const serial = withRateLimit(RATE_LIMIT_DELAY_MS);
+  const sendOne = serial(async (r: (typeof recipients)[number]) => {
+    const userId = Number(r.userId);
     const recipient: BroadcastRecipient = {
       userId,
-      username: user.username,
-      firstName: user.firstName,
+      username: r.username,
+      firstName: r.firstName,
     };
+    const deliveryId = deliveryIdByUserId.get(r.userId);
+    if (!deliveryId) return;
+
     try {
-      if (media) {
+      let sentMessageId: number;
+
+      if (opts.media) {
         const source = cachedFileId ?? {
-          source: media.buffer,
-          filename: media.filename,
+          source: opts.media.buffer,
+          filename: opts.media.filename,
         };
         const extra = caption
           ? { caption, parse_mode: "MarkdownV2" as const }
           : undefined;
 
-        if (media.kind === "photo") {
+        if (opts.media.kind === "photo") {
           const sent = await ctx.teleBot.sendPhoto(userId, source, extra);
+          sentMessageId = sent.message_id;
           if (!cachedFileId) {
             const largest = sent.photo[sent.photo.length - 1];
             cachedFileId = largest?.file_id;
+            if (cachedFileId) {
+              await ctx.db.broadcast.update({
+                where: { id: broadcastId },
+                data: { mediaFileId: cachedFileId },
+              });
+            }
           }
         } else {
           const sent = await ctx.teleBot.sendVideo(userId, source, extra);
+          sentMessageId = sent.message_id;
           if (!cachedFileId) {
             cachedFileId = sent.video.file_id;
+            if (cachedFileId) {
+              await ctx.db.broadcast.update({
+                where: { id: broadcastId },
+                data: { mediaFileId: cachedFileId },
+              });
+            }
           }
         }
       } else if (caption) {
-        await ctx.teleBot.sendMessage(userId, caption, {
+        const sent = await ctx.teleBot.sendMessage(userId, caption, {
           parse_mode: "MarkdownV2",
         });
+        sentMessageId = sent.message_id;
       } else {
         throw new Error("Broadcast must have a message or media attached.");
       }
+
+      await markDeliverySent(ctx.db, deliveryId, BigInt(sentMessageId));
       successes.push(recipient);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
       console.error(`Broadcast to ${userId} failed:`, error);
-      failures.push({
-        ...recipient,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      await markDeliveryFailed(ctx.db, deliveryId, msg);
+      failures.push({ ...recipient, error: msg });
     }
+  });
 
-    await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
-  }
+  await Promise.all(recipients.map(sendOne));
+
+  await finalizeBroadcast(ctx.db, broadcastId, {
+    successCount: successes.length,
+    failCount: failures.length,
+  });
 
   return {
+    broadcastId,
     successCount: successes.length,
     failCount: failures.length,
     successes,
