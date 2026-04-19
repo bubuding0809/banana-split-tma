@@ -61,3 +61,48 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+.telegram-bubble p {
+  margin: 0.75rem 0;
+}
+.telegram-bubble p:first-child {
+  margin-top: 0;
+}
+.telegram-bubble p:last-child {
+  margin-bottom: 0;
+}
+.telegram-bubble ul,
+.telegram-bubble ol {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+.telegram-bubble ul {
+  list-style: disc;
+}
+.telegram-bubble ol {
+  list-style: decimal;
+}
+.telegram-bubble li {
+  margin: 0.15rem 0;
+}
+.telegram-bubble a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.telegram-bubble code {
+  background-color: color-mix(in srgb, currentColor 15%, transparent);
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+.telegram-bubble pre {
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-size: 0.85em;
+}
+.telegram-bubble strong {
+  font-weight: 600;
+}

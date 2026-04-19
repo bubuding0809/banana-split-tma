@@ -5,8 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 marked.setOptions({ breaks: true, gfm: true });
 
+function normalizeForPreview(raw: string): string {
+  return raw.replace(/([^\n])\n(\s*[-*+]\s)/g, "$1\n\n$2");
+}
+
 function renderMessage(md: string): string {
-  const html = marked.parse(md, { async: false }) as string;
+  const html = marked.parse(normalizeForPreview(md), {
+    async: false,
+  }) as string;
   return DOMPurify.sanitize(html);
 }
 
@@ -44,7 +50,7 @@ export function TelegramPreview({ value }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="bg-primary/80 text-primary-foreground prose prose-sm prose-invert max-w-[85%] self-start rounded-2xl px-3 py-2 text-sm shadow-sm [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_p]:my-1"
+              className="bg-primary/80 text-primary-foreground telegram-bubble max-w-[85%] self-start rounded-2xl px-4 py-3 text-sm shadow-sm"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           )}
