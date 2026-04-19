@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { trpcReact } from "@/utils/trpc";
 import { DeliveryRow } from "./DeliveryRow";
 import type { DeliveryStatus } from "@dko/trpc";
+import { toast } from "sonner";
+import { RetractConfirmDialog } from "./actions/RetractConfirmDialog";
 
 type Props = {
   broadcastId: string | null;
@@ -22,11 +24,36 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<StatusFilter>("ALL");
+  const [retractOpen, setRetractOpen] = useState<"all" | "selected" | null>(
+    null
+  );
 
   const detail = trpcReact.admin.broadcastGet.useQuery(
     { broadcastId: broadcastId ?? "" },
     { enabled: Boolean(broadcastId) }
   );
+
+  const retract = trpcReact.admin.broadcastRetract.useMutation();
+
+  const onRetractConfirm = async () => {
+    if (!broadcastId) return;
+    const deliveryIds =
+      retractOpen === "selected" ? Array.from(selected) : undefined;
+    try {
+      const result = await retract.mutateAsync({
+        broadcastId,
+        deliveryIds,
+      });
+      const ok = result.results.filter((r) => r.ok).length;
+      const fail = result.results.length - ok;
+      toast.success(`Retracted ${ok}${fail ? ` — ${fail} failed` : ""}.`);
+      setRetractOpen(null);
+      setSelected(new Set());
+      detail.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Retract failed");
+    }
+  };
 
   const deliveries = useMemo(() => {
     const all = detail.data?.deliveries ?? [];
@@ -71,7 +98,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
                 <Button size="sm" variant="outline" disabled>
                   Edit all
                 </Button>
-                <Button size="sm" variant="outline" disabled>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRetractOpen("all")}
+                >
                   Retract all
                 </Button>
                 <Button size="sm" variant="outline" disabled>
@@ -119,7 +150,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
               <div className="bg-background flex items-center justify-between border-t px-6 py-3 text-sm">
                 <span>{selected.size} selected</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" disabled>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRetractOpen("selected")}
+                  >
                     Retract
                   </Button>
                   <Button size="sm" variant="outline" disabled>
@@ -133,6 +168,18 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
             )}
           </div>
         )}
+
+        <RetractConfirmDialog
+          open={retractOpen !== null}
+          count={
+            retractOpen === "selected"
+              ? selected.size
+              : (detail.data?.deliveries.length ?? 0)
+          }
+          isRetracting={retract.isPending}
+          onConfirm={onRetractConfirm}
+          onOpenChange={(o) => !o && setRetractOpen(null)}
+        />
       </SheetContent>
     </Sheet>
   );
