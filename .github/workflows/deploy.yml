@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      force_deploy_apps:
+        description: 'Force-deploy lambda/web/bot regardless of path filters'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -62,7 +68,7 @@ jobs:
 
   deploy-lambda:
     needs: [filter, migrate]
-    if: needs.filter.outputs.lambda == 'true'
+    if: needs.filter.outputs.lambda == 'true' || inputs.force_deploy_apps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +89,7 @@ jobs:
 
   deploy-web:
     needs: [filter, migrate]
-    if: needs.filter.outputs.web == 'true'
+    if: needs.filter.outputs.web == 'true' || inputs.force_deploy_apps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +110,7 @@ jobs:
 
   deploy-bot:
     needs: [filter, migrate]
-    if: needs.filter.outputs.bot == 'true'
+    if: needs.filter.outputs.bot == 'true' || inputs.force_deploy_apps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
