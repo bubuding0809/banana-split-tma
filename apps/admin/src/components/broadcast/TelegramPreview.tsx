@@ -1,0 +1,66 @@
+import { useMemo } from "react";
+import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
+import { motion, AnimatePresence } from "framer-motion";
+
+marked.setOptions({ breaks: true, gfm: true });
+
+function splitIntoBubbles(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split(/\n{2,}/g)
+    .map((b) => b.trim())
+    .filter(Boolean);
+}
+
+function renderBubble(md: string): string {
+  const html = marked.parse(md, { async: false }) as string;
+  return DOMPurify.sanitize(html);
+}
+
+type Props = { value: string };
+
+export function TelegramPreview({ value }: Props) {
+  const bubbles = useMemo(() => splitIntoBubbles(value), [value]);
+
+  return (
+    <div className="flex h-full flex-col gap-2 rounded-lg bg-stone-900 p-4">
+      <div className="text-[10px] uppercase tracking-wider text-stone-400">
+        Telegram preview
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
+        <AnimatePresence initial={false}>
+          {bubbles.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="m-auto text-sm text-stone-500"
+            >
+              Start typing to see a preview.
+            </motion.div>
+          ) : (
+            bubbles.map((b, i) => (
+              <motion.div
+                key={`${i}-${b.slice(0, 24)}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="bg-primary/80 text-primary-foreground max-w-[85%] self-start rounded-2xl px-3 py-2 text-sm shadow-sm"
+                dangerouslySetInnerHTML={{ __html: renderBubble(b) }}
+              />
+            ))
+          )}
+        </AnimatePresence>
+      </div>
+
+      <p className="text-[11px] text-stone-500">
+        Approximate preview. Telegram MarkdownV2 rendering may differ.
+      </p>
+    </div>
+  );
+}
