@@ -56,5 +56,9 @@ opencode.json
 .env.preview.*
 .env.development.*
 
+# Server env files co-located with app (e.g. apps/lambda/env/, apps/admin/env/)
+**/env/.env.development
+**/env/.env.production
+
 # Local worktrees
 .worktrees/

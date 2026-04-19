@@ -1,11 +1,5 @@
 import type { BroadcastResult } from "@dko/trpc";
 
-function getBroadcastUrl(): string {
-  const trpcUrl =
-    import.meta.env.VITE_TRPC_URL || "http://localhost:3000/api/trpc";
-  return trpcUrl.replace(/\/trpc\/?$/, "/admin/broadcast");
-}
-
 type Args = {
   message: string;
   targetUserIds?: number[];
@@ -24,11 +18,9 @@ export async function broadcastWithMedia({
   }
   form.append("file", file, file.name);
 
-  const res = await fetch(getBroadcastUrl(), {
+  const res = await fetch("/api/admin/broadcast", {
     method: "POST",
-    headers: {
-      "x-api-key": import.meta.env.VITE_API_KEY || "",
-    },
+    credentials: "include",
     body: form,
   });
 

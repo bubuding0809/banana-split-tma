@@ -11,12 +11,10 @@ export const trpcReact = createTRPCReact<AppRouter>();
 export const trpcClient = trpcReact.createClient({
   links: [
     httpBatchLink({
-      url: import.meta.env.VITE_TRPC_URL || "http://localhost:3000/api/trpc",
+      url: "/api/admin/trpc",
       transformer: superjson,
-      headers() {
-        return {
-          "x-api-key": import.meta.env.VITE_API_KEY || "",
-        };
+      fetch(url, options) {
+        return fetch(url, { ...options, credentials: "include" });
       },
     }),
   ],
