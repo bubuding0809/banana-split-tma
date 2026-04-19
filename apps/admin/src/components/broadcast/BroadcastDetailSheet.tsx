@@ -13,6 +13,7 @@ import type { DeliveryStatus } from "@dko/trpc";
 import { toast } from "sonner";
 import { RetractConfirmDialog } from "./actions/RetractConfirmDialog";
 import { EditBroadcastDialog } from "./actions/EditBroadcastDialog";
+import { ResendBroadcastDialog } from "./actions/ResendBroadcastDialog";
 
 type Props = {
   broadcastId: string | null;
@@ -29,6 +30,7 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
     null
   );
   const [editOpen, setEditOpen] = useState<"all" | "selected" | null>(null);
+  const [resendOpen, setResendOpen] = useState<"all" | "selected" | null>(null);
 
   const detail = trpcReact.admin.broadcastGet.useQuery(
     { broadcastId: broadcastId ?? "" },
@@ -37,6 +39,7 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
 
   const retract = trpcReact.admin.broadcastRetract.useMutation();
   const edit = trpcReact.admin.broadcastEdit.useMutation();
+  const resend = trpcReact.admin.broadcastResend.useMutation();
 
   const onRetractConfirm = async () => {
     if (!broadcastId) return;
@@ -112,7 +115,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
                 >
                   Retract all
                 </Button>
-                <Button size="sm" variant="outline" disabled>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setResendOpen("all")}
+                >
                   Resend…
                 </Button>
               </div>
@@ -171,7 +178,11 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
                   >
                     Edit
                   </Button>
-                  <Button size="sm" variant="outline" disabled>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setResendOpen("selected")}
+                  >
                     Resend
                   </Button>
                 </div>
@@ -222,6 +233,36 @@ export function BroadcastDetailSheet({ broadcastId, open }: Props) {
               detail.refetch();
             } catch (err) {
               toast.error(err instanceof Error ? err.message : "Edit failed");
+            }
+          }}
+        />
+        <ResendBroadcastDialog
+          open={resendOpen !== null}
+          count={
+            resendOpen === "selected"
+              ? selected.size
+              : (detail.data?.deliveries.length ?? 0)
+          }
+          initialText={detail.data?.text ?? ""}
+          isSubmitting={resend.isPending}
+          onOpenChange={(o) => !o && setResendOpen(null)}
+          onConfirm={async ({ text }) => {
+            if (!broadcastId) return;
+            const deliveryIds =
+              resendOpen === "selected" ? Array.from(selected) : undefined;
+            try {
+              const result = await resend.mutateAsync({
+                broadcastId,
+                deliveryIds,
+                text,
+              });
+              toast.success(
+                `Sent to ${result.successCount}${result.failCount ? ` — ${result.failCount} failed` : ""}.`
+              );
+              setResendOpen(null);
+              setSelected(new Set());
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Resend failed");
             }
           }}
         />

@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { trpcReact } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BroadcastDetailSheet } from "./BroadcastDetailSheet";
-import { Image as ImageIcon, Paperclip } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Paperclip } from "lucide-react";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function relativeTime(d: Date): string {
   const diff = Date.now() - new Date(d).getTime();
@@ -21,11 +28,28 @@ export function BroadcastHistoryPage() {
   const { broadcastId } = useParams<{ broadcastId?: string }>();
   const [search, setSearch] = useState("");
   const [failedOnly, setFailedOnly] = useState(false);
+  const navigate = useNavigate();
 
   const list = trpcReact.admin.broadcastList.useInfiniteQuery(
     { limit: 25 },
     { getNextPageParam: (last) => last.nextCursor ?? undefined }
   );
+
+  const resend = trpcReact.admin.broadcastResend.useMutation();
+  const onResendFailures = async (id: string) => {
+    try {
+      const r = await resend.mutateAsync({
+        broadcastId: id,
+        failuresOnly: true,
+      });
+      toast.success(
+        `Re-sent to ${r.successCount}${r.failCount ? ` — ${r.failCount} failed` : ""}.`
+      );
+      list.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Resend failed");
+    }
+  };
 
   const rows = (list.data?.pages ?? [])
     .flatMap((p) => p.items)
@@ -113,7 +137,38 @@ export function BroadcastHistoryPage() {
                     >
                       {b.successCount}/{b.totalRecipients}
                     </td>
-                    <td className="px-6 py-2">{statusLabel}</td>
+                    <td className="px-6 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{statusLabel}</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() =>
+                                navigate(`/broadcast/history/${b.id}`)
+                              }
+                            >
+                              Open detail
+                            </DropdownMenuItem>
+                            {b.failCount > 0 && (
+                              <DropdownMenuItem
+                                onSelect={() => onResendFailures(b.id)}
+                              >
+                                Resend to failures
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
