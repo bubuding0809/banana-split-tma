@@ -29,7 +29,9 @@ export { broadcast } from "./services/broadcast.js";
 export type {
   BroadcastFailure,
   BroadcastMedia,
+  BroadcastRecipient,
   BroadcastResult,
+  BroadcastSuccess,
 } from "./services/broadcast.js";
 
 export * from "./utils/deepLinkProtocol.js";

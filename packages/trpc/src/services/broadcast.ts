@@ -10,11 +10,20 @@ export type BroadcastMedia = {
   filename: string;
 };
 
-export type BroadcastFailure = { userId: number; error: string };
+export type BroadcastRecipient = {
+  userId: number;
+  username: string | null;
+  firstName: string;
+};
+
+export type BroadcastSuccess = BroadcastRecipient;
+
+export type BroadcastFailure = BroadcastRecipient & { error: string };
 
 export type BroadcastResult = {
   successCount: number;
   failCount: number;
+  successes: BroadcastSuccess[];
   failures: BroadcastFailure[];
 };
 
@@ -29,17 +38,20 @@ type BroadcastContext = {
   teleBot: Telegram;
 };
 
+type TargetUser = { id: bigint; username: string | null; firstName: string };
+
 async function resolveTargets(
   db: Db,
   targetUserIds?: number[]
-): Promise<{ id: bigint }[]> {
+): Promise<TargetUser[]> {
+  const select = { id: true, username: true, firstName: true } as const;
   if (targetUserIds === undefined) {
-    return db.user.findMany({ select: { id: true } });
+    return db.user.findMany({ select });
   }
   if (targetUserIds.length === 0) return [];
   return db.user.findMany({
     where: { id: { in: targetUserIds.map((id) => BigInt(id)) } },
-    select: { id: true },
+    select,
   });
 }
 
@@ -53,12 +65,16 @@ export async function broadcast(
     : undefined;
 
   let cachedFileId: string | undefined;
-  let successCount = 0;
-  let failCount = 0;
+  const successes: BroadcastSuccess[] = [];
   const failures: BroadcastFailure[] = [];
 
   for (const user of users) {
     const userId = Number(user.id);
+    const recipient: BroadcastRecipient = {
+      userId,
+      username: user.username,
+      firstName: user.firstName,
+    };
     try {
       if (media) {
         const source = cachedFileId ?? {
@@ -88,12 +104,11 @@ export async function broadcast(
       } else {
         throw new Error("Broadcast must have a message or media attached.");
       }
-      successCount++;
+      successes.push(recipient);
     } catch (error) {
       console.error(`Broadcast to ${userId} failed:`, error);
-      failCount++;
       failures.push({
-        userId,
+        ...recipient,
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -101,5 +116,10 @@ export async function broadcast(
     await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
   }
 
-  return { successCount, failCount, failures };
+  return {
+    successCount: successes.length,
+    failCount: failures.length,
+    successes,
+    failures,
+  };
 }
