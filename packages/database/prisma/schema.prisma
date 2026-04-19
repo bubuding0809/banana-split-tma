@@ -176,3 +176,71 @@ model UserApiKey {
 
   @@index([userId])
 }
+
+enum BroadcastMediaKind {
+  PHOTO
+  VIDEO
+}
+
+enum BroadcastStatus {
+  SENDING
+  SENT
+  FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRACTED
+  EDITED
+}
+
+model Broadcast {
+  id                  String               @id @default(cuid())
+  createdByTelegramId BigInt?
+  createdAt           DateTime             @default(now())
+
+  text                String
+  mediaKind           BroadcastMediaKind?
+  mediaFileId         String?
+  mediaFileName       String?
+
+  status              BroadcastStatus      @default(SENDING)
+
+  parentBroadcastId   String?
+  parent              Broadcast?           @relation("Resend", fields: [parentBroadcastId], references: [id])
+  children            Broadcast[]          @relation("Resend")
+
+  deliveries          BroadcastDelivery[]
+
+  @@index([createdAt])
+  @@index([createdByTelegramId, createdAt])
+}
+
+model BroadcastDelivery {
+  id                String         @id @default(cuid())
+  broadcastId       String
+  broadcast         Broadcast      @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  userId            BigInt
+  username          String?
+  firstName         String
+
+  telegramChatId    BigInt
+  telegramMessageId BigInt?
+
+  status            DeliveryStatus @default(PENDING)
+  error             String?
+
+  sentAt            DateTime?
+  lastEditedAt      DateTime?
+  retractedAt       DateTime?
+
+  editedText        String?
+  editedMediaFileId String?
+
+  @@unique([broadcastId, userId])
+  @@index([userId, sentAt])
+  @@index([status])
+}
