@@ -19,8 +19,11 @@ import { Route as TmaChatChatIdSnapshotsRouteImport } from './routes/_tma/chat.$
 import { Route as TmaChatChatIdSettingsRouteImport } from './routes/_tma/chat.$chatId_.settings'
 import { Route as TmaChatChatIdCreateSnapshotRouteImport } from './routes/_tma/chat.$chatId_.create-snapshot'
 import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
+import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
 import { Route as TmaChatChatIdEditSnapshotSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.edit-snapshot.$snapshotId'
 import { Route as TmaChatChatIdEditExpenseExpenseIdRouteImport } from './routes/_tma/chat.$chatId_.edit-expense.$expenseId'
+import { Route as TmaChatChatIdSettingsCategoriesNewRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.new'
+import { Route as TmaChatChatIdSettingsCategoriesCategoryIdRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.$categoryId'
 
 const TmaRoute = TmaRouteImport.update({
   id: '/_tma',
@@ -72,6 +75,12 @@ const TmaChatChatIdAddExpenseRoute = TmaChatChatIdAddExpenseRouteImport.update({
   path: '/$chatId/add-expense',
   getParentRoute: () => TmaChatRoute,
 } as any)
+const TmaChatChatIdSettingsCategoriesRoute =
+  TmaChatChatIdSettingsCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => TmaChatChatIdSettingsRoute,
+  } as any)
 const TmaChatChatIdEditSnapshotSnapshotIdRoute =
   TmaChatChatIdEditSnapshotSnapshotIdRouteImport.update({
     id: '/$chatId_/edit-snapshot/$snapshotId',
@@ -84,6 +93,18 @@ const TmaChatChatIdEditExpenseExpenseIdRoute =
     path: '/$chatId/edit-expense/$expenseId',
     getParentRoute: () => TmaChatRoute,
   } as any)
+const TmaChatChatIdSettingsCategoriesNewRoute =
+  TmaChatChatIdSettingsCategoriesNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => TmaChatChatIdSettingsCategoriesRoute,
+  } as any)
+const TmaChatChatIdSettingsCategoriesCategoryIdRoute =
+  TmaChatChatIdSettingsCategoriesCategoryIdRouteImport.update({
+    id: '/$categoryId',
+    path: '/$categoryId',
+    getParentRoute: () => TmaChatChatIdSettingsCategoriesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,10 +114,13 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
-  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRoute
+  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
+  '/chat/$chatId/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,10 +129,13 @@ export interface FileRoutesByTo {
   '/chat': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
-  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRoute
+  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
+  '/chat/$chatId/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,10 +147,13 @@ export interface FileRoutesById {
   '/_tma/chat/': typeof TmaChatIndexRoute
   '/_tma/chat/$chatId_/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/_tma/chat/$chatId_/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
-  '/_tma/chat/$chatId_/settings': typeof TmaChatChatIdSettingsRoute
+  '/_tma/chat/$chatId_/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/_tma/chat/$chatId_/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/_tma/chat/$chatId_/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/_tma/chat/$chatId_/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
+  '/_tma/chat/$chatId_/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +169,9 @@ export interface FileRouteTypes {
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
+    | '/chat/$chatId/settings/categories'
+    | '/chat/$chatId/settings/categories/$categoryId'
+    | '/chat/$chatId/settings/categories/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +184,9 @@ export interface FileRouteTypes {
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
+    | '/chat/$chatId/settings/categories'
+    | '/chat/$chatId/settings/categories/$categoryId'
+    | '/chat/$chatId/settings/categories/new'
   id:
     | '__root__'
     | '/'
@@ -165,6 +201,9 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/snapshots'
     | '/_tma/chat/$chatId_/edit-expense/$expenseId'
     | '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
+    | '/_tma/chat/$chatId_/settings/categories'
+    | '/_tma/chat/$chatId_/settings/categories/$categoryId'
+    | '/_tma/chat/$chatId_/settings/categories/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdAddExpenseRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/settings/categories': {
+      id: '/_tma/chat/$chatId_/settings/categories'
+      path: '/categories'
+      fullPath: '/chat/$chatId/settings/categories'
+      preLoaderRoute: typeof TmaChatChatIdSettingsCategoriesRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsRoute
+    }
     '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': {
       id: '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
       path: '/$chatId/edit-snapshot/$snapshotId'
@@ -258,15 +304,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdEditExpenseExpenseIdRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/settings/categories/new': {
+      id: '/_tma/chat/$chatId_/settings/categories/new'
+      path: '/new'
+      fullPath: '/chat/$chatId/settings/categories/new'
+      preLoaderRoute: typeof TmaChatChatIdSettingsCategoriesNewRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsCategoriesRoute
+    }
+    '/_tma/chat/$chatId_/settings/categories/$categoryId': {
+      id: '/_tma/chat/$chatId_/settings/categories/$categoryId'
+      path: '/$categoryId'
+      fullPath: '/chat/$chatId/settings/categories/$categoryId'
+      preLoaderRoute: typeof TmaChatChatIdSettingsCategoriesCategoryIdRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsCategoriesRoute
+    }
   }
 }
+
+interface TmaChatChatIdSettingsCategoriesRouteChildren {
+  TmaChatChatIdSettingsCategoriesCategoryIdRoute: typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
+  TmaChatChatIdSettingsCategoriesNewRoute: typeof TmaChatChatIdSettingsCategoriesNewRoute
+}
+
+const TmaChatChatIdSettingsCategoriesRouteChildren: TmaChatChatIdSettingsCategoriesRouteChildren =
+  {
+    TmaChatChatIdSettingsCategoriesCategoryIdRoute:
+      TmaChatChatIdSettingsCategoriesCategoryIdRoute,
+    TmaChatChatIdSettingsCategoriesNewRoute:
+      TmaChatChatIdSettingsCategoriesNewRoute,
+  }
+
+const TmaChatChatIdSettingsCategoriesRouteWithChildren =
+  TmaChatChatIdSettingsCategoriesRoute._addFileChildren(
+    TmaChatChatIdSettingsCategoriesRouteChildren,
+  )
+
+interface TmaChatChatIdSettingsRouteChildren {
+  TmaChatChatIdSettingsCategoriesRoute: typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+}
+
+const TmaChatChatIdSettingsRouteChildren: TmaChatChatIdSettingsRouteChildren = {
+  TmaChatChatIdSettingsCategoriesRoute:
+    TmaChatChatIdSettingsCategoriesRouteWithChildren,
+}
+
+const TmaChatChatIdSettingsRouteWithChildren =
+  TmaChatChatIdSettingsRoute._addFileChildren(
+    TmaChatChatIdSettingsRouteChildren,
+  )
 
 interface TmaChatRouteChildren {
   TmaChatChatIdRoute: typeof TmaChatChatIdRoute
   TmaChatIndexRoute: typeof TmaChatIndexRoute
   TmaChatChatIdAddExpenseRoute: typeof TmaChatChatIdAddExpenseRoute
   TmaChatChatIdCreateSnapshotRoute: typeof TmaChatChatIdCreateSnapshotRoute
-  TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRoute
+  TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRouteWithChildren
   TmaChatChatIdSnapshotsRoute: typeof TmaChatChatIdSnapshotsRoute
   TmaChatChatIdEditExpenseExpenseIdRoute: typeof TmaChatChatIdEditExpenseExpenseIdRoute
   TmaChatChatIdEditSnapshotSnapshotIdRoute: typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
@@ -277,7 +369,7 @@ const TmaChatRouteChildren: TmaChatRouteChildren = {
   TmaChatIndexRoute: TmaChatIndexRoute,
   TmaChatChatIdAddExpenseRoute: TmaChatChatIdAddExpenseRoute,
   TmaChatChatIdCreateSnapshotRoute: TmaChatChatIdCreateSnapshotRoute,
-  TmaChatChatIdSettingsRoute: TmaChatChatIdSettingsRoute,
+  TmaChatChatIdSettingsRoute: TmaChatChatIdSettingsRouteWithChildren,
   TmaChatChatIdSnapshotsRoute: TmaChatChatIdSnapshotsRoute,
   TmaChatChatIdEditExpenseExpenseIdRoute:
     TmaChatChatIdEditExpenseExpenseIdRoute,
