@@ -31,7 +31,7 @@ Both workflows are N+1 and tedious in both CLI and agent contexts.
 ## Definitions
 
 - **Outstanding balance filter:** a chat is included in `list-my-balances` iff caller's aggregate net in at least one currency satisfies `|net| > 0.01`. The threshold mirrors `FINANCIAL_THRESHOLDS.DISPLAY` used elsewhere.
-- **Monthly damage:** for a given `YYYY-MM`, the sum of caller's `ExpenseShare.amount` rows on expenses whose `date` falls within the UTC month and whose expense is not soft-deleted.
+- **Monthly damage:** for a given `YYYY-MM`, the sum of caller's `ExpenseShare.amount` rows on expenses whose `date` falls within the UTC month. (Expenses are hard-deleted in this schema, so no soft-delete filter is needed.)
 - **Counterparty net:** the signed amount between caller and another user in a chat+currency. `net > 0` = counterparty owes caller. `net < 0` = caller owes counterparty.
 
 ## User stories
@@ -157,7 +157,7 @@ z.object({
 1. Parse `month` → `[monthStart, monthEndExclusive)` in UTC.
 2. Resolve caller's chat IDs (same membership query as procedure 1).
 3. Single Prisma `groupBy` on `ExpenseShare` joined to `Expense`:
-   - Filter: `userId = caller`, `expense.chatId IN callerChatIds`, `expense.date >= monthStart`, `expense.date < monthEndExclusive`, `expense.deletedAt IS NULL`.
+   - Filter: `userId = caller`, `expense.chatId IN callerChatIds`, `expense.date >= monthStart`, `expense.date < monthEndExclusive`.
    - Group by: `expense.chatId`, `expense.currency`.
    - Aggregate: `SUM(amount)`.
 4. Resolve chat titles via one `findMany` on returned chat IDs.
@@ -209,7 +209,6 @@ Both commands live in `apps/cli/src/commands/me.ts` under exported `meCommands: 
 
 `getMySpendByMonth.spec.ts`:
 - Expense at `2026-04-30T23:59:59Z` counted for `2026-04`; expense at `2026-05-01T00:00:00Z` NOT counted.
-- Soft-deleted expense (`deletedAt IS NOT NULL`) excluded.
 - Caller's shares only; other members' shares on same expense excluded.
 - Empty month → empty `chats`, empty `totals`, no error.
 - `totals` sums match per-chat sums.
