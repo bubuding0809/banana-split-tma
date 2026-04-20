@@ -625,6 +625,34 @@ importers:
         specifier: ^4.0.18
         version: 4.1.2(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(happy-dom@20.8.9)(jsdom@29.0.2)(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/categories:
+    dependencies:
+      "@repo/agent":
+        specifier: workspace:*
+        version: link:../agent
+      ai:
+        specifier: ^5.0.30
+        version: 5.0.162(zod@3.25.76)
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      "@types/node":
+        specifier: ^25.5.0
+        version: 25.5.0
+      typescript:
+        specifier: 5.8.2
+        version: 5.8.2
+      vitest:
+        specifier: ^4.0.18
+        version: 4.1.2(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(happy-dom@20.8.9)(jsdom@29.0.2)(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/database:
     dependencies:
       "@prisma/client":
@@ -21900,7 +21928,7 @@ snapshots:
   "@types/body-parser@1.19.6":
     dependencies:
       "@types/connect": 3.4.38
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
 
   "@types/caseless@0.12.5": {}
 
@@ -21911,7 +21939,7 @@ snapshots:
 
   "@types/connect@3.4.38":
     dependencies:
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
 
   "@types/cookie@1.0.0":
     dependencies:
@@ -21951,14 +21979,14 @@ snapshots:
 
   "@types/express-serve-static-core@4.19.8":
     dependencies:
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
       "@types/qs": 6.15.0
       "@types/range-parser": 1.2.7
       "@types/send": 1.2.1
 
   "@types/express-serve-static-core@5.1.1":
     dependencies:
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
       "@types/qs": 6.15.0
       "@types/range-parser": 1.2.7
       "@types/send": 1.2.1
@@ -22063,18 +22091,18 @@ snapshots:
 
   "@types/send@1.2.1":
     dependencies:
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
 
   "@types/serve-static@1.15.10":
     dependencies:
       "@types/http-errors": 2.0.5
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
       "@types/send": 0.17.6
 
   "@types/serve-static@2.2.0":
     dependencies:
       "@types/http-errors": 2.0.5
-      "@types/node": 20.19.37
+      "@types/node": 22.19.15
 
   "@types/tough-cookie@4.0.5": {}
 
