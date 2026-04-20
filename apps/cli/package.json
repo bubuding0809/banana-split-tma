@@ -1,6 +1,6 @@
 {
   "name": "@banananasplitz/cli",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Agent-first CLI for Banana Split expense tracking API",
   "type": "module",
   "main": "dist/cli.js",
@@ -38,11 +38,9 @@
     "check-types": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
-  "dependencies": {
-    "@repo/categories": "workspace:*"
-  },
   "devDependencies": {
     "@dko/trpc": "workspace:*",
+    "@repo/categories": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@trpc/client": "11.0.0",
     "@types/node": "^20.11.17",
