@@ -51,6 +51,9 @@ const CategoryFormStep = withForm({
     );
 
     const suggestMutation = trpc.category.suggest.useMutation();
+    // Monotonic request id — protects against stale responses when a slow
+    // request resolves after a faster, newer one.
+    const latestRequestRef = useRef(0);
 
     // Debounced auto-suggest on description change (400ms). Only fires while the
     // user hasn't manually picked.
@@ -60,10 +63,13 @@ const CategoryFormStep = withForm({
       if (!description || description.trim().length < 3) return;
       const handle = setTimeout(() => {
         if (userTouchedRef.current) return;
+        const requestId = ++latestRequestRef.current;
         suggestMutation.mutate(
           { chatId, description },
           {
             onSuccess: (res) => {
+              // Drop stale responses: if a newer request has fired, ignore.
+              if (requestId !== latestRequestRef.current) return;
               if (userTouchedRef.current) return;
               if (!res.categoryId) return;
               form.setFieldValue("categoryId", res.categoryId);
@@ -131,6 +137,8 @@ const CategoryFormStep = withForm({
           includeNoneOption
           onSelect={(c) => {
             userTouchedRef.current = true;
+            // Bump the request id so any in-flight suggest's onSuccess is dropped.
+            latestRequestRef.current += 1;
             setAutoPicked(false);
             form.setFieldValue("categoryId", c.id === "none" ? null : c.id);
             setOpen(false);
