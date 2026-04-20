@@ -1,10 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock @repo/agent before importing classify.
-vi.mock("@repo/agent", () => ({
-  getAgentModel: vi.fn(() => "mock-model"),
-}));
-
 // Mock the ai package so we don't hit a real model.
 const generateObjectMock = vi.fn();
 vi.mock("ai", () => ({
@@ -12,6 +7,8 @@ vi.mock("ai", () => ({
 }));
 
 import { classifyCategory } from "./classify.js";
+
+const MOCK_MODEL = "mock-model" as never;
 
 describe("classifyCategory", () => {
   beforeEach(() => {
@@ -26,6 +23,7 @@ describe("classifyCategory", () => {
     const result = await classifyCategory({
       description: "biryani",
       chatCategories: [],
+      model: MOCK_MODEL,
     });
 
     expect(result).toEqual({ categoryId: "base:food", confidence: 0.9 });
@@ -39,6 +37,7 @@ describe("classifyCategory", () => {
     const result = await classifyCategory({
       description: "whatever",
       chatCategories: [],
+      model: MOCK_MODEL,
     });
 
     expect(result).toBeNull();
@@ -52,6 +51,7 @@ describe("classifyCategory", () => {
     const result = await classifyCategory({
       description: "biryani",
       chatCategories: [],
+      model: MOCK_MODEL,
     });
 
     expect(result).toBeNull();
@@ -63,6 +63,7 @@ describe("classifyCategory", () => {
     const result = await classifyCategory({
       description: "x",
       chatCategories: [],
+      model: MOCK_MODEL,
     });
 
     expect(result).toBeNull();
@@ -85,6 +86,7 @@ describe("classifyCategory", () => {
     const result = await classifyCategory({
       description: "x",
       chatCategories: [],
+      model: MOCK_MODEL,
       signal: controller.signal,
     });
 
@@ -104,6 +106,7 @@ describe("classifyCategory", () => {
     const promise = classifyCategory({
       description: "bali trip",
       chatCategories: [],
+      model: MOCK_MODEL,
       signal: outer.signal,
     });
 
@@ -126,6 +129,7 @@ describe("classifyCategory", () => {
       chatCategories: [
         { id: "abc", chatId: 1n, emoji: "🏖️", title: "Bali trip" },
       ],
+      model: MOCK_MODEL,
     });
 
     expect(result).toEqual({ categoryId: "chat:abc", confidence: 0.95 });

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { generateObject } from "ai";
 import type { LanguageModel } from "ai";
-import { getAgentModel } from "@repo/agent";
 import { BASE_CATEGORIES } from "./base.js";
 import { buildClassifierPrompt } from "./prompt.js";
 import type { ChatCategoryRow } from "./types.js";
@@ -12,6 +11,7 @@ export const CONFIDENCE_THRESHOLD = 0.4;
 export async function classifyCategory(args: {
   description: string;
   chatCategories: ChatCategoryRow[];
+  model: LanguageModel;
   signal?: AbortSignal;
 }): Promise<{ categoryId: string; confidence: number } | null> {
   if (args.signal?.aborted) return null;
@@ -54,10 +54,7 @@ export async function classifyCategory(args: {
 
     try {
       const { object } = await generateObject({
-        // getAgentModel() returns LanguageModelV2 | LanguageModelV3; ai@5's
-        // LanguageModel is GlobalProviderModelId | LanguageModelV2, so we cast
-        // to satisfy the call site — the actual runtime value is always valid.
-        model: getAgentModel() as LanguageModel,
+        model: args.model,
         schema,
         prompt,
         abortSignal: controller.signal,

@@ -627,9 +627,6 @@ importers:
 
   packages/categories:
     dependencies:
-      "@repo/agent":
-        specifier: workspace:*
-        version: link:../agent
       ai:
         specifier: ^5.0.30
         version: 5.0.162(zod@3.25.76)
@@ -725,6 +722,9 @@ importers:
       "@dko/database":
         specifier: workspace:*
         version: link:../database
+      "@repo/categories":
+        specifier: workspace:*
+        version: link:../categories
       "@telegram-apps/init-data-node":
         specifier: ^2.0.10
         version: 2.0.10(typescript@5.8.2)

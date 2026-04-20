@@ -19,7 +19,6 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@repo/agent": "workspace:*",
     "ai": "^5.0.30",
     "zod": "^3.23.8"
   },
