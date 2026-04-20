@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import type { Command } from "./types.js";
 import { resolveChatId } from "../scope.js";
 import { run, error } from "../output.js";
+import { BASE_CATEGORIES } from "@repo/categories";
 
 export const expenseCommands: Command[] = [
   {
@@ -12,6 +13,7 @@ export const expenseCommands: Command[] = [
     examples: [
       "banana list-expenses --chat-id 123456789",
       "banana list-expenses --currency USD",
+      "banana list-expenses --category base:food",
     ],
     options: {
       "chat-id": {
@@ -24,6 +26,12 @@ export const expenseCommands: Command[] = [
         description: "Filter by 3-letter currency code (e.g. USD)",
         required: false,
       },
+      category: {
+        type: "string",
+        description:
+          "Filter expenses by category id (base:<slug> or chat:<uuid>). Settlements are never filtered out.",
+        required: false,
+      },
     },
     execute: (opts, trpc) =>
       run("list-expenses", async () => {
@@ -31,10 +39,42 @@ export const expenseCommands: Command[] = [
           trpc,
           opts["chat-id"] as string | undefined
         );
-        return trpc.expense.getExpenseByChat.query({
+
+        // Resolve category labels once per command invocation.
+        const categoryMap = new Map<string, { emoji: string; title: string }>();
+        for (const b of BASE_CATEGORIES) {
+          categoryMap.set(b.id, { emoji: b.emoji, title: b.title });
+        }
+        try {
+          const customCats = await trpc.category.listByChat.query({ chatId });
+          for (const c of customCats.custom) {
+            categoryMap.set(c.id, { emoji: c.emoji, title: c.title });
+          }
+        } catch {
+          // Non-fatal: category labels are best-effort
+        }
+
+        let expenses = await trpc.expense.getExpenseByChat.query({
           chatId,
           currency: opts.currency ? String(opts.currency) : undefined,
         });
+
+        // Apply category filter (settlements have no categoryId so they always pass).
+        if (opts.category) {
+          expenses = expenses.filter(
+            (e: { categoryId?: string | null }) =>
+              e.categoryId == null || e.categoryId === String(opts.category)
+          );
+        }
+
+        // Annotate each expense with a categoryLabel for display.
+        return expenses.map(
+          (e: { categoryId?: string | null; [key: string]: unknown }) => {
+            const cat = e.categoryId ? categoryMap.get(e.categoryId) : null;
+            const categoryLabel = cat ? `${cat.emoji} ${cat.title}` : null;
+            return { ...e, categoryLabel };
+          }
+        );
       }),
   },
 

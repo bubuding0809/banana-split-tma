@@ -2,6 +2,23 @@ import { describe, it, expect, vi } from "vitest";
 import * as fs from "node:fs";
 import { expenseCommands } from "./expense.js";
 
+vi.mock("@repo/categories", () => ({
+  BASE_CATEGORIES: [
+    {
+      id: "base:food",
+      emoji: "🍔",
+      title: "Food & Drink",
+      keywords: ["food", "drink", "restaurant"],
+    },
+    {
+      id: "base:transport",
+      emoji: "🚗",
+      title: "Transport",
+      keywords: ["taxi", "bus", "mrt"],
+    },
+  ],
+}));
+
 vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
 }));
@@ -528,5 +545,91 @@ describe("expense commands", () => {
       code: "invalid_option",
       message: "--date must be a valid ISO 8601 date string",
     });
+  });
+
+  it("list-expenses: categorized expense shows categoryLabel with emoji + title", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "list-expenses");
+    const expenses = [
+      {
+        id: "exp-1",
+        description: "Burger",
+        amount: 15,
+        currency: "SGD",
+        categoryId: "base:food",
+      },
+      {
+        id: "exp-2",
+        description: "Taxi",
+        amount: 20,
+        currency: "SGD",
+        categoryId: null,
+      },
+    ];
+    const queryMock = vi.fn().mockResolvedValue(expenses);
+    const categoryQueryMock = vi
+      .fn()
+      .mockResolvedValue({ base: [], custom: [] });
+    const trpcMock = {
+      expense: { getExpenseByChat: { query: queryMock } },
+      category: { listByChat: { query: categoryQueryMock } },
+    } as any;
+
+    const result = (await cmd?.execute(
+      { "chat-id": "111" },
+      trpcMock
+    )) as any[];
+
+    expect(Array.isArray(result)).toBe(true);
+    const food = result.find((e) => e.id === "exp-1");
+    expect(food?.categoryLabel).toBe("🍔 Food & Drink");
+    const taxi = result.find((e) => e.id === "exp-2");
+    expect(taxi?.categoryLabel).toBeNull();
+  });
+
+  it("list-expenses: --category filter returns only matching expenses", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "list-expenses");
+    const expenses = [
+      {
+        id: "exp-1",
+        description: "Burger",
+        amount: 15,
+        currency: "SGD",
+        categoryId: "base:food",
+      },
+      {
+        id: "exp-2",
+        description: "Taxi",
+        amount: 20,
+        currency: "SGD",
+        categoryId: "base:transport",
+      },
+      {
+        id: "exp-3",
+        description: "Settlement",
+        amount: 10,
+        currency: "SGD",
+        categoryId: null,
+      },
+    ];
+    const queryMock = vi.fn().mockResolvedValue(expenses);
+    const categoryQueryMock = vi
+      .fn()
+      .mockResolvedValue({ base: [], custom: [] });
+    const trpcMock = {
+      expense: { getExpenseByChat: { query: queryMock } },
+      category: { listByChat: { query: categoryQueryMock } },
+    } as any;
+
+    const result = (await cmd?.execute(
+      { "chat-id": "111", category: "base:food" },
+      trpcMock
+    )) as any[];
+
+    // base:food expense is included
+    expect(result.some((e) => e.id === "exp-1")).toBe(true);
+    // base:transport expense is filtered out
+    expect(result.some((e) => e.id === "exp-2")).toBe(false);
+    // null categoryId (settlement-like) always passes
+    expect(result.some((e) => e.id === "exp-3")).toBe(true);
   });
 });

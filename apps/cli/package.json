@@ -38,6 +38,9 @@
     "check-types": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
+  "dependencies": {
+    "@repo/categories": "workspace:*"
+  },
   "devDependencies": {
     "@dko/trpc": "workspace:*",
     "@repo/typescript-config": "workspace:*",

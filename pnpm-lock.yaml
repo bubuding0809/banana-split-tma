@@ -255,6 +255,10 @@ importers:
         version: 34.4.0(@swc/core@1.15.21(@swc/helpers@0.5.20))
 
   apps/cli:
+    dependencies:
+      "@repo/categories":
+        specifier: workspace:*
+        version: link:../../packages/categories
     devDependencies:
       "@dko/trpc":
         specifier: workspace:*
