@@ -3,3 +3,4 @@ export { BASE_CATEGORIES } from "./base.js";
 export { resolveCategory } from "./resolve.js";
 export { buildClassifierPrompt, FEW_SHOTS } from "./prompt.js";
 export type { AllowedCategory, FewShot } from "./prompt.js";
+export { classifyCategory } from "./classify.js";
