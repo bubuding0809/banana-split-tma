@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
+    "@repo/categories": "workspace:*",
     "@tailwindcss/vite": "^4.1.10",
     "@tanstack/react-form": "^1.12.3",
     "@tanstack/react-query": "^5.69.0",

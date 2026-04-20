@@ -4,6 +4,13 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-20
+
+### Added
+
+- Expense category display: each expense row shows the category emoji + title when present (via the new `categoryLabel` field in `list-expenses` output).
+- `--category <id>` filter on `list-expenses`. Accepts `base:<slug>` for base categories and `chat:<uuid>` for custom per-chat categories. Expenses with no category (including settlement-style rows) are never filtered out.
+
 ## [0.7.4] - 2026-04-20
 
 ### Changed
@@ -39,7 +46,8 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 - Version was live on npm with prior CLI contents before the 0.7.0 cross-chat work landed. No changelog was maintained at the time; this entry is retroactive for continuity.
 
-[Unreleased]: https://github.com/bubuding0809/banana-split-tma/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/bubuding0809/banana-split-tma/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/bubuding0809/banana-split-tma/releases/tag/v0.8.0
 [0.7.3]: https://github.com/bubuding0809/banana-split-tma/releases/tag/v0.7.3
 [0.7.2]: https://github.com/bubuding0809/banana-split-tma/releases/tag/v0.7.2
 [0.7.0]: https://github.com/bubuding0809/banana-split-tma/releases/tag/v0.7.0

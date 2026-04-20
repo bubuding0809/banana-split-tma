@@ -23,6 +23,7 @@ import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import RecurringRemindersSection from "./RecurringRemindersSection";
 import AccessTokensSection from "./AccessTokensSection";
 import UserAccessTokensSection from "./UserAccessTokensSection";
+import CategoriesSection from "./CategoriesSection";
 
 interface ChatSettingsPageProps {
   chatId: number;
@@ -290,6 +291,8 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
           </Skeleton>
         </Cell>
       </Section>
+
+      <CategoriesSection chatId={chatId} isPersonal={isPrivateChat} />
 
       <Section header="Personal Information">
         <Cell

@@ -24,6 +24,7 @@ export const expenseFormSchema = z.object({
   payee: z.string().min(1, "A payee is required"),
   splitMode: SplitMode,
   participants: z.array(z.string()).min(1, "At least one participant required"),
+  categoryId: z.string().nullable(),
   customSplits: z.array(
     z.object({
       userId: z.string(),

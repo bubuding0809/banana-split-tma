@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
+import { BASE_CATEGORIES } from "@repo/categories";
 import { Decimal } from "decimal.js";
 import {
   toNumber,
@@ -51,6 +52,15 @@ export const inputSchema = z.object({
       })
     )
     .optional(),
+  categoryId: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v.startsWith("base:") || v.startsWith("chat:"),
+      "categoryId must start with 'base:' or 'chat:'"
+    )
+    .nullable()
+    .optional(),
   sendNotification: z.boolean().default(true),
   threadId: z.number().optional(),
 });
@@ -67,6 +77,7 @@ export const outputSchema = z.object({
   date: z.date(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  categoryId: z.string().nullable(),
 });
 
 // Reuse validation functions from createExpense
@@ -304,6 +315,29 @@ export const updateExpenseHandler = async (
       });
     }
 
+    if (input.categoryId) {
+      if (input.categoryId.startsWith("base:")) {
+        if (!BASE_CATEGORIES.find((c) => c.id === input.categoryId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Unknown base category",
+          });
+        }
+      } else {
+        const uuid = input.categoryId.slice("chat:".length);
+        const exists = await db.chatCategory.findFirst({
+          where: { id: uuid, chatId: existingExpense.chatId },
+          select: { id: true },
+        });
+        if (!exists) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Unknown chat category",
+          });
+        }
+      }
+    }
+
     // Determine the currency to use
     let currency = input.currency;
     if (!currency) {
@@ -331,6 +365,8 @@ export const updateExpenseHandler = async (
           date: input.date,
           currency: currency,
           splitMode: input.splitMode,
+          categoryId:
+            input.categoryId === undefined ? undefined : input.categoryId,
           participants: {
             set: input.participantIds.map((id) => ({ id })),
           },
@@ -502,6 +538,7 @@ export const updateExpenseHandler = async (
       payerId: Number(updatedExpense.payerId),
       amount: Number(updatedExpense.amount),
       currency: updatedExpense.currency,
+      categoryId: updatedExpense.categoryId ?? null,
     };
   } catch (error) {
     if (error instanceof TRPCError) {

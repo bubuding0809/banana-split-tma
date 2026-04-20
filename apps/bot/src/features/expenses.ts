@@ -5,6 +5,9 @@ import { escapeMarkdownV2 } from "../utils/markdown.js";
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 import { Decimal } from "decimal.js";
+import { classifyCategory } from "@repo/categories";
+import { getAgentModel } from "@repo/agent";
+import type { LanguageModel } from "ai";
 
 interface Expense {
   id: number;
@@ -312,6 +315,29 @@ expensesFeature.on("message:text", async (ctx, next) => {
 
     const expenseDate = parsed.date || new Date();
 
+    // Try to auto-assign a category. Null on LLM failure is acceptable — expense
+    // still creates, just without a category.
+    let categoryId: string | null = null;
+    try {
+      const chatCategories = await ctx.trpc.category.listByChat({
+        chatId: ctx.from.id,
+      });
+      const chatRows = chatCategories.custom.map((c) => ({
+        id: c.id.replace(/^chat:/, ""),
+        emoji: c.emoji,
+        title: c.title,
+        chatId: BigInt(ctx.from.id),
+      }));
+      const suggestion = await classifyCategory({
+        description: parsed.description,
+        chatCategories: chatRows,
+        model: getAgentModel() as unknown as LanguageModel,
+      });
+      categoryId = suggestion?.categoryId ?? null;
+    } catch (err) {
+      console.warn("bot: category classify failed", err);
+    }
+
     const expense = await ctx.trpc.expense.createExpense({
       chatId: ctx.from.id,
       creatorId: ctx.from.id,
@@ -323,6 +349,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
       participantIds: [ctx.from.id],
       sendNotification: false,
       currency: parsed.currency,
+      categoryId: categoryId ?? undefined,
     });
 
     const currency = expense.currency;

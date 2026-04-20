@@ -14,6 +14,7 @@ import { cn } from "@utils/cn";
 
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
+import CategoryFormStep from "./CategoryFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
 import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
@@ -35,6 +36,10 @@ const FORM_STEPS = [
   {
     title: "Paid by",
     component: PayeeformStep,
+  },
+  {
+    title: "Category",
+    component: CategoryFormStep,
   },
   {
     title: "Split Mode",
@@ -118,6 +123,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       currency: expenseData?.currency ?? dChatData?.baseCurrency ?? "SGD",
       splitMode: expenseData?.splitMode ?? "EQUAL",
       participants: handleInitParticipants(),
+      categoryId: expenseData?.categoryId ?? null,
       customSplits: handleInitSplits(),
     },
     onSubmit: async ({ value }) => {
@@ -151,6 +157,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
+          categoryId: value.categoryId ?? undefined,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
@@ -352,6 +359,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
             isEditMode={true}
             navigate={navigate}
             chatId={chatId}
+            disableAutoAssign={true}
             membersExpanded={membersExpanded}
           />
         )}

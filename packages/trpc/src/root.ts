@@ -13,6 +13,7 @@ import {
   userRouter,
   adminRouter,
 } from "./routers/index.js";
+import { categoryRouter } from "./routers/category/index.js";
 import { createTRPCRouter } from "./trpc.js";
 
 export const appRouter = createTRPCRouter({
@@ -20,6 +21,7 @@ export const appRouter = createTRPCRouter({
   ai: aiRouter,
   apiKey: apiKeyRouter,
   aws: awsRouter,
+  category: categoryRouter,
   chat: chatRouter,
   user: userRouter,
   telegram: telegramRouter,

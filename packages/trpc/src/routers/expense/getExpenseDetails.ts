@@ -40,6 +40,7 @@ const getExpenseDetailsHandler = async (
   return {
     ...expense,
     amount: Number(expense?.amount),
+    categoryId: expense?.categoryId ?? null,
     participants:
       expense?.participants.map((p) => ({
         ...p,

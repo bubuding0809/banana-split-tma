@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Banana Split · Categories Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+
+  <script type="text/babel" data-presets="react">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "light",
+      "chatType": "group",
+      "onboardingEnabled": true
+    }/*EDITMODE-END*/;
+
+    const SCREENS = [
+      { id: "onboarding", label: "Onboarding tooltip", group: "Discovery" },
+      { id: "chat", label: "Chat · transactions + filter", group: "Discovery" },
+      { id: "add", label: "Add expense · auto-assign", group: "Create / Edit" },
+      { id: "add-manual", label: "Add expense · manual pick", group: "Create / Edit" },
+      { id: "edit", label: "Edit expense · change cat.", group: "Create / Edit" },
+      { id: "picker", label: "Category picker sheet", group: "Create / Edit" },
+      { id: "settings", label: "Chat settings · entry point", group: "Settings" },
+      { id: "manage", label: "Manage categories", group: "Settings" },
+      { id: "create", label: "Create custom category", group: "Settings" },
+    ];
+
+    function App() {
+      const [tweaks, setTweaks] = React.useState(() => {
+        try {
+          const saved = localStorage.getItem("bs-tweaks");
+          return saved ? { ...TWEAK_DEFAULTS, ...JSON.parse(saved) } : TWEAK_DEFAULTS;
+        } catch { return TWEAK_DEFAULTS; }
+      });
+      const [tweaksOpen, setTweaksOpen] = React.useState(false);
+      const [screen, setScreen] = React.useState(() => localStorage.getItem("bs-screen") || "chat");
+      const [sessionOnboarding, setSessionOnboarding] = React.useState(true);
+
+      // Custom categories state per chat
+      const [customByChat, setCustomByChat] = React.useState(DEFAULT_CUSTOM);
+      const [editingCat, setEditingCat] = React.useState(null);
+      const [editingExpense, setEditingExpense] = React.useState(null);
+      const [pickerOpenStandalone, setPickerOpenStandalone] = React.useState(false);
+      const [selectedCatInPicker, setSelectedCatInPicker] = React.useState(null);
+
+      const allCategories = React.useMemo(
+        () => [...BASE_CATEGORIES, ...customByChat[tweaks.chatType]],
+        [customByChat, tweaks.chatType]
+      );
+
+      React.useEffect(() => {
+        localStorage.setItem("bs-screen", screen);
+      }, [screen]);
+      React.useEffect(() => {
+        document.body.setAttribute("data-theme", tweaks.theme);
+        localStorage.setItem("bs-tweaks", JSON.stringify(tweaks));
+      }, [tweaks]);
+
+      // Edit mode protocol
+      React.useEffect(() => {
+        const handler = (e) => {
+          if (e.data?.type === "__activate_edit_mode") setTweaksOpen(true);
+          if (e.data?.type === "__deactivate_edit_mode") setTweaksOpen(false);
+        };
+        window.addEventListener("message", handler);
+        window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+        return () => window.removeEventListener("message", handler);
+      }, []);
+
+      const updateTweak = (key, value) => {
+        const next = { ...tweaks, [key]: value };
+        setTweaks(next);
+        window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [key]: value } }, "*");
+      };
+
+      // Screen chooser
+      const renderScreen = () => {
+        switch (screen) {
+          case "onboarding":
+          case "chat": {
+            return (
+              <ChatTransactionsScreen
+                key={tweaks.chatType}
+                allCategories={allCategories}
+                chatType={tweaks.chatType}
+                onboardingEnabled={tweaks.onboardingEnabled}
+                showOnboarding={screen === "onboarding" && sessionOnboarding}
+                onDismissOnboarding={() => setSessionOnboarding(false)}
+                onAddExpense={() => { setSessionOnboarding(false); setEditingExpense(null); setScreen("add"); }}
+                onEditExpense={(exp) => {
+                  const cat = allCategories.find(c => c.id === exp.category);
+                  setEditingExpense({ ...exp, category: cat, auto: exp.auto });
+                  setScreen("edit");
+                }}
+                onOpenManage={() => setScreen("manage")}
+                onOpenSettings={() => setScreen("settings")}
+              />
+            );
+          }
+          case "add":
+          case "add-manual": {
+            return (
+              <AddExpenseScreen
+                onBack={() => setScreen("chat")}
+                onSave={() => setScreen("chat")}
+                allCategories={allCategories}
+                chatType={tweaks.chatType}
+                onOpenManage={() => setScreen("manage")}
+                onCreateCustom={() => { setEditingCat(null); setScreen("create"); }}
+                editing={screen === "add-manual" ? { description: "", amount: "", category: null, auto: false } : null}
+              />
+            );
+          }
+          case "edit": {
+            const fallback = {
+              description: "Airbnb Bali deposit",
+              amount: "420.00",
+              category: allCategories.find(c => c.id === "c-bali"),
+              auto: false,
+            };
+            return (
+              <AddExpenseScreen
+                onBack={() => setScreen("chat")}
+                onSave={() => setScreen("chat")}
+                allCategories={allCategories}
+                chatType={tweaks.chatType}
+                onOpenManage={() => setScreen("manage")}
+                onCreateCustom={() => { setEditingCat(null); setScreen("create"); }}
+                editing={editingExpense ?? fallback}
+              />
+            );
+          }
+          case "picker": {
+            return (
+              <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
+                <TgHeader title="Category picker demo" />
+                <div className="tg-scroll" style={{ padding: "20px 16px", color: "var(--tg-hint)", fontSize: 14 }}>
+                  <p>This is the bottom sheet in isolation. Tap the button to open it.</p>
+                </div>
+                <div style={{ padding: "0 16px 100px" }}>
+                  <button
+                    className="tg-btn-primary"
+                    onClick={() => setPickerOpenStandalone(true)}
+                  >Open picker</button>
+                </div>
+                <CategoryPickerSheet
+                  open={pickerOpenStandalone}
+                  onClose={() => setPickerOpenStandalone(false)}
+                  categories={allCategories}
+                  selectedId={selectedCatInPicker?.id}
+                  onSelect={(c) => { setSelectedCatInPicker(c); setPickerOpenStandalone(false); }}
+                  onCreateCustom={() => { setPickerOpenStandalone(false); setEditingCat(null); setScreen("create"); }}
+                  context={tweaks.chatType === "group" ? "Weekend Crew" : "Personal"}
+                />
+              </div>
+            );
+          }
+          case "settings": {
+            return (
+              <ChatSettingsScreen
+                onBack={() => setScreen("chat")}
+                onOpenManage={() => setScreen("manage")}
+                chatType={tweaks.chatType}
+                customCategories={customByChat[tweaks.chatType]}
+                allCategories={allCategories}
+              />
+            );
+          }
+          case "manage": {
+            return (
+              <ManageCategoriesScreen
+                onBack={() => setScreen("settings")}
+                categories={BASE_CATEGORIES}
+                customCategories={customByChat[tweaks.chatType]}
+                context={tweaks.chatType === "group" ? "Weekend Crew" : "Personal"}
+                onEdit={(c) => { setEditingCat(c); setScreen("create"); }}
+                onCreate={() => { setEditingCat(null); setScreen("create"); }}
+              />
+            );
+          }
+          case "create": {
+            return (
+              <CreateCategoryScreen
+                initial={editingCat}
+                onCancel={() => setScreen(editingCat ? "manage" : "manage")}
+                onSave={(cat) => {
+                  setCustomByChat(prev => {
+                    const list = prev[tweaks.chatType];
+                    const exists = list.find(c => c.id === cat.id);
+                    const next = exists
+                      ? list.map(c => c.id === cat.id ? { ...c, ...cat } : c)
+                      : [...list, cat];
+                    return { ...prev, [tweaks.chatType]: next };
+                  });
+                  setScreen("manage");
+                }}
+              />
+            );
+          }
+          default:
+            return null;
+        }
+      };
+
+      // Group screens in sidebar
+      const groupedScreens = SCREENS.reduce((acc, s) => {
+        (acc[s.group] = acc[s.group] || []).push(s);
+        return acc;
+      }, {});
+
+      return (
+        <div className="stage">
+          {/* Left nav */}
+          <nav className="flow-nav">
+            <h3>Screens</h3>
+            {Object.entries(groupedScreens).map(([group, items]) => (
+              <React.Fragment key={group}>
+                <div className="group-label">{group}</div>
+                {items.map(s => (
+                  <button
+                    key={s.id}
+                    className={screen === s.id ? "active" : ""}
+                    onClick={() => {
+                      if (s.id === "onboarding") setSessionOnboarding(true);
+                      setScreen(s.id);
+                    }}
+                  >{s.label}</button>
+                ))}
+              </React.Fragment>
+            ))}
+          </nav>
+
+          {/* Device */}
+          <div className="phone" data-screen-label={SCREENS.find(s=>s.id===screen)?.label}>
+            <div className="phone-screen" data-theme={tweaks.theme}>
+              <TgStatusBar />
+              {renderScreen()}
+            </div>
+          </div>
+
+          {/* Notes panel */}
+          <aside style={{
+            width: 260, padding: 16, background: "#1e1e22", borderRadius: 12,
+            border: "1px solid #2a2a2e", alignSelf: "flex-start", color: "#bbb",
+            fontSize: 12, lineHeight: 1.5, position: "sticky", top: 24,
+          }}>
+            <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+              Categories feature
+            </div>
+            <p style={{ marginTop: 0 }}>
+              Built on <strong style={{ color:"#fff" }}>telegram-ui</strong> primitives (Section, Cell, Sheet, Steps). All screens respect the Telegram theme params.
+            </p>
+            <div style={{ color: "#fff", fontSize: 12, fontWeight: 600, marginTop: 14, marginBottom: 6 }}>
+              How it works
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 16 }}>
+              <li>Description drives auto-match against keyword lists on each category.</li>
+              <li>Auto-picked categories get a purple <em>Auto</em> sparkle badge — tappable to change.</li>
+              <li>Custom categories live per-chat; created inline from the picker or via Manage.</li>
+              <li>Filter chips on the transactions tab narrow the list + totals.</li>
+            </ul>
+            <div style={{ color: "#fff", fontSize: 12, fontWeight: 600, marginTop: 14, marginBottom: 6 }}>
+              Try it
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 16 }}>
+              <li>On Add expense, type <em>"biryani"</em>, <em>"grab to airport"</em>, or <em>"netflix"</em> — watch the sparkle.</li>
+              <li>Open Tweaks (toolbar toggle) to switch personal/group + dark theme.</li>
+            </ul>
+          </aside>
+
+          {/* Tweaks */}
+          <div className={`tweaks-panel ${tweaksOpen ? "open" : ""}`}>
+            <h3>Tweaks</h3>
+            <div className="group">
+              <label>Theme</label>
+              <div className="seg">
+                <button className={tweaks.theme==="light"?"active":""} onClick={() => updateTweak("theme","light")}>Light</button>
+                <button className={tweaks.theme==="dark"?"active":""} onClick={() => updateTweak("theme","dark")}>Dark</button>
+              </div>
+            </div>
+            <div className="group">
+              <label>Chat context</label>
+              <div className="seg">
+                <button className={tweaks.chatType==="group"?"active":""} onClick={() => updateTweak("chatType","group")}>Group</button>
+                <button className={tweaks.chatType==="personal"?"active":""} onClick={() => updateTweak("chatType","personal")}>Personal</button>
+              </div>
+            </div>
+            <div className="group">
+              <label>Onboarding tooltip</label>
+              <div className="seg">
+                <button className={tweaks.onboardingEnabled?"active":""} onClick={() => updateTweak("onboardingEnabled",true)}>On</button>
+                <button className={!tweaks.onboardingEnabled?"active":""} onClick={() => updateTweak("onboardingEnabled",false)}>Off</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
