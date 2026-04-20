@@ -18,6 +18,12 @@ const ROUTES: RouteDef[] = [
     parseJson: true,
   },
   {
+    method: "POST",
+    match: "/api/auth/apikey",
+    module: "/api/auth/apikey.ts",
+    parseJson: true,
+  },
+  {
     method: "GET",
     match: "/api/auth/me",
     module: "/api/auth/me.ts",

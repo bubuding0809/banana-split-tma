@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type TelegramAuthPayload = {
   id: number;
@@ -25,6 +27,32 @@ export function LoginPage({ onAuthenticated }: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [exchanging, setExchanging] = useState(false);
   const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+  const [apiKey, setApiKey] = useState("");
+  const [submittingKey, setSubmittingKey] = useState(false);
+
+  const submitApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKey.trim() || submittingKey) return;
+    setSubmittingKey(true);
+    try {
+      const res = await fetch("/api/auth/apikey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ apiKey: apiKey.trim() }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Sign-in failed (${res.status})`);
+      }
+      setApiKey("");
+      onAuthenticated();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign-in failed");
+    } finally {
+      setSubmittingKey(false);
+    }
+  };
 
   useEffect(() => {
     window.onTelegramAuth = async (user: TelegramAuthPayload) => {
@@ -102,6 +130,40 @@ export function LoginPage({ onAuthenticated }: Props) {
             )}
           </div>
         )}
+
+        <div className="flex items-center gap-2">
+          <div className="bg-border h-px flex-1" />
+          <span className="text-muted-foreground text-[11px] uppercase">
+            or
+          </span>
+          <div className="bg-border h-px flex-1" />
+        </div>
+
+        <form onSubmit={submitApiKey} className="flex flex-col gap-2">
+          <label
+            htmlFor="apikey"
+            className="text-muted-foreground text-xs font-medium"
+          >
+            API key fallback
+          </label>
+          <Input
+            id="apikey"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="ADMIN_LAMBDA_API_KEY"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            disabled={submittingKey}
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!apiKey.trim() || submittingKey}
+          >
+            {submittingKey ? "Signing in…" : "Sign in with API key"}
+          </Button>
+        </form>
 
         <p className="text-muted-foreground text-center text-[11px]">
           Access is limited to an allowlist of Telegram accounts.

@@ -1,0 +1,36 @@
+{
+  "name": "video-studio",
+  "version": "1.0.0",
+  "description": "My Remotion video",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.448",
+    "@remotion/tailwind-v4": "4.0.448",
+    "@telegram-apps/telegram-ui": "2.1.13",
+    "lucide-react": "^0.518.0",
+    "react": "19.2.3",
+    "react-device-mockup": "^1.0.0",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.448",
+    "tailwindcss": "4.0.0"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.448",
+    "@types/react": "19.0.10",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "bundle": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint:src": "eslint src && tsc"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}
