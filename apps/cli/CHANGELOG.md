@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-20
+
+### Fixed
+
+- Release pipeline: the 0.8.0 tarball shipped with `@repo/categories: "workspace:*"` in `dependencies`, which npm rejects with `Unsupported URL Type "workspace:"`. Moved all workspace packages into `devDependencies` (tsup's `noExternal: [/.*/]` already inlines them into `dist/cli.js`, so consumers don't need them installed). Also switched CI to `pnpm publish` as defense in depth — it rewrites `workspace:*` to pinned versions at pack time, so any future workspace dep accidentally listed as a runtime dep won't leak the protocol string into the registry.
+
 ## [0.8.0] - 2026-04-20
 
 ### Added

@@ -215,4 +215,4 @@ jobs:
       - name: Publish to npm (Trusted Publishing + provenance)
         if: steps.check.outputs.skip == 'false'
         working-directory: apps/cli
-        run: npm publish --access public --provenance
+        run: pnpm publish --access public --provenance --no-git-checks
