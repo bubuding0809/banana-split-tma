@@ -7,6 +7,7 @@ import { settlementCommands } from "./commands/settlement.js";
 import { snapshotCommands } from "./commands/snapshot.js";
 import { currencyCommands } from "./commands/currency.js";
 import { reminderCommands } from "./commands/reminder.js";
+import { meCommands } from "./commands/me.js";
 import type { Command } from "./commands/types.js";
 import { resolveApiKey, resolveApiUrl, writeConfigFile } from "./config.js";
 import { createTrpcClient } from "./client.js";
@@ -19,6 +20,7 @@ const ALL_COMMANDS: Command[] = [
   ...snapshotCommands,
   ...currencyCommands,
   ...reminderCommands,
+  ...meCommands,
 ];
 
 const GLOBAL_OPTIONS = {
