@@ -1,6 +1,6 @@
 {
   "name": "@banananasplitz/cli",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Agent-first CLI for Banana Split expense tracking API",
   "type": "module",
   "main": "dist/cli.js",
