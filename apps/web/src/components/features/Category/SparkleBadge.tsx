@@ -1,10 +1,15 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, LoaderCircle } from "lucide-react";
 
 interface SparkleBadgeProps {
   label?: string;
+  pending?: boolean;
 }
 
-export default function SparkleBadge({ label = "Auto" }: SparkleBadgeProps) {
+export default function SparkleBadge({
+  label,
+  pending = false,
+}: SparkleBadgeProps) {
+  const resolvedLabel = label ?? (pending ? "Thinking…" : "Auto");
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -14,8 +19,12 @@ export default function SparkleBadge({ label = "Auto" }: SparkleBadgeProps) {
         color: "rgb(139, 92, 246)",
       }}
     >
-      <Sparkles size={12} />
-      {label}
+      {pending ? (
+        <LoaderCircle size={12} className="animate-spin" />
+      ) : (
+        <Sparkles size={12} />
+      )}
+      {resolvedLabel}
     </span>
   );
 }

@@ -79,8 +79,9 @@ const CategoryFormStep = withForm({
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [description, chatId, disableAutoAssign]);
 
-    const footer =
-      autoPicked && categoryId
+    const footer = suggestMutation.isPending
+      ? "Looking for a match from the description…"
+      : autoPicked && categoryId
         ? "Auto-picked from description. Tap to change."
         : "Helps you track spending by type.";
 
@@ -101,7 +102,11 @@ const CategoryFormStep = withForm({
             }
             after={
               <div className="flex items-center gap-2">
-                {autoPicked && categoryId ? <SparkleBadge /> : null}
+                {suggestMutation.isPending ? (
+                  <SparkleBadge pending />
+                ) : autoPicked && categoryId ? (
+                  <SparkleBadge />
+                ) : null}
                 <ChevronRight size={16} />
               </div>
             }
