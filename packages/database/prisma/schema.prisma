@@ -91,7 +91,7 @@ model Expense {
   @@index([chatId]) // Optimizes queries filtering/aggregating expenses by chat
   @@index([creatorId]) // Improves performance when looking up expenses created by a specific user
   @@index([payerId]) // Optimizes queries filtering/aggregating expenses by payer for balance calculations
-  @@index([chatId, categoryId])
+  @@index([chatId, categoryId]) // Accelerates per-chat category filtering
 }
 
 model ExpenseShare {
