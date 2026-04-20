@@ -99,7 +99,7 @@ jobs:
 
           echo "::notice::Skill version matches package.json ($PKG_VERSION) ✓"
 
-      - name: Check for runtime CLI changes without version bump
+      - name: Check for runtime CLI changes without version bump or changelog entry
         run: |
           set -euo pipefail
           BASE="${{ github.event.pull_request.base.sha }}"
@@ -113,7 +113,7 @@ jobs:
             || true)
 
           if [ -z "$CHANGED_RUNTIME" ]; then
-            echo "::notice::No runtime CLI sources changed — version bump not required."
+            echo "::notice::No runtime CLI sources changed — version bump and changelog entry not required."
             exit 0
           fi
 
@@ -124,12 +124,25 @@ jobs:
           HEAD_VERSION=$(jq -r .version apps/cli/package.json)
           echo "apps/cli/package.json version: base=$BASE_VERSION head=$HEAD_VERSION"
 
+          FAILED=0
           if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
             echo "::error::CLI runtime source changed but apps/cli/package.json version did not. Bump the version (and apps/cli/skills/banana-cli/SKILL.md frontmatter) before merging."
-            exit 1
+            FAILED=1
+          else
+            echo "::notice::CLI version bumped $BASE_VERSION → $HEAD_VERSION ✓"
           fi
 
-          echo "::notice::CLI version bumped $BASE_VERSION → $HEAD_VERSION ✓"
+          CHANGELOG_CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- apps/cli/CHANGELOG.md || true)
+          if [ -z "$CHANGELOG_CHANGED" ]; then
+            echo "::error file=apps/cli/CHANGELOG.md::CLI runtime source changed but apps/cli/CHANGELOG.md did not. Add an entry describing the change (under [Unreleased] or a new version section) before merging."
+            FAILED=1
+          else
+            echo "::notice::CHANGELOG.md updated ✓"
+          fi
+
+          if [ "$FAILED" != "0" ]; then
+            exit 1
+          fi
 
   schema-sync:
     name: Prisma schema ↔ migrations sync
