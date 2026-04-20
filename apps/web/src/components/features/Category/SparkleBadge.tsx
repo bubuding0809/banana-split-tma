@@ -1,4 +1,4 @@
-import { Sparkles, LoaderCircle } from "lucide-react";
+import { Sparkles, ChefHat } from "lucide-react";
 
 interface SparkleBadgeProps {
   label?: string;
@@ -9,22 +9,30 @@ export default function SparkleBadge({
   label,
   pending = false,
 }: SparkleBadgeProps) {
-  const resolvedLabel = label ?? (pending ? "Thinking…" : "Auto");
+  const baseClass =
+    "inline-flex items-center rounded-full text-[11px] font-medium";
+  const style = {
+    background:
+      "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
+    color: "rgb(139, 92, 246)",
+  } as const;
+
+  if (pending) {
+    return (
+      <span
+        className={`${baseClass} h-5 w-5 justify-center`}
+        style={style}
+        aria-label="Cooking up a category"
+      >
+        <ChefHat size={12} className="animate-bounce" />
+      </span>
+    );
+  }
+
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{
-        background:
-          "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
-        color: "rgb(139, 92, 246)",
-      }}
-    >
-      {pending ? (
-        <LoaderCircle size={12} className="animate-spin" />
-      ) : (
-        <Sparkles size={12} />
-      )}
-      {resolvedLabel}
+    <span className={`${baseClass} gap-1 px-2 py-0.5`} style={style}>
+      <Sparkles size={12} />
+      {label ?? "Auto"}
     </span>
   );
 }

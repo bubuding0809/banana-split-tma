@@ -80,7 +80,7 @@ const CategoryFormStep = withForm({
     }, [description, chatId, disableAutoAssign]);
 
     const footer = suggestMutation.isPending
-      ? "Looking for a match from the description…"
+      ? "Cooking up a category…"
       : autoPicked && categoryId
         ? "Auto-picked from description. Tap to change."
         : "Helps you track spending by type.";
