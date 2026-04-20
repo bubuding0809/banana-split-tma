@@ -442,6 +442,9 @@ importers:
       "@dko/trpc":
         specifier: workspace:*
         version: link:../../packages/trpc
+      "@repo/categories":
+        specifier: workspace:*
+        version: link:../../packages/categories
       "@tailwindcss/vite":
         specifier: ^4.1.10
         version: 4.2.2(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
