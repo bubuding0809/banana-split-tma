@@ -16,8 +16,11 @@ const outputSchema = z.object({
   confidence: z.number().optional(),
 });
 
+// Inlined rather than imported from @repo/agent to avoid a cycle:
+// @repo/agent already depends on @dko/trpc, so @dko/trpc cannot depend on @repo/agent.
+// Keep the default model in sync with @repo/agent's getAgentModel() default.
 function getModel(): LanguageModel {
-  const modelName = process.env.AGENT_MODEL || "gemini-2.0-flash-lite";
+  const modelName = process.env.AGENT_MODEL || "gemini-3.1-flash-lite-preview";
   return google(modelName) as unknown as LanguageModel;
 }
 
