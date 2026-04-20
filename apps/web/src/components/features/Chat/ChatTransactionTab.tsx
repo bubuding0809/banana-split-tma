@@ -137,10 +137,18 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     [categoriesData, chatId]
   );
 
-  const resolvedCategory = useMemo(
-    () => resolveCategory(categoryFilter, chatRows),
-    [categoryFilter, chatRows]
-  );
+  // The "none" filter is a synthetic Uncategorized entry — not a real category.
+  const resolvedCategory = useMemo(() => {
+    if (categoryFilter === "none") {
+      return {
+        id: "none",
+        emoji: "📭",
+        title: "Uncategorized",
+        kind: "none" as const,
+      };
+    }
+    return resolveCategory(categoryFilter, chatRows);
+  }, [categoryFilter, chatRows]);
 
   // * Mutations ==================================================================================
   const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
@@ -503,6 +511,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onOpenChange={setPickerOpen}
         categories={allCategories}
         selectedId={categoryFilter}
+        includeNoneOption
         onSelect={(c) => {
           setCategoryFilter(c.id);
           setPickerOpen(false);

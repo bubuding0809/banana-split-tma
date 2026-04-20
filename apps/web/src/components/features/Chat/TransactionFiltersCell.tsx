@@ -8,12 +8,18 @@ import {
   ArrowUp,
 } from "lucide-react";
 import { useSignal, themeParams } from "@telegram-apps/sdk-react";
-import { type ResolvedCategory } from "@repo/categories";
 import CategoryPill from "@/components/features/Category/CategoryPill";
 import React from "react";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
+
+// Minimal shape — covers ResolvedCategory and the synthetic "none" Uncategorized entry.
+export interface FilterCategoryDisplay {
+  id: string;
+  emoji: string;
+  title: string;
+}
 
 export interface TransactionFiltersCellProps {
   showPayments: boolean;
@@ -22,7 +28,7 @@ export interface TransactionFiltersCellProps {
   sortOrder: SortOrderOption;
   onOpenModal: () => void;
   categoryFilter: string | null;
-  resolvedCategory: ResolvedCategory | null;
+  resolvedCategory: FilterCategoryDisplay | null;
   onOpenPicker: () => void;
   onClearCategory: () => void;
 }

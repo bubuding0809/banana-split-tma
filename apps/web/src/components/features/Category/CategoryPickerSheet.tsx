@@ -6,7 +6,7 @@ interface PickerCategory {
   id: string;
   emoji: string;
   title: string;
-  kind: "base" | "custom";
+  kind: "base" | "custom" | "none";
 }
 
 interface CategoryPickerSheetProps {
@@ -16,7 +16,16 @@ interface CategoryPickerSheetProps {
   selectedId?: string | null;
   onSelect: (c: PickerCategory) => void;
   onCreateCustom?: () => void;
+  /** Render an "Uncategorized" tile at the top that emits id `"none"`. */
+  includeNoneOption?: boolean;
 }
+
+export const UNCATEGORIZED_OPTION: PickerCategory = {
+  id: "none",
+  emoji: "📭",
+  title: "Uncategorized",
+  kind: "none",
+};
 
 export default function CategoryPickerSheet({
   open,
@@ -25,6 +34,7 @@ export default function CategoryPickerSheet({
   selectedId,
   onSelect,
   onCreateCustom,
+  includeNoneOption,
 }: CategoryPickerSheetProps) {
   const custom = categories.filter((c) => c.kind === "custom");
   const base = categories.filter((c) => c.kind === "base");
@@ -36,6 +46,18 @@ export default function CategoryPickerSheet({
       header={<Modal.Header>Pick a category</Modal.Header>}
     >
       <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+        {includeNoneOption && (
+          <div>
+            <div className="grid grid-cols-4 gap-2">
+              <CategoryTile
+                emoji={UNCATEGORIZED_OPTION.emoji}
+                title={UNCATEGORIZED_OPTION.title}
+                selected={selectedId === UNCATEGORIZED_OPTION.id}
+                onClick={() => onSelect(UNCATEGORIZED_OPTION)}
+              />
+            </div>
+          </div>
+        )}
         {custom.length > 0 && (
           <div>
             <Caption level="1" weight="2">

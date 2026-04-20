@@ -123,10 +123,11 @@ const CategoryFormStep = withForm({
           onOpenChange={setOpen}
           categories={allCategories}
           selectedId={categoryId}
+          includeNoneOption
           onSelect={(c) => {
             userTouchedRef.current = true;
             setAutoPicked(false);
-            form.setFieldValue("categoryId", c.id);
+            form.setFieldValue("categoryId", c.id === "none" ? null : c.id);
             setOpen(false);
           }}
         />

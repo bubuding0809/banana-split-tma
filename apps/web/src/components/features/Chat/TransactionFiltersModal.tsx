@@ -25,7 +25,7 @@ import {
 import { useState } from "react";
 import DateSelector from "./DateSelector";
 import SortOptionsSelector from "./SortOptionsSelector";
-import { type ResolvedCategory } from "@repo/categories";
+import type { FilterCategoryDisplay } from "./TransactionFiltersCell";
 import { Button } from "@telegram-apps/telegram-ui";
 
 type SortByOption = "date" | "createdAt";
@@ -48,7 +48,7 @@ export interface TransactionFiltersModalProps {
     dates: { key: string; display: string; transactionIds: string[] }[];
   }[];
   onDateSelect: (dateKey: string) => void;
-  resolvedCategory: ResolvedCategory | null;
+  resolvedCategory: FilterCategoryDisplay | null;
   onOpenPicker: () => void;
   onClearCategory: () => void;
 }

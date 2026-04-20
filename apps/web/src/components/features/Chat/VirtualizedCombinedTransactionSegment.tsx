@@ -97,10 +97,16 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
 
     const isLoading = isExpensesLoading || isSettlementsLoading;
 
-    // Apply category filter predicate to expenses before grouping
+    // Apply category filter predicate to expenses before grouping.
+    // "none" is the synthetic "Uncategorized" filter: matches rows with categoryId === null.
     const filteredExpenses = useMemo(() => {
       if (!expenses) return expenses;
       if (!categoryFilter) return expenses;
+      if (categoryFilter === "none") {
+        return expenses.filter(
+          (e: (typeof expenses)[number]) => e.categoryId === null
+        );
+      }
       return expenses.filter(
         (e: (typeof expenses)[number]) => e.categoryId === categoryFilter
       );
