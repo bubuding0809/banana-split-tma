@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -38,14 +39,32 @@ export const createChatCategoryHandler = async (
     });
   }
 
-  const row = await db.chatCategory.create({
-    data: {
-      chatId: input.chatId,
-      emoji: input.emoji,
-      title: input.title,
-      createdById,
-    },
-  });
+  // The DB unique index on (chatId, title) is case-sensitive while our
+  // app-level check above is case-insensitive. Two concurrent requests with
+  // differently-cased titles can both pass the app check and race into a
+  // P2002 unique-constraint violation here — surface it as CONFLICT.
+  let row;
+  try {
+    row = await db.chatCategory.create({
+      data: {
+        chatId: input.chatId,
+        emoji: input.emoji,
+        title: input.title,
+        createdById,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "A category with this title already exists in this chat",
+      });
+    }
+    throw err;
+  }
 
   return {
     id: `chat:${row.id}`,

@@ -10,6 +10,8 @@ export const deleteChatCategoryHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db
 ): Promise<{ chatId: bigint } & z.infer<typeof outputSchema>> => {
+  // DB lookup runs before assertChatAccess because chatId is not in input.
+  // Low-risk UUID-existence oracle: v4 uuids are unguessable.
   const row = await db.chatCategory.findUnique({
     where: { id: input.chatCategoryId },
   });

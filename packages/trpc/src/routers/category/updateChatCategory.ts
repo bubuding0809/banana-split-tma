@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { Prisma } from "@dko/database";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -20,13 +21,15 @@ export const updateChatCategoryHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db
 ): Promise<{ chatId: bigint } & z.infer<typeof outputSchema>> => {
+  // DB lookup runs before assertChatAccess because chatId is not in input.
+  // Low-risk UUID-existence oracle: v4 uuids are unguessable.
   const row = await db.chatCategory.findUnique({
     where: { id: input.chatCategoryId },
   });
   if (!row)
     throw new TRPCError({ code: "NOT_FOUND", message: "Category not found" });
 
-  if (input.title) {
+  if (input.title !== undefined) {
     const clash = await db.chatCategory.findFirst({
       where: {
         chatId: row.chatId,
@@ -43,13 +46,31 @@ export const updateChatCategoryHandler = async (
     }
   }
 
-  const updated = await db.chatCategory.update({
-    where: { id: row.id },
-    data: {
-      emoji: input.emoji ?? undefined,
-      title: input.title ?? undefined,
-    },
-  });
+  // The DB unique index on (chatId, title) is case-sensitive while our
+  // app-level check above is case-insensitive. Two concurrent requests with
+  // differently-cased titles can both pass the app check and race into a
+  // P2002 unique-constraint violation here — surface it as CONFLICT.
+  let updated;
+  try {
+    updated = await db.chatCategory.update({
+      where: { id: row.id },
+      data: {
+        emoji: input.emoji ?? undefined,
+        title: input.title ?? undefined,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "A category with this title already exists in this chat",
+      });
+    }
+    throw err;
+  }
 
   return {
     chatId: updated.chatId,
