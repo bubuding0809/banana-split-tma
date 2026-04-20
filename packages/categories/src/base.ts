@@ -30,6 +30,8 @@ export const BASE_CATEGORIES: readonly BaseCategory[] = [
     title: "Transport",
     keywords: [
       "grab",
+      "gojek",
+      "tada",
       "uber",
       "taxi",
       "cab",
@@ -70,7 +72,7 @@ export const BASE_CATEGORIES: readonly BaseCategory[] = [
       "cold storage",
       "market",
       "supermarket",
-      "groceries",
+      "sheng siong",
       "produce",
       "fruit",
       "vegetables",
@@ -137,7 +139,7 @@ export const BASE_CATEGORIES: readonly BaseCategory[] = [
       "shopee",
       "amazon",
       "gift",
-      "gifts",
+      "souvenir",
     ],
   },
   {
@@ -160,6 +162,15 @@ export const BASE_CATEGORIES: readonly BaseCategory[] = [
     id: "base:other",
     emoji: "📦",
     title: "Other",
-    keywords: ["misc", "other", "general"],
+    keywords: [
+      "misc",
+      "other",
+      "general",
+      "insurance",
+      "fees",
+      "subscription",
+      "donation",
+      "charity",
+    ],
   },
-] as const;
+];

@@ -47,4 +47,22 @@ describe("BASE_CATEGORIES", () => {
       expect(c.keywords.length).toBeGreaterThan(0);
     }
   });
+
+  it("titles are unique", () => {
+    const titles = BASE_CATEGORIES.map((c) => c.title);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+
+  it("no keyword appears in more than one category", () => {
+    const seen = new Map<string, string>();
+    for (const c of BASE_CATEGORIES) {
+      for (const kw of c.keywords) {
+        const prior = seen.get(kw);
+        if (prior && prior !== c.id) {
+          throw new Error(`"${kw}" appears in both ${prior} and ${c.id}`);
+        }
+        seen.set(kw, c.id);
+      }
+    }
+  });
 });
