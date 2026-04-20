@@ -17,6 +17,7 @@ import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
 import TransactionFiltersModal from "./TransactionFiltersModal";
 import CategoryPickerSheet from "@/components/features/Category/CategoryPickerSheet";
+import CategoriesOnboarding from "./CategoriesOnboarding";
 import {
   hapticFeedback,
   initData,
@@ -290,6 +291,9 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
   return (
     <section className="flex h-full flex-col">
+      {/* Categories onboarding tooltip */}
+      <CategoriesOnboarding userId={userId} chatId={chatId} />
+
       {/* Transaction filters section */}
       <div className="shadow-xs">
         <TransactionFiltersCell
