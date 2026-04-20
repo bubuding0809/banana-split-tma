@@ -34,6 +34,7 @@ model Chat {
   updatedAt                  DateTime          @updatedAt
   ExpenseSnapshot            ExpenseSnapshot[]
   apiKeys                    ChatApiKey[]
+  chatCategories             ChatCategory[]
 }
 
 model User {
@@ -55,6 +56,7 @@ model User {
   ExpenseSnapshot      ExpenseSnapshot[]
   createdApiKeys       ChatApiKey[]
   userApiKeys          UserApiKey[]
+  createdChatCategories  ChatCategory[]
 }
 
 enum SplitMode {
@@ -84,10 +86,12 @@ model Expense {
   snapshots          ExpenseSnapshot[] @relation("SnapshotExpenses")
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  categoryId         String?
 
   @@index([chatId]) // Optimizes queries filtering/aggregating expenses by chat
   @@index([creatorId]) // Improves performance when looking up expenses created by a specific user
   @@index([payerId]) // Optimizes queries filtering/aggregating expenses by payer for balance calculations
+  @@index([chatId, categoryId])
 }
 
 model ExpenseShare {
@@ -243,4 +247,19 @@ model BroadcastDelivery {
   @@unique([broadcastId, userId])
   @@index([userId, sentAt])
   @@index([status])
+}
+
+model ChatCategory {
+  id          String   @id @default(uuid())
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chatId      BigInt
+  emoji       String
+  title       String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById BigInt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([chatId, title])
+  @@index([chatId])
 }
