@@ -16,7 +16,7 @@ export interface ChatCategoryRow {
 
 export interface ResolvedCategory {
   /** "base:<slug>" for base categories; "chat:<uuid>" for custom ones. */
-  id: string;
+  id: `base:${string}` | `chat:${string}`;
   emoji: string;
   title: string;
   kind: CategoryKind;

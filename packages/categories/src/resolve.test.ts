@@ -52,4 +52,12 @@ describe("resolveCategory", () => {
     expect(resolveCategory("", rows)).toBeNull();
     expect(resolveCategory("nope", rows)).toBeNull();
   });
+
+  it("returns null for 'base:' with empty slug", () => {
+    expect(resolveCategory("base:", rows)).toBeNull();
+  });
+
+  it("returns null for 'chat:' with empty uuid", () => {
+    expect(resolveCategory("chat:", rows)).toBeNull();
+  });
 });
