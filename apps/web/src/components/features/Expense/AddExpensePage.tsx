@@ -14,6 +14,7 @@ import { cn } from "@utils/cn";
 
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
+import CategoryFormStep from "./CategoryFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
 import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
@@ -34,6 +35,10 @@ const FORM_STEPS = [
   {
     title: "Paid by",
     component: PayeeformStep,
+  },
+  {
+    title: "Category",
+    component: CategoryFormStep,
   },
   {
     title: "Split Mode",
@@ -115,6 +120,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
+          categoryId: value.categoryId ?? undefined,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
@@ -285,6 +291,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             isEditMode={false}
             navigate={navigate}
             chatId={chatId}
+            disableAutoAssign={false}
             membersExpanded={routeApi.useSearch().membersExpanded}
           />
         )}

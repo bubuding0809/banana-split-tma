@@ -13,6 +13,7 @@ export const formOpts = formOptions({
     currency: "SGD",
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
+    categoryId: null as string | null,
     customSplits: [] as { userId: string; amount: string }[],
   },
   validators: {
