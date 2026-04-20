@@ -85,32 +85,38 @@ banana get-exchange-rate --base-currency USD --target-currency SGD
 
 # Update chat settings
 banana update-chat-settings --debt-simplification true --base-currency SGD
+
+# Personal cross-chat summary (user-level API key only)
+banana list-my-balances
+banana list-my-spending --month 2026-04
 ```
 
 ## Commands
 
-| Command                | Description                            |
-| ---------------------- | -------------------------------------- |
-| `help`                 | Show available commands and options    |
-| `login`                | Save API key to config file            |
-| `install-skill`        | Print path to bundled Agent Skill      |
-| `list-chats`           | List all expense-tracking chats/groups |
-| `get-chat`             | Get chat details and members           |
-| `get-debts`            | Get outstanding debts                  |
-| `get-simplified-debts` | Get optimized debt graph               |
-| `update-chat-settings` | Update chat configuration              |
-| `list-expenses`        | List expenses in a chat                |
-| `get-expense`          | Get expense details                    |
-| `create-expense`       | Create a new expense                   |
-| `get-net-share`        | Get balance between two users          |
-| `get-totals`           | Get total borrowed/lent for a user     |
-| `list-settlements`     | List debt settlements                  |
-| `create-settlement`    | Record a payment                       |
-| `send-group-reminder`  | Send group debt reminder message       |
-| `send-debt-reminder`   | Send individual debt reminder message  |
-| `list-snapshots`       | List expense snapshots                 |
-| `get-snapshot`         | Get snapshot details                   |
-| `get-exchange-rate`    | Get currency exchange rate             |
+| Command                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `help`                 | Show available commands and options              |
+| `login`                | Save API key to config file                      |
+| `install-skill`        | Print path to bundled Agent Skill                |
+| `list-chats`           | List all expense-tracking chats/groups           |
+| `get-chat`             | Get chat details and members                     |
+| `get-debts`            | Get outstanding debts                            |
+| `get-simplified-debts` | Get optimized debt graph                         |
+| `update-chat-settings` | Update chat configuration                        |
+| `list-expenses`        | List expenses in a chat                          |
+| `get-expense`          | Get expense details                              |
+| `create-expense`       | Create a new expense                             |
+| `get-net-share`        | Get balance between two users                    |
+| `get-totals`           | Get total borrowed/lent for a user               |
+| `list-my-balances`     | Outstanding balances across all chats (user key) |
+| `list-my-spending`     | Monthly expense-share damage per chat (user key) |
+| `list-settlements`     | List debt settlements                            |
+| `create-settlement`    | Record a payment                                 |
+| `send-group-reminder`  | Send group debt reminder message                 |
+| `send-debt-reminder`   | Send individual debt reminder message            |
+| `list-snapshots`       | List expense snapshots                           |
+| `get-snapshot`         | Get snapshot details                             |
+| `get-exchange-rate`    | Get currency exchange rate                       |
 
 ## For AI Agents
 
