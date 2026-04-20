@@ -25,18 +25,39 @@ If you're unsure whether a change touches capabilities, re-read SKILL.md and ask
 
 ## Versioning
 
-**Inline bumps only.** Every PR that touches runtime CLI code (`apps/cli/src/**`, excluding `*.test.ts` / `*.spec.ts`) MUST bump `apps/cli/package.json` version AND `apps/cli/skills/banana-cli/SKILL.md` frontmatter `version:` in the same commit. Both values must match at all times.
+**Inline bumps only.** Every PR that touches runtime CLI code (`apps/cli/src/**`, excluding `*.test.ts` / `*.spec.ts`) MUST do three things in the same commit:
 
-CI enforces both:
+1. Bump `apps/cli/package.json` version.
+2. Bump `apps/cli/skills/banana-cli/SKILL.md` frontmatter `version:` to match.
+3. Add a **CHANGELOG entry** in `apps/cli/CHANGELOG.md`.
+
+CI enforces all three:
 
 - PR check `cli-version-bump` fails if runtime source changed without a version bump.
 - The same job fails if `package.json` and `SKILL.md` frontmatter versions don't match.
+- The same job fails if runtime source changed without `CHANGELOG.md` being updated.
 
 Semver intent:
 
 - **Patch** (0.x.N+1): bugfix, internal refactor, skill-copy tweak, dependency bump with no behavior change.
 - **Minor** (0.x+1.0): new command, new flag, new output field (additive).
 - **Major** (x+1.0.0): removed command, renamed flag, breaking output shape change. Reserved for coordinated releases — don't major-bump in a drive-by PR.
+
+### Writing CHANGELOG entries
+
+Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Categories: Added / Changed / Deprecated / Removed / Fixed / Security.
+
+Two flows, depending on whether you're bumping the version too:
+
+- **Bumping version in this PR (most feature PRs):** rename the existing `## [Unreleased]` section to `## [X.Y.Z] - YYYY-MM-DD`, add your entries under the appropriate category, then create a fresh empty `## [Unreleased]` section above it. Update the link-refs at the bottom.
+- **Not bumping (e.g., stacked PR before a coordinated release):** just append your entries under `## [Unreleased]`. The release PR that bumps will do the rename.
+
+Entry style:
+
+- User-facing tone — consumers read this, not you.
+- One bullet per concept, not one-per-commit.
+- Link to the PR or issue when the reason matters (`([#123](https://.../pull/123))`).
+- Omit internal refactors unless they affect observable behavior.
 
 ## Release pipeline
 
@@ -98,7 +119,8 @@ apps/cli/
 5. If the command belongs to a multi-step pattern, add a Workflow block in SKILL.md.
 6. Update README.md usage block + commands table.
 7. Bump `package.json` version and `SKILL.md` frontmatter `version:` (match each other).
-8. Run `pnpm --filter @banananasplitz/cli test` + `pnpm --filter @banananasplitz/cli check-types`.
+8. Add a `CHANGELOG.md` entry under the new version header (or `## [Unreleased]` if deferring the bump).
+9. Run `pnpm --filter @banananasplitz/cli test` + `pnpm --filter @banananasplitz/cli check-types`.
 
 ## Common pitfalls for agents editing this app
 
