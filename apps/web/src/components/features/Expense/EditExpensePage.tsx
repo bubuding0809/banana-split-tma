@@ -14,7 +14,6 @@ import { cn } from "@utils/cn";
 
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
-import CategoryFormStep from "./CategoryFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
 import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
@@ -36,10 +35,6 @@ const FORM_STEPS = [
   {
     title: "Paid by",
     component: PayeeformStep,
-  },
-  {
-    title: "Category",
-    component: CategoryFormStep,
   },
   {
     title: "Split Mode",

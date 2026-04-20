@@ -33,6 +33,7 @@ import { formatDateKey, formatExpenseDate } from "@utils/date";
 import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
+import CategoryFormStep from "./CategoryFormStep";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -45,8 +46,16 @@ const AmountFormStep = withForm({
       "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
     >,
     chatId: 0,
+    disableAutoAssign: false as boolean | undefined,
   },
-  render: function Render({ form, isLastStep, step, navigate, chatId }) {
+  render: function Render({
+    form,
+    isLastStep,
+    step,
+    navigate,
+    chatId,
+    disableAutoAssign,
+  }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tUserData = useSignal(initData.user);
     const { expenseCurrency } = useStore(form.store, (state) => ({
@@ -398,6 +407,13 @@ const AmountFormStep = withForm({
             </form.AppField>
           )}
         </form.AppField>
+
+        {/* Category — auto-picked from description, or choose your own */}
+        <CategoryFormStep
+          form={form}
+          chatId={chatId}
+          disableAutoAssign={disableAutoAssign}
+        />
       </div>
     );
   },

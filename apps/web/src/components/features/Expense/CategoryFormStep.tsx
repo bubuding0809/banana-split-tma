@@ -1,5 +1,5 @@
-import { Cell } from "@telegram-apps/telegram-ui";
-import { ChevronRight } from "lucide-react";
+import { Cell, Section } from "@telegram-apps/telegram-ui";
+import { ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
@@ -10,19 +10,11 @@ import {
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { useStore } from "@tanstack/react-form";
-import { UseNavigateResult } from "@tanstack/react-router";
 
 const CategoryFormStep = withForm({
   ...formOpts,
   props: {
-    step: 0,
-    isLastStep: false,
-    navigate: (() => {}) as unknown as UseNavigateResult<
-      "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
-    >,
-    isEditMode: false,
     chatId: 0,
-    membersExpanded: false,
     disableAutoAssign: false as boolean | undefined,
   },
   render: function Render({ form, chatId, disableAutoAssign }) {
@@ -87,21 +79,44 @@ const CategoryFormStep = withForm({
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [description, chatId, disableAutoAssign]);
 
+    const footer =
+      autoPicked && categoryId
+        ? "Auto-picked from description. Tap to change."
+        : "Helps you track spending by type.";
+
     return (
       <>
-        <Cell
-          Component="button"
-          onClick={() => setOpen(true)}
-          before={<span className="text-xl">{resolved?.emoji ?? "🗂️"}</span>}
-          after={
-            <div className="flex items-center gap-2">
-              {autoPicked && categoryId ? <SparkleBadge /> : null}
-              <ChevronRight size={16} />
-            </div>
-          }
-        >
-          {resolved?.title ?? "Pick a category"}
-        </Cell>
+        <Section header="Category" footer={footer}>
+          <Cell
+            Component="button"
+            onClick={() => setOpen(true)}
+            before={
+              resolved ? (
+                <span className="text-xl leading-none">{resolved.emoji}</span>
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)] text-[var(--tg-theme-link-color)]">
+                  <Plus size={16} />
+                </span>
+              )
+            }
+            after={
+              <div className="flex items-center gap-2">
+                {autoPicked && categoryId ? <SparkleBadge /> : null}
+                <ChevronRight size={16} />
+              </div>
+            }
+          >
+            <span
+              style={{
+                color: resolved
+                  ? "var(--tg-theme-text-color)"
+                  : "var(--tg-theme-link-color)",
+              }}
+            >
+              {resolved?.title ?? "Pick a category"}
+            </span>
+          </Cell>
+        </Section>
 
         <CategoryPickerSheet
           open={open}
