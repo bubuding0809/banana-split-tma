@@ -91,6 +91,31 @@ describe("classifyCategory", () => {
     expect(result).toBeNull();
   });
 
+  it("returns null when external signal aborts mid-call", async () => {
+    const outer = new AbortController();
+    let rejectHold!: (err: Error) => void;
+    generateObjectMock.mockImplementationOnce(
+      () =>
+        new Promise<never>((_, reject) => {
+          rejectHold = reject;
+        })
+    );
+
+    const promise = classifyCategory({
+      description: "bali trip",
+      chatCategories: [],
+      signal: outer.signal,
+    });
+
+    // Simulate: external signal aborts while generateObject is still pending.
+    outer.abort();
+    // The onAbort listener in classify.ts should have triggered the local controller,
+    // which would cause ai's generateObject to reject in real life. We simulate that here.
+    rejectHold(Object.assign(new Error("abort"), { name: "AbortError" }));
+
+    expect(await promise).toBeNull();
+  });
+
   it("includes custom categories as allowed ids in the call", async () => {
     generateObjectMock.mockResolvedValueOnce({
       object: { categoryId: "chat:abc", confidence: 0.95 },
@@ -104,7 +129,9 @@ describe("classifyCategory", () => {
     });
 
     expect(result).toEqual({ categoryId: "chat:abc", confidence: 0.95 });
-    const call = generateObjectMock.mock.calls[0][0];
-    expect(JSON.stringify(call.schema)).toContain("chat:abc");
+    const call = generateObjectMock.mock.calls[0][0] as {
+      schema: { shape: { categoryId: { options: string[] } } };
+    };
+    expect(call.schema.shape.categoryId.options).toContain("chat:abc");
   });
 });

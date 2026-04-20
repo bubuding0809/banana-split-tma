@@ -7,7 +7,7 @@ import { buildClassifierPrompt } from "./prompt.js";
 import type { ChatCategoryRow } from "./types.js";
 
 const CLASSIFY_TIMEOUT_MS = 3000;
-const CONFIDENCE_THRESHOLD = 0.4;
+export const CONFIDENCE_THRESHOLD = 0.4;
 
 export async function classifyCategory(args: {
   description: string;
@@ -24,26 +24,10 @@ export async function classifyCategory(args: {
     string,
     ...string[],
   ];
-  const categoryIdEnum = z.enum(enumValues);
-  const schema = Object.assign(
-    z.object({
-      categoryId: categoryIdEnum,
-      confidence: z.number().min(0).max(1),
-    }),
-    // Zod v4 stores shape as a non-serializable function; attach toJSON so
-    // JSON.stringify(schema) exposes the enum values for test assertions.
-    {
-      toJSON() {
-        return {
-          typeName: "ZodObject",
-          shape: {
-            categoryId: { typeName: "ZodEnum", values: categoryIdEnum.options },
-            confidence: { typeName: "ZodNumber" },
-          },
-        };
-      },
-    }
-  );
+  const schema = z.object({
+    categoryId: z.enum(enumValues),
+    confidence: z.number().min(0).max(1),
+  });
 
   const prompt = buildClassifierPrompt({
     description: args.description,
