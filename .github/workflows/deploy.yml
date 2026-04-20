@@ -178,6 +178,9 @@ jobs:
     needs: [filter]
     if: needs.filter.outputs.cli == 'true' || inputs.force_deploy_apps
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for npm Trusted Publishing (OIDC) + provenance
     steps:
       - uses: actions/checkout@v4
 
@@ -209,9 +212,7 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: pnpm install --frozen-lockfile
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing + provenance)
         if: steps.check.outputs.skip == 'false'
         working-directory: apps/cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
