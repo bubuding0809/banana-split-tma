@@ -16,6 +16,7 @@ import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
 import TransactionFiltersModal from "./TransactionFiltersModal";
+import CategoryPickerSheet from "@/components/features/Category/CategoryPickerSheet";
 import {
   hapticFeedback,
   initData,
@@ -34,6 +35,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
+import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
@@ -88,6 +90,10 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   );
   const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
 
+  // Category filter state
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
@@ -110,6 +116,30 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
       userId,
       chatId,
     });
+  const { data: categoriesData } = trpc.category.listByChat.useQuery({
+    chatId,
+  });
+
+  const allCategories = useMemo(
+    () => [...(categoriesData?.base ?? []), ...(categoriesData?.custom ?? [])],
+    [categoriesData]
+  );
+
+  const chatRows = useMemo<ChatCategoryRow[]>(
+    () =>
+      (categoriesData?.custom ?? []).map((c) => ({
+        id: c.id.replace(/^chat:/, ""),
+        chatId: BigInt(chatId),
+        emoji: c.emoji,
+        title: c.title,
+      })),
+    [categoriesData, chatId]
+  );
+
+  const resolvedCategory = useMemo(
+    () => resolveCategory(categoryFilter, chatRows),
+    [categoryFilter, chatRows]
+  );
 
   // * Mutations ==================================================================================
   const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
@@ -268,6 +298,10 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onOpenModal={() => setFiltersOpen(true)}
+          categoryFilter={categoryFilter}
+          resolvedCategory={resolvedCategory}
+          onOpenPicker={() => setPickerOpen(true)}
+          onClearCategory={() => setCategoryFilter(null)}
         />
         <Divider />
 
@@ -453,6 +487,17 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         chatId={chatId}
         showPayments={showPayments}
         onAvailableDatesChange={setMonthGroupedData}
+      />
+
+      <CategoryPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        categories={allCategories}
+        selectedId={categoryFilter}
+        onSelect={(c) => {
+          setCategoryFilter(c.id);
+          setPickerOpen(false);
+        }}
       />
     </section>
   );
