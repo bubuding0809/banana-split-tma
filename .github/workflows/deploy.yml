@@ -187,11 +187,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24 # npm 11+ ships with Node 24; required for OIDC publish auth
           registry-url: "https://registry.npmjs.org"
-
-      - name: Upgrade npm (Trusted Publishing requires npm >= 11.5.1)
-        run: npm install -g npm@latest
 
       - uses: pnpm/action-setup@v3
         with:
