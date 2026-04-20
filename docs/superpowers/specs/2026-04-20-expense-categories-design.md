@@ -4,6 +4,37 @@
 **Status:** Approved, ready for plan
 **Source:** Design handoff from claude.ai/design (Categories Feature prototype)
 
+## Design references
+
+The full handoff bundle from claude.ai/design has been copied into the repo
+alongside this spec. Start here, in this order:
+
+- [`2026-04-20-expense-categories-design/README.md`](./2026-04-20-expense-categories-design/README.md)
+  — the handoff's own "read this first" note from the design tool.
+- [`2026-04-20-expense-categories-design/chat-transcript.md`](./2026-04-20-expense-categories-design/chat-transcript.md)
+  — full back-and-forth between the user and the design assistant. This is
+  where the intent lives (feature ask, iteration on filter design, settings
+  placement, spacing fixes, SparkleBadge → transient-only, etc.).
+- [`2026-04-20-expense-categories-design/prototype/Categories Feature.html`](./2026-04-20-expense-categories-design/prototype/Categories%20Feature.html)
+  — entry point for the interactive prototype. Imports `components.jsx`,
+  `screens.jsx`, and `styles.css` from the same folder. React 18 via
+  UMD + Babel standalone; open directly in a browser to explore the 9
+  screens.
+- Prototype screenshots in
+  [`2026-04-20-expense-categories-design/prototype/`](./2026-04-20-expense-categories-design/prototype/)
+  — reference frames for filter behaviour and chat-settings spacing.
+
+**How to use them:** the spec below is the contract for what to build; the
+bundle is the visual / interaction reference for _how it should feel_.
+Consult the prototype when the text in the spec is unclear about layout,
+copy, or interactions. The source jsx/css is the best signal for spacing
+and component composition; don't rely only on the screenshots.
+
+**Source of truth:** the spec below. Where the spec and prototype disagree,
+the spec wins (the prototype was a disposable mock; the spec reflects
+approved decisions — transient-only auto badge, `@repo/categories` package
+boundary, data model, etc.).
+
 ## Goal
 
 Add per-expense categories across the Banana Split product. Each category is a
