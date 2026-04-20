@@ -10,6 +10,10 @@ export interface FewShot {
   categoryId: string;
 }
 
+/**
+ * Mutable by design — the prompt tests assert on `.length`.
+ * Do NOT add `as const` or narrow to `readonly FewShot[]` without updating those tests.
+ */
 export const FEW_SHOTS: FewShot[] = [
   { description: "biryani lunch", categoryId: "base:food" },
   { description: "grab to airport", categoryId: "base:transport" },
@@ -17,7 +21,11 @@ export const FEW_SHOTS: FewShot[] = [
   { description: "airbnb bali deposit", categoryId: "base:travel" },
   { description: "electricity bill", categoryId: "base:utilities" },
   { description: "ntuc groceries", categoryId: "base:groceries" },
-  { description: "random cash", categoryId: "none" },
+  { description: "ikea sofa", categoryId: "base:home" },
+  { description: "dentist appointment", categoryId: "base:health" },
+  { description: "new running shoes", categoryId: "base:shopping" },
+  { description: "atm withdrawal", categoryId: "none" },
+  { description: "transfer to savings", categoryId: "none" },
 ];
 
 export function buildClassifierPrompt(args: {
@@ -26,8 +34,10 @@ export function buildClassifierPrompt(args: {
 }): string {
   const catalog = args.allowed
     .map((c) => {
+      // cap at 20 to prevent token bloat from hypothetical large custom lists;
+      // current base categories max out at 16 keywords (base:food)
       const kw = c.keywords?.length
-        ? ` — keywords: ${c.keywords.slice(0, 10).join(", ")}`
+        ? ` — keywords: ${c.keywords.slice(0, 20).join(", ")}`
         : "";
       return `- ${c.id} ${c.emoji} ${c.title}${kw}`;
     })
