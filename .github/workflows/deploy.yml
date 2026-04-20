@@ -23,6 +23,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       bot: ${{ steps.filter.outputs.bot }}
       admin: ${{ steps.filter.outputs.admin }}
+      cli: ${{ steps.filter.outputs.cli }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -40,6 +41,9 @@ jobs:
               - 'packages/**'
             admin:
               - 'apps/admin/**'
+              - 'packages/**'
+            cli:
+              - 'apps/cli/**'
               - 'packages/**'
 
   migrate:
@@ -169,3 +173,46 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+
+  publish-cli:
+    needs: [filter]
+    if: needs.filter.outputs.cli == 'true' || inputs.force_deploy_apps
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for npm Trusted Publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24 # npm 11+ ships with Node 24; required for OIDC publish auth
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Check if version already on npm
+        id: check
+        working-directory: apps/cli
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@banananasplitz/cli@$VERSION" version >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::@banananasplitz/cli@$VERSION is already published on npm — skipping publish."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::@banananasplitz/cli@$VERSION is new — will publish."
+          fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.skip == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish to npm (Trusted Publishing + provenance)
+        if: steps.check.outputs.skip == 'false'
+        working-directory: apps/cli
+        run: npm publish --access public --provenance

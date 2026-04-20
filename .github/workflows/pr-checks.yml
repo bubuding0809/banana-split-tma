@@ -75,6 +75,75 @@ jobs:
       - name: Test
         run: pnpm test
 
+  cli-version-bump:
+    name: CLI version bump + skill parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assert skill frontmatter version matches package.json
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(jq -r .version apps/cli/package.json)
+          SKILL_VERSION=$(awk -F'"' '/^---$/{f=!f; next} f && /^  version:/ {print $2; exit}' apps/cli/skills/banana-cli/SKILL.md)
+
+          echo "package.json version: $PKG_VERSION"
+          echo "SKILL.md frontmatter version: $SKILL_VERSION"
+
+          if [ "$PKG_VERSION" != "$SKILL_VERSION" ]; then
+            echo "::error file=apps/cli/skills/banana-cli/SKILL.md::Skill version ($SKILL_VERSION) does not match package.json ($PKG_VERSION). Update the skill frontmatter version so agents read the right doc for the published CLI."
+            exit 1
+          fi
+
+          echo "::notice::Skill version matches package.json ($PKG_VERSION) ✓"
+
+      - name: Check for runtime CLI changes without version bump or changelog entry
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          # Only runtime sources count — tests and docs are exempt.
+          CHANGED_RUNTIME=$(git diff --name-only "$BASE" "$HEAD" -- \
+            'apps/cli/src/**' \
+            ':(exclude)apps/cli/src/**/*.test.ts' \
+            ':(exclude)apps/cli/src/**/*.spec.ts' \
+            || true)
+
+          if [ -z "$CHANGED_RUNTIME" ]; then
+            echo "::notice::No runtime CLI sources changed — version bump and changelog entry not required."
+            exit 0
+          fi
+
+          echo "Changed runtime files:"
+          echo "$CHANGED_RUNTIME" | sed 's/^/  - /'
+
+          BASE_VERSION=$(git show "$BASE:apps/cli/package.json" | jq -r .version)
+          HEAD_VERSION=$(jq -r .version apps/cli/package.json)
+          echo "apps/cli/package.json version: base=$BASE_VERSION head=$HEAD_VERSION"
+
+          FAILED=0
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            echo "::error::CLI runtime source changed but apps/cli/package.json version did not. Bump the version (and apps/cli/skills/banana-cli/SKILL.md frontmatter) before merging."
+            FAILED=1
+          else
+            echo "::notice::CLI version bumped $BASE_VERSION → $HEAD_VERSION ✓"
+          fi
+
+          CHANGELOG_CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- apps/cli/CHANGELOG.md || true)
+          if [ -z "$CHANGELOG_CHANGED" ]; then
+            echo "::error file=apps/cli/CHANGELOG.md::CLI runtime source changed but apps/cli/CHANGELOG.md did not. Add an entry describing the change (under [Unreleased] or a new version section) before merging."
+            FAILED=1
+          else
+            echo "::notice::CHANGELOG.md updated ✓"
+          fi
+
+          if [ "$FAILED" != "0" ]; then
+            exit 1
+          fi
+
   schema-sync:
     name: Prisma schema ↔ migrations sync
     runs-on: ubuntu-latest

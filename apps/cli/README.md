@@ -13,6 +13,22 @@ npm install -g @banananasplitz/cli
 banana help
 ```
 
+### Verifying provenance
+
+Every release is published from [GitHub Actions with signed SLSA provenance](https://docs.npmjs.com/generating-provenance-statements). You can verify the package you installed was built from this repo's `deploy.yml` workflow:
+
+```bash
+npm audit signatures
+```
+
+Or during install:
+
+```bash
+npm install --verify-signatures @banananasplitz/cli
+```
+
+Details for any published version are visible at `https://www.npmjs.com/package/@banananasplitz/cli/v/<version>` — look for the "Published via GitHub Actions" badge.
+
 ## Authentication
 
 Get an API key from the Banana Split Telegram bot, then configure it:
