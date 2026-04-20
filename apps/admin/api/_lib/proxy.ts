@@ -59,8 +59,11 @@ export async function proxyToLambda(
 
   res.status(upstream.status);
   upstream.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return;
-    if (key.toLowerCase() === "set-cookie") return;
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.has(lower)) return;
+    if (lower === "set-cookie") return;
+    // fetch() auto-decompressed the body; don't claim it's still encoded.
+    if (lower === "content-encoding") return;
     res.setHeader(key, value);
   });
 
