@@ -2,9 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { trpcReact } from "../../utils/trpc";
 import { useUsers } from "@/hooks/useUsers";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { MessageComposer } from "./MessageComposer";
 import { TelegramPreview } from "./TelegramPreview";
 import { AudienceBar } from "./AudienceBar";
@@ -14,19 +11,13 @@ import { BroadcastResultsDialog } from "./BroadcastResultsDialog";
 import { AttachmentPicker, type Attachment } from "./AttachmentPicker";
 import type { TargetMode } from "./AudiencePopover";
 import { broadcastWithMedia } from "@/lib/broadcastWithMedia";
-import type { Session } from "@/hooks/useSession";
 import type {
   BroadcastFailure,
   BroadcastResult,
   BroadcastSuccess,
 } from "@dko/trpc";
 
-type Props = {
-  session: Session;
-  onLogout: () => void;
-};
-
-export function BroadcastPage({ session, onLogout }: Props) {
+export function BroadcastPage() {
   const [message, setMessage] = useState("");
   const [targetMode, setTargetMode] = useState<TargetMode>("all");
   const [selectedUserIds, setSelectedUserIds] = useState<bigint[]>([]);
@@ -140,30 +131,7 @@ export function BroadcastPage({ session, onLogout }: Props) {
   }, [disabledReason, isSending]);
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="bg-background flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold tracking-tight">Broadcast</h1>
-          <Badge variant="secondary" className="font-normal">
-            Draft
-          </Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-muted-foreground text-xs">
-            {session.username ? `@${session.username}` : session.firstName}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="h-7 gap-1.5 px-2 text-xs"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
-          </Button>
-        </div>
-      </header>
-
+    <div className="flex h-full flex-col">
       <main className="grid flex-1 gap-4 overflow-hidden px-6 py-4 lg:grid-cols-[55fr_45fr]">
         <div className="flex min-h-0 flex-col gap-3">
           <MessageComposer

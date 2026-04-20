@@ -10,7 +10,7 @@ import {
   trpcExpress,
   withCreateTRPCContext,
   openApiDocument,
-  broadcast,
+  createBroadcast,
   type BroadcastMedia,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
@@ -125,12 +125,12 @@ router.post(
     }
 
     try {
-      const result = await broadcast(
+      const result = await createBroadcast(
         {
           db: prisma,
           teleBot: new Telegram(env.TELEGRAM_BOT_TOKEN || ""),
         },
-        { message, targetUserIds, media }
+        { message, targetUserIds, media, createdByTelegramId: null }
       );
       res.status(200).json(result);
     } catch (error) {

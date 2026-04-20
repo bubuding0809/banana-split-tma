@@ -21,7 +21,8 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node-telegram-bot-api": "^0.64.9"
+    "@types/node-telegram-bot-api": "^0.64.9",
+    "vitest": "^3.2.0"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.11",

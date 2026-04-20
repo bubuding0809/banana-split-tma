@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-04-20
+
+### Changed
+
+- Internal: tightened `createTrpcClient` return type annotation to the explicit `TRPCClient<AppRouter>` to unblock downstream packages consuming new tRPC procedures in the broadcast history feature (no runtime behavior change).
+
 ## [0.7.3] - 2026-04-20
 
 ### Changed
