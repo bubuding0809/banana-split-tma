@@ -490,6 +490,8 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         chatId={chatId}
         showPayments={showPayments}
         onAvailableDatesChange={setMonthGroupedData}
+        categoryFilter={categoryFilter}
+        chatRows={chatRows}
       />
 
       <CategoryPickerSheet

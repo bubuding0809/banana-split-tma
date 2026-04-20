@@ -34,11 +34,13 @@ import { Link, Link2Off } from "lucide-react";
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
   sortBy?: "date" | "createdAt";
+  categoryEmoji?: string;
 }
 
 const ChatExpenseCell = ({
   expense,
   sortBy = "date",
+  categoryEmoji,
 }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
 
@@ -358,11 +360,16 @@ const ChatExpenseCell = ({
           />
         }
       >
-        {
-          supportedCurrencies?.find((c) => c.code === expense.currency)
-            ?.flagEmoji
-        }{" "}
-        {formatCurrencyWithCode(expense.amount, expense.currency)}
+        <span className="flex items-center gap-1">
+          {
+            supportedCurrencies?.find((c) => c.code === expense.currency)
+              ?.flagEmoji
+          }{" "}
+          {formatCurrencyWithCode(expense.amount, expense.currency)}
+          {categoryEmoji && (
+            <span className="text-sm leading-none">{categoryEmoji}</span>
+          )}
+        </span>
       </Cell>
       <ExpenseDetailsModal
         open={modalOpen}
