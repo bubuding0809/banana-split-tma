@@ -115,7 +115,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
-          categoryId: value.categoryId ?? undefined,
+          categoryId: value.categoryId,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,

@@ -152,7 +152,10 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
-          categoryId: value.categoryId ?? undefined,
+          // Pass null through so the user can explicitly clear the category
+          // via the "Uncategorized" picker tile. `?? undefined` would drop
+          // that intent because updateExpense treats undefined as "don't touch".
+          categoryId: value.categoryId,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
