@@ -25,6 +25,8 @@ import {
 import { useState } from "react";
 import DateSelector from "./DateSelector";
 import SortOptionsSelector from "./SortOptionsSelector";
+import { type ResolvedCategory } from "@repo/categories";
+import { Button } from "@telegram-apps/telegram-ui";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
@@ -46,6 +48,9 @@ export interface TransactionFiltersModalProps {
     dates: { key: string; display: string; transactionIds: string[] }[];
   }[];
   onDateSelect: (dateKey: string) => void;
+  resolvedCategory: ResolvedCategory | null;
+  onOpenPicker: () => void;
+  onClearCategory: () => void;
 }
 
 export default function TransactionFiltersModal({
@@ -61,6 +66,9 @@ export default function TransactionFiltersModal({
   onSortOrderChange,
   monthGroupedData,
   onDateSelect,
+  resolvedCategory,
+  onOpenPicker,
+  onClearCategory,
 }: TransactionFiltersModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const [modalView, setModalView] = useState<
@@ -147,6 +155,32 @@ export default function TransactionFiltersModal({
       <div className="min-h-64 pb-10">
         {modalView === "filters" ? (
           <Section>
+            <Cell
+              before={
+                <span className="text-xl">
+                  {resolvedCategory?.emoji ?? "🗂️"}
+                </span>
+              }
+              after={
+                resolvedCategory ? (
+                  <Button
+                    mode="plain"
+                    size="s"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearCategory();
+                    }}
+                  >
+                    Clear
+                  </Button>
+                ) : (
+                  <ChevronRight size={16} />
+                )
+              }
+              onClick={onOpenPicker}
+            >
+              {resolvedCategory ? resolvedCategory.title : "Category"}
+            </Cell>
             <ButtonCell
               before={<CalendarArrowUp size={20} />}
               onClick={handleJumpToDateTransition}

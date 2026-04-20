@@ -441,6 +441,9 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onSortOrderChange={handleSortOrderChange}
         monthGroupedData={monthGroupedData}
         onDateSelect={handleDateSelect}
+        resolvedCategory={resolvedCategory}
+        onOpenPicker={() => setPickerOpen(true)}
+        onClearCategory={() => setCategoryFilter(null)}
       />
 
       {/* Standalone Jump to date modal */}
