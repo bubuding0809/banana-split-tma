@@ -76,12 +76,28 @@ jobs:
         run: pnpm test
 
   cli-version-bump:
-    name: CLI version bump (on apps/cli/src/** change)
+    name: CLI version bump + skill parity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Assert skill frontmatter version matches package.json
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(jq -r .version apps/cli/package.json)
+          SKILL_VERSION=$(awk -F'"' '/^---$/{f=!f; next} f && /^  version:/ {print $2; exit}' apps/cli/skills/banana-cli/SKILL.md)
+
+          echo "package.json version: $PKG_VERSION"
+          echo "SKILL.md frontmatter version: $SKILL_VERSION"
+
+          if [ "$PKG_VERSION" != "$SKILL_VERSION" ]; then
+            echo "::error file=apps/cli/skills/banana-cli/SKILL.md::Skill version ($SKILL_VERSION) does not match package.json ($PKG_VERSION). Update the skill frontmatter version so agents read the right doc for the published CLI."
+            exit 1
+          fi
+
+          echo "::notice::Skill version matches package.json ($PKG_VERSION) ✓"
 
       - name: Check for runtime CLI changes without version bump
         run: |
