@@ -189,6 +189,9 @@ importers:
       "@repo/agent":
         specifier: workspace:*
         version: link:../../packages/agent
+      "@repo/categories":
+        specifier: workspace:*
+        version: link:../../packages/categories
       "@t3-oss/env-core":
         specifier: ^0.13.8
         version: 0.13.11(typescript@5.8.2)(valibot@1.0.0-beta.14(typescript@5.8.2))(zod@3.25.76)

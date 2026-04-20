@@ -18,6 +18,7 @@
     "@dko/trpc": "workspace:*",
     "@mastra/core": "^1.18.0",
     "@repo/agent": "workspace:*",
+    "@repo/categories": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
     "@trpc/server": "^11.0.0",
     "@vercel/functions": "^2.2.12",
