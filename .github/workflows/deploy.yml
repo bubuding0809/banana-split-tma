@@ -212,6 +212,14 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace dependencies of the CLI
+        # The CLI's tsup config uses noExternal: [/.*/] so it bundles every
+        # workspace import. Those libraries (e.g. @repo/categories) need their
+        # dist/ built before tsup can resolve them. Turbo filter ^... means
+        # "all dependencies of @banananasplitz/cli, not the CLI itself".
+        if: steps.check.outputs.skip == 'false'
+        run: pnpm turbo run build --filter=@banananasplitz/cli^...
+
       - name: Publish to npm (Trusted Publishing + provenance)
         if: steps.check.outputs.skip == 'false'
         working-directory: apps/cli
