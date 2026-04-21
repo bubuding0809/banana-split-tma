@@ -285,15 +285,19 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     });
   };
 
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+
   useEffect(() => {
     backButton.mount();
     backButton.show();
-    const off = backButton.onClick(() =>
+    const off = backButton.onClick(() => {
+      if (isDirtyRef.current && !window.confirm("Discard changes?")) return;
       navigate({
         to: "/chat/$chatId/settings/categories",
         params: { chatId: String(chatId) },
-      })
-    );
+      });
+    });
     return () => {
       off();
       backButton.hide();
