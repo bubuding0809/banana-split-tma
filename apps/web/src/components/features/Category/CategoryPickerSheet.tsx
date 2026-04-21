@@ -1,6 +1,25 @@
 import { Modal } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Plus, Sliders } from "lucide-react";
 import CategoryTile from "./CategoryTile";
+
+// Thin wrappers around hapticFeedback — calls throw in non-TMA contexts
+// (vite dev in a plain browser tab), so every call-site would need its
+// own try/catch otherwise.
+function tickSelection() {
+  try {
+    hapticFeedback.selectionChanged();
+  } catch {
+    /* non-TMA */
+  }
+}
+function tickNav() {
+  try {
+    hapticFeedback.impactOccurred("light");
+  } catch {
+    /* non-TMA */
+  }
+}
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -88,7 +107,10 @@ export default function CategoryPickerSheet({
                 emoji={UNCATEGORIZED_OPTION.emoji}
                 title={UNCATEGORIZED_OPTION.title}
                 selected={selectedId === UNCATEGORIZED_OPTION.id}
-                onClick={() => onSelect(UNCATEGORIZED_OPTION)}
+                onClick={() => {
+                  tickSelection();
+                  onSelect(UNCATEGORIZED_OPTION);
+                }}
               />
             </div>
           </section>
@@ -103,7 +125,10 @@ export default function CategoryPickerSheet({
               <button
                 type="button"
                 className="text-[13px] font-medium text-[var(--tg-theme-link-color)]"
-                onClick={onOpenOrganize}
+                onClick={() => {
+                  tickNav();
+                  onOpenOrganize();
+                }}
               >
                 Open Organize categories
               </button>
@@ -119,7 +144,10 @@ export default function CategoryPickerSheet({
                   title={c.title}
                   selected={selectedId === c.id}
                   showCustomDot={c.kind === "custom"}
-                  onClick={() => onSelect(c)}
+                  onClick={() => {
+                    tickSelection();
+                    onSelect(c);
+                  }}
                 />
               ))}
               {/* Create tile sits at the end of the grid — same footprint
@@ -127,7 +155,12 @@ export default function CategoryPickerSheet({
                   affordance. Users see it alongside the real tiles without
                   scrolling. */}
               {onCreateCustom && (
-                <CreateCategoryTile onClick={onCreateCustom} />
+                <CreateCategoryTile
+                  onClick={() => {
+                    tickNav();
+                    onCreateCustom();
+                  }}
+                />
               )}
             </div>
           </section>
@@ -139,7 +172,10 @@ export default function CategoryPickerSheet({
         {onOpenOrganize && categories.length > 0 && (
           <button
             type="button"
-            onClick={onOpenOrganize}
+            onClick={() => {
+              tickNav();
+              onOpenOrganize();
+            }}
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--tg-theme-link-color) 14%, transparent)",

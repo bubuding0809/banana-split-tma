@@ -1,4 +1,5 @@
 import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -12,13 +13,40 @@ import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { useStore } from "@tanstack/react-form";
 
+// sessionStorage flag that signals "I was in the picker and just jumped
+// out to Create / Organize — reopen me when the form remounts".
+// chatId-scoped so two chats don't step on each other.
+const PICKER_REOPEN_PREFIX = "tma:picker-reopen:";
+
+function markPickerForReopen(chatId: number) {
+  try {
+    sessionStorage.setItem(PICKER_REOPEN_PREFIX + chatId, "1");
+  } catch {
+    /* swallow */
+  }
+}
+
+function consumePickerReopen(chatId: number): boolean {
+  try {
+    const key = PICKER_REOPEN_PREFIX + chatId;
+    const flag = sessionStorage.getItem(key) === "1";
+    if (flag) sessionStorage.removeItem(key);
+    return flag;
+  } catch {
+    return false;
+  }
+}
+
 const CategoryFormStep = withForm({
   ...formOpts,
   props: {
     chatId: 0,
   },
   render: function Render({ form, chatId }) {
-    const [open, setOpen] = useState(false);
+    // Lazy-init reads and clears the reopen flag once on mount — so if the
+    // user just came back from Create / Organize, the picker pops open
+    // again for them. Fresh mounts (no flag) start closed.
+    const [open, setOpen] = useState(() => consumePickerReopen(chatId));
     const navigate = useNavigate();
 
     // Everything drives off form state — the auto-suggest side effect lives
@@ -104,6 +132,11 @@ const CategoryFormStep = withForm({
                         // Prevent the parent Cell's onClick (which opens the
                         // picker) from firing when the user taps the clear X.
                         e.stopPropagation();
+                        try {
+                          hapticFeedback.selectionChanged();
+                        } catch {
+                          /* non-TMA */
+                        }
                         form.setFieldValue("userTouchedCategory", true);
                         form.setFieldValue("autoPicked", false);
                         form.setFieldValue("categoryId", null);
@@ -141,6 +174,8 @@ const CategoryFormStep = withForm({
           selectedId={categoryId}
           onOpenOrganize={() => {
             setOpen(false);
+            // Signal the form to reopen the picker when we come back.
+            markPickerForReopen(chatId);
             navigate({
               to: "/chat/$chatId/settings/categories/organize",
               params: { chatId: String(chatId) },
@@ -148,6 +183,7 @@ const CategoryFormStep = withForm({
           }}
           onCreateCustom={() => {
             setOpen(false);
+            markPickerForReopen(chatId);
             navigate({
               to: "/chat/$chatId/settings/categories/new",
               params: { chatId: String(chatId) },
