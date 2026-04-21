@@ -8,7 +8,11 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton } from "@telegram-apps/sdk-react";
-import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
+import EmojiPicker, {
+  EmojiStyle,
+  SkinTonePickerLocation,
+  Theme,
+} from "emoji-picker-react";
 import { trpc } from "@/utils/trpc";
 
 interface Props {
@@ -145,17 +149,49 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
           <Subheadline weight="2">Emoji</Subheadline>
         </label>
-        {/* Full emoji picker (search + categorized tabs + recent). The
-            package provides its own dark theme that picks up the Telegram
-            theme's dark/light on its own via the Theme.AUTO setting. */}
-        <div className="overflow-hidden rounded-xl">
+        {/* Full emoji picker — customized to blend into the Telegram theme:
+            sheet color pulled from --tg-theme-secondary-bg-color, borders /
+            separators from --tg-theme-section-separator-color, and hover
+            from a hint-color mix. Skin tone selector hidden (categories are
+            non-person emojis in practice). Theme is forced to DARK because
+            Telegram Mini Apps typically run in dark mode; the native Theme.
+            AUTO relies on `prefers-color-scheme` which doesn't always
+            reflect the TMA theme. */}
+        <div
+          className="overflow-hidden rounded-xl"
+          style={
+            {
+              "--epr-bg-color":
+                "color-mix(in srgb, var(--tg-theme-text-color) 6%, var(--tg-theme-secondary-bg-color))",
+              "--epr-category-label-bg-color":
+                "var(--tg-theme-secondary-bg-color)",
+              "--epr-text-color": "var(--tg-theme-text-color)",
+              "--epr-search-input-bg-color":
+                "color-mix(in srgb, var(--tg-theme-text-color) 8%, transparent)",
+              "--epr-search-input-placeholder-color":
+                "var(--tg-theme-hint-color)",
+              // Strip the picker's outer border — the rounded container
+              // already visually frames it against the Telegram theme.
+              "--epr-picker-border-color": "transparent",
+              "--epr-hover-bg-color":
+                "color-mix(in srgb, var(--tg-theme-text-color) 12%, transparent)",
+              "--epr-focus-bg-color":
+                "color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)",
+              "--epr-highlight-color": "var(--tg-theme-button-color)",
+              "--epr-category-icon-active-color":
+                "var(--tg-theme-button-color)",
+            } as React.CSSProperties
+          }
+        >
           <EmojiPicker
             onEmojiClick={(e) => setEmoji(e.emoji)}
-            theme={Theme.AUTO}
+            theme={Theme.DARK}
             emojiStyle={EmojiStyle.NATIVE}
             width="100%"
-            height={360}
+            height={480}
             lazyLoadEmojis
+            skinTonesDisabled
+            skinTonePickerLocation={SkinTonePickerLocation.SEARCH}
             previewConfig={{ showPreview: false }}
             searchPlaceholder="Search emoji"
           />
