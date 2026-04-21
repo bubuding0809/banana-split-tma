@@ -41,6 +41,28 @@ export const UNCATEGORIZED_OPTION: PickerCategory = {
   kind: "none",
 };
 
+/**
+ * In-grid "add new" tile — same shape / footprint as a CategoryTile so it
+ * sits naturally at the end of the grid, but dashed + link-colored to
+ * read as an affordance, not a real category.
+ */
+function CreateCategoryTile({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="border-[var(--tg-theme-link-color)]/40 flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-1 py-2 text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.97]"
+    >
+      <span className="flex h-10 items-center justify-center">
+        <Plus size={26} strokeWidth={2.25} />
+      </span>
+      <span className="block w-full truncate text-center text-[13px] font-medium leading-tight">
+        Create
+      </span>
+    </button>
+  );
+}
+
 export default function CategoryPickerSheet({
   open,
   onOpenChange,
@@ -100,30 +122,28 @@ export default function CategoryPickerSheet({
                   onClick={() => onSelect(c)}
                 />
               ))}
+              {/* Create tile sits at the end of the grid — same footprint
+                  as a category tile but dashed + link-color to read as an
+                  affordance. Users see it alongside the real tiles without
+                  scrolling. */}
+              {onCreateCustom && (
+                <CreateCategoryTile onClick={onCreateCustom} />
+              )}
             </div>
           </section>
         )}
 
-        {onCreateCustom && (
-          <button
-            type="button"
-            onClick={onCreateCustom}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--tg-theme-section-bg-color)] py-3 text-sm font-medium"
-          >
-            <Plus size={16} /> Create custom category
-          </button>
-        )}
-
-        {/* In-picker contextual entry to the Organize page. Shown always when
-            the caller wires onOpenOrganize — lets the user discover the
-            customization flow at the exact moment they'd want it. */}
+        {/* Reorder / hide entry — outline button below the grid.
+            Distinct from tiles (outline, not filled) so it reads as a
+            modal-footer action, not a category choice. */}
         {onOpenOrganize && categories.length > 0 && (
           <button
             type="button"
             onClick={onOpenOrganize}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)]"
+            className="border-[var(--tg-theme-link-color)]/35 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.98]"
           >
-            <Sliders size={14} /> Reorder or hide these tiles
+            <Sliders size={15} strokeWidth={2.25} />
+            Reorder or hide categories
           </button>
         )}
       </div>
