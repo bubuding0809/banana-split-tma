@@ -499,6 +499,9 @@ importers:
       decimal.js:
         specifier: ^10.5.0
         version: 10.6.0
+      emoji-picker-react:
+        specifier: ^4.18.0
+        version: 4.18.0(react@19.2.4)
       eruda:
         specifier: ^3.4.1
         version: 3.4.3
@@ -9713,6 +9716,15 @@ packages:
         integrity: sha512-jFNydB5kFtYUobh4IkWUnXeyDbjf/r9gcUEXe1xcrcUxIGfTdzPXA+ld6zBRbwvgIGVzDll/LTIiDztEtckSnA==,
       }
 
+  emoji-picker-react@4.18.0:
+    resolution:
+      {
+        integrity: sha512-vLTrLfApXAIciguGE57pXPWs9lPLBspbEpPMiUq03TIli2dHZBiB+aZ0R9/Wat0xmTfcd4AuEzQgSYxEZ8C88Q==,
+      }
+    engines: { node: ">=10" }
+    peerDependencies:
+      react: ">=16"
+
   emoji-regex@10.6.0:
     resolution:
       {
@@ -10664,6 +10676,12 @@ packages:
     resolution:
       {
         integrity: sha512-pVIECanWFC61Hzl2+oOCtoJ3F17kglZC/6N94eRWycFgBH35hHx0Li604ZIzhseh97mf2p0cv7vVrOZGoqhlEg==,
+      }
+
+  flairup@1.0.0:
+    resolution:
+      {
+        integrity: sha512-IKlE+pNvL2R+kVL1kEhUYqRxVqeFnjiIvHWDMLFXNaqyUdFXQM2wte44EfMYJNHkW16X991t2Zg8apKkhv7OBA==,
       }
 
   flat-cache@4.0.1:
@@ -24093,6 +24111,11 @@ snapshots:
 
   electron-to-chromium@1.5.330: {}
 
+  emoji-picker-react@4.18.0(react@19.2.4):
+    dependencies:
+      flairup: 1.0.0
+      react: 19.2.4
+
   emoji-regex@10.6.0: {}
 
   emoji-regex@8.0.0: {}
@@ -24909,6 +24932,8 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       rollup: 4.60.1
+
+  flairup@1.0.0: {}
 
   flat-cache@4.0.1:
     dependencies:

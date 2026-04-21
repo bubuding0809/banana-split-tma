@@ -8,6 +8,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton } from "@telegram-apps/sdk-react";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { trpc } from "@/utils/trpc";
 
 interface Props {
@@ -20,88 +21,6 @@ interface Props {
 // render labels at text-[13px] on ~80px tiles, and anything longer than
 // ~16 chars truncates to ellipsis.
 const TITLE_MAX_LENGTH = 16;
-
-// Curated built-in emoji picker pool — grouped loosely by theme so the grid
-// reads as a quick-pick rather than random noise. Mirrors the pool used in
-// the prototype (docs/superpowers/specs/.../screens.jsx).
-const EMOJI_POOL = [
-  "🍜",
-  "🍕",
-  "🍔",
-  "☕",
-  "🍺",
-  "🍷",
-  "🍰",
-  "🎂",
-  "🍦",
-  "🥗",
-  "🍱",
-  "🥘",
-  "🚕",
-  "🚗",
-  "🚲",
-  "✈️",
-  "🚆",
-  "⛴️",
-  "🛵",
-  "⛽",
-  "🏠",
-  "🏢",
-  "🛋️",
-  "🛏️",
-  "🧺",
-  "🧹",
-  "🛒",
-  "🥦",
-  "🍎",
-  "🥕",
-  "🥛",
-  "🧀",
-  "🎉",
-  "🎊",
-  "🎮",
-  "🎬",
-  "🎵",
-  "🎤",
-  "🎨",
-  "📚",
-  "🎁",
-  "🎯",
-  "🏖️",
-  "🗻",
-  "🏝️",
-  "🗼",
-  "🌴",
-  "🏨",
-  "🎡",
-  "💊",
-  "🏥",
-  "💉",
-  "🧘",
-  "🏋️",
-  "🚴",
-  "⚽",
-  "🏀",
-  "🛍️",
-  "👕",
-  "👟",
-  "👜",
-  "💄",
-  "💍",
-  "💡",
-  "💧",
-  "📶",
-  "📱",
-  "📺",
-  "🔌",
-  "💼",
-  "💰",
-  "💸",
-  "💳",
-  "📈",
-  "🧾",
-  "📦",
-];
 
 export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const isEdit = !!categoryId;
@@ -177,7 +96,8 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     if (!categoryId) return;
     if (
       !window.confirm(
-        "Delete this category? Expenses using it will become Uncategorized."
+        `Delete "${existing?.emoji ?? ""} ${existing?.title ?? "this category"}"?\n\n` +
+          "Any expenses currently tagged with this category will be set to Uncategorized. This cannot be undone."
       )
     )
       return;
@@ -225,28 +145,21 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
           <Subheadline weight="2">Emoji</Subheadline>
         </label>
-        <Section>
-          <div className="grid grid-cols-8 gap-1.5 p-3">
-            {EMOJI_POOL.map((e, i) => {
-              const selected = emoji === e;
-              return (
-                <button
-                  key={`${e}-${i}`}
-                  type="button"
-                  onClick={() => setEmoji(e)}
-                  className="flex aspect-square items-center justify-center rounded-lg text-xl leading-none"
-                  style={{
-                    backgroundColor: selected
-                      ? "rgba(127, 127, 127, 0.28)"
-                      : "transparent",
-                  }}
-                >
-                  {e}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
+        {/* Full emoji picker (search + categorized tabs + recent). The
+            package provides its own dark theme that picks up the Telegram
+            theme's dark/light on its own via the Theme.AUTO setting. */}
+        <div className="overflow-hidden rounded-xl">
+          <EmojiPicker
+            onEmojiClick={(e) => setEmoji(e.emoji)}
+            theme={Theme.AUTO}
+            emojiStyle={EmojiStyle.NATIVE}
+            width="100%"
+            height={360}
+            lazyLoadEmojis
+            previewConfig={{ showPreview: false }}
+            searchPlaceholder="Search emoji"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 pt-4">
