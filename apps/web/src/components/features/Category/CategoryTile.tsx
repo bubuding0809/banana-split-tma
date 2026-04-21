@@ -25,7 +25,10 @@ export default function CategoryTile({
       // arbitrary values with nested function calls.
       style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
       className={clsx(
-        "flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl p-2",
+        // Tighter horizontal padding (px-1) so long labels like
+        // "Entertainment" have enough inner width to fit on one line at
+        // text-sm without overflowing the tile.
+        "flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2",
         "text-[var(--tg-theme-text-color)]",
         selected && "ring-2 ring-[var(--tg-theme-button-color)]"
       )}
@@ -33,7 +36,7 @@ export default function CategoryTile({
       <span className="flex h-10 items-center text-3xl leading-none">
         {emoji}
       </span>
-      <span className="line-clamp-2 break-words text-center text-sm leading-tight">
+      <span className="line-clamp-2 hyphens-auto break-words text-center text-[13px] leading-tight">
         {title}
       </span>
     </button>
