@@ -1,12 +1,18 @@
 import { useEffect } from "react";
-import { Cell, Section } from "@telegram-apps/telegram-ui";
+import { ButtonCell, Cell, Section } from "@telegram-apps/telegram-ui";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { backButton } from "@telegram-apps/sdk-react";
+import {
+  backButton,
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
 import { ChevronRight, Plus } from "lucide-react";
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
+  const tButtonColor = useSignal(themeParams.buttonColor);
   const { data } = trpc.category.listByChat.useQuery({ chatId });
 
   useEffect(() => {
@@ -55,32 +61,22 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             </Link>
           ))
         )}
-        {/* "Create custom category" lives inline at the bottom of the CUSTOM
-            section — a link-colored ButtonCell-style row with a circular +
-            icon, matching the Manage categories cell on the settings page. */}
-        <Link
-          to="/chat/$chatId/settings/categories/new"
-          params={{ chatId: String(chatId) }}
+        {/* "Create custom category" uses Telegram UI's ButtonCell — same
+            pattern SnapshotPage uses for "Add Snapshots" so the two
+            settings-adjacent create-affordances look identical. */}
+        <ButtonCell
+          onClick={() => {
+            navigate({
+              to: "/chat/$chatId/settings/categories/new",
+              params: { chatId: String(chatId) },
+            });
+            hapticFeedback.notificationOccurred("success");
+          }}
+          before={<Plus />}
+          style={{ color: tButtonColor }}
         >
-          <Cell
-            Component="label"
-            before={
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
-                style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
-                }}
-              >
-                <Plus size={16} />
-              </span>
-            }
-          >
-            <span style={{ color: "var(--tg-theme-link-color)" }}>
-              Create custom category
-            </span>
-          </Cell>
-        </Link>
+          Create custom category
+        </ButtonCell>
       </Section>
 
       <Section header="BASE">
