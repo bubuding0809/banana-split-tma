@@ -36,7 +36,7 @@ export default function CategoryTile({
       <span className="flex h-10 items-center text-3xl leading-none">
         {emoji}
       </span>
-      <span className="block w-full truncate text-center text-[13px] leading-tight">
+      <span className="block w-full truncate text-center text-[13px] font-medium leading-tight">
         {title}
       </span>
     </button>
