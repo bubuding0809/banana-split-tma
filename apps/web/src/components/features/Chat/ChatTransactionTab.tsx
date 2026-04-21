@@ -118,6 +118,23 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const { data: categoriesData } = trpc.category.listByChat.useQuery({
     chatId,
   });
+  // Same query the list view uses — tRPC caches it so this is essentially
+  // free; we only need it for the per-category counts on the filter strip.
+  const { data: allExpensesForCounts } =
+    trpc.expense.getAllExpensesByChat.useQuery({ chatId });
+
+  // Count expenses per categoryId (null → "none" bucket to match the
+  // strip's synthetic Uncategorized chip). Other filters (payments,
+  // related-only, sort) don't affect this — the badge answers "how many
+  // expenses live under this category" regardless of current view.
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of allExpensesForCounts ?? []) {
+      const key = e.categoryId ?? "none";
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [allExpensesForCounts]);
 
   // Filter picker hides tiles the user hid via Organize. Trade-off: if a
   // past expense was tagged with a now-hidden category, it won't be
@@ -433,6 +450,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         <CategoryFilterStrip
           categories={allCategories}
           selectedIds={categoryFilters}
+          counts={categoryCounts}
           onChange={(ids) =>
             updateSearchParams((prev) => ({
               ...prev,

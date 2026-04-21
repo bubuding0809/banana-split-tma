@@ -16,7 +16,17 @@ interface CategoryFilterStripProps {
     kind: "base" | "custom";
   }[];
   selectedIds: string[];
+  /**
+   * Expense counts per category id. "none" key counts uncategorized
+   * expenses. Categories with no expenses get no badge (rather than a
+   * "0" badge) so the strip stays uncluttered for empty categories.
+   */
+  counts?: Record<string, number>;
   onChange: (ids: string[]) => void;
+}
+
+function formatCount(n: number): string {
+  return n > 99 ? "99+" : String(n);
 }
 
 // Synthetic chip so users can pull out expenses whose categoryId is null.
@@ -48,6 +58,7 @@ function tickSelection() {
 export default function CategoryFilterStrip({
   categories,
   selectedIds,
+  counts,
   onChange,
 }: CategoryFilterStripProps) {
   const allChips = useMemo<FilterCategory[]>(
@@ -106,6 +117,26 @@ export default function CategoryFilterStrip({
             }
           >
             {c.emoji}
+            {(() => {
+              const count = counts?.[c.id] ?? 0;
+              if (count === 0) return null;
+              // Muted gray bottom-right badge. The 2px border matches the
+              // strip's background so the pill reads as floating above the
+              // tile rather than attached to it.
+              return (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -bottom-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums leading-none"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    color: "var(--tg-theme-subtitle-text-color)",
+                    border: "2px solid var(--tg-theme-bg-color)",
+                  }}
+                >
+                  {formatCount(count)}
+                </span>
+              );
+            })()}
           </button>
         );
       })}
