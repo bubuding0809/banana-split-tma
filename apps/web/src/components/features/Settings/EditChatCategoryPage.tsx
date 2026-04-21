@@ -37,6 +37,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const [title, setTitle] = useState(existing?.title ?? "");
   const [error, setError] = useState<string | null>(null);
 
+  // True once the user has manually picked an emoji from the picker. We
+  // stop auto-suggesting after that so the classifier doesn't overwrite
+  // their explicit choice when they continue editing the name. Seeded
+  // true on edit for the same reason the expense form does it: a saved
+  // category's emoji is implicitly "touched".
+  const userTouchedEmojiRef = useRef(isEdit);
+
   useEffect(() => {
     if (existing) {
       setEmoji(existing.emoji);
@@ -86,6 +93,35 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     },
     onError: (e) => setError(e.message),
   });
+
+  // Debounced emoji auto-suggest — fires on name change when the user
+  // hasn't manually picked. Same 300ms debounce + monotonic request id
+  // pattern as the expense form's category suggest to guard against stale
+  // responses from an earlier, slower request.
+  const suggestEmojiMut = trpc.category.suggestEmoji.useMutation();
+  const latestEmojiReqRef = useRef(0);
+  useEffect(() => {
+    if (userTouchedEmojiRef.current) return;
+    if (title.trim().length < 2) return;
+    const handle = setTimeout(() => {
+      const requestId = ++latestEmojiReqRef.current;
+      suggestEmojiMut.mutate(
+        { title: title.trim() },
+        {
+          onSuccess: (res) => {
+            if (requestId !== latestEmojiReqRef.current) return;
+            if (userTouchedEmojiRef.current) return;
+            if (!res.emoji) return;
+            setEmoji(res.emoji);
+          },
+        }
+      );
+    }, 300);
+    return () => clearTimeout(handle);
+    // suggestEmojiMut intentionally omitted — its identity changes every
+    // render and would reset the debounce on each keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
 
   const onSave = () => {
     setError(null);
@@ -141,10 +177,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   return (
     <main className="flex flex-col gap-4 px-3 pb-8">
       {/* Preview — emoji in a tinted panel over the category name, same
-          styling as the prototype's header preview. */}
+          styling as the prototype's header preview. Pulses softly while the
+          classifier is mid-flight so the user knows an auto-pick is coming. */}
       <div className="flex flex-col items-center gap-2.5 py-6">
         <div
-          className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl text-[40px]"
+          className={`flex h-[72px] w-[72px] items-center justify-center rounded-2xl text-[40px] ${
+            suggestEmojiMut.isPending ? "animate-pulse" : ""
+          }`}
           style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
         >
           {emoji}
@@ -219,7 +258,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
           }
         >
           <EmojiPicker
-            onEmojiClick={(e) => setEmoji(e.emoji)}
+            onEmojiClick={(e) => {
+              // Manual pick — lock out further auto-suggest and bump the
+              // request id so any in-flight suggest's onSuccess is dropped.
+              userTouchedEmojiRef.current = true;
+              latestEmojiReqRef.current += 1;
+              setEmoji(e.emoji);
+            }}
             theme={Theme.DARK}
             emojiStyle={EmojiStyle.NATIVE}
             width="100%"
