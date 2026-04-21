@@ -24,6 +24,9 @@ export const deleteChatCategoryHandler = async (
       where: { chatId: row.chatId, categoryId: fullId },
       data: { categoryId: null },
     });
+    await tx.chatCategoryOrdering.deleteMany({
+      where: { chatId: row.chatId, categoryKey: fullId },
+    });
     await tx.chatCategory.delete({ where: { id: row.id } });
   });
 

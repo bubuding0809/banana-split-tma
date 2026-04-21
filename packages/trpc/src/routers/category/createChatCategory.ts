@@ -56,13 +56,40 @@ export const createChatCategoryHandler = async (
   // P2002 unique-constraint violation here — surface it as CONFLICT.
   let row;
   try {
-    row = await db.chatCategory.create({
-      data: {
-        chatId: input.chatId,
-        emoji: input.emoji,
-        title: input.title,
-        createdById,
-      },
+    row = await db.$transaction(async (tx) => {
+      const created = await tx.chatCategory.create({
+        data: {
+          chatId: input.chatId,
+          emoji: input.emoji,
+          title: input.title,
+          createdById,
+        },
+      });
+
+      // If the chat has an existing custom order, prepend the new tile so it
+      // appears at the top of the picker. Otherwise do nothing: default
+      // ordering (base then custom-by-createdAt) already places the new tile
+      // at the end — acceptable for chats that haven't customized.
+      const orderingCount = await tx.chatCategoryOrdering.count({
+        where: { chatId: input.chatId },
+      });
+      if (orderingCount > 0) {
+        const agg = await tx.chatCategoryOrdering.aggregate({
+          where: { chatId: input.chatId },
+          _min: { sortOrder: true },
+        });
+        const nextSort = (agg._min.sortOrder ?? 0) - 1;
+        await tx.chatCategoryOrdering.create({
+          data: {
+            chatId: input.chatId,
+            categoryKey: `chat:${created.id}`,
+            sortOrder: nextSort,
+            hidden: false,
+          },
+        });
+      }
+
+      return created;
     });
   } catch (err) {
     if (
