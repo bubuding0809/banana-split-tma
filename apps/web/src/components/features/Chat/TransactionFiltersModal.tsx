@@ -23,6 +23,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { useState } from "react";
+import CategoryFilterStrip from "./CategoryFilterStrip";
 import DateSelector from "./DateSelector";
 import SortOptionsSelector from "./SortOptionsSelector";
 
@@ -46,6 +47,15 @@ export interface TransactionFiltersModalProps {
     dates: { key: string; display: string; transactionIds: string[] }[];
   }[];
   onDateSelect: (dateKey: string) => void;
+  categoryStripCategories: {
+    id: string;
+    emoji: string;
+    title: string;
+    kind: "base" | "custom";
+  }[];
+  categoryStripSelectedIds: string[];
+  categoryStripCounts: Record<string, number>;
+  onCategoryFiltersChange: (ids: string[]) => void;
 }
 
 export default function TransactionFiltersModal({
@@ -61,6 +71,10 @@ export default function TransactionFiltersModal({
   onSortOrderChange,
   monthGroupedData,
   onDateSelect,
+  categoryStripCategories,
+  categoryStripSelectedIds,
+  categoryStripCounts,
+  onCategoryFiltersChange,
 }: TransactionFiltersModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const [modalView, setModalView] = useState<
@@ -146,66 +160,87 @@ export default function TransactionFiltersModal({
     >
       <div className="min-h-64 pb-10">
         {modalView === "filters" ? (
-          <Section>
-            <ButtonCell
-              before={<CalendarArrowUp size={20} />}
-              onClick={handleJumpToDateTransition}
-            >
-              Jump to date
-            </ButtonCell>
-            <Cell
-              Component="label"
-              before={
-                <span className="rounded-lg bg-green-500 p-1.5">
-                  <DollarSign size={20} color="white" />
-                </span>
-              }
-              after={
-                <Switch checked={showPayments} onChange={onTogglePayments} />
-              }
-              description={
-                <Caption className="text-wrap">
-                  Include payments in the transaction list
+          <>
+            {categoryStripCategories.length > 0 && (
+              <div className="flex flex-col gap-1 pb-2 pt-1">
+                <Caption
+                  className="px-5 pb-0.5 uppercase"
+                  style={{ color: tSubtitleTextColor }}
+                >
+                  Filter by category
                 </Caption>
-              }
-            >
-              Include Payments
-            </Cell>
-            <Cell
-              Component="label"
-              before={
-                <span className="rounded-lg bg-blue-500 p-1.5">
-                  <LucideLink size={20} color="white" />
-                </span>
-              }
-              after={
-                <Switch checked={relatedOnly} onChange={onToggleRelatedOnly} />
-              }
-              description={
-                <Caption className="text-wrap">
-                  Show only transactions that involve you
-                </Caption>
-              }
-            >
-              Show Related Only
-            </Cell>
-            <Cell
-              onClick={handleSortOptionsTransition}
-              before={
-                <span className="rounded-lg bg-purple-500 p-1.5">
-                  <ArrowDownUp size={20} color="white" />
-                </span>
-              }
-              after={<ChevronRight size={20} color="gray" />}
-              description={
-                <Caption className="text-wrap">
-                  {sortByLabel} &bull; {sortOrderLabel}
-                </Caption>
-              }
-            >
-              Sort options
-            </Cell>
-          </Section>
+                <CategoryFilterStrip
+                  categories={categoryStripCategories}
+                  selectedIds={categoryStripSelectedIds}
+                  counts={categoryStripCounts}
+                  onChange={onCategoryFiltersChange}
+                />
+              </div>
+            )}
+            <Section>
+              <ButtonCell
+                before={<CalendarArrowUp size={20} />}
+                onClick={handleJumpToDateTransition}
+              >
+                Jump to date
+              </ButtonCell>
+              <Cell
+                Component="label"
+                before={
+                  <span className="rounded-lg bg-green-500 p-1.5">
+                    <DollarSign size={20} color="white" />
+                  </span>
+                }
+                after={
+                  <Switch checked={showPayments} onChange={onTogglePayments} />
+                }
+                description={
+                  <Caption className="text-wrap">
+                    Include payments in the transaction list
+                  </Caption>
+                }
+              >
+                Include Payments
+              </Cell>
+              <Cell
+                Component="label"
+                before={
+                  <span className="rounded-lg bg-blue-500 p-1.5">
+                    <LucideLink size={20} color="white" />
+                  </span>
+                }
+                after={
+                  <Switch
+                    checked={relatedOnly}
+                    onChange={onToggleRelatedOnly}
+                  />
+                }
+                description={
+                  <Caption className="text-wrap">
+                    Show only transactions that involve you
+                  </Caption>
+                }
+              >
+                Show Related Only
+              </Cell>
+              <Cell
+                onClick={handleSortOptionsTransition}
+                before={
+                  <span className="rounded-lg bg-purple-500 p-1.5">
+                    <ArrowDownUp size={20} color="white" />
+                  </span>
+                }
+                after={<ChevronRight size={20} color="gray" />}
+                description={
+                  <Caption className="text-wrap">
+                    {sortByLabel} &bull; {sortOrderLabel}
+                  </Caption>
+                }
+              >
+                Sort options
+              </Cell>
+            </Section>
+          </>
         ) : modalView === "jumpToDate" ? (
           <DateSelector
             monthGroupedData={monthGroupedData}
