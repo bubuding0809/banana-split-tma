@@ -13,6 +13,7 @@ import EmojiPicker, {
   SkinTonePickerLocation,
   Theme,
 } from "emoji-picker-react";
+import { LoaderPinwheel } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 
 interface Props {
@@ -215,6 +216,23 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
       <div className="flex flex-col gap-2">
         <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
           <Subheadline weight="2">Emoji</Subheadline>
+          {/* Explicit indicator that the classifier is mid-flight. Reuses
+              the violet sparkle pill aesthetic from the expense-form Auto
+              badge so the "AI is working" signal is consistent across
+              screens. */}
+          {suggestEmojiMut.isPending ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
+                color: "rgb(139, 92, 246)",
+              }}
+            >
+              <LoaderPinwheel size={12} className="animate-spin" />
+              Suggesting…
+            </span>
+          ) : null}
         </label>
         {/* Full emoji picker — customized to blend into the Telegram theme:
             sheet color pulled from --tg-theme-secondary-bg-color, borders /
