@@ -55,7 +55,7 @@ const CategoryFormStep = withForm({
     // request resolves after a faster, newer one.
     const latestRequestRef = useRef(0);
 
-    // Debounced auto-suggest on description change (500ms). Only fires while the
+    // Debounced auto-suggest on description change (250ms). Only fires while the
     // user hasn't manually picked.
     useEffect(() => {
       if (disableAutoAssign) return;
@@ -77,7 +77,7 @@ const CategoryFormStep = withForm({
             },
           }
         );
-      }, 500);
+      }, 250);
       return () => clearTimeout(handle);
       // Intentionally omit suggestMutation/form from deps — re-subscribing on
       // every render would double-fire. The effect depends only on the description
