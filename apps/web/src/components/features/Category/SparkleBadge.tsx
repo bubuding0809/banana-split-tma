@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { LoaderPinwheel, Sparkles } from "lucide-react";
 
 interface SparkleBadgeProps {
   label?: string;
@@ -20,14 +20,11 @@ export default function SparkleBadge({
   if (pending) {
     return (
       <span
-        className={`${baseClass} h-5 w-5 animate-pulse justify-center`}
+        className={`${baseClass} h-5 w-5 justify-center`}
         style={style}
         aria-label="Suggesting a category"
       >
-        <Sparkles
-          size={12}
-          className="[filter:drop-shadow(0_0_4px_rgba(167,139,250,0.8))]"
-        />
+        <LoaderPinwheel size={12} className="animate-spin" />
       </span>
     );
   }
