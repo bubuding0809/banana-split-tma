@@ -47,30 +47,35 @@ const ZONE_HIDDEN_ID = "zone:hidden";
 
 function DroppableZone({
   id,
-  isDragActive,
+  isTargetZone,
   className,
-  hintClassName,
-  activeClassName,
+  targetClassName,
+  overClassName,
   children,
 }: {
   id: string;
-  /** True when any drag is in flight (not necessarily over this zone). */
-  isDragActive: boolean;
+  /**
+   * True when a drag is in flight AND this zone is a valid cross-zone
+   * target (i.e., the tile's source zone is the OTHER one). Source zone
+   * stays neutral because dropping into your own zone is just reorder.
+   */
+  isTargetZone: boolean;
   className: string;
-  /** Applied while a drag is in flight but the pointer is elsewhere. */
-  hintClassName?: string;
-  /** Applied while the pointer is directly over this zone. */
-  activeClassName?: string;
+  /** Applied while this zone is a valid target (pointer not yet on it). */
+  targetClassName?: string;
+  /** Applied while the pointer is directly over this zone AND it's target. */
+  overClassName?: string;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const showOver = isOver && isTargetZone;
   return (
     <div
       ref={setNodeRef}
       className={clsx(
         className,
-        isDragActive && !isOver && hintClassName,
-        isOver && activeClassName
+        isTargetZone && !showOver && targetClassName,
+        showOver && overClassName
       )}
     >
       {children}
@@ -78,25 +83,42 @@ function DroppableZone({
   );
 }
 
-function DropZoneEmptyLabel({
-  isOverHint,
-  idleText,
-  activeText,
+function IdleEmptyLabel({ text }: { text: string }) {
+  return (
+    <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
+      {text}
+    </div>
+  );
+}
+
+/**
+ * Rendered inside the target zone while dragging. Shows a ghost of the
+ * dragged tile where it will land (append to end of zone on empty-area
+ * drop). Color matches the zone's target-ring — green in the Visible
+ * zone, white in the Hidden zone.
+ */
+function DropPlaceholder({
+  emoji,
+  tone,
 }: {
-  isOverHint: boolean;
-  idleText: string;
-  activeText: string;
+  emoji: string;
+  tone: "white" | "green";
 }) {
   return (
     <div
       className={clsx(
-        "col-span-4 px-3 py-7 text-center text-[11px] italic transition-colors",
-        isOverHint
-          ? "font-semibold not-italic text-[var(--tg-theme-button-color)]"
-          : "text-[var(--tg-theme-subtitle-text-color)] opacity-70"
+        "relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-1 py-2",
+        tone === "green"
+          ? "bg-[#22c55e]/8 border-[#22c55e]/70"
+          : "border-white/70 bg-white/5"
       )}
     >
-      {isOverHint ? activeText : idleText}
+      <span className="flex h-10 items-center text-3xl leading-none opacity-40 grayscale">
+        {emoji}
+      </span>
+      <span className="block w-full truncate text-center text-[10px] italic opacity-60">
+        Drop here
+      </span>
     </div>
   );
 }
@@ -468,31 +490,32 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
               {visible.length} / {items.length}
             </span>
           </div>
+          {/* Visible zone is a target when the drag SOURCE is in Hidden
+              (i.e., the user is un-hiding a tile). Green ring signals the
+              positive "bring it back into the picker" action. */}
           <SortableContext
             items={visible.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
           >
             <DroppableZone
               id={ZONE_VISIBLE_ID}
-              isDragActive={activeId !== null}
+              isTargetZone={activeItem?.hidden === true}
               className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
-              hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
-              activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
+              targetClassName="border-[#22c55e]/70"
+              overClassName="scale-[1.02] border-[#22c55e] bg-[#22c55e]/10 shadow-[0_0_0_3px_rgba(34,197,94,0.25)]"
             >
-              {visible.length === 0 ? (
-                <DropZoneEmptyLabel
-                  isOverHint={activeId !== null}
-                  idleText="Drag a tile here to show it in the picker."
-                  activeText="Drop to show in picker"
+              {visible.map((it) => (
+                <SortableTile
+                  key={it.categoryKey}
+                  item={it}
+                  onToggleHide={() => toggleHide(it.categoryKey)}
                 />
-              ) : (
-                visible.map((it) => (
-                  <SortableTile
-                    key={it.categoryKey}
-                    item={it}
-                    onToggleHide={() => toggleHide(it.categoryKey)}
-                  />
-                ))
+              ))}
+              {activeItem?.hidden === true && (
+                <DropPlaceholder emoji={activeItem.emoji} tone="green" />
+              )}
+              {visible.length === 0 && activeItem?.hidden !== true && (
+                <IdleEmptyLabel text="Drag a tile here to show it in the picker." />
               )}
             </DroppableZone>
           </SortableContext>
@@ -503,31 +526,31 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <span>Hidden</span>
             <span>{hidden.length} hidden</span>
           </div>
+          {/* Hidden zone is a target when the drag SOURCE is in Visible.
+              White ring matches the existing neutral border at rest. */}
           <SortableContext
             items={hidden.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
           >
             <DroppableZone
               id={ZONE_HIDDEN_ID}
-              isDragActive={activeId !== null}
+              isTargetZone={activeItem?.hidden === false}
               className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
-              hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
-              activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
+              targetClassName="border-white/70"
+              overClassName="scale-[1.02] border-white bg-white/8 shadow-[0_0_0_3px_rgba(255,255,255,0.25)]"
             >
-              {hidden.length === 0 ? (
-                <DropZoneEmptyLabel
-                  isOverHint={activeId !== null}
-                  idleText="Drag a tile here (or tap its eye) to hide it from the picker."
-                  activeText="Drop to hide from picker"
+              {hidden.map((it) => (
+                <SortableTile
+                  key={it.categoryKey}
+                  item={it}
+                  onToggleHide={() => toggleHide(it.categoryKey)}
                 />
-              ) : (
-                hidden.map((it) => (
-                  <SortableTile
-                    key={it.categoryKey}
-                    item={it}
-                    onToggleHide={() => toggleHide(it.categoryKey)}
-                  />
-                ))
+              ))}
+              {activeItem?.hidden === false && (
+                <DropPlaceholder emoji={activeItem.emoji} tone="white" />
+              )}
+              {hidden.length === 0 && activeItem?.hidden !== false && (
+                <IdleEmptyLabel text="Drag a tile here (or tap its eye) to hide it from the picker." />
               )}
             </DroppableZone>
           </SortableContext>
