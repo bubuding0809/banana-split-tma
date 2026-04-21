@@ -301,6 +301,7 @@ const ChatExpenseCell = ({
         }
         subhead={
           <Skeleton visible={isMemberLoading}>
+            {categoryEmoji && <ChatMemberAvatar userId={payerId} size={20} />}
             <Caption
               weight="1"
               level="1"
