@@ -292,6 +292,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
             skinTonePickerLocation={SkinTonePickerLocation.SEARCH}
             previewConfig={{ showPreview: false }}
             searchPlaceholder="Search emoji"
+            autoFocusSearch={false}
           />
         </div>
       </div>
