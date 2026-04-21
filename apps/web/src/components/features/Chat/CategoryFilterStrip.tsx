@@ -156,13 +156,14 @@ export default function CategoryFilterStrip({
               style={
                 selected
                   ? {
-                      // Link-color-tinted fill + ring + halo. Tinting the fill
-                      // with the theme link colour (instead of a white/black
-                      // rgba) means the selected state stays visible on both
-                      // light and dark Telegram themes — rgba(255,255,255) was
-                      // invisible on light-mode backgrounds.
+                      // Opaque link-over-bg mix instead of transparent
+                      // alpha. Transparent fills at 14% disappeared on
+                      // white light-mode backgrounds; mixing the link
+                      // colour *over* the theme bg at 22% produces a
+                      // distinct blue-tinted fill on both light and
+                      // dark themes.
                       backgroundColor:
-                        "color-mix(in srgb, var(--tg-theme-link-color) 14%, transparent)",
+                        "color-mix(in srgb, var(--tg-theme-link-color) 22%, var(--tg-theme-bg-color))",
                       boxShadow: [
                         "0 0 0 1.5px var(--tg-theme-link-color)",
                         "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
