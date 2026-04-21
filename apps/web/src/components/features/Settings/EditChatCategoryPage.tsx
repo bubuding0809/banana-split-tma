@@ -7,7 +7,7 @@ import {
   Subheadline,
 } from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
-import { backButton } from "@telegram-apps/sdk-react";
+import { backButton, mainButton } from "@telegram-apps/sdk-react";
 import EmojiPicker, {
   EmojiStyle,
   SkinTonePickerLocation,
@@ -109,6 +109,27 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   };
 
   const canSave = title.trim().length > 0 && emoji.length > 0;
+  const isBusy = createMut.isPending || updateMut.isPending;
+
+  // Drive the TMA main button — text tracks create vs. edit, enabled state
+  // tracks canSave + not-in-flight, and the click handler triggers the save.
+  useEffect(() => {
+    mainButton.mount();
+    mainButton.setParams({
+      text: isEdit ? "Save" : "Create",
+      isVisible: true,
+      isEnabled: canSave && !isBusy,
+      isLoaderVisible: isBusy,
+    });
+    const off = mainButton.onClick(onSave);
+    return () => {
+      off();
+      mainButton.setParams({ isVisible: false });
+    };
+    // Re-wire whenever the text/enabled/busy inputs change so the button
+    // stays in sync with the form state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, canSave, isBusy, emoji, title]);
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8">
@@ -205,16 +226,16 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pt-4">
-        <Button size="l" onClick={onSave} disabled={!canSave}>
-          {isEdit ? "Save" : "Create"}
-        </Button>
-        {isEdit && (
+      {/* Save / Create is driven by the TMA main button (see the mainButton
+          effect above). Delete stays inline because the TMA surface only
+          offers one main button — promoting Delete would demote Save. */}
+      {isEdit && (
+        <div className="flex flex-col gap-2 pt-4">
           <Button size="l" mode="plain" onClick={onDelete}>
             Delete category
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {error ? (
         <Snackbar onClose={() => setError(null)} description={error}>

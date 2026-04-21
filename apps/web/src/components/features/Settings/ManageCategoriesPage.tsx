@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Cell, Section } from "@telegram-apps/telegram-ui";
-import { useNavigate } from "@tanstack/react-router";
-import { backButton, mainButton } from "@telegram-apps/sdk-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { backButton } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
@@ -25,30 +25,11 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
     };
   }, [chatId, navigate]);
 
-  useEffect(() => {
-    mainButton.mount();
-    mainButton.setParams({
-      text: "Create custom category",
-      isVisible: true,
-      isEnabled: true,
-    });
-    const off = mainButton.onClick(() => {
-      navigate({
-        to: "/chat/$chatId/settings/categories/new",
-        params: { chatId: String(chatId) },
-      });
-    });
-    return () => {
-      off();
-      mainButton.setParams({ isVisible: false });
-    };
-  }, [chatId, navigate]);
-
   const custom = data?.custom ?? [];
   const base = data?.base ?? [];
 
   return (
-    <main className="px-3 pb-24">
+    <main className="px-3 pb-8">
       <Section header="CUSTOM">
         {custom.length === 0 ? (
           <Cell description="Tap Create custom category below to add your first one.">
@@ -75,6 +56,32 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             </Cell>
           ))
         )}
+        {/* "Create custom category" lives inline at the bottom of the CUSTOM
+            section — a link-colored ButtonCell-style row with a circular +
+            icon, matching the Manage categories cell on the settings page. */}
+        <Link
+          to="/chat/$chatId/settings/categories/new"
+          params={{ chatId: String(chatId) }}
+        >
+          <Cell
+            Component="label"
+            before={
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
+                }}
+              >
+                <Plus size={16} />
+              </span>
+            }
+          >
+            <span style={{ color: "var(--tg-theme-link-color)" }}>
+              Create custom category
+            </span>
+          </Cell>
+        </Link>
       </Section>
 
       <Section header="BASE">
