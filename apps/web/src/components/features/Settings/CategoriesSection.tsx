@@ -33,12 +33,18 @@ export default function CategoriesSection({
       footer={
         isPersonal
           ? "Categories are private to this chat."
-          : "Categories are shared by everyone in this group and help auto-assign recurring expenses."
+          : "Categories are shared by everyone in this group."
       }
     >
       <Cell
         before={
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--tg-theme-link-color)_15%,transparent)] text-[var(--tg-theme-link-color)]">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
+            }}
+          >
             <Tag size={20} />
           </span>
         }
