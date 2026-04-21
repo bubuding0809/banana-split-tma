@@ -126,6 +126,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
 
   const onSave = () => {
     setError(null);
+    // Validate on click instead of pre-disabling the button. Marking the
+    // field touched surfaces the inline error — better than a silently
+    // unresponsive button.
+    if (title.trim().length === 0) {
+      setNameTouched(true);
+      return;
+    }
     if (isEdit && categoryId) {
       updateMut.mutate({ chatCategoryId: categoryId, emoji, title });
     } else {
@@ -145,7 +152,6 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     deleteMut.mutate({ chatCategoryId: categoryId });
   };
 
-  const canSave = title.trim().length > 0 && emoji.length > 0;
   const isBusy = createMut.isPending || updateMut.isPending;
 
   // Keep a ref to the latest onSave so the click handler (registered once)
@@ -171,15 +177,16 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     };
   }, []);
 
-  // Update params (text / enabled / loader) only when the inputs that affect
-  // them actually change — not on every keystroke.
+  // Button stays enabled (except during the save roundtrip) — validation
+  // happens on click, not via pre-disabling. Only the loader flag tracks
+  // the mutation state.
   useEffect(() => {
     mainButton.setParams({
       text: isEdit ? "Save" : "Create",
-      isEnabled: canSave && !isBusy,
+      isEnabled: !isBusy,
       isLoaderVisible: isBusy,
     });
-  }, [isEdit, canSave, isBusy]);
+  }, [isEdit, isBusy]);
 
   // Keep a ref to the latest onDelete for the same reason we do for onSave
   // — register the secondary button click handler once and dispatch the
