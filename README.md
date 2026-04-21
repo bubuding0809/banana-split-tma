@@ -2,7 +2,7 @@ A full-stack TypeScript monorepo powered by Turborepo, with TRPC, React, and Pri
 
 ## Overview
 
-This repository leverages Turborepo to efficiently manage a modern monorepo architecture. Turborepo provides intelligent build caching, parallel execution, and optimized dependency management to significantly improve developer experience. The monorepo includes:
+This repository leverages Turborepo to efficiently manage a modern monorepo architecture. Turborepo provides intelligent build caching (local + Vercel Remote Cache), parallel execution, and optimized dependency management to significantly improve developer experience. The monorepo includes:
 
 - **Frontend**: React application built with Vite
 - **Backend**: Express.js server with TRPC API endpoints
