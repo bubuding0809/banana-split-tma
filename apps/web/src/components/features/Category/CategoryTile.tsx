@@ -17,15 +17,13 @@ export default function CategoryTile({
     <button
       type="button"
       onClick={onClick}
-      // Tile bg is set via inline style, not a Tailwind arbitrary class,
-      // because `color-mix(...)` doesn't reliably round-trip through the
-      // Tailwind JIT parser (commas + nested function calls). The expression
-      // lays a translucent text-color overlay on the sheet: ~12% white in
-      // dark themes, ~12% black in light themes — always a visible panel.
-      style={{
-        backgroundColor:
-          "color-mix(in srgb, var(--tg-theme-text-color) 12%, transparent)",
-      }}
+      // Neutral mid-gray overlay — visible on both dark and light sheet
+      // backgrounds without needing theme detection. Previous attempts using
+      // section-bg or a color-mix against text-color rendered invisible on
+      // device (Telegram themes vary and some collapse section-bg into the
+      // sheet bg). Inline style bypasses the Tailwind JIT's handling of
+      // arbitrary values with nested function calls.
+      style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
       className={clsx(
         "flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl p-2",
         "text-[var(--tg-theme-text-color)]",
