@@ -132,11 +132,29 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   };
 
   const toggleHide = (categoryKey: string) => {
-    setItems((prev) =>
-      prev.map((it) =>
-        it.categoryKey === categoryKey ? { ...it, hidden: !it.hidden } : it
-      )
-    );
+    setItems((prev) => {
+      const target = prev.find((p) => p.categoryKey === categoryKey);
+      if (!target) return prev;
+      const nextHidden = !target.hidden;
+
+      // Remove the target; drop it at the end of its new zone so the user
+      // sees it land somewhere predictable rather than staying in place
+      // with only its badge changing.
+      const rest = prev.filter((p) => p.categoryKey !== categoryKey);
+      const sameZoneFirst: OrganizeItem[] = [];
+      const sameZoneSecond: OrganizeItem[] = [];
+      for (const it of rest) {
+        if (it.hidden === nextHidden) sameZoneFirst.push(it);
+        else sameZoneSecond.push(it);
+      }
+
+      const moved = { ...target, hidden: nextHidden };
+      const zoneOrder = nextHidden
+        ? [...sameZoneSecond, ...sameZoneFirst, moved]
+        : [...sameZoneFirst, moved, ...sameZoneSecond];
+
+      return zoneOrder.map((it, idx) => ({ ...it, sortOrder: idx }));
+    });
   };
 
   useEffect(() => {
