@@ -9,6 +9,88 @@ interface Props {
   categoryId?: string; // bare uuid when editing
 }
 
+// Curated built-in emoji picker pool — grouped loosely by theme so the grid
+// reads as a quick-pick rather than random noise. Mirrors the pool used in
+// the prototype (docs/superpowers/specs/.../screens.jsx).
+const EMOJI_POOL = [
+  "🍜",
+  "🍕",
+  "🍔",
+  "☕",
+  "🍺",
+  "🍷",
+  "🍰",
+  "🎂",
+  "🍦",
+  "🥗",
+  "🍱",
+  "🥘",
+  "🚕",
+  "🚗",
+  "🚲",
+  "✈️",
+  "🚆",
+  "⛴️",
+  "🛵",
+  "⛽",
+  "🏠",
+  "🏢",
+  "🛋️",
+  "🛏️",
+  "🧺",
+  "🧹",
+  "🛒",
+  "🥦",
+  "🍎",
+  "🥕",
+  "🥛",
+  "🧀",
+  "🎉",
+  "🎊",
+  "🎮",
+  "🎬",
+  "🎵",
+  "🎤",
+  "🎨",
+  "📚",
+  "🎁",
+  "🎯",
+  "🏖️",
+  "🗻",
+  "🏝️",
+  "🗼",
+  "🌴",
+  "🏨",
+  "🎡",
+  "💊",
+  "🏥",
+  "💉",
+  "🧘",
+  "🏋️",
+  "🚴",
+  "⚽",
+  "🏀",
+  "🛍️",
+  "👕",
+  "👟",
+  "👜",
+  "💄",
+  "💍",
+  "💡",
+  "💧",
+  "📶",
+  "📱",
+  "📺",
+  "🔌",
+  "💼",
+  "💰",
+  "💸",
+  "💳",
+  "📈",
+  "🧾",
+  "📦",
+];
+
 export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const isEdit = !!categoryId;
   const navigate = useNavigate();
@@ -90,27 +172,61 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     deleteMut.mutate({ chatCategoryId: categoryId });
   };
 
+  const canSave = title.trim().length > 0 && emoji.length > 0;
+
   return (
-    <div>
-      <Section header={isEdit ? "EDIT CATEGORY" : "NEW CATEGORY"}>
+    <div className="pb-8">
+      {/* Preview — emoji in a tinted panel over the category name, same
+          styling as the prototype's header preview. */}
+      <div className="flex flex-col items-center gap-2.5 py-6">
+        <div
+          className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl text-[40px]"
+          style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
+        >
+          {emoji}
+        </div>
+        <div className="text-[15px] font-semibold text-[var(--tg-theme-text-color)]">
+          {title || "Category name"}
+        </div>
+      </div>
+
+      <Section header="NAME">
         <Input
-          header="Emoji"
-          value={emoji}
-          onChange={(e) => setEmoji(e.target.value)}
-        />
-        <Input
-          header="Title"
+          placeholder="e.g. Bali Trip"
           value={title}
+          maxLength={24}
           onChange={(e) => setTitle(e.target.value)}
         />
       </Section>
 
+      <Section header="EMOJI">
+        <div className="grid grid-cols-8 gap-1.5 p-3">
+          {EMOJI_POOL.map((e, i) => {
+            const selected = emoji === e;
+            return (
+              <button
+                key={`${e}-${i}`}
+                type="button"
+                onClick={() => setEmoji(e)}
+                className="flex aspect-square items-center justify-center rounded-lg text-xl leading-none"
+                style={{
+                  backgroundColor: selected
+                    ? "color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)"
+                    : "rgba(127, 127, 127, 0.16)",
+                  outline: selected
+                    ? "1.5px solid var(--tg-theme-button-color)"
+                    : "none",
+                }}
+              >
+                {e}
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
       <div className="flex flex-col gap-2 px-4 pt-4">
-        <Button
-          size="l"
-          onClick={onSave}
-          disabled={title.trim().length === 0 || emoji.length === 0}
-        >
+        <Button size="l" onClick={onSave} disabled={!canSave}>
           {isEdit ? "Save" : "Create"}
         </Button>
         {isEdit && (
