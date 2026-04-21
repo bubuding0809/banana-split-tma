@@ -33,7 +33,7 @@ export default function CategoryTile({
       <span className="flex h-10 items-center text-3xl leading-none">
         {emoji}
       </span>
-      <span className="line-clamp-2 text-center text-sm leading-tight">
+      <span className="line-clamp-2 break-words text-center text-sm leading-tight">
         {title}
       </span>
     </button>
