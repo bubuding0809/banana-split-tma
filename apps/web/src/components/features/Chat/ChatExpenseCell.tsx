@@ -271,22 +271,17 @@ const ChatExpenseCell = ({
         ref={cellRef}
         onClick={handleCellClick}
         before={
-          categoryEmoji ? (
-            // Category tile with payer mini-badge overlapping the bottom-right.
-            // The tile shows what the expense is about at a glance; the badge
-            // keeps payer identity visible. Uncategorized rows fall back to
-            // the plain payer avatar so the slot is never empty.
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-2xl leading-none">
-              {categoryEmoji}
-            </div>
-          ) : (
-            <ChatMemberAvatar userId={payerId} size={28} />
-          )
+          // Every row leads with the category emoji tile. Uncategorized
+          // expenses fall back to the 📭 Uncategorized emoji so the
+          // slot stays consistent across the list.
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-2xl leading-none">
+            {categoryEmoji ?? "📭"}
+          </div>
         }
         subhead={
           <Skeleton visible={isMemberLoading}>
             <div className="flex items-center gap-1.5">
-              {categoryEmoji && <ChatMemberAvatar userId={payerId} size={20} />}
+              <ChatMemberAvatar userId={payerId} size={20} />
               <Caption
                 weight="1"
                 level="1"
