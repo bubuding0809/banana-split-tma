@@ -128,7 +128,7 @@ export default function CategoryFilterStrip({
               return (
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute -bottom-0.5 -right-0.5 origin-bottom-right scale-[0.8]"
+                  className="pointer-events-none absolute -bottom-0.5 -right-1 origin-bottom-right scale-[0.8]"
                 >
                   <Badge type="number">{formatCount(count)}</Badge>
                 </div>
