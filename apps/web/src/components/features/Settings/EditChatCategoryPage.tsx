@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Input,
   Section,
@@ -111,25 +111,32 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const canSave = title.trim().length > 0 && emoji.length > 0;
   const isBusy = createMut.isPending || updateMut.isPending;
 
-  // Drive the TMA main button — text tracks create vs. edit, enabled state
-  // tracks canSave + not-in-flight, and the click handler triggers the save.
+  // Keep a ref to the latest onSave so the click handler (registered once)
+  // always calls the freshest closure — avoids re-subscribing on every
+  // keystroke, which was making the main button flicker per input change.
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  // Register the click handler exactly once on mount.
   useEffect(() => {
     mainButton.mount();
-    mainButton.setParams({
-      text: isEdit ? "Save" : "Create",
-      isVisible: true,
-      isEnabled: canSave && !isBusy,
-      isLoaderVisible: isBusy,
-    });
-    const off = mainButton.onClick(onSave);
+    mainButton.setParams({ isVisible: true });
+    const off = mainButton.onClick(() => onSaveRef.current());
     return () => {
       off();
       mainButton.setParams({ isVisible: false });
     };
-    // Re-wire whenever the text/enabled/busy inputs change so the button
-    // stays in sync with the form state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, canSave, isBusy, emoji, title]);
+  }, []);
+
+  // Update params (text / enabled / loader) only when the inputs that affect
+  // them actually change — not on every keystroke.
+  useEffect(() => {
+    mainButton.setParams({
+      text: isEdit ? "Save" : "Create",
+      isEnabled: canSave && !isBusy,
+      isLoaderVisible: isBusy,
+    });
+  }, [isEdit, canSave, isBusy]);
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8">
