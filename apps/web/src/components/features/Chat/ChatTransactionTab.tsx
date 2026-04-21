@@ -457,6 +457,11 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
             updateSearchParams((prev) => ({
               ...prev,
               categoryFilters: ids,
+              // Payments don't carry a categoryId, so letting them pass
+              // through an active category filter reads as junk. Flip
+              // the toggle in lockstep: off when any category is
+              // selected, back on when all are cleared.
+              showPayments: ids.length === 0,
             }))
           }
         />

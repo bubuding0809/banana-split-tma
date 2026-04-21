@@ -126,61 +126,84 @@ export default function CategoryFilterStrip({
 
   if (allChips.length === 0) return null;
 
+  const hasSelection = selectedIds.length > 0;
+
   return (
-    <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [&::-webkit-scrollbar]:hidden">
-      {displayOrder.map((c) => {
-        const selected = selectedIds.includes(c.id);
-        return (
-          <button
-            key={c.id}
-            ref={(el) => {
-              if (el) chipRefs.current.set(c.id, el);
-              else chipRefs.current.delete(c.id);
-            }}
-            type="button"
-            onClick={() => toggle(c.id)}
-            aria-pressed={selected}
-            aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
-            style={
-              selected
-                ? {
-                    // Gray tint + link-color ring + link-color halo. On dark
-                    // Telegram themes a black drop shadow disappears into the
-                    // background, so the "lift" effect is delivered via a
-                    // colored glow instead of a neutral shadow.
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    boxShadow: [
-                      "0 0 0 1.5px var(--tg-theme-link-color)",
-                      "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
-                      "0 3px 8px rgba(0,0,0,0.4)",
-                    ].join(", "),
-                  }
-                : { backgroundColor: "transparent" }
-            }
-          >
-            {c.emoji}
-            {(() => {
-              const count = counts?.[c.id] ?? 0;
-              if (count === 0) return null;
-              // Badge sits slightly overlapped with the tile (-0.5) and
-              // is scaled down from its library default so it doesn't
-              // dominate the 36px tile. Origin anchored to bottom-right
-              // so the scale doesn't push it off-corner.
-              return (
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -bottom-0.5 -right-1 origin-bottom-right scale-[0.8]"
-                >
-                  <Badge type="number" mode="primary">
-                    {formatCount(count)}
-                  </Badge>
-                </div>
-              );
-            })()}
-          </button>
-        );
-      })}
+    <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex flex-1 gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+        {displayOrder.map((c) => {
+          const selected = selectedIds.includes(c.id);
+          return (
+            <button
+              key={c.id}
+              ref={(el) => {
+                if (el) chipRefs.current.set(c.id, el);
+                else chipRefs.current.delete(c.id);
+              }}
+              type="button"
+              onClick={() => toggle(c.id)}
+              aria-pressed={selected}
+              aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
+              className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+              style={
+                selected
+                  ? {
+                      // Gray tint + link-color ring + link-color halo. On dark
+                      // Telegram themes a black drop shadow disappears into the
+                      // background, so the "lift" effect is delivered via a
+                      // colored glow instead of a neutral shadow.
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                      boxShadow: [
+                        "0 0 0 1.5px var(--tg-theme-link-color)",
+                        "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
+                        "0 3px 8px rgba(0,0,0,0.4)",
+                      ].join(", "),
+                    }
+                  : { backgroundColor: "transparent" }
+              }
+            >
+              {c.emoji}
+              {(() => {
+                const count = counts?.[c.id] ?? 0;
+                if (count === 0) return null;
+                // Badge sits slightly overlapped with the tile (-0.5) and
+                // is scaled down from its library default so it doesn't
+                // dominate the 36px tile. Origin anchored to bottom-right
+                // so the scale doesn't push it off-corner.
+                return (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -bottom-0.5 -right-1 origin-bottom-right scale-[0.8]"
+                  >
+                    <Badge type="number" mode="primary">
+                      {formatCount(count)}
+                    </Badge>
+                  </div>
+                );
+              })()}
+            </button>
+          );
+        })}
+      </div>
+      {/* Clear-all button — appears only when ≥1 chip is selected.
+          Sits outside the scroll container so it's always tappable
+          regardless of how far the chip strip has scrolled. */}
+      {hasSelection && (
+        <button
+          type="button"
+          onClick={() => {
+            tickSelection();
+            onChange([]);
+          }}
+          aria-label={`Clear ${selectedIds.length} category filter${
+            selectedIds.length === 1 ? "" : "s"
+          }`}
+          className="duration-280 flex h-9 shrink-0 items-center rounded-[10px] px-2.5 text-sm font-medium transition-[transform] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+          style={{ color: "var(--tg-theme-link-color)" }}
+        >
+          Clear
+        </button>
+      )}
     </div>
   );
 }
