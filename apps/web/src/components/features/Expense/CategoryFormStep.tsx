@@ -1,6 +1,7 @@
 import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 import {
@@ -18,6 +19,7 @@ const CategoryFormStep = withForm({
   },
   render: function Render({ form, chatId }) {
     const [open, setOpen] = useState(false);
+    const navigate = useNavigate();
 
     // Everything drives off form state — the auto-suggest side effect lives
     // in the parent page via useCategoryAutoSuggest, so this component is
@@ -55,7 +57,13 @@ const CategoryFormStep = withForm({
       [categoryId, chatRows]
     );
 
-    const allCategories = useMemo(() => items, [items]);
+    // Filter out tiles the user hid via the Organize page. Without this
+    // filter the hide feature is a no-op — hidden tiles would still render
+    // in the Add Expense picker.
+    const allCategories = useMemo(
+      () => items.filter((c) => !c.hidden),
+      [items]
+    );
 
     const footer = suggestPending
       ? "Cooking up a category…"
@@ -131,6 +139,13 @@ const CategoryFormStep = withForm({
           onOpenChange={setOpen}
           categories={allCategories}
           selectedId={categoryId}
+          onOpenOrganize={() => {
+            setOpen(false);
+            navigate({
+              to: "/chat/$chatId/settings/categories/organize",
+              params: { chatId: String(chatId) },
+            });
+          }}
           onSelect={(c) => {
             // includeNoneOption is not set here, so c.id is always a real
             // category id — clearing is done via the X button on the cell.
