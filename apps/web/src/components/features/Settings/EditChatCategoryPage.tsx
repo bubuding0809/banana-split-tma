@@ -156,12 +156,18 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
-  // Register the main-button click handler exactly once on mount. Cleanup
-  // hides the button AND clears the loader flag so if the user navigates
-  // away mid-save the next page starts from a clean slate.
+  // Register the main-button click handler exactly once on mount. Both
+  // the mount setParams and the cleanup reset every visual field so we
+  // neither inherit state from a previous page (e.g. Add Expense's
+  // green save bg + shine) nor leak our state into the next one.
   useEffect(() => {
     mainButton.mount();
-    mainButton.setParams({ isVisible: true });
+    mainButton.setParams({
+      isVisible: true,
+      backgroundColor: undefined,
+      textColor: undefined,
+      hasShineEffect: false,
+    });
     const off = mainButton.onClick(() => onSaveRef.current());
     return () => {
       off();
@@ -169,6 +175,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
+        backgroundColor: undefined,
+        textColor: undefined,
+        hasShineEffect: false,
       });
     };
   }, []);
@@ -191,9 +200,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   onDeleteRef.current = onDelete;
 
   // Secondary button registration (edit mode only) + teardown. Registers
-  // the click handler exactly once. Cleanup hides the button AND resets the
-  // custom danger colors back to undefined so a downstream page that uses
-  // secondaryButton doesn't inherit red styling.
+  // the click handler exactly once. Cleanup hides the button AND resets
+  // every visual field so the custom danger red doesn't leak into
+  // downstream pages that use secondaryButton.
   useEffect(() => {
     if (!isEdit) return;
     secondaryButton.mount();
@@ -202,6 +211,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
       isVisible: true,
       backgroundColor: "#E53935",
       textColor: "#FFFFFF",
+      hasShineEffect: false,
     });
     const off = secondaryButton.onClick(() => onDeleteRef.current());
     return () => {
@@ -210,10 +220,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
-        // Explicit undefined resets to the theme default so the next
-        // screen using secondaryButton doesn't render red.
         backgroundColor: undefined,
         textColor: undefined,
+        hasShineEffect: false,
       });
     };
   }, [isEdit]);

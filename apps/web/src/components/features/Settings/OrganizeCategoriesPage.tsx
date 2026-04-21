@@ -293,14 +293,28 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
 
   useEffect(() => {
     mainButton.mount();
-    mainButton.setParams({ text: "Save", isVisible: true });
+    // Explicit reset on mount so we don't inherit a green bg / shine /
+    // custom text color from a previous page (e.g. Add Expense's final
+    // Save step). Setting these to undefined falls back to theme.
+    mainButton.setParams({
+      text: "Save",
+      isVisible: true,
+      backgroundColor: undefined,
+      textColor: undefined,
+      hasShineEffect: false,
+    });
     const off = mainButton.onClick(() => onSaveRef.current());
     return () => {
       off();
+      // Leave the next page with a clean slate: hidden, enabled, no
+      // loader, no custom colors, no shine.
       mainButton.setParams({
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
+        backgroundColor: undefined,
+        textColor: undefined,
+        hasShineEffect: false,
       });
     };
   }, []);
@@ -319,6 +333,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
       isVisible: true,
       backgroundColor: "#E53935",
       textColor: "#FFFFFF",
+      hasShineEffect: false,
     });
     const off = secondaryButton.onClick(() => onResetRef.current());
     return () => {
@@ -329,6 +344,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         isLoaderVisible: false,
         backgroundColor: undefined,
         textColor: undefined,
+        hasShineEffect: false,
       });
     };
   }, []);
