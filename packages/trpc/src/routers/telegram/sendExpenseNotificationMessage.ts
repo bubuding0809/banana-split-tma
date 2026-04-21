@@ -41,6 +41,11 @@ const inputSchema = z.object({
   // both to show a category row, or neither to skip it.
   categoryEmoji: z.string().optional(),
   categoryTitle: z.string().optional(),
+  // Expense date, used to render the 🗓 row ("Today" / "Yesterday" /
+  // short date). Required — the bot's private-chat flow and every
+  // Mini App create/edit path already have it, and we want the label
+  // in every notification.
+  expenseDate: z.date(),
   threadId: z.number().optional(),
   force: z.boolean().default(false),
 });
@@ -48,6 +53,28 @@ const inputSchema = z.object({
 // Exported type for use in other handlers
 export type ExpenseNotificationData = z.infer<typeof inputSchema>;
 export type ExpenseParticipant = z.infer<typeof participantSchema>;
+
+// Human-friendly date label — "Today" / "Yesterday" / "Tomorrow" for
+// near dates, short ISO-ish date otherwise. Kept local to this file to
+// avoid a cross-package shared-utils dance; the bot's private-chat
+// flow duplicates this (apps/bot/src/features/expenses.ts).
+const formatDateLabel = (date: Date): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / 86_400_000
+  );
+  if (diffDays === 0) return "Today";
+  if (diffDays === -1) return "Yesterday";
+  if (diffDays === 1) return "Tomorrow";
+  return target.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+// Raw currency format — `SGD 50.00` — matches web + CLI + the bot's
+// parse-expense input. Avoids Intl locale surprises across currencies.
+const formatAmount = (currency: string, amount: number): string =>
+  `${currency} ${amount.toFixed(2)}`;
 
 /**
  * Formats the expense notification message
@@ -60,84 +87,51 @@ export const formatExpenseMessage = (
   totalAmount: number,
   participants: ExpenseParticipant[],
   currency: string,
+  expenseDate: Date,
   categoryEmoji?: string,
   categoryTitle?: string
 ): string => {
-  // Format the total amount as currency with error handling
-  let formattedTotalAmount: string;
-  try {
-    const rawTotalAmount = new Intl.NumberFormat("en-SG", {
-      style: "currency",
-      currency: currency,
-    }).format(totalAmount);
-    formattedTotalAmount = escapeMarkdown(rawTotalAmount, 2);
-  } catch (error) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Invalid currency code: ${currency}`,
-    });
-  }
-
-  // Escape expense description for MarkdownV2
   const escapedDescription = escapeMarkdown(expenseDescription, 2);
+  const escapedTotal = escapeMarkdown(formatAmount(currency, totalAmount), 2);
 
-  // Create payer mention
   let payerMention: string;
   try {
     payerMention = mentionMarkdown(payerId, payerName, 2);
-  } catch (error) {
+  } catch {
     payerMention = escapeMarkdown(payerName, 2);
   }
 
-  // Build participant list with amounts
   const participantList = participants
     .map((participant) => {
-      // Format individual amount
-      let formattedParticipantAmount: string;
+      const amount = escapeMarkdown(
+        formatAmount(currency, participant.amount),
+        2
+      );
+      let mention: string;
       try {
-        const rawAmount = new Intl.NumberFormat("en-SG", {
-          style: "currency",
-          currency: currency,
-        }).format(participant.amount);
-        formattedParticipantAmount = escapeMarkdown(rawAmount, 2);
-      } catch (error) {
-        formattedParticipantAmount = escapeMarkdown(
-          participant.amount.toString(),
-          2
-        );
+        mention = mentionMarkdown(participant.userId, participant.name, 2);
+      } catch {
+        mention = escapeMarkdown(participant.name, 2);
       }
-
-      // Create participant mention
-      let participantMention: string;
-      try {
-        participantMention = mentionMarkdown(
-          participant.userId,
-          participant.name,
-          2
-        );
-      } catch (error) {
-        participantMention = escapeMarkdown(participant.name, 2);
-      }
-
-      return `• ${participantMention}: ${formattedParticipantAmount}`;
+      return `• ${mention}: ${amount}`;
     })
     .join("\n");
 
-  // Optional category row — only rendered when both emoji + title are
-  // provided. Sits inside the description blockquote so "what the
-  // expense is" stays visually grouped.
   const categoryLine =
     categoryEmoji && categoryTitle
-      ? `\n> 🏷 ${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}`
+      ? `\n> 🏷 • ${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}`
       : "";
 
-  // Create the expense notification message
+  const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
+
   return `🧾 New expense paid by ${payerMention}\\!
 
-> ${escapedDescription}${categoryLine}
-Total: ${formattedTotalAmount}
+> *${escapedDescription}*
+> 💰 • ${escapedTotal}${categoryLine}
+> 🗓 • ${dateLabel}
 
-*Your shares:*\n${participantList}`;
+*Your shares:*
+${participantList}`;
 };
 
 export const sendExpenseNotificationMessageHandler = async (
@@ -178,6 +172,7 @@ export const sendExpenseNotificationMessageHandler = async (
     input.totalAmount,
     input.participants,
     input.currency,
+    input.expenseDate,
     input.categoryEmoji,
     input.categoryTitle
   );

@@ -114,7 +114,7 @@ or
     "🔵 *{user_mention}* • [🧾𝔹𝕣𝕖𝕒𝕜𝕕𝕠𝕨𝕟🧾]({deep_link_url})\\n> Owes Bubu $10\\n> Owes Shawnn $20\\n",
 
   EXPENSE_CREATED:
-    "🧾 *Expense recorded*\n\n> {description}{category_line}\n> 🗓 {date_label}\nTotal: {currency} {amount}",
+    "🧾 *Expense recorded*\n\n> *{description}*\n> 💰 • {currency} {amount}{category_line}\n> 🗓 • {date_label}",
   EXPENSE_PARSE_HINT:
     "💡 To log a personal expense, send a message like:\n" +
     "  `12.50 Lunch`\n" +
