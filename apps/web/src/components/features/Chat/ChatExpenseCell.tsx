@@ -276,7 +276,7 @@ const ChatExpenseCell = ({
             // The tile shows what the expense is about at a glance; the badge
             // keeps payer identity visible. Uncategorized rows fall back to
             // the plain payer avatar so the slot is never empty.
-            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-[20px] leading-none">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-2xl leading-none">
               {categoryEmoji}
             </div>
           ) : (
