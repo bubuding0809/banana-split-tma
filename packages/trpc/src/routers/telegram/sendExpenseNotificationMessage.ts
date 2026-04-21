@@ -128,11 +128,16 @@ export const formatExpenseMessage = (
 
   const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
 
+  // Extra blank line between the blockquote and the shares header —
+  // Telegram renders the blockquote's bottom edge tight against the
+  // next element, so a single \n\n looks like no gap at all. Two
+  // blank lines give the shares section visible breathing room.
   return `🧾 New expense paid by ${payerMention}\\!
 
 > *${escapedDescription}*
 > 💰 • ${escapedTotal}${categoryLine}
 > 🗓 • ${dateLabel}
+
 
 💸 *Shares*
 ${participantList}`;
