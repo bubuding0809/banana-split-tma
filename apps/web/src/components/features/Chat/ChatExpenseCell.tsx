@@ -285,21 +285,23 @@ const ChatExpenseCell = ({
         }
         subhead={
           <Skeleton visible={isMemberLoading}>
-            {categoryEmoji && <ChatMemberAvatar userId={payerId} size={20} />}
-            <Caption
-              weight="1"
-              level="1"
-              style={{
-                color: expenseRelation === "payer" ? tButtonColor : undefined,
-              }}
-            >
-              {expenseRelation === "payer" ? "You" : memberFullName} spent
-            </Caption>
-            {expenseRelation !== "unrelated" && (
-              <Badge type="number">
-                <Link size={10} />
-              </Badge>
-            )}
+            <div className="flex items-center gap-1.5">
+              {categoryEmoji && <ChatMemberAvatar userId={payerId} size={20} />}
+              <Caption
+                weight="1"
+                level="1"
+                style={{
+                  color: expenseRelation === "payer" ? tButtonColor : undefined,
+                }}
+              >
+                {expenseRelation === "payer" ? "You" : memberFullName} spent
+              </Caption>
+              {expenseRelation !== "unrelated" && (
+                <Badge type="number">
+                  <Link size={10} />
+                </Badge>
+              )}
+            </div>
           </Skeleton>
         }
         description={
