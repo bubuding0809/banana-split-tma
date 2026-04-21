@@ -99,7 +99,6 @@ const CategoryFormStep = withForm({
           </label>
           <Section footer={footer}>
             <Cell
-              Component="button"
               onClick={() => setOpen(true)}
               before={
                 resolved ? (
