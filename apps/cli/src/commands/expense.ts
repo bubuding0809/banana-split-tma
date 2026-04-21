@@ -46,8 +46,8 @@ export const expenseCommands: Command[] = [
           categoryMap.set(b.id, { emoji: b.emoji, title: b.title });
         }
         try {
-          const customCats = await trpc.category.listByChat.query({ chatId });
-          for (const c of customCats.custom) {
+          const result = await trpc.category.listByChat.query({ chatId });
+          for (const c of result.items.filter((item) => item.kind === "custom")) {
             categoryMap.set(c.id, { emoji: c.emoji, title: c.title });
           }
         } catch {

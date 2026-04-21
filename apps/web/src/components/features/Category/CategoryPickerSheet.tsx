@@ -20,12 +20,18 @@ interface PickerCategory {
 interface CategoryPickerSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Unordered flat list (caller passes the already-filtered visible items in
+   * the picker's chosen order). `kind` still used for styling (custom dot).
+   */
   categories: PickerCategory[];
   selectedId?: string | null;
   onSelect: (c: PickerCategory) => void;
   onCreateCustom?: () => void;
   /** Render an "Uncategorized" tile at the top that emits id `"none"`. */
   includeNoneOption?: boolean;
+  /** Called when the empty-state link is tapped. Optional; if absent, no link. */
+  onOpenOrganize?: () => void;
 }
 
 export const UNCATEGORIZED_OPTION: PickerCategory = {
@@ -43,10 +49,8 @@ export default function CategoryPickerSheet({
   onSelect,
   onCreateCustom,
   includeNoneOption,
+  onOpenOrganize,
 }: CategoryPickerSheetProps) {
-  const custom = categories.filter((c) => c.kind === "custom");
-  const base = categories.filter((c) => c.kind === "base");
-
   return (
     <Modal
       open={open}
@@ -68,31 +72,31 @@ export default function CategoryPickerSheet({
           </section>
         )}
 
-        <section>
-          <SectionHeader>Standard</SectionHeader>
-          <div className="grid grid-cols-4 gap-2">
-            {base.map((c) => (
-              <CategoryTile
-                key={c.id}
-                emoji={c.emoji}
-                title={c.title}
-                selected={selectedId === c.id}
-                onClick={() => onSelect(c)}
-              />
-            ))}
+        {categories.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <div className="text-[13px] text-[var(--tg-theme-subtitle-text-color)]">
+              All categories are hidden.
+            </div>
+            {onOpenOrganize && (
+              <button
+                type="button"
+                className="text-[13px] font-medium text-[var(--tg-theme-link-color)]"
+                onClick={onOpenOrganize}
+              >
+                Open Organize categories
+              </button>
+            )}
           </div>
-        </section>
-
-        {custom.length > 0 && (
+        ) : (
           <section>
-            <SectionHeader>Custom</SectionHeader>
             <div className="grid grid-cols-4 gap-2">
-              {custom.map((c) => (
+              {categories.map((c) => (
                 <CategoryTile
                   key={c.id}
                   emoji={c.emoji}
                   title={c.title}
                   selected={selectedId === c.id}
+                  showCustomDot={c.kind === "custom"}
                   onClick={() => onSelect(c)}
                 />
               ))}

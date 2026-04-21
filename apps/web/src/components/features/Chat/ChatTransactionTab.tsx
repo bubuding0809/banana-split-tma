@@ -121,19 +121,26 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     chatId,
   });
 
+  // Filter picker hides tiles the user hid via Organize. Trade-off: if a
+  // past expense was tagged with a now-hidden category, it won't be
+  // reachable from this filter — they'd need to unhide it first. That's
+  // the consistent contract with the add-expense picker and matches the
+  // spec's "filter hidden before rendering" rule.
   const allCategories = useMemo(
-    () => [...(categoriesData?.base ?? []), ...(categoriesData?.custom ?? [])],
+    () => (categoriesData?.items ?? []).filter((c) => !c.hidden),
     [categoriesData]
   );
 
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
-      (categoriesData?.custom ?? []).map((c) => ({
-        id: c.id.replace(/^chat:/, ""),
-        chatId: BigInt(chatId),
-        emoji: c.emoji,
-        title: c.title,
-      })),
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          chatId: BigInt(chatId),
+          emoji: c.emoji,
+          title: c.title,
+        })),
     [categoriesData, chatId]
   );
 

@@ -15,6 +15,9 @@
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@repo/categories": "workspace:*",
     "@tailwindcss/vite": "^4.1.10",
     "@tanstack/react-form": "^1.12.3",

@@ -568,7 +568,7 @@ describe("expense commands", () => {
     const queryMock = vi.fn().mockResolvedValue(expenses);
     const categoryQueryMock = vi
       .fn()
-      .mockResolvedValue({ base: [], custom: [] });
+      .mockResolvedValue({ items: [], hasCustomOrder: false });
     const trpcMock = {
       expense: { getExpenseByChat: { query: queryMock } },
       category: { listByChat: { query: categoryQueryMock } },
@@ -614,7 +614,7 @@ describe("expense commands", () => {
     const queryMock = vi.fn().mockResolvedValue(expenses);
     const categoryQueryMock = vi
       .fn()
-      .mockResolvedValue({ base: [], custom: [] });
+      .mockResolvedValue({ items: [], hasCustomOrder: false });
     const trpcMock = {
       expense: { getExpenseByChat: { query: queryMock } },
       category: { listByChat: { query: categoryQueryMock } },

@@ -132,3 +132,18 @@ Steps are walked one at a time. Each has an **expected** result and a **pass / f
 - Any Flow 4-9 failures are either fixed before merge, or explicitly accepted with a follow-up issue filed.
 
 Once exit criteria met, disable auto-merge was already disabled — re-enable auto-merge on PR #167 and let CI land it.
+
+## Flow 10 — Reorder + hide categories (v2)
+
+Tests the Organize Categories page and its effects on the picker.
+
+- [ ] **10.1** Navigate Chat → Settings → Manage categories → Customize order. Organize page renders with every base + custom tile in the Visible zone in default order. Hidden zone shows the empty-state helper text.
+- [ ] **10.2** Drag "Food" (or any base tile) to the first position. Save. Open Add Expense → Pick a category. "Food" now appears first; custom/base distinction no longer renders as separate sections.
+- [ ] **10.3** Re-enter Organize. Tap the eye icon on "Entertainment". Tile animates into the Hidden zone. Save. Open the picker — Entertainment is no longer present.
+- [ ] **10.4** Re-enter Organize. Entertainment is in the Hidden zone with the eye-off icon. Tap its eye-off. It returns to the end of Visible. Save. Picker shows it again, at the end.
+- [ ] **10.5** Reset to defaults via the TMA secondary button. Confirmation dialog. Accept. Picker order reverts to original base-then-custom default.
+- [ ] **10.6** After 10.5, create a new custom category ("Bali Trip"). It appears at the end of the picker (chat has no ordering rows).
+- [ ] **10.7** Reorder once so ordering rows exist. Create another custom category. It appears at the **top** of the picker (prepend-when-ordered).
+- [ ] **10.8** Hide every tile. Save. Open the picker — it shows the empty-state message with a link back to Organize. Tap the link; Organize reopens. Restore one tile. Save. Picker renders that single tile.
+- [ ] **10.9** On the Organize page, make changes and tap the TMA back button. Discard-changes prompt appears. Accept → returns to Manage categories with the list unchanged. Decline → stay on Organize with the draft intact.
+- [ ] **10.10** (Regression) Open Add Expense, pick a custom category, save. Revisit Manage categories → tap the custom category. Edit form loads with the correct emoji/title — confirms that Task 9's `items`-shape migration didn't break edit navigation.

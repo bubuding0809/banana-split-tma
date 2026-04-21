@@ -8,7 +8,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, ArrowUpDown } from "lucide-react";
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
@@ -31,12 +31,29 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
     };
   }, [chatId, navigate]);
 
-  const custom = data?.custom ?? [];
-  const base = data?.base ?? [];
+  const items = data?.items ?? [];
+  const custom = items.filter((c) => c.kind === "custom");
+  const base = items.filter((c) => c.kind === "base");
 
   return (
     <main className="px-3 pb-8">
       <Section header="CUSTOM">
+        {/* "Customize order" jumps to the Organize page (reorder + hide
+            management). Reuses the same link-color styling as Create. */}
+        <ButtonCell
+          onClick={() => {
+            navigate({
+              to: "/chat/$chatId/settings/categories/organize",
+              params: { chatId: String(chatId) },
+            });
+            hapticFeedback.notificationOccurred("success");
+          }}
+          before={<ArrowUpDown />}
+          style={{ color: tButtonColor }}
+        >
+          Customize order
+        </ButtonCell>
+
         {/* "Create custom category" sits at the top of the section — mirrors
             SnapshotPage's "Add Snapshots" ButtonCell placement. */}
         <ButtonCell
