@@ -5,7 +5,7 @@ import {
   Snackbar,
   Subheadline,
 } from "@telegram-apps/telegram-ui";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
   backButton,
   mainButton,
@@ -33,6 +33,7 @@ const TITLE_MAX_LENGTH = 16;
 export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const isEdit = !!categoryId;
   const navigate = useNavigate();
+  const router = useRouter();
   const utils = trpc.useUtils();
   const { data } = trpc.category.listByChat.useQuery({ chatId });
   const existing = (data?.items ?? []).find(
@@ -59,45 +60,50 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     }
   }, [existing]);
 
-  useEffect(() => {
-    backButton.mount();
-    backButton.show();
-    const off = backButton.onClick(() =>
+  // Leave this page by going back to wherever the user came from —
+  // Manage Categories if they entered via that list, or the Add/Edit
+  // expense form if they tapped "Create custom category" inside the
+  // picker. Falls back to Manage if history is empty.
+  const leaveCategoryPage = () => {
+    if (window.history.length > 1) {
+      router.history.back();
+    } else {
       navigate({
         to: "/chat/$chatId/settings/categories",
         params: { chatId: String(chatId) },
-      })
-    );
+      });
+    }
+  };
+
+  useEffect(() => {
+    backButton.mount();
+    backButton.show();
+    const off = backButton.onClick(() => leaveCategoryPage());
     return () => {
       off();
       backButton.hide();
     };
-  }, [chatId, navigate]);
-
-  const goBackToList = () =>
-    navigate({
-      to: "/chat/$chatId/settings/categories",
-      params: { chatId: String(chatId) },
-    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
 
   const createMut = trpc.category.create.useMutation({
     onSuccess: () => {
       utils.category.listByChat.invalidate({ chatId });
-      goBackToList();
+      leaveCategoryPage();
     },
     onError: (e) => setError(e.message),
   });
   const updateMut = trpc.category.update.useMutation({
     onSuccess: () => {
       utils.category.listByChat.invalidate({ chatId });
-      goBackToList();
+      leaveCategoryPage();
     },
     onError: (e) => setError(e.message),
   });
   const deleteMut = trpc.category.delete.useMutation({
     onSuccess: () => {
       utils.category.listByChat.invalidate({ chatId });
-      goBackToList();
+      leaveCategoryPage();
     },
     onError: (e) => setError(e.message),
   });

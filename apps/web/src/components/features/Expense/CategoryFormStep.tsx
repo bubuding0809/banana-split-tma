@@ -146,6 +146,13 @@ const CategoryFormStep = withForm({
               params: { chatId: String(chatId) },
             });
           }}
+          onCreateCustom={() => {
+            setOpen(false);
+            navigate({
+              to: "/chat/$chatId/settings/categories/new",
+              params: { chatId: String(chatId) },
+            });
+          }}
           onSelect={(c) => {
             // includeNoneOption is not set here, so c.id is always a real
             // category id — clearing is done via the X button on the cell.

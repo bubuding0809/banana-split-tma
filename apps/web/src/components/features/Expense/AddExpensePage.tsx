@@ -15,11 +15,12 @@ import { cn } from "@utils/cn";
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
-import { useAppForm, useStartParams } from "@/hooks";
+import { useAppForm, useFormDraftCache, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { normalizeDateToMidnight } from "@/utils/date";
 import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
+import { clearFormDraft, readFormDraft } from "@/utils/formDraft";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -79,9 +80,18 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // * Mutations ===================================================================================
   const createExpenseMutation = trpc.expense.createExpense.useMutation();
 
+  // Draft cache — preserves form values across in-app navigations so the
+  // user can jump out to Organize picker / Create custom category and come
+  // back with their amount, description, participants etc. intact.
+  const draftKey = `add-expense:${chatId}`;
+  // Reading sessionStorage is only safe in the browser. `useAppForm`
+  // evaluates `defaultValues` once on mount — if a draft exists we use it
+  // verbatim; otherwise we fall back to the usual empty-form defaults.
+  const cachedDraft = readFormDraft<typeof formOpts.defaultValues>(draftKey);
+
   const form = useAppForm({
     ...formOpts,
-    defaultValues: {
+    defaultValues: cachedDraft ?? {
       ...formOpts.defaultValues,
       payee: userId.toString(),
       currency: dChatData?.baseCurrency ?? "SGD",
@@ -143,6 +153,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           isLoaderVisible: false,
         });
 
+        // Submitted successfully — drop the draft so a fresh Add Expense
+        // starts empty, not pre-filled with this expense's values.
+        clearFormDraft(draftKey);
+
         navigateBackToChat({
           selectedTab: "transaction",
           selectedCurrency: value.currency,
@@ -167,6 +181,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // Auto-suggest lives at page scope so the 300ms debounce + in-flight
   // mutation survive the user pressing Next during the debounce window.
   useCategoryAutoSuggest({ form, chatId, disableAutoAssign: false });
+
+  // Persist form values to sessionStorage on every change so navigating
+  // out (e.g. to Organize picker) and back restores the draft verbatim.
+  useFormDraftCache(draftKey, form);
 
   // * Effects ====================================================================================
   // Show back button

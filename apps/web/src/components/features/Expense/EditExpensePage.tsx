@@ -15,11 +15,12 @@ import { cn } from "@utils/cn";
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
-import { useAppForm, useStartParams } from "@/hooks";
+import { useAppForm, useFormDraftCache, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { formatDateKey, normalizeDateToMidnight } from "@utils/date";
 import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
+import { clearFormDraft, readFormDraft } from "@/utils/formDraft";
 
 interface EditExpensePageProps {
   chatId: number;
@@ -105,9 +106,15 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
     );
   };
 
+  // Draft cache key is expenseId-scoped so editing two different expenses
+  // keeps their drafts separate. Hydrates the form on remount after a
+  // trip out to Organize / Create custom category.
+  const draftKey = `edit-expense:${expenseId}`;
+  const cachedDraft = readFormDraft<typeof formOpts.defaultValues>(draftKey);
+
   const form = useAppForm({
     ...formOpts,
-    defaultValues: {
+    defaultValues: cachedDraft ?? {
       amount: expenseData ? expenseData.amount.toString() : "",
       description: expenseData?.description ?? "",
       date: expenseData?.date
@@ -184,6 +191,10 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
           isLoaderVisible: false,
         });
 
+        // Submitted successfully — drop the draft so reopening the edit
+        // screen later shows server-of-record values, not stale local ones.
+        clearFormDraft(draftKey);
+
         navigateBackToChat({
           selectedTab: "transaction",
           selectedExpense: expenseId,
@@ -209,6 +220,10 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
   // expense and shouldn't get their category silently replaced when they
   // tweak the description. Wired for symmetry with AddExpensePage.
   useCategoryAutoSuggest({ form, chatId, disableAutoAssign: true });
+
+  // Persist form values to sessionStorage on every change so navigating
+  // out (e.g. to Organize picker) and back restores the draft verbatim.
+  useFormDraftCache(draftKey, form);
 
   // * Effects ====================================================================================
   // Show back button

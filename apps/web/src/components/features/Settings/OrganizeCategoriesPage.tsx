@@ -5,7 +5,7 @@ import {
   mainButton,
   secondaryButton,
 } from "@telegram-apps/sdk-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
   DndContext,
   DragEndEvent,
@@ -173,7 +173,24 @@ function SortableTile({
 
 export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
+  const router = useRouter();
   const { data } = trpc.category.listByChat.useQuery({ chatId });
+
+  // Return the user to wherever they came from — Settings if they entered
+  // from the "Customize picker" card, or the Add/Edit expense form if they
+  // tapped the contextual link inside the picker. Falls back to Settings
+  // if history is empty (e.g. deep-linked directly to Organize).
+  const leaveOrganize = () => {
+    if (window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({
+        to: "/chat/$chatId/settings",
+        params: { chatId: String(chatId) },
+        search: { prevTab: "transaction" },
+      });
+    }
+  };
 
   const initial = useMemo<OrganizeItem[]>(() => {
     if (!data) return [];
@@ -253,12 +270,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         })),
       },
       {
-        onSuccess: () =>
-          navigate({
-            to: "/chat/$chatId/settings",
-            params: { chatId: String(chatId) },
-            search: { prevTab: "transaction" },
-          }),
+        onSuccess: () => leaveOrganize(),
       }
     );
   };
@@ -468,20 +480,14 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     backButton.show();
     const off = backButton.onClick(() => {
       if (isDirtyRef.current && !window.confirm("Discard changes?")) return;
-      // Return to main Settings, not Manage Categories — the Customize
-      // picker entry lives on the main Settings card now, so that's the
-      // natural "up" navigation.
-      navigate({
-        to: "/chat/$chatId/settings",
-        params: { chatId: String(chatId) },
-        search: { prevTab: "transaction" },
-      });
+      leaveOrganize();
     });
     return () => {
       off();
       backButton.hide();
     };
-  }, [chatId, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-24 pt-2">
