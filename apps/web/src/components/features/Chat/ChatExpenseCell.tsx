@@ -287,8 +287,11 @@ const ChatExpenseCell = ({
                 {categoryEmoji}
               </div>
               <div
-                className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-full"
-                style={{ boxShadow: "0 0 0 2px var(--tg-theme-bg-color)" }}
+                className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full"
+                style={{
+                  backgroundColor: "var(--tg-theme-section-bg-color)",
+                  boxShadow: "0 0 0 2px var(--tg-theme-bg-color)",
+                }}
               >
                 {payerPhotoUrl ? (
                   <img
@@ -297,7 +300,7 @@ const ChatExpenseCell = ({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-[var(--tg-theme-section-bg-color)] text-[10px] leading-none">
+                  <span className="text-[13px] leading-none">
                     {getAnimalAvatarEmoji(payerId.toString())}
                   </span>
                 )}
