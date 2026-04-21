@@ -15,6 +15,13 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Turbo Remote Cache — shared with local dev + pr-checks via Vercel.
+  # Main callsite: publish-cli's `pnpm turbo run build --filter=…^...`
+  # for building the CLI's workspace deps before npm publish.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
 jobs:
   filter:
     runs-on: ubuntu-latest
