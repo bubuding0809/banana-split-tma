@@ -128,17 +128,23 @@ export const formatExpenseMessage = (
 
   const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
 
-  // Extra blank line between the blockquote and the shares header —
-  // Telegram renders the blockquote's bottom edge tight against the
-  // next element, so a single \n\n looks like no gap at all. Two
-  // blank lines give the shares section visible breathing room.
+  // Non-breaking-space line between the blockquote and the shares
+  // header. Telegram renders the blockquote's bottom edge flush with
+  // the next element, so a single blank line looks like no gap.
+  // Two blank lines in a row (what #186 tried) made Telegram's
+  // MarkdownV2 parser reject the whole message — the bot API
+  // returned 400 and createExpense silently swallowed it, so no
+  // notification ever made it out. A  -only line is a
+  // non-empty line as far as the parser is concerned, but renders
+  // as visible whitespace — giving the extra breathing room without
+  // tripping the parser.
   return `🧾 New expense paid by ${payerMention}\\!
 
 > *${escapedDescription}*
 > 💰 • ${escapedTotal}${categoryLine}
 > 🗓 • ${dateLabel}
 
-
+\u00A0
 💸 *Shares*
 ${participantList}`;
 };
