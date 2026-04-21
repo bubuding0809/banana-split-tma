@@ -1,6 +1,6 @@
 import { Badge } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
 interface FilterCategory {
   id: string;
@@ -92,6 +92,38 @@ export default function CategoryFilterStrip({
     onChange(Array.from(set));
   };
 
+  // FLIP animation: when displayOrder changes (user selects/deselects a
+  // chip), each chip slides smoothly from its previous position to its
+  // new one instead of teleporting. We capture positions in
+  // useLayoutEffect — which runs after DOM mutation but before paint —
+  // compare against the previous render's positions, apply an inverse
+  // transform to make the chip *look* like it's still in the old spot,
+  // then clear the transform on the next frame so the existing
+  // `transition-[transform]` class carries it to the new spot.
+  const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+
+  useLayoutEffect(() => {
+    const nextRects = new Map<string, DOMRect>();
+    for (const c of displayOrder) {
+      const el = chipRefs.current.get(c.id);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      nextRects.set(c.id, rect);
+      const prev = prevRects.current.get(c.id);
+      if (!prev) continue;
+      const dx = prev.left - rect.left;
+      if (Math.abs(dx) < 0.5) continue;
+      el.style.transition = "none";
+      el.style.transform = `translateX(${dx}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = "";
+        el.style.transform = "";
+      });
+    }
+    prevRects.current = nextRects;
+  }, [displayOrder]);
+
   if (allChips.length === 0) return null;
 
   return (
@@ -101,11 +133,15 @@ export default function CategoryFilterStrip({
         return (
           <button
             key={c.id}
+            ref={(el) => {
+              if (el) chipRefs.current.set(c.id, el);
+              else chipRefs.current.delete(c.id);
+            }}
             type="button"
             onClick={() => toggle(c.id)}
             aria-pressed={selected}
             aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.94]"
+            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
             style={
               selected
                 ? {
