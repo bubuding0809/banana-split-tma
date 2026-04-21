@@ -37,8 +37,24 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   return (
     <main className="px-3 pb-8">
       <Section header="CUSTOM">
+        {/* "Create custom category" sits at the top of the section — mirrors
+            SnapshotPage's "Add Snapshots" ButtonCell placement. */}
+        <ButtonCell
+          onClick={() => {
+            navigate({
+              to: "/chat/$chatId/settings/categories/new",
+              params: { chatId: String(chatId) },
+            });
+            hapticFeedback.notificationOccurred("success");
+          }}
+          before={<Plus />}
+          style={{ color: tButtonColor }}
+        >
+          Create custom category
+        </ButtonCell>
+
         {custom.length === 0 ? (
-          <Cell description="Tap Create custom category below to add your first one.">
+          <Cell description="Tap Create custom category above to add your first one.">
             No custom categories yet
           </Cell>
         ) : (
@@ -61,22 +77,6 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             </Link>
           ))
         )}
-        {/* "Create custom category" uses Telegram UI's ButtonCell — same
-            pattern SnapshotPage uses for "Add Snapshots" so the two
-            settings-adjacent create-affordances look identical. */}
-        <ButtonCell
-          onClick={() => {
-            navigate({
-              to: "/chat/$chatId/settings/categories/new",
-              params: { chatId: String(chatId) },
-            });
-            hapticFeedback.notificationOccurred("success");
-          }}
-          before={<Plus />}
-          style={{ color: tButtonColor }}
-        >
-          Create custom category
-        </ButtonCell>
       </Section>
 
       <Section header="BASE">
