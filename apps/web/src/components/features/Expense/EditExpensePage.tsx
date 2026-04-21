@@ -19,6 +19,7 @@ import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { formatDateKey, normalizeDateToMidnight } from "@utils/date";
+import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
 
 interface EditExpensePageProps {
   chatId: number;
@@ -124,6 +125,7 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       // implicitly "touched."
       autoPicked: false,
       userTouchedCategory: true,
+      suggestPending: false,
       customSplits: handleInitSplits(),
     },
     onSubmit: async ({ value }) => {
@@ -202,6 +204,11 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       }
     },
   });
+
+  // Edit mode explicitly disables auto-suggest — the user is editing a saved
+  // expense and shouldn't get their category silently replaced when they
+  // tweak the description. Wired for symmetry with AddExpensePage.
+  useCategoryAutoSuggest({ form, chatId, disableAutoAssign: true });
 
   // * Effects ====================================================================================
   // Show back button
@@ -362,7 +369,6 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
             isEditMode={true}
             navigate={navigate}
             chatId={chatId}
-            disableAutoAssign={true}
             membersExpanded={membersExpanded}
           />
         )}

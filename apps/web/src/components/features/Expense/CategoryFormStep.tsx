@@ -1,6 +1,6 @@
 import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { ChevronRight, Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 import {
@@ -15,24 +15,23 @@ const CategoryFormStep = withForm({
   ...formOpts,
   props: {
     chatId: 0,
-    disableAutoAssign: false as boolean | undefined,
   },
-  render: function Render({ form, chatId, disableAutoAssign }) {
+  render: function Render({ form, chatId }) {
     const [open, setOpen] = useState(false);
 
-    // `autoPicked` and `userTouchedCategory` live in form state rather than
-    // local useState/useRef because CategoryFormStep unmounts on step
-    // navigation — locals would reset each time and the Auto badge / manual
-    // override intent would be lost. The form persists for the full add/edit
-    // lifetime. Submit handlers cherry-pick fields by name so these flags
-    // don't leak to the API.
-    const { description, categoryId, autoPicked, userTouchedCategory } =
-      useStore(form.store, (state) => ({
-        description: state.values.description,
+    // Everything drives off form state — the auto-suggest side effect lives
+    // in the parent page via useCategoryAutoSuggest, so this component is
+    // purely presentational and can unmount/remount across step navigation
+    // without losing any transient UI signal (Auto badge, pending spinner,
+    // manual-pick guard).
+    const { categoryId, autoPicked, suggestPending } = useStore(
+      form.store,
+      (state) => ({
         categoryId: state.values.categoryId,
         autoPicked: state.values.autoPicked,
-        userTouchedCategory: state.values.userTouchedCategory,
-      }));
+        suggestPending: state.values.suggestPending,
+      })
+    );
 
     const { data: cats } = trpc.category.listByChat.useQuery({ chatId });
 
@@ -57,50 +56,7 @@ const CategoryFormStep = withForm({
       [cats]
     );
 
-    const suggestMutation = trpc.category.suggest.useMutation();
-    // Monotonic request id — protects against stale responses when a slow
-    // request resolves after a faster, newer one.
-    const latestRequestRef = useRef(0);
-
-    // Debounced auto-suggest on description change (300ms). Only fires while
-    // the user hasn't manually picked and nothing is already set. Both guards
-    // now read from form state so they survive step navigation.
-    useEffect(() => {
-      if (disableAutoAssign) return;
-      if (userTouchedCategory) return;
-      if (categoryId) return;
-      if (!description || description.trim().length < 3) return;
-      const handle = setTimeout(() => {
-        const requestId = ++latestRequestRef.current;
-        suggestMutation.mutate(
-          { chatId, description },
-          {
-            onSuccess: (res) => {
-              // Drop stale responses: if a newer request has fired, ignore.
-              if (requestId !== latestRequestRef.current) return;
-              // Re-read touched flag at resolve time — user may have picked
-              // manually during the in-flight call.
-              if (form.getFieldValue("userTouchedCategory")) return;
-              if (!res.categoryId) return;
-              form.setFieldValue("categoryId", res.categoryId);
-              form.setFieldValue("autoPicked", true);
-            },
-          }
-        );
-      }, 300);
-      return () => clearTimeout(handle);
-      // Intentionally omit suggestMutation/form from deps — re-subscribing on
-      // every render would double-fire.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-      description,
-      chatId,
-      disableAutoAssign,
-      categoryId,
-      userTouchedCategory,
-    ]);
-
-    const footer = suggestMutation.isPending
+    const footer = suggestPending
       ? "Cooking up a category…"
       : autoPicked && categoryId
         ? "Auto-picked from description. Tap to change."
@@ -126,7 +82,7 @@ const CategoryFormStep = withForm({
               }
               after={
                 <div className="flex items-center gap-2">
-                  {suggestMutation.isPending ? (
+                  {suggestPending ? (
                     <SparkleBadge pending />
                   ) : autoPicked && categoryId ? (
                     <SparkleBadge />
@@ -155,8 +111,6 @@ const CategoryFormStep = withForm({
           selectedId={categoryId}
           includeNoneOption
           onSelect={(c) => {
-            // Bump the request id so any in-flight suggest's onSuccess is dropped.
-            latestRequestRef.current += 1;
             form.setFieldValue("userTouchedCategory", true);
             form.setFieldValue("autoPicked", false);
             form.setFieldValue("categoryId", c.id === "none" ? null : c.id);

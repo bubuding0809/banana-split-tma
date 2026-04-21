@@ -19,6 +19,7 @@ export const formOpts = formOptions({
     // cherry-pick fields by name.
     autoPicked: false,
     userTouchedCategory: false,
+    suggestPending: false,
     customSplits: [] as { userId: string; amount: string }[],
   },
   validators: {

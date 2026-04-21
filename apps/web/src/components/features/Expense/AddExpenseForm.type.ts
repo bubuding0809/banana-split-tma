@@ -31,6 +31,7 @@ export const expenseFormSchema = z.object({
   // values and its StandardSchema validator.
   autoPicked: z.boolean(),
   userTouchedCategory: z.boolean(),
+  suggestPending: z.boolean(),
   customSplits: z.array(
     z.object({
       userId: z.string(),

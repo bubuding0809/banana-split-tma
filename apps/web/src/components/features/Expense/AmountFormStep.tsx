@@ -46,16 +46,8 @@ const AmountFormStep = withForm({
       "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
     >,
     chatId: 0,
-    disableAutoAssign: false as boolean | undefined,
   },
-  render: function Render({
-    form,
-    isLastStep,
-    step,
-    navigate,
-    chatId,
-    disableAutoAssign,
-  }) {
+  render: function Render({ form, isLastStep, step, navigate, chatId }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tUserData = useSignal(initData.user);
     const { expenseCurrency } = useStore(form.store, (state) => ({
@@ -409,11 +401,7 @@ const AmountFormStep = withForm({
         </form.AppField>
 
         {/* Category — auto-picked from description, or choose your own */}
-        <CategoryFormStep
-          form={form}
-          chatId={chatId}
-          disableAutoAssign={disableAutoAssign}
-        />
+        <CategoryFormStep form={form} chatId={chatId} />
       </div>
     );
   },

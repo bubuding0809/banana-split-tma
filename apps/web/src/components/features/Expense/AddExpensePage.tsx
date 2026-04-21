@@ -19,6 +19,7 @@ import { useAppForm, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { normalizeDateToMidnight } from "@/utils/date";
+import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -95,6 +96,23 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         isEnabled: false,
       });
       try {
+        // If the category classifier is still running (user typed fast then
+        // clicked through all steps before the 300ms debounce + Gemini call
+        // resolved), give it a moment to land before we commit — otherwise
+        // the expense saves with categoryId: null while the suggest is
+        // about to resolve. Capped at 3.5s (slightly above CLASSIFY_TIMEOUT_MS
+        // so we don't stall on a genuinely stuck request).
+        const waitStart = Date.now();
+        while (
+          form.getFieldValue("suggestPending") &&
+          Date.now() - waitStart < 3500
+        ) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        // Re-read categoryId after the wait — if the classifier just
+        // resolved, form state now has the freshly-picked value.
+        const resolvedCategoryId = form.getFieldValue("categoryId");
+
         // Convert form values to API format
         const customSplits =
           value.splitMode !== "EQUAL"
@@ -115,7 +133,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
-          categoryId: value.categoryId,
+          categoryId: resolvedCategoryId,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
@@ -145,6 +163,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
       }
     },
   });
+
+  // Auto-suggest lives at page scope so the 300ms debounce + in-flight
+  // mutation survive the user pressing Next during the debounce window.
+  useCategoryAutoSuggest({ form, chatId, disableAutoAssign: false });
 
   // * Effects ====================================================================================
   // Show back button
@@ -286,7 +308,6 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             isEditMode={false}
             navigate={navigate}
             chatId={chatId}
-            disableAutoAssign={false}
             membersExpanded={routeApi.useSearch().membersExpanded}
           />
         )}
