@@ -25,6 +25,12 @@ export const expenseFormSchema = z.object({
   splitMode: SplitMode,
   participants: z.array(z.string()).min(1, "At least one participant required"),
   categoryId: z.string().nullable(),
+  // UI-only flags persisted in form state (not submitted). Plain booleans
+  // rather than `.default(false)` — defaults make the schema's input type
+  // optional, which breaks tanstack-form's type alignment between the form
+  // values and its StandardSchema validator.
+  autoPicked: z.boolean(),
+  userTouchedCategory: z.boolean(),
   customSplits: z.array(
     z.object({
       userId: z.string(),

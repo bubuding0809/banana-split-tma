@@ -14,6 +14,11 @@ export const formOpts = formOptions({
     splitMode: "EQUAL" as SplitModeType,
     participants: [] as string[],
     categoryId: null as string | null,
+    // UI-only flags — persist across step navigation so CategoryFormStep can
+    // restore its badge state on remount. Never sent to the API; submit handlers
+    // cherry-pick fields by name.
+    autoPicked: false,
+    userTouchedCategory: false,
     customSplits: [] as { userId: string; amount: string }[],
   },
   validators: {

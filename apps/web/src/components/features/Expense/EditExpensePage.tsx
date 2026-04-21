@@ -119,6 +119,11 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       splitMode: expenseData?.splitMode ?? "EQUAL",
       participants: handleInitParticipants(),
       categoryId: expenseData?.categoryId ?? null,
+      // Edit mode never shows the Auto badge and never re-suggests — the user
+      // is editing a saved expense, so any pre-existing category is
+      // implicitly "touched."
+      autoPicked: false,
+      userTouchedCategory: true,
       customSplits: handleInitSplits(),
     },
     onSubmit: async ({ value }) => {

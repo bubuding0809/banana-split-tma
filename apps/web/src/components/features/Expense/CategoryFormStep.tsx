@@ -19,13 +19,20 @@ const CategoryFormStep = withForm({
   },
   render: function Render({ form, chatId, disableAutoAssign }) {
     const [open, setOpen] = useState(false);
-    const [autoPicked, setAutoPicked] = useState(false);
-    const userTouchedRef = useRef(false);
 
-    const { description, categoryId } = useStore(form.store, (state) => ({
-      description: state.values.description,
-      categoryId: state.values.categoryId,
-    }));
+    // `autoPicked` and `userTouchedCategory` live in form state rather than
+    // local useState/useRef because CategoryFormStep unmounts on step
+    // navigation — locals would reset each time and the Auto badge / manual
+    // override intent would be lost. The form persists for the full add/edit
+    // lifetime. Submit handlers cherry-pick fields by name so these flags
+    // don't leak to the API.
+    const { description, categoryId, autoPicked, userTouchedCategory } =
+      useStore(form.store, (state) => ({
+        description: state.values.description,
+        categoryId: state.values.categoryId,
+        autoPicked: state.values.autoPicked,
+        userTouchedCategory: state.values.userTouchedCategory,
+      }));
 
     const { data: cats } = trpc.category.listByChat.useQuery({ chatId });
 
@@ -55,18 +62,15 @@ const CategoryFormStep = withForm({
     // request resolves after a faster, newer one.
     const latestRequestRef = useRef(0);
 
-    // Debounced auto-suggest on description change (300ms). Only fires while the
-    // user hasn't manually picked and nothing is already set. The `categoryId`
-    // guard matters because CategoryFormStep unmounts when the user navigates to
-    // the next form step — on remount `userTouchedRef` resets, so without this
-    // guard we'd re-suggest and potentially overwrite a prior auto-pick.
+    // Debounced auto-suggest on description change (300ms). Only fires while
+    // the user hasn't manually picked and nothing is already set. Both guards
+    // now read from form state so they survive step navigation.
     useEffect(() => {
       if (disableAutoAssign) return;
-      if (userTouchedRef.current) return;
+      if (userTouchedCategory) return;
       if (categoryId) return;
       if (!description || description.trim().length < 3) return;
       const handle = setTimeout(() => {
-        if (userTouchedRef.current) return;
         const requestId = ++latestRequestRef.current;
         suggestMutation.mutate(
           { chatId, description },
@@ -74,20 +78,27 @@ const CategoryFormStep = withForm({
             onSuccess: (res) => {
               // Drop stale responses: if a newer request has fired, ignore.
               if (requestId !== latestRequestRef.current) return;
-              if (userTouchedRef.current) return;
+              // Re-read touched flag at resolve time — user may have picked
+              // manually during the in-flight call.
+              if (form.getFieldValue("userTouchedCategory")) return;
               if (!res.categoryId) return;
               form.setFieldValue("categoryId", res.categoryId);
-              setAutoPicked(true);
+              form.setFieldValue("autoPicked", true);
             },
           }
         );
       }, 300);
       return () => clearTimeout(handle);
       // Intentionally omit suggestMutation/form from deps — re-subscribing on
-      // every render would double-fire. The effect depends only on the description
-      // and chatId changing.
+      // every render would double-fire.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [description, chatId, disableAutoAssign, categoryId]);
+    }, [
+      description,
+      chatId,
+      disableAutoAssign,
+      categoryId,
+      userTouchedCategory,
+    ]);
 
     const footer = suggestMutation.isPending
       ? "Cooking up a category…"
@@ -144,10 +155,10 @@ const CategoryFormStep = withForm({
           selectedId={categoryId}
           includeNoneOption
           onSelect={(c) => {
-            userTouchedRef.current = true;
             // Bump the request id so any in-flight suggest's onSuccess is dropped.
             latestRequestRef.current += 1;
-            setAutoPicked(false);
+            form.setFieldValue("userTouchedCategory", true);
+            form.setFieldValue("autoPicked", false);
             form.setFieldValue("categoryId", c.id === "none" ? null : c.id);
             setOpen(false);
           }}
