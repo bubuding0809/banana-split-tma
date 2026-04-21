@@ -315,10 +315,8 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   useEffect(() => {
     secondaryButton.mount();
     secondaryButton.setParams({
-      text: "Reset to defaults",
+      text: "Reset",
       isVisible: true,
-      backgroundColor: "#E53935",
-      textColor: "#FFFFFF",
     });
     const off = secondaryButton.onClick(() => onResetRef.current());
     return () => {
@@ -327,8 +325,6 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
-        backgroundColor: undefined,
-        textColor: undefined,
       });
     };
   }, []);
