@@ -37,23 +37,22 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
           </Cell>
         ) : (
           custom.map((c) => (
-            <Cell
+            <Link
               key={c.id}
-              Component="button"
-              before={<span className="text-xl">{c.emoji}</span>}
-              after={<ChevronRight size={16} />}
-              onClick={() =>
-                navigate({
-                  to: "/chat/$chatId/settings/categories/$categoryId",
-                  params: {
-                    chatId: String(chatId),
-                    categoryId: c.id.replace(/^chat:/, ""),
-                  },
-                })
-              }
+              to="/chat/$chatId/settings/categories/$categoryId"
+              params={{
+                chatId: String(chatId),
+                categoryId: c.id.replace(/^chat:/, ""),
+              }}
             >
-              {c.title}
-            </Cell>
+              <Cell
+                Component="label"
+                before={<span className="text-xl">{c.emoji}</span>}
+                after={<ChevronRight size={16} />}
+              >
+                {c.title}
+              </Cell>
+            </Link>
           ))
         )}
         {/* "Create custom category" lives inline at the bottom of the CUSTOM
