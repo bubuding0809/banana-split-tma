@@ -140,14 +140,20 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
-  // Register the click handler exactly once on mount.
+  // Register the main-button click handler exactly once on mount. Cleanup
+  // hides the button AND clears the loader flag so if the user navigates
+  // away mid-save the next page starts from a clean slate.
   useEffect(() => {
     mainButton.mount();
     mainButton.setParams({ isVisible: true });
     const off = mainButton.onClick(() => onSaveRef.current());
     return () => {
       off();
-      mainButton.setParams({ isVisible: false });
+      mainButton.setParams({
+        isVisible: false,
+        isEnabled: true,
+        isLoaderVisible: false,
+      });
     };
   }, []);
 
@@ -163,29 +169,46 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
 
   // Keep a ref to the latest onDelete for the same reason we do for onSave
   // — register the secondary button click handler once and dispatch the
-  // latest closure.
+  // latest closure, without re-subscribing on every keystroke.
   const onDeleteRef = useRef(onDelete);
   onDeleteRef.current = onDelete;
 
-  // Secondary button drives Delete, but only in edit mode. Danger-styled —
-  // red bg + white text to signal the destructive intent clearly against
-  // the green main Save button.
+  // Secondary button registration (edit mode only) + teardown. Registers
+  // the click handler exactly once. Cleanup hides the button AND resets the
+  // custom danger colors back to undefined so a downstream page that uses
+  // secondaryButton doesn't inherit red styling.
   useEffect(() => {
     if (!isEdit) return;
     secondaryButton.mount();
     secondaryButton.setParams({
       text: "Delete category",
       isVisible: true,
-      isEnabled: !isBusy && !deleteMut.isPending,
-      isLoaderVisible: deleteMut.isPending,
       backgroundColor: "#E53935",
       textColor: "#FFFFFF",
     });
     const off = secondaryButton.onClick(() => onDeleteRef.current());
     return () => {
       off();
-      secondaryButton.setParams({ isVisible: false });
+      secondaryButton.setParams({
+        isVisible: false,
+        isEnabled: true,
+        isLoaderVisible: false,
+        // Explicit undefined resets to the theme default so the next
+        // screen using secondaryButton doesn't render red.
+        backgroundColor: undefined,
+        textColor: undefined,
+      });
     };
+  }, [isEdit]);
+
+  // Secondary-button params — enabled + loader track the mutation state
+  // without re-subscribing the click handler.
+  useEffect(() => {
+    if (!isEdit) return;
+    secondaryButton.setParams({
+      isEnabled: !isBusy && !deleteMut.isPending,
+      isLoaderVisible: deleteMut.isPending,
+    });
   }, [isEdit, isBusy, deleteMut.isPending]);
 
   return (
