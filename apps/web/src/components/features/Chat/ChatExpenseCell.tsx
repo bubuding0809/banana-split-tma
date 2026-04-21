@@ -287,17 +287,23 @@ const ChatExpenseCell = ({
                 {categoryEmoji}
               </div>
               <div
-                className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full"
+                className="absolute -bottom-1 -right-1 flex h-[26px] w-[26px] items-center justify-center rounded-full"
                 style={{
-                  backgroundColor: "var(--tg-theme-section-bg-color)",
-                  boxShadow: "0 0 0 2px var(--tg-theme-bg-color)",
+                  // Outer ring "punches" the badge out of the tile it
+                  // overlaps — same color as the row bg.
+                  boxShadow: "0 0 0 2px var(--tg-theme-section-bg-color)",
+                  // A visibly lighter bg gives the avatar its own
+                  // circular frame. Combined with 2px padding below, a
+                  // rim of this color shows around the inner photo.
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  padding: "2px",
                 }}
               >
                 {payerPhotoUrl ? (
                   <img
                     src={payerPhotoUrl}
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-[13px] leading-none">
