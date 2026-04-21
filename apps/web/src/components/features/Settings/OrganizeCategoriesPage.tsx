@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   backButton,
+  hapticFeedback,
   mainButton,
   secondaryButton,
 } from "@telegram-apps/sdk-react";
@@ -362,6 +363,12 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   };
 
   const onDragStart = (e: DragStartEvent) => {
+    // Soft "lift" thump when the tile detaches from the grid.
+    try {
+      hapticFeedback.impactOccurred("light");
+    } catch {
+      // hapticFeedback can throw in non-TMA dev contexts — swallow.
+    }
     setActiveId(String(e.active.id));
   };
 
@@ -370,6 +377,13 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     const { active, over } = e;
     if (!over) return;
     if (active.id === over.id) return;
+
+    // Solid "land" thump when a valid drop actually changed state.
+    try {
+      hapticFeedback.impactOccurred("medium");
+    } catch {
+      // non-TMA; swallow.
+    }
 
     const activeKey = String(active.id);
     const overKey = String(over.id);
@@ -415,6 +429,12 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   };
 
   const toggleHide = (categoryKey: string) => {
+    // Telegram-native "tick" for toggling a setting in/out of the picker.
+    try {
+      hapticFeedback.selectionChanged();
+    } catch {
+      // non-TMA; swallow.
+    }
     setItems((prev) => {
       const target = prev.find((p) => p.categoryKey === categoryKey);
       if (!target) return prev;
