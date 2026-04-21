@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import {
   Input,
   Section,
-  Button,
   Snackbar,
   Subheadline,
 } from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
-import { backButton, mainButton } from "@telegram-apps/sdk-react";
+import {
+  backButton,
+  mainButton,
+  secondaryButton,
+} from "@telegram-apps/sdk-react";
 import EmojiPicker, {
   EmojiStyle,
   SkinTonePickerLocation,
@@ -158,6 +161,33 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     });
   }, [isEdit, canSave, isBusy]);
 
+  // Keep a ref to the latest onDelete for the same reason we do for onSave
+  // — register the secondary button click handler once and dispatch the
+  // latest closure.
+  const onDeleteRef = useRef(onDelete);
+  onDeleteRef.current = onDelete;
+
+  // Secondary button drives Delete, but only in edit mode. Danger-styled —
+  // red bg + white text to signal the destructive intent clearly against
+  // the green main Save button.
+  useEffect(() => {
+    if (!isEdit) return;
+    secondaryButton.mount();
+    secondaryButton.setParams({
+      text: "Delete category",
+      isVisible: true,
+      isEnabled: !isBusy && !deleteMut.isPending,
+      isLoaderVisible: deleteMut.isPending,
+      backgroundColor: "#E53935",
+      textColor: "#FFFFFF",
+    });
+    const off = secondaryButton.onClick(() => onDeleteRef.current());
+    return () => {
+      off();
+      secondaryButton.setParams({ isVisible: false });
+    };
+  }, [isEdit, isBusy, deleteMut.isPending]);
+
   return (
     <main className="flex flex-col gap-4 px-3 pb-8">
       {/* Preview — emoji in a tinted panel over the category name. Emoji
@@ -260,16 +290,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         </div>
       </div>
 
-      {/* Save / Create is driven by the TMA main button (see the mainButton
-          effect above). Delete stays inline because the TMA surface only
-          offers one main button — promoting Delete would demote Save. */}
-      {isEdit && (
-        <div className="flex flex-col gap-2 pt-4">
-          <Button size="l" mode="plain" onClick={onDelete}>
-            Delete category
-          </Button>
-        </div>
-      )}
+      {/* Save / Create is driven by the TMA main button, Delete by the TMA
+          secondary button (see the mainButton / secondaryButton effects
+          above). No inline buttons in the body. */}
 
       {error ? (
         <Snackbar onClose={() => setError(null)} description={error}>
