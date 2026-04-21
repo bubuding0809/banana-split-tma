@@ -16,7 +16,6 @@ import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
 import TransactionFiltersModal from "./TransactionFiltersModal";
-import CategoryFilterStrip from "./CategoryFilterStrip";
 import {
   hapticFeedback,
   initData,
@@ -321,6 +320,26 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onOpenModal={() => setFiltersOpen(true)}
+          selectedCategories={(() => {
+            // Preserve selection order + handle the synthetic
+            // "Uncategorized" chip (id "none") which isn't in
+            // allCategories.
+            const byId = new Map(allCategories.map((c) => [c.id, c]));
+            const out: { id: string; emoji: string; title: string }[] = [];
+            for (const id of categoryFilters) {
+              if (id === "none") {
+                out.push({
+                  id: "none",
+                  emoji: "📭",
+                  title: "Uncategorized",
+                });
+              } else {
+                const c = byId.get(id);
+                if (c) out.push({ id: c.id, emoji: c.emoji, title: c.title });
+              }
+            }
+            return out;
+          })()}
         />
         <Divider />
 
@@ -444,29 +463,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         />
 
         <Divider />
-
-        {/* Standalone multi-select category chip strip. Sits after the filter
-            cell + Convert-currencies cell so it reads as its own control,
-            not a pill inside either. URL-backed via `categoryFilters` so the
-            active filter survives refresh / deep links. */}
-        <CategoryFilterStrip
-          categories={allCategories}
-          selectedIds={categoryFilters}
-          counts={categoryCounts}
-          onChange={(ids) =>
-            updateSearchParams((prev) => ({
-              ...prev,
-              categoryFilters: ids,
-              // Payments don't carry a categoryId, so letting them pass
-              // through an active category filter reads as junk. Flip
-              // the toggle in lockstep: off when any category is
-              // selected, back on when all are cleared.
-              showPayments: ids.length === 0,
-            }))
-          }
-        />
-
-        <Divider />
       </div>
 
       {/* Enhanced filters modal */}
@@ -483,6 +479,20 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onSortOrderChange={handleSortOrderChange}
         monthGroupedData={monthGroupedData}
         onDateSelect={handleDateSelect}
+        categoryStripCategories={allCategories}
+        categoryStripSelectedIds={categoryFilters}
+        categoryStripCounts={categoryCounts}
+        onCategoryFiltersChange={(ids) =>
+          updateSearchParams((prev) => ({
+            ...prev,
+            categoryFilters: ids,
+            // Payments don't carry a categoryId, so letting them pass
+            // through an active category filter reads as junk. Flip
+            // the toggle in lockstep: off when any category is
+            // selected, back on when all are cleared.
+            showPayments: ids.length === 0,
+          }))
+        }
       />
 
       {/* Standalone Jump to date modal */}
