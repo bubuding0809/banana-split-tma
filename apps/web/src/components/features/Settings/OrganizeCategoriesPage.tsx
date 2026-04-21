@@ -11,10 +11,14 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
 } from "@dnd-kit/core";
+import clsx from "clsx";
 import {
   SortableContext,
   arrayMove,
@@ -34,6 +38,31 @@ interface OrganizeItem {
   kind: "base" | "custom";
   sortOrder: number;
   hidden: boolean;
+}
+
+const ZONE_VISIBLE_ID = "zone:visible";
+const ZONE_HIDDEN_ID = "zone:hidden";
+
+function DroppableZone({
+  id,
+  className,
+  activeClassName,
+  children,
+}: {
+  id: string;
+  className: string;
+  activeClassName?: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={clsx(className, isOver && activeClassName)}
+    >
+      {children}
+    </div>
+  );
 }
 
 function SortableTile({
@@ -251,29 +280,60 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     })
   );
 
+  // Collision detection: prefer pointerWithin so the cursor's exact
+  // position decides the target. Fall back to rectIntersection when the
+  // pointer is outside any droppable — handles the "drop on empty zone
+  // area" case where no tile is under the cursor.
+  const collisionDetection: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return rectIntersection(args);
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over) return;
     if (active.id === over.id) return;
 
-    setItems((prev) => {
-      const activeIdx = prev.findIndex((p) => p.categoryKey === active.id);
-      const overIdx = prev.findIndex((p) => p.categoryKey === over.id);
-      if (activeIdx < 0 || overIdx < 0) return prev;
+    const activeKey = String(active.id);
+    const overKey = String(over.id);
 
+    setItems((prev) => {
+      const activeIdx = prev.findIndex((p) => p.categoryKey === activeKey);
+      if (activeIdx < 0) return prev;
       const activeItem = prev[activeIdx]!;
+
+      // CASE 1: dropped on a zone container (empty space in that zone) —
+      // append the active tile to the end of that zone.
+      if (overKey === ZONE_VISIBLE_ID || overKey === ZONE_HIDDEN_ID) {
+        const targetHidden = overKey === ZONE_HIDDEN_ID;
+        const rest = prev.filter((p) => p.categoryKey !== activeKey);
+        const sameZone: OrganizeItem[] = [];
+        const otherZone: OrganizeItem[] = [];
+        for (const it of rest) {
+          if (it.hidden === targetHidden) sameZone.push(it);
+          else otherZone.push(it);
+        }
+        const moved = { ...activeItem, hidden: targetHidden };
+        const next = targetHidden
+          ? [...otherZone, ...sameZone, moved]
+          : [...sameZone, moved, ...otherZone];
+        return next.map((it, idx) => ({ ...it, sortOrder: idx }));
+      }
+
+      // CASE 2: dropped on another tile — cross-zone or same-zone reorder.
+      const overIdx = prev.findIndex((p) => p.categoryKey === overKey);
+      if (overIdx < 0) return prev;
       const overItem = prev[overIdx]!;
 
-      // Cross-zone drag flips `hidden` to match the zone of the drop target.
       const shouldFlipHidden = activeItem.hidden !== overItem.hidden;
 
       let next = arrayMove(prev, activeIdx, overIdx);
       if (shouldFlipHidden) {
         next = next.map((it) =>
-          it.categoryKey === active.id ? { ...it, hidden: overItem.hidden } : it
+          it.categoryKey === activeKey ? { ...it, hidden: overItem.hidden } : it
         );
       }
-      // Re-number sortOrder so persisted values match visual order.
       return next.map((it, idx) => ({ ...it, sortOrder: idx }));
     });
   };
@@ -338,7 +398,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragEnd={onDragEnd}
       >
         <section>
@@ -352,15 +412,25 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             items={visible.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-4 gap-2 rounded-xl bg-[rgba(255,255,255,0.02)] p-1">
-              {visible.map((it) => (
-                <SortableTile
-                  key={it.categoryKey}
-                  item={it}
-                  onToggleHide={() => toggleHide(it.categoryKey)}
-                />
-              ))}
-            </div>
+            <DroppableZone
+              id={ZONE_VISIBLE_ID}
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-colors"
+              activeClassName="border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_8%,transparent)]"
+            >
+              {visible.length === 0 ? (
+                <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
+                  Drag a tile here to show it in the picker.
+                </div>
+              ) : (
+                visible.map((it) => (
+                  <SortableTile
+                    key={it.categoryKey}
+                    item={it}
+                    onToggleHide={() => toggleHide(it.categoryKey)}
+                  />
+                ))
+              )}
+            </DroppableZone>
           </SortableContext>
         </section>
 
@@ -373,7 +443,11 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             items={hidden.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1">
+            <DroppableZone
+              id={ZONE_HIDDEN_ID}
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-colors"
+              activeClassName="border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_8%,transparent)]"
+            >
               {hidden.length === 0 ? (
                 <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
                   Drag a tile here (or tap its eye) to hide it from the picker.
@@ -387,7 +461,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
                   />
                 ))
               )}
-            </div>
+            </DroppableZone>
           </SortableContext>
         </section>
       </DndContext>
