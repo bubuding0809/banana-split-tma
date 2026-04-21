@@ -11,6 +11,8 @@ import {
   backButton,
   mainButton,
   secondaryButton,
+  themeParams,
+  useSignal,
 } from "@telegram-apps/sdk-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { trpc } from "@/utils/trpc";
@@ -32,6 +34,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const navigate = useNavigate();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const { data } = trpc.category.listByChat.useQuery({ chatId });
   const existing = (data?.items ?? []).find(
     (c) => c.kind === "custom" && c.id === `chat:${categoryId}`
@@ -156,18 +159,12 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
-  // Register the main-button click handler exactly once on mount. Both
-  // the mount setParams and the cleanup reset every visual field so we
-  // neither inherit state from a previous page (e.g. Add Expense's
-  // green save bg + shine) nor leak our state into the next one.
+  // Register the main-button click handler exactly once on mount. Cleanup
+  // hides the button AND clears the loader flag so if the user navigates
+  // away mid-save the next page starts from a clean slate.
   useEffect(() => {
     mainButton.mount();
-    mainButton.setParams({
-      isVisible: true,
-      backgroundColor: undefined,
-      textColor: undefined,
-      hasShineEffect: false,
-    });
+    mainButton.setParams({ isVisible: true });
     const off = mainButton.onClick(() => onSaveRef.current());
     return () => {
       off();
@@ -175,9 +172,6 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
-        backgroundColor: undefined,
-        textColor: undefined,
-        hasShineEffect: false,
       });
     };
   }, []);
@@ -200,18 +194,19 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   onDeleteRef.current = onDelete;
 
   // Secondary button registration (edit mode only) + teardown. Registers
-  // the click handler exactly once. Cleanup hides the button AND resets
-  // every visual field so the custom danger red doesn't leak into
-  // downstream pages that use secondaryButton.
+  // the click handler exactly once. Cleanup hides the button AND resets the
+  // custom danger colors back to undefined so a downstream page that uses
+  // secondaryButton doesn't inherit red styling.
   useEffect(() => {
     if (!isEdit) return;
     secondaryButton.mount();
     secondaryButton.setParams({
       text: "Delete category",
       isVisible: true,
-      backgroundColor: "#E53935",
-      textColor: "#FFFFFF",
-      hasShineEffect: false,
+      // Same pattern as the expense-cell delete: keep the TMA's default
+      // bg, tint the label with the theme's destructive colour so it
+      // stays consistent across screens and adapts to light/dark themes.
+      textColor: tDestructiveTextColor,
     });
     const off = secondaryButton.onClick(() => onDeleteRef.current());
     return () => {
@@ -220,12 +215,12 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         isVisible: false,
         isEnabled: true,
         isLoaderVisible: false,
-        backgroundColor: undefined,
+        // Reset to theme defaults so downstream screens don't inherit
+        // the destructive tint.
         textColor: undefined,
-        hasShineEffect: false,
       });
     };
-  }, [isEdit]);
+  }, [isEdit, tDestructiveTextColor]);
 
   // Secondary-button params — enabled + loader track the mutation state
   // without re-subscribing the click handler.
