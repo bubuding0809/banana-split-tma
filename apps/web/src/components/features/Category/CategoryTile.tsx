@@ -55,6 +55,9 @@ export default function CategoryTile({
         "text-[var(--tg-theme-text-color)]",
         selected && "ring-2 ring-[var(--tg-theme-button-color)]",
         dim && "opacity-50",
+        // Grab cursor only when the tile is wired as sortable (Organize
+        // page). Non-sortable pickers keep the default pointer.
+        sortableRef && (isDragging ? "cursor-grabbing" : "cursor-grab"),
         isDragging &&
           "z-10 scale-[1.08] shadow-[0_12px_28px_rgba(0,0,0,0.55),0_2px_6px_rgba(0,0,0,0.3)]"
       )}
