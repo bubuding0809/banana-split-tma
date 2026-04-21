@@ -128,11 +128,16 @@ export const formatExpenseMessage = (
 
   const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
 
+  // Layout: header → blockquote of meta (description + category + date)
+  // → bold amount line → shares tree. Keeping the amount outside the
+  // quote makes it visually dominant; the shares block after the
+  // amount reads as "who owes what toward that amount".
   return `🧾 New expense paid by ${payerMention}\\!
 
-> *${escapedDescription}*
-> 💰 • ${escapedTotal}${categoryLine}
+> *${escapedDescription}*${categoryLine}
 > 🗓 • ${dateLabel}
+
+💰 *${escapedTotal}*
 
 💸 *Shares*
 ${participantList}`;
