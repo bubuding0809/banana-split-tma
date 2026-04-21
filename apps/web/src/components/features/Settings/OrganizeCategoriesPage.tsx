@@ -8,6 +8,8 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -81,9 +83,12 @@ function SortableTile({
     isDragging,
   } = useSortable({ id: item.categoryKey });
 
+  // While the source tile is being dragged, fade it down to a placeholder
+  // outline — the real visual follows the cursor via the DragOverlay below.
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   return (
@@ -98,7 +103,8 @@ function SortableTile({
       sortableStyle={style}
       sortableListeners={listeners as Record<string, unknown>}
       sortableAttributes={attributes as unknown as Record<string, unknown>}
-      isDragging={isDragging}
+      // isDragging intentionally NOT passed — source tile shouldn't scale
+      // or shadow since the DragOverlay handles that visual.
     />
   );
 }
@@ -126,6 +132,15 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   useEffect(() => {
     setItems(initial);
   }, [initial]);
+
+  // Track the currently-dragged tile so the DragOverlay can render a
+  // clone of it that floats above everything and follows the cursor.
+  // Without this, the source tile's CSS transform alone was getting
+  // clipped behind layout when dragged across zones on narrow viewports.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeItem = activeId
+    ? (items.find((i) => i.categoryKey === activeId) ?? null)
+    : null;
 
   const visible = items.filter((i) => !i.hidden);
   const hidden = items.filter((i) => i.hidden);
@@ -290,7 +305,12 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     return rectIntersection(args);
   };
 
+  const onDragStart = (e: DragStartEvent) => {
+    setActiveId(String(e.active.id));
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = e;
     if (!over) return;
     if (active.id === over.id) return;
@@ -399,7 +419,9 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragCancel={() => setActiveId(null)}
       >
         <section>
           <div className="mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)]">
@@ -464,6 +486,24 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             </DroppableZone>
           </SortableContext>
         </section>
+
+        {/* Detached clone that follows the cursor during drag — renders
+            via a portal above everything else, so cross-zone drags never
+            clip behind layout. dropAnimation={null} skips the default
+            settle-back animation since our state update moves the tile
+            to its final resting position immediately. */}
+        <DragOverlay dropAnimation={null}>
+          {activeItem ? (
+            <div style={{ width: 72, aspectRatio: "1 / 1" }}>
+              <CategoryTile
+                emoji={activeItem.emoji}
+                title={activeItem.title}
+                showCustomDot={activeItem.kind === "custom"}
+                isDragging
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {error ? (
