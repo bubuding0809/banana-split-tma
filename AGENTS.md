@@ -4,6 +4,10 @@
 
 A Telegram Mini App (TMA) for expense tracking and splitting built with modern TypeScript stack in a Turborepo monorepo.
 
+## Agent Tooling
+
+- **Search — always use `mgrep`.** For any search task, invoke the `mgrep` skill instead of the built-in `Grep`, `Glob`, or `WebSearch` tools. Use `mgrep "query"` for local file/code searches and `mgrep --web "query"` for web searches. This applies to ad-hoc shell searches too (e.g. listing processes, scanning logs) — reach for `mgrep` before falling back to `ps | grep`, `find`, etc.
+
 ## Frontend Development Guidelines
 
 ### UI Framework & Components

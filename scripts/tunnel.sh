@@ -43,16 +43,20 @@ fi
 echo -e "${BLUE}Starting Tailscale Funnel...${NC}"
 echo -e "Machine: ${MACHINE_NAME}\n"
 
-# Start backend funnel on port 8081 (maps to localhost:8081)
-echo -e "Starting backend tunnel (8081 -> 8081)..."
-"$TAILSCALE" funnel --bg --https=8081 http://localhost:8081
+# Start backend funnel on port 10000 (maps to localhost:8081).
+# Tailscale Funnel only exposes three public ports externally: 443, 8443, 10000.
+# Using 8081 works on-tailnet (desktop/laptop) but phones on cellular or other
+# networks can't reach it — their API calls hang forever. 10000 is reachable
+# from any network.
+echo -e "Starting backend tunnel (10000 -> localhost:8081)..."
+"$TAILSCALE" funnel --bg --https=10000 http://localhost:8081
 
 # Start frontend funnel on port 8443 (maps to localhost:5173)
 echo -e "Starting frontend tunnel (5173 -> 8443)..."
 "$TAILSCALE" funnel --bg --https=8443 http://localhost:5173
 
 # Display URLs
-BACKEND_URL="https://${MACHINE_NAME}:8081"
+BACKEND_URL="https://${MACHINE_NAME}:10000"
 FRONTEND_URL="https://${MACHINE_NAME}:8443"
 
 echo -e "\n${GREEN}Tunnels Ready!${NC}"
