@@ -133,14 +133,18 @@ export default function CategoryPickerSheet({
           </section>
         )}
 
-        {/* Reorder / hide entry — plain text button below the grid.
-            No border / background; sits as a quiet link-style action
-            under the main picker surface. */}
+        {/* Reorder / hide entry — iOS-style bezeled (tinted) button.
+            Link-color text over a soft link-color tinted fill; no
+            outline border. Scales slightly on press. */}
         {onOpenOrganize && categories.length > 0 && (
           <button
             type="button"
             onClick={onOpenOrganize}
-            className="flex w-full items-center justify-center gap-2 py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-opacity duration-150 ease-out active:opacity-60"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--tg-theme-link-color) 14%, transparent)",
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.98]"
           >
             <Sliders size={15} strokeWidth={2.25} />
             Reorder or hide categories
