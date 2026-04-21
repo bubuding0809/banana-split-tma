@@ -35,6 +35,7 @@ model Chat {
   ExpenseSnapshot            ExpenseSnapshot[]
   apiKeys                    ChatApiKey[]
   chatCategories             ChatCategory[]
+  categoryOrderings          ChatCategoryOrdering[]
 }
 
 model User {
@@ -261,5 +262,19 @@ model ChatCategory {
   updatedAt   DateTime @updatedAt
 
   @@unique([chatId, title])
+  @@index([chatId])
+}
+
+model ChatCategoryOrdering {
+  id          String   @id @default(uuid())
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chatId      BigInt
+  categoryKey String
+  sortOrder   Int
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([chatId, categoryKey])
   @@index([chatId])
 }
