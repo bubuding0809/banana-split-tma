@@ -17,13 +17,17 @@ export default function CategoryTile({
     <button
       type="button"
       onClick={onClick}
+      // Tile bg is set via inline style, not a Tailwind arbitrary class,
+      // because `color-mix(...)` doesn't reliably round-trip through the
+      // Tailwind JIT parser (commas + nested function calls). The expression
+      // lays a translucent text-color overlay on the sheet: ~12% white in
+      // dark themes, ~12% black in light themes — always a visible panel.
+      style={{
+        backgroundColor:
+          "color-mix(in srgb, var(--tg-theme-text-color) 12%, transparent)",
+      }}
       className={clsx(
         "flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl p-2",
-        // Mix the text color into the section bg so the tile always has a
-        // visible panel against the modal sheet. Pure section-bg blends too
-        // readily with the sheet in some Telegram themes, leaving the tiles
-        // as invisible outlines on a flat background.
-        "bg-[color-mix(in_srgb,var(--tg-theme-text-color)_8%,var(--tg-theme-section-bg-color))]",
         "text-[var(--tg-theme-text-color)]",
         selected && "ring-2 ring-[var(--tg-theme-button-color)]"
       )}
