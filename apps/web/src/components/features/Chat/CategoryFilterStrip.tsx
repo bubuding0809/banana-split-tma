@@ -77,7 +77,7 @@ export default function CategoryFilterStrip({
   if (allChips.length === 0) return null;
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 py-2 [&::-webkit-scrollbar]:hidden">
+    <div className="flex gap-2 overflow-x-auto px-3 py-3 [&::-webkit-scrollbar]:hidden">
       {displayOrder.map((c) => {
         const selected = selectedIds.includes(c.id);
         return (
@@ -91,11 +91,18 @@ export default function CategoryFilterStrip({
             style={
               selected
                 ? {
+                    // Gray tint + link-color ring + link-color halo. On dark
+                    // Telegram themes a black drop shadow disappears into the
+                    // background, so the "lift" effect is delivered via a
+                    // colored glow instead of a neutral shadow.
                     backgroundColor: "rgba(255,255,255,0.08)",
-                    boxShadow:
-                      "0 0 0 1.5px var(--tg-theme-link-color), 0 4px 12px rgba(0,0,0,0.4)",
+                    boxShadow: [
+                      "0 0 0 1.5px var(--tg-theme-link-color)",
+                      "0 0 14px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
+                      "0 6px 14px rgba(0,0,0,0.45)",
+                    ].join(", "),
                   }
-                : undefined
+                : { backgroundColor: "transparent" }
             }
           >
             {c.emoji}

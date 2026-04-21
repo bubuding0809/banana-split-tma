@@ -295,6 +295,29 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       );
     }
 
+    // Filters hid every transaction. Distinct from "no transactions yet"
+    // because the chat does have content — users just need to relax filters.
+    const hasNoFilteredResults = sortedKeys.length === 0;
+    if (hasNoFilteredResults) {
+      return (
+        <Placeholder
+          className="h-full"
+          header="No matching transactions"
+          description="Try adjusting your filters to see more"
+        >
+          <img
+            alt="Telegram sticker"
+            src="https://xelene.me/telegram.gif"
+            style={{
+              display: "block",
+              height: "144px",
+              width: "144px",
+            }}
+          />
+        </Placeholder>
+      );
+    }
+
     return (
       <div
         ref={parentRef}
