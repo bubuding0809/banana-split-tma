@@ -156,14 +156,15 @@ export default function CategoryFilterStrip({
               style={
                 selected
                   ? {
-                      // Opaque link-over-bg mix instead of transparent
-                      // alpha. Transparent fills at 14% disappeared on
-                      // white light-mode backgrounds; mixing the link
-                      // colour *over* the theme bg at 22% produces a
-                      // distinct blue-tinted fill on both light and
-                      // dark themes.
-                      backgroundColor:
-                        "color-mix(in srgb, var(--tg-theme-link-color) 22%, var(--tg-theme-bg-color))",
+                      // Fixed translucent gray — theme-aware mixing
+                      // kept producing fills that either blended into
+                      // the bg (light mode) or looked washed out
+                      // (dark). A flat rgba mid-gray layers to a
+                      // visible pale gray on white and a softer grey
+                      // on dark without fighting the theme. Ring +
+                      // halo remain link-coloured so the selected
+                      // state still reads as "active".
+                      backgroundColor: "rgba(127,127,127,0.22)",
                       boxShadow: [
                         "0 0 0 1.5px var(--tg-theme-link-color)",
                         "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
