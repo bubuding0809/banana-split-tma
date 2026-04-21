@@ -22,6 +22,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Snackbar } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
 import CategoryTile from "@/components/features/Category/CategoryTile";
 
@@ -100,11 +101,22 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   const hidden = items.filter((i) => i.hidden);
 
   const utils = trpc.useUtils();
+  const [error, setError] = useState<string | null>(null);
   const setOrderingMut = trpc.category.setOrdering.useMutation({
     onSuccess: () => utils.category.listByChat.invalidate({ chatId }),
+    onError: (e) => {
+      // Most likely: a concurrent member deleted a custom category the draft
+      // still references. Re-invalidate to surface the fresh data.
+      setError(e.message || "Couldn't save changes. Try again.");
+      utils.category.listByChat.invalidate({ chatId });
+    },
   });
   const resetOrderingMut = trpc.category.resetOrdering.useMutation({
     onSuccess: () => utils.category.listByChat.invalidate({ chatId }),
+    onError: (e) => {
+      setError(e.message || "Couldn't reset. Try again.");
+      utils.category.listByChat.invalidate({ chatId });
+    },
   });
 
   const isDirty = useMemo(() => {
@@ -144,12 +156,10 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   };
 
   const onReset = () => {
-    if (
-      !window.confirm(
-        "Reset to defaults? Custom order and hidden tiles will be cleared."
-      )
-    )
-      return;
+    const confirmMessage = isDirty
+      ? "Reset to defaults? Custom order and hidden tiles will be cleared, and this also discards your unsaved changes."
+      : "Reset to defaults? Custom order and hidden tiles will be cleared.";
+    if (!window.confirm(confirmMessage)) return;
     resetOrderingMut.mutate(
       { chatId },
       {
@@ -372,6 +382,12 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
           </SortableContext>
         </section>
       </DndContext>
+
+      {error ? (
+        <Snackbar onClose={() => setError(null)} description={error}>
+          Error
+        </Snackbar>
+      ) : null}
     </main>
   );
 }

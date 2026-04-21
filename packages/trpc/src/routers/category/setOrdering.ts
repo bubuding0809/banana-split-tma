@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { assertKnownKey } from "@repo/categories";
+import { BASE_CATEGORIES, assertKnownKey } from "@repo/categories";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -54,6 +54,18 @@ export const setOrderingHandler = async (
       });
     }
     seen.add(it.categoryKey);
+  }
+
+  // Full-coverage guard. Partial saves would leave omitted tiles to
+  // render at the end via listByChat's fallback cursor — silent data
+  // loss semantics. The Organize page always sends the full grid; this
+  // rejects buggy/stale clients server-side.
+  const expectedCount = BASE_CATEGORIES.length + knownCustomIds.size;
+  if (input.items.length !== expectedCount) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Ordering must cover all tiles: expected ${expectedCount} items, got ${input.items.length}`,
+    });
   }
 
   await db.$transaction(async (tx) => {
