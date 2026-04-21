@@ -1,5 +1,5 @@
 import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
@@ -87,7 +87,28 @@ const CategoryFormStep = withForm({
                   ) : autoPicked && categoryId ? (
                     <SparkleBadge />
                   ) : null}
-                  <ChevronRight size={16} />
+                  {resolved ? (
+                    <span
+                      role="button"
+                      aria-label="Clear category"
+                      onClick={(e) => {
+                        // Prevent the parent Cell's onClick (which opens the
+                        // picker) from firing when the user taps the clear X.
+                        e.stopPropagation();
+                        form.setFieldValue("userTouchedCategory", true);
+                        form.setFieldValue("autoPicked", false);
+                        form.setFieldValue("categoryId", null);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--tg-theme-subtitle-text-color)]"
+                      style={{
+                        backgroundColor: "rgba(127, 127, 127, 0.25)",
+                      }}
+                    >
+                      <X size={14} />
+                    </span>
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
                 </div>
               }
             >
@@ -109,11 +130,12 @@ const CategoryFormStep = withForm({
           onOpenChange={setOpen}
           categories={allCategories}
           selectedId={categoryId}
-          includeNoneOption
           onSelect={(c) => {
+            // includeNoneOption is not set here, so c.id is always a real
+            // category id — clearing is done via the X button on the cell.
             form.setFieldValue("userTouchedCategory", true);
             form.setFieldValue("autoPicked", false);
-            form.setFieldValue("categoryId", c.id === "none" ? null : c.id);
+            form.setFieldValue("categoryId", c.id);
             setOpen(false);
           }}
         />

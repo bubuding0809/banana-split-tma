@@ -56,7 +56,7 @@ export default function CategoryPickerSheet({
       <div className="max-h-[70vh] space-y-5 overflow-y-auto p-4">
         {includeNoneOption && (
           <section>
-            <SectionHeader>Clear</SectionHeader>
+            <SectionHeader>Uncategorized</SectionHeader>
             <div className="grid grid-cols-4 gap-2">
               <CategoryTile
                 emoji={UNCATEGORIZED_OPTION.emoji}
