@@ -253,8 +253,9 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
       {
         onSuccess: () =>
           navigate({
-            to: "/chat/$chatId/settings/categories",
+            to: "/chat/$chatId/settings",
             params: { chatId: String(chatId) },
+            search: { prevTab: "transaction" },
           }),
       }
     );
@@ -446,9 +447,13 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     backButton.show();
     const off = backButton.onClick(() => {
       if (isDirtyRef.current && !window.confirm("Discard changes?")) return;
+      // Return to main Settings, not Manage Categories — the Customize
+      // picker entry lives on the main Settings card now, so that's the
+      // natural "up" navigation.
       navigate({
-        to: "/chat/$chatId/settings/categories",
+        to: "/chat/$chatId/settings",
         params: { chatId: String(chatId) },
+        search: { prevTab: "transaction" },
       });
     });
     return () => {

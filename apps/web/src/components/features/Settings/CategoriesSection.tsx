@@ -2,6 +2,7 @@ import { Cell, Section } from "@telegram-apps/telegram-ui";
 import { Tag, ChevronRight, Sliders } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { trpc } from "@/utils/trpc";
+import CategoryTile from "@/components/features/Category/CategoryTile";
 
 const PREVIEW_ROWS = 2;
 const PREVIEW_COLS = 4;
@@ -104,34 +105,26 @@ export default function CategoriesSection({
           Customize picker
         </Cell>
         <div
-          className="px-3 pb-3 pt-1"
+          className="px-3 pb-3 pt-2"
           style={{
             borderTop: "0.5px solid var(--tg-theme-section-separator-color)",
           }}
         >
-          <div className="grid grid-cols-4 gap-1">
+          {/* Preview tiles reuse CategoryTile directly so emoji + label
+              sizing is 1:1 with the real picker — no visual drift between
+              the preview and the modal it's previewing. */}
+          <div className="grid grid-cols-4 gap-2">
             {previewTiles.map((c) => (
-              <span
+              <CategoryTile
                 key={c.id}
+                emoji={c.emoji}
                 title={c.title}
-                className="relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md"
-                style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
-              >
-                {c.kind === "custom" && (
-                  <span
-                    aria-hidden
-                    className="absolute left-1 top-1 h-1 w-1 rounded-full bg-[var(--tg-theme-button-color)]"
-                  />
-                )}
-                <span className="text-base leading-none">{c.emoji}</span>
-                <span className="block w-full truncate px-0.5 text-center text-[9px] font-medium leading-tight text-[var(--tg-theme-text-color)]">
-                  {c.title}
-                </span>
-              </span>
+                showCustomDot={c.kind === "custom"}
+              />
             ))}
           </div>
           {overflowLine ? (
-            <div className="pt-2 text-center text-[10px] text-[var(--tg-theme-subtitle-text-color)]">
+            <div className="pt-2 text-center text-[11px] text-[var(--tg-theme-subtitle-text-color)]">
               {overflowLine}
             </div>
           ) : null}
