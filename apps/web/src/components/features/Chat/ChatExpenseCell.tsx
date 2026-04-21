@@ -20,7 +20,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { getAnimalAvatarEmoji } from "@/utils/emoji";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import {
   formatExpenseDateShort,
@@ -94,11 +93,6 @@ const ChatExpenseCell = ({
     });
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
-  // Reused by ChatMemberAvatar inside the payer mini-badge. Keeps the cache
-  // hot — if the avatar is in the DOM too, this is essentially free.
-  const { data: payerPhotoUrl } = trpc.telegram.getUserProfilePhotoUrl.useQuery(
-    { userId: payerId }
-  );
 
   //* Mutations ====================================================================================
   const deleteExpenseMutation = trpc.expense.deleteExpense.useMutation({
@@ -287,29 +281,18 @@ const ChatExpenseCell = ({
                 {categoryEmoji}
               </div>
               <div
-                className="absolute -bottom-1 -right-1 flex h-[26px] w-[26px] items-center justify-center rounded-full"
+                className="absolute -bottom-1 -right-1 rounded-full p-[2px]"
                 style={{
-                  // Outer ring "punches" the badge out of the tile it
-                  // overlaps — same color as the row bg.
+                  // Outer ring cuts the badge out of the tile it overlaps
+                  // (matches row bg for a clean punch-out).
                   boxShadow: "0 0 0 2px var(--tg-theme-section-bg-color)",
-                  // A visibly lighter bg gives the avatar its own
-                  // circular frame. Combined with 2px padding below, a
-                  // rim of this color shows around the inner photo.
+                  // Lighter fill gives the avatar its own circular frame —
+                  // with padding below, a rim of this colour shows around
+                  // the inner photo.
                   backgroundColor: "rgba(255,255,255,0.18)",
-                  padding: "2px",
                 }}
               >
-                {payerPhotoUrl ? (
-                  <img
-                    src={payerPhotoUrl}
-                    alt=""
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-[13px] leading-none">
-                    {getAnimalAvatarEmoji(payerId.toString())}
-                  </span>
-                )}
+                <ChatMemberAvatar userId={payerId} size={24} />
               </div>
             </div>
           ) : (
