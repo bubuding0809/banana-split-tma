@@ -1,7 +1,7 @@
 import { BASE_CATEGORIES } from "./base.js";
 
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const BASE_KEY_SET: ReadonlySet<string> = new Set(
   BASE_CATEGORIES.map((c) => c.id)

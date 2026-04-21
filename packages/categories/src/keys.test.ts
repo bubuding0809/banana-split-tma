@@ -23,6 +23,15 @@ describe("category keys", () => {
     expect(isCustomKey(sampleBaseId)).toBe(false);
   });
 
+  it("isCustomKey rejects uppercase UUIDs (Prisma emits lowercase)", () => {
+    expect(isCustomKey("chat:FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")).toBe(
+      false
+    );
+    expect(isCustomKey("chat:11111111-AAAA-BBBB-CCCC-DDDDDDDDDDDD")).toBe(
+      false
+    );
+  });
+
   it("parseCustomKey returns the uuid or null", () => {
     expect(parseCustomKey("chat:11111111-1111-1111-1111-111111111111")).toBe(
       "11111111-1111-1111-1111-111111111111"
