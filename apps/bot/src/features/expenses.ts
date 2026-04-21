@@ -384,15 +384,15 @@ expensesFeature.on("message:text", async (ctx, next) => {
     const escapedCurrency = escapeMarkdownV2(currency);
     const formattedAmount = escapeMarkdownV2(parsed.amount.toFixed(2));
 
-    // Category + date sit inside the description blockquote so the
-    // user can verify everything the bot picked up from their message.
-    // Style mirrors the group notification (see formatExpenseMessage)
-    // minus the shares block. Category is optional — if classification
-    // failed we just skip that row.
+    // Amount + category + date sit inside the description blockquote so
+    // the user can verify everything the bot picked up from their
+    // message. Style mirrors the group notification (see
+    // formatExpenseMessage) minus the shares block. Category is
+    // optional — if classification failed we skip that row.
     let categoryLine = "";
     const resolved = resolveCategory(categoryId, chatRows);
     if (resolved) {
-      categoryLine = `\n> 🏷 ${resolved.emoji} ${escapeMarkdownV2(resolved.title)}`;
+      categoryLine = `\n> 🏷 • ${resolved.emoji} ${escapeMarkdownV2(resolved.title)}`;
     }
     const dateLabel = escapeMarkdownV2(formatDateLabel(expenseDate));
 

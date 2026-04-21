@@ -446,6 +446,7 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
+              expenseDate: input.date ?? new Date(),
               categoryEmoji,
               categoryTitle,
               threadId:

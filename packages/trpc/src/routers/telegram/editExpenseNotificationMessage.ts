@@ -22,6 +22,7 @@ interface EditExpenseMessageInput {
   totalAmount: number;
   participants: ExpenseParticipant[];
   currency: string;
+  expenseDate: Date;
   categoryEmoji?: string;
   categoryTitle?: string;
   threadId?: number;
@@ -51,6 +52,7 @@ export const editExpenseMessageHandler = async (
       input.totalAmount,
       input.participants,
       input.currency,
+      input.expenseDate,
       input.categoryEmoji,
       input.categoryTitle
     );
