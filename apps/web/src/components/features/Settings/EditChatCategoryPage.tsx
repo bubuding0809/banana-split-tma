@@ -180,6 +180,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
               "--epr-highlight-color": "var(--tg-theme-button-color)",
               "--epr-category-icon-active-color":
                 "var(--tg-theme-button-color)",
+              // Category tab icons + section labels — the package's dark
+              // theme defaults blend into a dark sheet, hiding the nav
+              // tabs entirely. Pull them back to the hint color so both
+              // the icon row and the "Smileys & People" headers render.
+              "--epr-category-navigation-button-color":
+                "var(--tg-theme-hint-color)",
+              "--epr-category-label-text-color": "var(--tg-theme-hint-color)",
             } as React.CSSProperties
           }
         >
