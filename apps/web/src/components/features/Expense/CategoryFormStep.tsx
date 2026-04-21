@@ -56,10 +56,14 @@ const CategoryFormStep = withForm({
     const latestRequestRef = useRef(0);
 
     // Debounced auto-suggest on description change (300ms). Only fires while the
-    // user hasn't manually picked.
+    // user hasn't manually picked and nothing is already set. The `categoryId`
+    // guard matters because CategoryFormStep unmounts when the user navigates to
+    // the next form step — on remount `userTouchedRef` resets, so without this
+    // guard we'd re-suggest and potentially overwrite a prior auto-pick.
     useEffect(() => {
       if (disableAutoAssign) return;
       if (userTouchedRef.current) return;
+      if (categoryId) return;
       if (!description || description.trim().length < 3) return;
       const handle = setTimeout(() => {
         if (userTouchedRef.current) return;
@@ -83,7 +87,7 @@ const CategoryFormStep = withForm({
       // every render would double-fire. The effect depends only on the description
       // and chatId changing.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [description, chatId, disableAutoAssign]);
+    }, [description, chatId, disableAutoAssign, categoryId]);
 
     const footer = suggestMutation.isPending
       ? "Cooking up a category…"
