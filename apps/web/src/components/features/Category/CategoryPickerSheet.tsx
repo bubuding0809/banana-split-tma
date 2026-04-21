@@ -133,14 +133,14 @@ export default function CategoryPickerSheet({
           </section>
         )}
 
-        {/* Reorder / hide entry — outline button below the grid.
-            Distinct from tiles (outline, not filled) so it reads as a
-            modal-footer action, not a category choice. */}
+        {/* Reorder / hide entry — plain text button below the grid.
+            No border / background; sits as a quiet link-style action
+            under the main picker surface. */}
         {onOpenOrganize && categories.length > 0 && (
           <button
             type="button"
             onClick={onOpenOrganize}
-            className="border-[var(--tg-theme-link-color)]/35 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-opacity duration-150 ease-out active:opacity-60"
           >
             <Sliders size={15} strokeWidth={2.25} />
             Reorder or hide categories
