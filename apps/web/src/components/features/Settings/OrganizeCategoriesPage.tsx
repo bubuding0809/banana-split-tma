@@ -95,23 +95,23 @@ function IdleEmptyLabel({ text }: { text: string }) {
 /**
  * Rendered inside the target zone while dragging. Shows a ghost of the
  * dragged tile where it will land (append to end of zone on empty-area
- * drop). Color matches the zone's target-ring — green in the Visible
- * zone, white in the Hidden zone.
+ * drop). Color matches the zone's own tone — green in the Visible zone
+ * ("bring it back / in use"), amber in the Hidden zone ("park it").
  */
 function DropPlaceholder({
   emoji,
   tone,
 }: {
   emoji: string;
-  tone: "white" | "green";
+  tone: "amber" | "green";
 }) {
   return (
     <div
       className={clsx(
         "relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-1 py-2",
         tone === "green"
-          ? "bg-[#22c55e]/8 border-[#22c55e]/70"
-          : "border-white/70 bg-white/5"
+          ? "border-[#22c55e]/70 bg-[#22c55e]/10"
+          : "border-[#f59e0b]/70 bg-[#f59e0b]/10"
       )}
     >
       <span className="flex h-10 items-center text-3xl leading-none opacity-40 grayscale">
@@ -485,9 +485,9 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
               {visible.length} / {items.length}
             </span>
           </div>
-          {/* Visible zone is a target when the drag SOURCE is in Hidden
-              (i.e., the user is un-hiding a tile). Green ring signals the
-              positive "bring it back into the picker" action. */}
+          {/* Visible zone is themed green ("in use"). Idle state has a
+              subtle green tint; when it's the cross-zone target the ring
+              brightens; when the cursor is over it, fills + scales up. */}
           <SortableContext
             items={visible.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
@@ -495,7 +495,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_VISIBLE_ID}
               isTargetZone={activeItem?.hidden === true}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#22c55e]/15 bg-[#22c55e]/[0.04] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
               targetClassName="border-[#22c55e]/70"
               overClassName="scale-[1.02] border-[#22c55e] bg-[#22c55e]/10 shadow-[0_0_0_3px_rgba(34,197,94,0.25)]"
             >
@@ -516,41 +516,16 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
           </SortableContext>
         </section>
 
-        {/* Legend sits between the two zones — doubles as a divider and a
-            compact "how this works" cheat sheet. Accent-tinted so it
-            reads as part of the TMA theme, not page chrome. */}
-        <div
-          className="-my-1 mx-1 flex items-center justify-center gap-3 rounded-xl border px-3 py-2.5 text-[11.5px] font-medium"
-          style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--tg-theme-button-color) 10%, transparent)",
-            borderColor:
-              "color-mix(in srgb, var(--tg-theme-button-color) 25%, transparent)",
-            color: "var(--tg-theme-text-color)",
-          }}
-        >
+        {/* Inline instructions between the zones. No container, no border —
+            reads as margin-note guidance, not a tappable element.
+            Accent-colored icons add life without implying interactivity. */}
+        <div className="flex items-center justify-center gap-6 py-1 text-[13px] italic text-[var(--tg-theme-hint-color)]">
           <span className="flex items-center gap-1.5">
-            <Move
-              size={14}
-              strokeWidth={2.25}
-              style={{ color: "var(--tg-theme-button-color)" }}
-            />
+            <Move size={14} strokeWidth={2.25} style={{ color: "#22c55e" }} />
             Drag to move
           </span>
-          <span
-            aria-hidden
-            className="h-4 w-px"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--tg-theme-button-color) 30%, transparent)",
-            }}
-          />
           <span className="flex items-center gap-1.5">
-            <Eye
-              size={14}
-              strokeWidth={2.25}
-              style={{ color: "var(--tg-theme-button-color)" }}
-            />
+            <Eye size={14} strokeWidth={2.25} style={{ color: "#f59e0b" }} />
             Tap eye to hide / show
           </span>
         </div>
@@ -560,8 +535,9 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <span>Hidden</span>
             <span>{hidden.length} hidden</span>
           </div>
-          {/* Hidden zone is a target when the drag SOURCE is in Visible.
-              White ring matches the existing neutral border at rest. */}
+          {/* Hidden zone is themed amber ("parked"). Same idle→target→over
+              escalation as Visible but in amber to distinguish the two
+              zones by color at rest, not only during drag. */}
           <SortableContext
             items={hidden.map((v) => v.categoryKey)}
             strategy={rectSortingStrategy}
@@ -569,9 +545,9 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_HIDDEN_ID}
               isTargetZone={activeItem?.hidden === false}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
-              targetClassName="border-white/70"
-              overClassName="scale-[1.02] border-white bg-white/8 shadow-[0_0_0_3px_rgba(255,255,255,0.25)]"
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#f59e0b]/15 bg-[#f59e0b]/[0.04] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+              targetClassName="border-[#f59e0b]/70"
+              overClassName="scale-[1.02] border-[#f59e0b] bg-[#f59e0b]/10 shadow-[0_0_0_3px_rgba(245,158,11,0.25)]"
             >
               {hidden.map((it) => (
                 <SortableTile
@@ -581,7 +557,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
                 />
               ))}
               {activeItem?.hidden === false && (
-                <DropPlaceholder emoji={activeItem.emoji} tone="white" />
+                <DropPlaceholder emoji={activeItem.emoji} tone="amber" />
               )}
               {hidden.length === 0 && activeItem?.hidden !== false && (
                 <IdleEmptyLabel text="Drag a tile here (or tap its eye) to hide it from the picker." />
