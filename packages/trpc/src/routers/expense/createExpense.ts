@@ -409,6 +409,29 @@ export const createExpenseHandler = async (
             };
           });
 
+          // Resolve category to emoji + title so the notification can
+          // surface it alongside the expense. Base categories are
+          // static; chat categories need one extra lookup.
+          let categoryEmoji: string | undefined;
+          let categoryTitle: string | undefined;
+          if (input.categoryId?.startsWith("base:")) {
+            const base = BASE_CATEGORIES.find((c) => c.id === input.categoryId);
+            if (base) {
+              categoryEmoji = base.emoji;
+              categoryTitle = base.title;
+            }
+          } else if (input.categoryId?.startsWith("chat:")) {
+            const uuid = input.categoryId.slice("chat:".length);
+            const row = await db.chatCategory.findFirst({
+              where: { id: uuid, chatId: input.chatId },
+              select: { emoji: true, title: true },
+            });
+            if (row) {
+              categoryEmoji = row.emoji;
+              categoryTitle = row.title;
+            }
+          }
+
           // Send expense notification (handler gates on chat.notifyOnExpense)
           const messageId = await sendExpenseNotificationMessageHandler(
             {
@@ -423,6 +446,8 @@ export const createExpenseHandler = async (
               totalAmount: input.amount,
               participants: participantsWithAmounts,
               currency: currency,
+              categoryEmoji,
+              categoryTitle,
               threadId:
                 input.threadId ??
                 (chatForNotification?.threadId

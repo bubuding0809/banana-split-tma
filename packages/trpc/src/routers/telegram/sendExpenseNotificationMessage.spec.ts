@@ -77,4 +77,33 @@ describe("sendExpenseNotificationMessage gating", () => {
     expect(mockDb.chat.findUnique).not.toHaveBeenCalled();
     expect(mockTeleBot.sendMessage).toHaveBeenCalledOnce();
   });
+
+  it("includes a category row when emoji + title are provided", async () => {
+    await sendExpenseNotificationMessageHandler(
+      {
+        ...baseInput,
+        categoryEmoji: "🍜",
+        categoryTitle: "Food",
+        force: true,
+      },
+      mockDb,
+      mockTeleBot as any
+    );
+    const call = mockTeleBot.sendMessage.mock.calls[0];
+    if (!call) throw new Error("sendMessage was not called");
+    const message = call[1];
+    expect(message).toContain("🏷 🍜 Food");
+  });
+
+  it("skips the category row when emoji or title is missing", async () => {
+    await sendExpenseNotificationMessageHandler(
+      { ...baseInput, categoryEmoji: "🍜", force: true },
+      mockDb,
+      mockTeleBot as any
+    );
+    const call = mockTeleBot.sendMessage.mock.calls[0];
+    if (!call) throw new Error("sendMessage was not called");
+    const message = call[1];
+    expect(message).not.toContain("🏷");
+  });
 });
