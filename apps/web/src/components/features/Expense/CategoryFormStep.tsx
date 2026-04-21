@@ -1,4 +1,4 @@
-import { Cell, Section } from "@telegram-apps/telegram-ui";
+import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/utils/trpc";
@@ -93,41 +93,46 @@ const CategoryFormStep = withForm({
 
     return (
       <>
-        <Section header="Category" footer={footer}>
-          <Cell
-            Component="button"
-            onClick={() => setOpen(true)}
-            before={
-              resolved ? (
-                <span className="text-xl leading-none">{resolved.emoji}</span>
-              ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)] text-[var(--tg-theme-link-color)]">
-                  <Plus size={16} />
-                </span>
-              )
-            }
-            after={
-              <div className="flex items-center gap-2">
-                {suggestMutation.isPending ? (
-                  <SparkleBadge pending />
-                ) : autoPicked && categoryId ? (
-                  <SparkleBadge />
-                ) : null}
-                <ChevronRight size={16} />
-              </div>
-            }
-          >
-            <span
-              style={{
-                color: resolved
-                  ? "var(--tg-theme-text-color)"
-                  : "var(--tg-theme-link-color)",
-              }}
+        <div className="flex flex-col gap-2">
+          <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
+            <Subheadline weight="2">Category</Subheadline>
+          </label>
+          <Section footer={footer}>
+            <Cell
+              Component="button"
+              onClick={() => setOpen(true)}
+              before={
+                resolved ? (
+                  <span className="text-xl leading-none">{resolved.emoji}</span>
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)] text-[var(--tg-theme-link-color)]">
+                    <Plus size={16} />
+                  </span>
+                )
+              }
+              after={
+                <div className="flex items-center gap-2">
+                  {suggestMutation.isPending ? (
+                    <SparkleBadge pending />
+                  ) : autoPicked && categoryId ? (
+                    <SparkleBadge />
+                  ) : null}
+                  <ChevronRight size={16} />
+                </div>
+              }
             >
-              {resolved?.title ?? "Pick a category"}
-            </span>
-          </Cell>
-        </Section>
+              <span
+                style={{
+                  color: resolved
+                    ? "var(--tg-theme-text-color)"
+                    : "var(--tg-theme-link-color)",
+                }}
+              >
+                {resolved?.title ?? "Pick a category"}
+              </span>
+            </Cell>
+          </Section>
+        </div>
 
         <CategoryPickerSheet
           open={open}
