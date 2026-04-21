@@ -135,16 +135,20 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     return counts;
   }, [allExpensesForCounts]);
 
-  // Visible categories always appear in the filter strip. Hidden ones
-  // only appear if they still have tagged expenses — otherwise a user
-  // can't filter to their existing history after hiding a category.
-  // Hidden-and-empty categories stay off the strip to avoid clutter.
+  // Only render a chip if the category has at least one tagged expense,
+  // OR the user already has it selected (so deselect stays reachable
+  // after the last expense under it gets deleted). Empty + unselected
+  // chips are pure noise — no way to match anything if you tap them.
+  const selectedFilterSet = useMemo(
+    () => new Set(categoryFilters),
+    [categoryFilters]
+  );
   const allCategories = useMemo(
     () =>
       (categoriesData?.items ?? []).filter(
-        (c) => !c.hidden || (categoryCounts[c.id] ?? 0) > 0
+        (c) => (categoryCounts[c.id] ?? 0) > 0 || selectedFilterSet.has(c.id)
       ),
-    [categoriesData, categoryCounts]
+    [categoriesData, categoryCounts, selectedFilterSet]
   );
 
   const chatRows = useMemo<ChatCategoryRow[]>(
