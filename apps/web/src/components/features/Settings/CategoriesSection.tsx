@@ -1,7 +1,11 @@
 import { Cell, Section } from "@telegram-apps/telegram-ui";
-import { Tag, ChevronRight } from "lucide-react";
+import { Tag, ChevronRight, Sliders } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { trpc } from "@/utils/trpc";
+
+const PREVIEW_ROWS = 2;
+const PREVIEW_COLS = 4;
+const PREVIEW_COUNT = PREVIEW_ROWS * PREVIEW_COLS;
 
 export default function CategoriesSection({
   chatId,
@@ -13,14 +17,29 @@ export default function CategoriesSection({
   const { data } = trpc.category.listByChat.useQuery({ chatId });
   const items = data?.items ?? [];
   const visible = items.filter((c) => !c.hidden);
+  const hiddenCount = items.length - visible.length;
   const custom = visible.filter((c) => c.kind === "custom");
   const total = visible.length;
 
-  // Emoji-only chips — render every visible category in a horizontal scroll
-  // strip in the saved picker order. Hidden tiles (set via Organize) are
-  // filtered out; no custom-first bias any more — the user's reorder choice
-  // reflects here verbatim.
-  const allCats = visible;
+  // 4×2 preview mirrors the actual picker layout (emoji + truncated label +
+  // blue dot for custom tiles). The number of rows is kept low so the
+  // settings card stays compact — overflow is summarized as a single line.
+  const previewTiles = visible.slice(0, PREVIEW_COUNT);
+  const overflowCount = Math.max(0, visible.length - PREVIEW_COUNT);
+
+  const customizeDescription =
+    hiddenCount > 0
+      ? `Reorder or hide · ${hiddenCount} hidden`
+      : "Drag to reorder or hide tiles";
+
+  const overflowLine =
+    overflowCount > 0 && hiddenCount > 0
+      ? `+ ${overflowCount} more · ${hiddenCount} hidden`
+      : overflowCount > 0
+        ? `+ ${overflowCount} more`
+        : hiddenCount > 0
+          ? `${hiddenCount} hidden`
+          : null;
 
   return (
     <Section
@@ -28,12 +47,10 @@ export default function CategoriesSection({
       footer={
         isPersonal
           ? "Categories are private to this chat."
-          : "Categories are shared by everyone in this group."
+          : "Shared by everyone in this group."
       }
     >
-      {/* Nav via <Link> wrapping the Cell (Component="label"): matches
-          SnapshotsLink, the tested-working pattern in this codebase. Using
-          Cell's own onClick didn't reliably fire in the settings screen. */}
+      {/* Manage categories: unchanged CRUD entry. */}
       <Link
         to="/chat/$chatId/settings/categories"
         params={{ chatId: String(chatId) }}
@@ -62,28 +79,62 @@ export default function CategoriesSection({
         </Cell>
       </Link>
 
-      {/* Emoji-only chip strip — also wrapped in a Link so the whole row is
-          tappable + navigates to the same manage page. */}
+      {/* Customize picker — new Organize entry. Wrapped with the preview
+          grid so tapping anywhere in the preview also opens Organize. */}
       <Link
-        to="/chat/$chatId/settings/categories"
+        to="/chat/$chatId/settings/categories/organize"
         params={{ chatId: String(chatId) }}
       >
+        <Cell
+          Component="label"
+          before={
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
+              }}
+            >
+              <Sliders size={20} />
+            </span>
+          }
+          after={<ChevronRight size={20} />}
+          description={customizeDescription}
+        >
+          Customize picker
+        </Cell>
         <div
-          className="flex cursor-pointer gap-1.5 overflow-x-auto px-4 pb-3 pt-2.5"
+          className="px-3 pb-3 pt-1"
           style={{
             borderTop: "0.5px solid var(--tg-theme-section-separator-color)",
           }}
         >
-          {allCats.map((c) => (
-            <span
-              key={c.id}
-              title={c.title}
-              className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-base leading-none"
-              style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
-            >
-              {c.emoji}
-            </span>
-          ))}
+          <div className="grid grid-cols-4 gap-1">
+            {previewTiles.map((c) => (
+              <span
+                key={c.id}
+                title={c.title}
+                className="relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md"
+                style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
+              >
+                {c.kind === "custom" && (
+                  <span
+                    aria-hidden
+                    className="absolute left-1 top-1 h-1 w-1 rounded-full bg-[var(--tg-theme-button-color)]"
+                  />
+                )}
+                <span className="text-base leading-none">{c.emoji}</span>
+                <span className="block w-full truncate px-0.5 text-center text-[9px] font-medium leading-tight text-[var(--tg-theme-text-color)]">
+                  {c.title}
+                </span>
+              </span>
+            ))}
+          </div>
+          {overflowLine ? (
+            <div className="pt-2 text-center text-[10px] text-[var(--tg-theme-subtitle-text-color)]">
+              {overflowLine}
+            </div>
+          ) : null}
         </div>
       </Link>
     </Section>

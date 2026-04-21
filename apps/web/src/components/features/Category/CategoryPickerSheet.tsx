@@ -1,5 +1,5 @@
 import { Modal } from "@telegram-apps/telegram-ui";
-import { Plus } from "lucide-react";
+import { Plus, Sliders } from "lucide-react";
 import CategoryTile from "./CategoryTile";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -111,6 +111,19 @@ export default function CategoryPickerSheet({
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--tg-theme-section-bg-color)] py-3 text-sm font-medium"
           >
             <Plus size={16} /> Create custom category
+          </button>
+        )}
+
+        {/* In-picker contextual entry to the Organize page. Shown always when
+            the caller wires onOpenOrganize — lets the user discover the
+            customization flow at the exact moment they'd want it. */}
+        {onOpenOrganize && categories.length > 0 && (
+          <button
+            type="button"
+            onClick={onOpenOrganize}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)]"
+          >
+            <Sliders size={14} /> Reorder or hide these tiles
           </button>
         )}
       </div>
