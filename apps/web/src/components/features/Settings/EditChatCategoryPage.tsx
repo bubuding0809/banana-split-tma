@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
+  Caption,
   Input,
   Section,
   Snackbar,
@@ -43,6 +44,11 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const [emoji, setEmoji] = useState(existing?.emoji ?? "🏷️");
   const [title, setTitle] = useState(existing?.title ?? "");
   const [error, setError] = useState<string | null>(null);
+
+  // Track whether the user has interacted with the name field so we
+  // don't flash an error on a fresh form. Fires on blur or first keystroke.
+  const [nameTouched, setNameTouched] = useState(false);
+  const showNameError = nameTouched && title.trim().length === 0;
 
   // True once the user has manually picked an emoji from the picker in
   // *this* session. Stops auto-suggest from overwriting their explicit
@@ -250,9 +256,24 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
             placeholder="e.g. Bali Trip"
             value={title}
             maxLength={TITLE_MAX_LENGTH}
-            onChange={(e) => setTitle(e.target.value)}
+            status={showNameError ? "error" : "default"}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (!nameTouched) setNameTouched(true);
+            }}
+            onBlur={() => setNameTouched(true)}
           />
         </Section>
+        {showNameError && (
+          <Caption
+            className="px-3"
+            style={{
+              color: "var(--tg-theme-destructive-text-color)",
+            }}
+          >
+            Name is required
+          </Caption>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
