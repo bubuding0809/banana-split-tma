@@ -172,7 +172,9 @@ export default function CategoryFilterStrip({
                   aria-hidden
                   className="pointer-events-none absolute -bottom-0.5 -right-1 origin-bottom-right scale-[0.8]"
                 >
-                  <Badge type="number">{formatCount(count)}</Badge>
+                  <Badge type="number" mode="secondary">
+                    {formatCount(count)}
+                  </Badge>
                 </div>
               );
             })()}
