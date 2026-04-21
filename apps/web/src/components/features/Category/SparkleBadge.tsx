@@ -1,4 +1,4 @@
-import { Sparkles, ChefHat } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 interface SparkleBadgeProps {
   label?: string;
@@ -20,11 +20,14 @@ export default function SparkleBadge({
   if (pending) {
     return (
       <span
-        className={`${baseClass} h-5 w-5 justify-center`}
+        className={`${baseClass} h-5 w-5 animate-pulse justify-center`}
         style={style}
-        aria-label="Cooking up a category"
+        aria-label="Suggesting a category"
       >
-        <ChefHat size={12} className="animate-bounce" />
+        <Sparkles
+          size={12}
+          className="[filter:drop-shadow(0_0_4px_rgba(167,139,250,0.8))]"
+        />
       </span>
     );
   }
