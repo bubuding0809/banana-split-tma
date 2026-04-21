@@ -28,10 +28,10 @@ export default function CategoryTile({
         selected && "ring-2 ring-[var(--tg-theme-button-color)]"
       )}
     >
-      <span className="flex h-8 items-center text-2xl leading-none">
+      <span className="flex h-10 items-center text-3xl leading-none">
         {emoji}
       </span>
-      <span className="line-clamp-2 text-center text-xs leading-tight">
+      <span className="line-clamp-2 text-center text-sm leading-tight">
         {title}
       </span>
     </button>
