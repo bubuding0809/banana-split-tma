@@ -9,6 +9,11 @@ concurrency:
 
 env:
   FORCE_COLOR: 3
+  # Turbo Remote Cache — shared with local dev via Vercel. Any machine
+  # running turbo with these creds reads from and writes to the same
+  # cache, so unchanged packages skip build/lint/typecheck/test compile.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
 jobs:
   lockfile-sync:
