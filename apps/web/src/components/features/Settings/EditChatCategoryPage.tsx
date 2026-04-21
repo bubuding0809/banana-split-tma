@@ -179,18 +179,26 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     <main className="flex flex-col gap-4 px-3 pb-8">
       {/* Preview — emoji in a tinted panel over the category name. While
           the classifier is mid-flight, swap the emoji for a spinning
-          LoaderPinwheel (same shadcn-style spinner used in the expense-form
-          pending indicator) so the inference signal lives directly in the
-          preview instead of off to the side. */}
+          LoaderPinwheel with the violet sparkle treatment (matches the
+          SparkleBadge pending pill on the expense-form category cell so
+          the "AI is working" signal reads the same across screens). */}
       <div className="flex flex-col items-center gap-2.5 py-6">
         <div
           className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl text-[40px]"
-          style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
+          style={
+            suggestEmojiMut.isPending
+              ? {
+                  background:
+                    "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
+                }
+              : { backgroundColor: "rgba(127, 127, 127, 0.28)" }
+          }
         >
           {suggestEmojiMut.isPending ? (
             <LoaderPinwheel
               size={32}
-              className="animate-spin text-[var(--tg-theme-hint-color)]"
+              className="animate-spin"
+              style={{ color: "rgb(139, 92, 246)" }}
             />
           ) : (
             emoji
