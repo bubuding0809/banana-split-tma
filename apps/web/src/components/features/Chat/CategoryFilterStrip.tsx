@@ -156,11 +156,13 @@ export default function CategoryFilterStrip({
               style={
                 selected
                   ? {
-                      // Gray tint + link-color ring + link-color halo. On dark
-                      // Telegram themes a black drop shadow disappears into the
-                      // background, so the "lift" effect is delivered via a
-                      // colored glow instead of a neutral shadow.
-                      backgroundColor: "rgba(255,255,255,0.08)",
+                      // Link-color-tinted fill + ring + halo. Tinting the fill
+                      // with the theme link colour (instead of a white/black
+                      // rgba) means the selected state stays visible on both
+                      // light and dark Telegram themes — rgba(255,255,255) was
+                      // invisible on light-mode backgrounds.
+                      backgroundColor:
+                        "color-mix(in srgb, var(--tg-theme-link-color) 14%, transparent)",
                       boxShadow: [
                         "0 0 0 1.5px var(--tg-theme-link-color)",
                         "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",

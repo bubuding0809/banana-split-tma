@@ -19,6 +19,7 @@ export interface TransactionFiltersCellProps {
   sortBy: SortByOption;
   sortOrder: SortOrderOption;
   onOpenModal: () => void;
+  selectedCategories: { id: string; emoji: string; title: string }[];
 }
 
 export default function TransactionFiltersCell({
@@ -27,6 +28,7 @@ export default function TransactionFiltersCell({
   sortBy,
   sortOrder,
   onOpenModal,
+  selectedCategories,
 }: TransactionFiltersCellProps) {
   const tSecondaryBackgroundColor = useSignal(
     themeParams.secondaryBackgroundColor
@@ -34,6 +36,38 @@ export default function TransactionFiltersCell({
 
   type Pill = { key: string; node: React.ReactNode };
   const activePills: Pill[] = [];
+
+  // Category pill — emojis-only summary of active category filters.
+  // Shows up to 3 emojis inline, then "+N" for any remaining so the
+  // pill stays compact even with many filters selected.
+  if (selectedCategories.length > 0) {
+    const MAX_INLINE = 3;
+    const shown = selectedCategories.slice(0, MAX_INLINE);
+    const remaining = selectedCategories.length - shown.length;
+    activePills.push({
+      key: "categories",
+      node: (
+        <div
+          className="flex items-center gap-1 rounded-full px-2.5 py-1.5"
+          style={{ backgroundColor: tSecondaryBackgroundColor }}
+          aria-label={`${selectedCategories.length} category filter${
+            selectedCategories.length === 1 ? "" : "s"
+          } active`}
+        >
+          {shown.map((c) => (
+            <span key={c.id} className="text-[14px] leading-none" aria-hidden>
+              {c.emoji}
+            </span>
+          ))}
+          {remaining > 0 && (
+            <Caption weight="2" level="2">
+              +{remaining}
+            </Caption>
+          )}
+        </div>
+      ),
+    });
+  }
 
   if (showPayments) {
     activePills.push({
