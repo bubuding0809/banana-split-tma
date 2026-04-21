@@ -1,5 +1,6 @@
 import { Badge } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
+import { FilterX } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
 interface FilterCategory {
@@ -205,10 +206,10 @@ export default function CategoryFilterStrip({
           aria-label={`Clear ${selectedIds.length} category filter${
             selectedIds.length === 1 ? "" : "s"
           }`}
-          className="duration-280 flex h-9 shrink-0 items-center rounded-[10px] px-2.5 text-sm font-medium transition-[transform] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+          className="duration-280 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-[transform] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
           style={{ color: "var(--tg-theme-link-color)" }}
         >
-          Clear
+          <FilterX size={18} />
         </button>
       )}
     </div>
