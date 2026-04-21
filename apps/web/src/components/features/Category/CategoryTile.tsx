@@ -84,6 +84,7 @@ export default function CategoryTile({
           onPointerDown={(e) => e.stopPropagation()}
           className={clsx(
             "absolute -right-1.5 -top-1.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-black/25 shadow-[0_1px_3px_rgba(0,0,0,0.5)]",
+            "transition-transform duration-100 ease-out active:scale-[0.9]",
             hideToggle === "visible"
               ? "bg-[#3a3d42] text-[var(--tg-theme-text-color)]"
               : "bg-[var(--tg-theme-button-color)] text-white"

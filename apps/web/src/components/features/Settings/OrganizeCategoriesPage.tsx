@@ -119,9 +119,13 @@ function SortableTile({
 
   // While the source tile is being dragged, fade it down to a placeholder
   // outline — the real visual follows the cursor via the DragOverlay below.
+  // Append our own opacity transition to dnd-kit's transform-only one so the
+  // fade is visually continuous with the overlay hand-off.
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: [transition, "opacity 160ms cubic-bezier(0.23,1,0.32,1)"]
+      .filter(Boolean)
+      .join(", "),
     opacity: isDragging ? 0.3 : 1,
   };
 
@@ -471,7 +475,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_VISIBLE_ID}
               isDragActive={activeId !== null}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-all duration-150"
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
               hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
               activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
             >
@@ -506,7 +510,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_HIDDEN_ID}
               isDragActive={activeId !== null}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-all duration-150"
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
               hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
               activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
             >
