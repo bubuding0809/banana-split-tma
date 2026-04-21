@@ -121,12 +121,14 @@ export default function CategoryFilterStrip({
             {(() => {
               const count = counts?.[c.id] ?? 0;
               if (count === 0) return null;
-              // Badge sits slightly overlapped with the tile (-0.5) so it
-              // reads as attached rather than floating off the corner.
+              // Badge sits slightly overlapped with the tile (-0.5) and
+              // is scaled down from its library default so it doesn't
+              // dominate the 36px tile. Origin anchored to bottom-right
+              // so the scale doesn't push it off-corner.
               return (
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute -bottom-0.5 -right-0.5"
+                  className="pointer-events-none absolute -bottom-0.5 -right-0.5 origin-bottom-right scale-[0.8]"
                 >
                   <Badge type="number">{formatCount(count)}</Badge>
                 </div>
