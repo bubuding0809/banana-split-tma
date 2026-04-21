@@ -67,16 +67,23 @@ export default function CategoryFilterStrip({
     [categories]
   );
 
-  // Selected chips float to the start. Relative order inside each group
-  // follows the natural source order (picker ordering + Uncategorized last),
-  // not selection recency — predictable and avoids chips jumping around
-  // as the user toggles neighbours.
+  // Selected chips float to the start so active filters stay visible.
+  // Within each group (selected / unselected) chips sort by expense count
+  // descending — most-used first, zero-count (including Uncategorized if
+  // empty) last. Using the count as the sort key means users glance left
+  // to see what they actually reach for.
   const displayOrder = useMemo(() => {
     const selectedSet = new Set(selectedIds);
-    const selected = allChips.filter((c) => selectedSet.has(c.id));
-    const unselected = allChips.filter((c) => !selectedSet.has(c.id));
+    const byCountDesc = (a: FilterCategory, b: FilterCategory) =>
+      (counts?.[b.id] ?? 0) - (counts?.[a.id] ?? 0);
+    const selected = allChips
+      .filter((c) => selectedSet.has(c.id))
+      .sort(byCountDesc);
+    const unselected = allChips
+      .filter((c) => !selectedSet.has(c.id))
+      .sort(byCountDesc);
     return [...selected, ...unselected];
-  }, [allChips, selectedIds]);
+  }, [allChips, selectedIds, counts]);
 
   const toggle = (id: string) => {
     tickSelection();
