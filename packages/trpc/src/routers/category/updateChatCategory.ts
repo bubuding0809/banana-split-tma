@@ -7,7 +7,7 @@ import { assertChatAccess } from "../../middleware/chatScope.js";
 const inputSchema = z.object({
   chatCategoryId: z.string().uuid(),
   emoji: z.string().min(1).max(8).optional(),
-  title: z.string().trim().min(1).max(24).optional(),
+  title: z.string().trim().min(1).max(16).optional(),
 });
 
 const outputSchema = z.object({

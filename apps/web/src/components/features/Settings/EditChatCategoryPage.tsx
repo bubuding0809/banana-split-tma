@@ -9,6 +9,12 @@ interface Props {
   categoryId?: string; // bare uuid when editing
 }
 
+// Matches the backend's createChatCategory / updateChatCategory zod max —
+// keep them in sync. Tightened from 24 → 16 because the picker tiles
+// render labels at text-[13px] on ~80px tiles, and anything longer than
+// ~16 chars truncates to ellipsis.
+const TITLE_MAX_LENGTH = 16;
+
 // Curated built-in emoji picker pool — grouped loosely by theme so the grid
 // reads as a quick-pick rather than random noise. Mirrors the pool used in
 // the prototype (docs/superpowers/specs/.../screens.jsx).
@@ -190,11 +196,14 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         </div>
       </div>
 
-      <Section header="NAME">
+      <Section
+        header="NAME"
+        footer={`${title.length} / ${TITLE_MAX_LENGTH} characters`}
+      >
         <Input
           placeholder="e.g. Bali Trip"
           value={title}
-          maxLength={24}
+          maxLength={TITLE_MAX_LENGTH}
           onChange={(e) => setTitle(e.target.value)}
         />
       </Section>

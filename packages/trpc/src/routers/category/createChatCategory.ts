@@ -10,7 +10,7 @@ const inputSchema = z.object({
     .string()
     .min(1, "Emoji required")
     .max(8, "Emoji must be a single grapheme"),
-  title: z.string().trim().min(1, "Title required").max(24, "Title too long"),
+  title: z.string().trim().min(1, "Title required").max(16, "Title too long"),
 });
 
 const outputSchema = z.object({
