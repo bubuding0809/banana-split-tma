@@ -329,7 +329,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
             theme={Theme.DARK}
             emojiStyle={EmojiStyle.NATIVE}
             width="100%"
-            height={340}
+            height={380}
             lazyLoadEmojis
             skinTonesDisabled
             previewConfig={{ showPreview: false }}

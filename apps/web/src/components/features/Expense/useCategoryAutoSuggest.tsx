@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "@tanstack/react-form";
+import { Snackbar } from "@telegram-apps/telegram-ui";
+import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 import { trpc } from "@/utils/trpc";
 
 /**
@@ -33,7 +35,7 @@ export function useCategoryAutoSuggest({
   form: ExpenseForm;
   chatId: number;
   disableAutoAssign?: boolean;
-}) {
+}): { snackbar: ReactNode } {
   type FormState = {
     values: {
       description: string;
@@ -53,6 +55,26 @@ export function useCategoryAutoSuggest({
       };
     }
   );
+
+  // Used to resolve the classifier's bare categoryId into an emoji + title
+  // pair for the confirmation snackbar below.
+  const { data: categoriesData } = trpc.category.listByChat.useQuery({
+    chatId,
+  });
+  const chatRows = useMemo<ChatCategoryRow[]>(
+    () =>
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          chatId: BigInt(chatId),
+          emoji: c.emoji,
+          title: c.title,
+        })),
+    [categoriesData, chatId]
+  );
+
+  const [snackbarText, setSnackbarText] = useState<string | null>(null);
 
   const suggestMutation = trpc.category.suggest.useMutation({
     onMutate: () => {
@@ -83,6 +105,15 @@ export function useCategoryAutoSuggest({
             if (!res.categoryId) return;
             form.setFieldValue("categoryId", res.categoryId);
             form.setFieldValue("autoPicked", true);
+            // Surface a short confirmation so the user sees the category
+            // arrived — easy to miss otherwise since the picker cell lives
+            // on a later step.
+            const resolved = resolveCategory(res.categoryId, chatRows);
+            if (resolved) {
+              setSnackbarText(
+                `Auto-picked ${resolved.emoji} ${resolved.title}`
+              );
+            }
           },
         }
       );
@@ -92,4 +123,16 @@ export function useCategoryAutoSuggest({
     // every render and would cause the timer to reset every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [description, chatId, disableAutoAssign, categoryId, userTouchedCategory]);
+
+  const snackbar = snackbarText ? (
+    <Snackbar
+      duration={3000}
+      onClose={() => setSnackbarText(null)}
+      description="Tap the Category step to change."
+    >
+      {snackbarText}
+    </Snackbar>
+  ) : null;
+
+  return { snackbar };
 }

@@ -180,7 +180,13 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
   // Auto-suggest lives at page scope so the 300ms debounce + in-flight
   // mutation survive the user pressing Next during the debounce window.
-  useCategoryAutoSuggest({ form, chatId, disableAutoAssign: false });
+  // The hook also returns a confirmation snackbar when a category lands,
+  // which we render at the bottom of the page below.
+  const { snackbar: categoryAutoPickSnackbar } = useCategoryAutoSuggest({
+    form,
+    chatId,
+    disableAutoAssign: false,
+  });
 
   // Persist form values to sessionStorage on every change so navigating
   // out (e.g. to Organize picker) and back restores the draft verbatim.
@@ -330,6 +336,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           />
         )}
       </section>
+
+      {categoryAutoPickSnackbar}
     </div>
   );
 };
