@@ -21,6 +21,10 @@ import { trpc } from "@/utils/trpc";
 import { normalizeDateToMidnight } from "@/utils/date";
 import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
 import { clearFormDraft, readFormDraft } from "@/utils/formDraft";
+import {
+  OPEN_CATEGORY_PICKER_EVENT,
+  markPickerForReopen,
+} from "./CategoryFormStep";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -188,9 +192,18 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
     chatId,
     disableAutoAssign: false,
     onJumpToCategory: () => {
+      // Two paths to opening the picker, both need to be set:
+      //   1. Mark the sessionStorage flag for the remount case (user is
+      //      on step 1+, navigating to step 0 remounts CategoryFormStep
+      //      and its lazy useState reads the flag).
+      //   2. Dispatch a window event for the "already on step 0" case
+      //      where navigation is a no-op — the mounted CategoryFormStep
+      //      listens for this event and opens the picker directly.
+      markPickerForReopen(chatId);
       navigate({
         search: (prev) => ({ ...prev, currentFormStep: 0 }),
       });
+      window.dispatchEvent(new Event(OPEN_CATEGORY_PICKER_EVENT));
     },
   });
 

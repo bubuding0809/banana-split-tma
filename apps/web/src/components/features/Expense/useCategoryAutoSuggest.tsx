@@ -135,7 +135,7 @@ export function useCategoryAutoSuggest({
 
   const snackbar = snackbarText ? (
     <Snackbar
-      duration={5000}
+      duration={3500}
       onClose={dismiss}
       description="Not what you meant? Change the category."
       after={

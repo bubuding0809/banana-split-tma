@@ -1,7 +1,7 @@
 import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { ChevronRight, Plus, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
@@ -18,7 +18,12 @@ import { useStore } from "@tanstack/react-form";
 // chatId-scoped so two chats don't step on each other.
 const PICKER_REOPEN_PREFIX = "tma:picker-reopen:";
 
-function markPickerForReopen(chatId: number) {
+// Window event the autopick snackbar dispatches to force the picker open
+// when the user taps Change while already on the step hosting the cell
+// (no remount, so the sessionStorage flag path doesn't fire).
+export const OPEN_CATEGORY_PICKER_EVENT = "tma:open-category-picker";
+
+export function markPickerForReopen(chatId: number) {
   try {
     sessionStorage.setItem(PICKER_REOPEN_PREFIX + chatId, "1");
   } catch {
@@ -48,6 +53,17 @@ const CategoryFormStep = withForm({
     // again for them. Fresh mounts (no flag) start closed.
     const [open, setOpen] = useState(() => consumePickerReopen(chatId));
     const navigate = useNavigate();
+
+    // When the user taps "Change" on the autopick snackbar while this step
+    // is already mounted, navigate is a no-op and the sessionStorage flag
+    // never gets read. Listening for a window event lets the snackbar
+    // force the picker open in that case.
+    useEffect(() => {
+      const handler = () => setOpen(true);
+      window.addEventListener(OPEN_CATEGORY_PICKER_EVENT, handler);
+      return () =>
+        window.removeEventListener(OPEN_CATEGORY_PICKER_EVENT, handler);
+    }, []);
 
     // Everything drives off form state — the auto-suggest side effect lives
     // in the parent page via useCategoryAutoSuggest, so this component is
