@@ -265,16 +265,10 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
       ? "Reset to defaults? Custom order and hidden tiles will be cleared, and this also discards your unsaved changes."
       : "Reset to defaults? Custom order and hidden tiles will be cleared.";
     if (!window.confirm(confirmMessage)) return;
-    resetOrderingMut.mutate(
-      { chatId },
-      {
-        onSuccess: () =>
-          navigate({
-            to: "/chat/$chatId/settings/categories",
-            params: { chatId: String(chatId) },
-          }),
-      }
-    );
+    // Stay on the page; the listByChat invalidate in the mutation's
+    // onSuccess triggers a refetch that rewrites `initial` -> `items`
+    // with the post-reset default order.
+    resetOrderingMut.mutate({ chatId });
   };
 
   const onSaveRef = useRef(onSave);
