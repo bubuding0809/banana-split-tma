@@ -129,8 +129,15 @@ export default function CategoryFilterStrip({
   const hasSelection = selectedIds.length > 0;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2">
-      <div className="flex flex-1 gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+    <div className="flex items-center gap-2 px-3">
+      {/* py-2 has to live on the scroll container (not the outer wrapper)
+          so the count badges — which sit absolutely positioned below the
+          chips — have vertical room to render. CSS forces overflow-y:auto
+          when overflow-x:auto is set, so any content that pokes below
+          the container's content box triggers an accidental vertical
+          scroll. Padding inside the scroll container absorbs the badge
+          overhang. */}
+      <div className="flex flex-1 gap-1.5 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
         {displayOrder.map((c) => {
           const selected = selectedIds.includes(c.id);
           return (
