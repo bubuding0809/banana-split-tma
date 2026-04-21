@@ -270,23 +270,33 @@ const ChatExpenseCell = ({
         })}
         ref={cellRef}
         onClick={handleCellClick}
-        before={<ChatMemberAvatar userId={payerId} size={28} />}
+        before={
+          // Every row leads with the category emoji tile. Uncategorized
+          // expenses fall back to the 📭 Uncategorized emoji so the
+          // slot stays consistent across the list.
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-2xl leading-none">
+            {categoryEmoji ?? "📭"}
+          </div>
+        }
         subhead={
           <Skeleton visible={isMemberLoading}>
-            <Caption
-              weight="1"
-              level="1"
-              style={{
-                color: expenseRelation === "payer" ? tButtonColor : undefined,
-              }}
-            >
-              {expenseRelation === "payer" ? "You" : memberFullName} spent
-            </Caption>
-            {expenseRelation !== "unrelated" && (
-              <Badge type="number">
-                <Link size={10} />
-              </Badge>
-            )}
+            <div className="flex items-center gap-1.5">
+              <ChatMemberAvatar userId={payerId} size={20} />
+              <Caption
+                weight="1"
+                level="1"
+                style={{
+                  color: expenseRelation === "payer" ? tButtonColor : undefined,
+                }}
+              >
+                {expenseRelation === "payer" ? "You" : memberFullName} spent
+              </Caption>
+              {expenseRelation !== "unrelated" && (
+                <Badge type="number">
+                  <Link size={10} />
+                </Badge>
+              )}
+            </div>
           </Skeleton>
         }
         description={
@@ -366,9 +376,6 @@ const ChatExpenseCell = ({
               ?.flagEmoji
           }{" "}
           {formatCurrencyWithCode(expense.amount, expense.currency)}
-          {categoryEmoji && (
-            <span className="text-sm leading-none">{categoryEmoji}</span>
-          )}
         </span>
       </Cell>
       <ExpenseDetailsModal

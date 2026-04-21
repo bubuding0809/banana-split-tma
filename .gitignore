@@ -62,3 +62,4 @@ opencode.json
 
 # Local worktrees
 .worktrees/
+.superpowers/

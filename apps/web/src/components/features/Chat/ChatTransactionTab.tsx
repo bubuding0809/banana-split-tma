@@ -16,8 +16,7 @@ import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
 import TransactionFiltersModal from "./TransactionFiltersModal";
-import CategoryPickerSheet from "@/components/features/Category/CategoryPickerSheet";
-import CategoriesOnboarding from "./CategoriesOnboarding";
+import CategoryFilterStrip from "./CategoryFilterStrip";
 import {
   hapticFeedback,
   initData,
@@ -36,7 +35,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
-import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
+import { type ChatCategoryRow } from "@repo/categories";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
@@ -52,12 +51,14 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     relatedOnly = true,
     sortBy = "date" as SortByOption,
     sortOrder = "desc" as SortOrderOption,
+    categoryFilters = [],
   } = useSearch({ strict: false }) as {
     selectedExpense?: string;
     showPayments?: boolean;
     relatedOnly?: boolean;
     sortBy?: SortByOption;
     sortOrder?: SortOrderOption;
+    categoryFilters?: string[];
   };
   const tUserData = useSignal(initData.user);
   const navigate = useNavigate();
@@ -91,10 +92,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   );
   const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
 
-  // Category filter state
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
@@ -120,26 +117,47 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const { data: categoriesData } = trpc.category.listByChat.useQuery({
     chatId,
   });
+  // Same query the list view uses — tRPC caches it so this is essentially
+  // free; we only need it for the per-category counts on the filter strip.
+  const { data: allExpensesForCounts } =
+    trpc.expense.getAllExpensesByChat.useQuery({ chatId });
 
+  // Count expenses per categoryId (null → "none" bucket to match the
+  // strip's synthetic Uncategorized chip). Other filters (payments,
+  // related-only, sort) don't affect this — the badge answers "how many
+  // expenses live under this category" regardless of current view.
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of allExpensesForCounts ?? []) {
+      const key = e.categoryId ?? "none";
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [allExpensesForCounts]);
+
+  // Visible categories always appear in the filter strip. Hidden ones
+  // only appear if they still have tagged expenses — otherwise a user
+  // can't filter to their existing history after hiding a category.
+  // Hidden-and-empty categories stay off the strip to avoid clutter.
   const allCategories = useMemo(
-    () => [...(categoriesData?.base ?? []), ...(categoriesData?.custom ?? [])],
-    [categoriesData]
+    () =>
+      (categoriesData?.items ?? []).filter(
+        (c) => !c.hidden || (categoryCounts[c.id] ?? 0) > 0
+      ),
+    [categoriesData, categoryCounts]
   );
 
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
-      (categoriesData?.custom ?? []).map((c) => ({
-        id: c.id.replace(/^chat:/, ""),
-        chatId: BigInt(chatId),
-        emoji: c.emoji,
-        title: c.title,
-      })),
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          chatId: BigInt(chatId),
+          emoji: c.emoji,
+          title: c.title,
+        })),
     [categoriesData, chatId]
-  );
-
-  const resolvedCategory = useMemo(
-    () => resolveCategory(categoryFilter, chatRows),
-    [categoryFilter, chatRows]
   );
 
   // * Mutations ==================================================================================
@@ -291,9 +309,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
   return (
     <section className="flex h-full flex-col">
-      {/* Categories onboarding tooltip */}
-      <CategoriesOnboarding userId={userId} chatId={chatId} />
-
       {/* Transaction filters section */}
       <div className="shadow-xs">
         <TransactionFiltersCell
@@ -302,10 +317,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onOpenModal={() => setFiltersOpen(true)}
-          categoryFilter={categoryFilter}
-          resolvedCategory={resolvedCategory}
-          onOpenPicker={() => setPickerOpen(true)}
-          onClearCategory={() => setCategoryFilter(null)}
         />
         <Divider />
 
@@ -429,6 +440,24 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         />
 
         <Divider />
+
+        {/* Standalone multi-select category chip strip. Sits after the filter
+            cell + Convert-currencies cell so it reads as its own control,
+            not a pill inside either. URL-backed via `categoryFilters` so the
+            active filter survives refresh / deep links. */}
+        <CategoryFilterStrip
+          categories={allCategories}
+          selectedIds={categoryFilters}
+          counts={categoryCounts}
+          onChange={(ids) =>
+            updateSearchParams((prev) => ({
+              ...prev,
+              categoryFilters: ids,
+            }))
+          }
+        />
+
+        <Divider />
       </div>
 
       {/* Enhanced filters modal */}
@@ -445,9 +474,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onSortOrderChange={handleSortOrderChange}
         monthGroupedData={monthGroupedData}
         onDateSelect={handleDateSelect}
-        resolvedCategory={resolvedCategory}
-        onOpenPicker={() => setPickerOpen(true)}
-        onClearCategory={() => setCategoryFilter(null)}
       />
 
       {/* Standalone Jump to date modal */}
@@ -494,19 +520,8 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         chatId={chatId}
         showPayments={showPayments}
         onAvailableDatesChange={setMonthGroupedData}
-        categoryFilter={categoryFilter}
+        categoryFilters={categoryFilters}
         chatRows={chatRows}
-      />
-
-      <CategoryPickerSheet
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        categories={allCategories}
-        selectedId={categoryFilter}
-        onSelect={(c) => {
-          setCategoryFilter(c.id);
-          setPickerOpen(false);
-        }}
       />
     </section>
   );

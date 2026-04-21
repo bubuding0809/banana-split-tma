@@ -568,7 +568,7 @@ describe("expense commands", () => {
     const queryMock = vi.fn().mockResolvedValue(expenses);
     const categoryQueryMock = vi
       .fn()
-      .mockResolvedValue({ base: [], custom: [] });
+      .mockResolvedValue({ items: [], hasCustomOrder: false });
     const trpcMock = {
       expense: { getExpenseByChat: { query: queryMock } },
       category: { listByChat: { query: categoryQueryMock } },
@@ -614,7 +614,7 @@ describe("expense commands", () => {
     const queryMock = vi.fn().mockResolvedValue(expenses);
     const categoryQueryMock = vi
       .fn()
-      .mockResolvedValue({ base: [], custom: [] });
+      .mockResolvedValue({ items: [], hasCustomOrder: false });
     const trpcMock = {
       expense: { getExpenseByChat: { query: queryMock } },
       category: { listByChat: { query: categoryQueryMock } },
@@ -625,11 +625,46 @@ describe("expense commands", () => {
       trpcMock
     )) as any[];
 
-    // base:food expense is included
+    // Only the base:food expense matches; untagged expenses no longer
+    // sneak through, and base:transport is correctly filtered out.
     expect(result.some((e) => e.id === "exp-1")).toBe(true);
-    // base:transport expense is filtered out
     expect(result.some((e) => e.id === "exp-2")).toBe(false);
-    // null categoryId (settlement-like) always passes
-    expect(result.some((e) => e.id === "exp-3")).toBe(true);
+    expect(result.some((e) => e.id === "exp-3")).toBe(false);
+  });
+
+  it("list-expenses: --category none returns only uncategorized expenses", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "list-expenses");
+    const expenses = [
+      {
+        id: "exp-1",
+        description: "Burger",
+        amount: 15,
+        currency: "SGD",
+        categoryId: "base:food",
+      },
+      {
+        id: "exp-2",
+        description: "Random",
+        amount: 20,
+        currency: "SGD",
+        categoryId: null,
+      },
+    ];
+    const queryMock = vi.fn().mockResolvedValue(expenses);
+    const categoryQueryMock = vi
+      .fn()
+      .mockResolvedValue({ items: [], hasCustomOrder: false });
+    const trpcMock = {
+      expense: { getExpenseByChat: { query: queryMock } },
+      category: { listByChat: { query: categoryQueryMock } },
+    } as any;
+
+    const result = (await cmd?.execute(
+      { "chat-id": "111", category: "none" },
+      trpcMock
+    )) as any[];
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("exp-2");
   });
 });

@@ -257,7 +257,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   );
 
   return (
-    <main className="px-3">
+    <main className="px-3 pb-8">
       <Section header="Base Currency">
         <Cell
           before={

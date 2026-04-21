@@ -50,3 +50,11 @@
   75% { transform: translateY(4px) scale(0.8); }
   100% { transform: translateY(0) scale(1); }
 }
+
+/* emoji-picker-react — strip the picker's 1px border. Setting
+   --epr-picker-border-color to transparent wasn't enough; the package
+   also applies a box-shadow in its dark theme. Override both. */
+aside.EmojiPickerReact {
+  border: none;
+  box-shadow: none;
+}

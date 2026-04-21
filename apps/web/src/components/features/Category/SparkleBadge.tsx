@@ -1,21 +1,38 @@
-import { Sparkles } from "lucide-react";
+import { LoaderPinwheel, Sparkles } from "lucide-react";
 
 interface SparkleBadgeProps {
   label?: string;
+  pending?: boolean;
 }
 
-export default function SparkleBadge({ label = "Auto" }: SparkleBadgeProps) {
+export default function SparkleBadge({
+  label,
+  pending = false,
+}: SparkleBadgeProps) {
+  const baseClass =
+    "inline-flex items-center rounded-full text-[11px] font-medium";
+  const style = {
+    background:
+      "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
+    color: "rgb(139, 92, 246)",
+  } as const;
+
+  if (pending) {
+    return (
+      <span
+        className={`${baseClass} h-5 w-5 justify-center`}
+        style={style}
+        aria-label="Suggesting a category"
+      >
+        <LoaderPinwheel size={12} className="animate-spin" />
+      </span>
+    );
+  }
+
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{
-        background:
-          "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
-        color: "rgb(139, 92, 246)",
-      }}
-    >
+    <span className={`${baseClass} gap-1 px-2 py-0.5`} style={style}>
       <Sparkles size={12} />
-      {label}
+      {label ?? "Auto"}
     </span>
   );
 }

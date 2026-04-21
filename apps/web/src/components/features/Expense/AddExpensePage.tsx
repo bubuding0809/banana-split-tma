@@ -14,12 +14,17 @@ import { cn } from "@utils/cn";
 
 import AmountFormStep from "./AmountFormStep";
 import PayeeformStep from "./PayeeFormStep";
-import CategoryFormStep from "./CategoryFormStep";
 import SplitModeFormStep from "./SplitModeFormStep";
-import { useAppForm, useStartParams } from "@/hooks";
+import { useAppForm, useFormDraftCache, useStartParams } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { trpc } from "@/utils/trpc";
 import { normalizeDateToMidnight } from "@/utils/date";
+import { useCategoryAutoSuggest } from "./useCategoryAutoSuggest";
+import { clearFormDraft, readFormDraft } from "@/utils/formDraft";
+import {
+  OPEN_CATEGORY_PICKER_EVENT,
+  markPickerForReopen,
+} from "./CategoryFormStep";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -35,10 +40,6 @@ const FORM_STEPS = [
   {
     title: "Paid by",
     component: PayeeformStep,
-  },
-  {
-    title: "Category",
-    component: CategoryFormStep,
   },
   {
     title: "Split Mode",
@@ -83,9 +84,18 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // * Mutations ===================================================================================
   const createExpenseMutation = trpc.expense.createExpense.useMutation();
 
+  // Draft cache — preserves form values across in-app navigations so the
+  // user can jump out to Organize picker / Create custom category and come
+  // back with their amount, description, participants etc. intact.
+  const draftKey = `add-expense:${chatId}`;
+  // Reading sessionStorage is only safe in the browser. `useAppForm`
+  // evaluates `defaultValues` once on mount — if a draft exists we use it
+  // verbatim; otherwise we fall back to the usual empty-form defaults.
+  const cachedDraft = readFormDraft<typeof formOpts.defaultValues>(draftKey);
+
   const form = useAppForm({
     ...formOpts,
-    defaultValues: {
+    defaultValues: cachedDraft ?? {
       ...formOpts.defaultValues,
       payee: userId.toString(),
       currency: dChatData?.baseCurrency ?? "SGD",
@@ -100,6 +110,23 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         isEnabled: false,
       });
       try {
+        // If the category classifier is still running (user typed fast then
+        // clicked through all steps before the 300ms debounce + Gemini call
+        // resolved), give it a moment to land before we commit — otherwise
+        // the expense saves with categoryId: null while the suggest is
+        // about to resolve. Capped at 3.5s (slightly above CLASSIFY_TIMEOUT_MS
+        // so we don't stall on a genuinely stuck request).
+        const waitStart = Date.now();
+        while (
+          form.getFieldValue("suggestPending") &&
+          Date.now() - waitStart < 3500
+        ) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        // Re-read categoryId after the wait — if the classifier just
+        // resolved, form state now has the freshly-picked value.
+        const resolvedCategoryId = form.getFieldValue("categoryId");
+
         // Convert form values to API format
         const customSplits =
           value.splitMode !== "EQUAL"
@@ -120,7 +147,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           participantIds: value.participants.map((id) => Number(id)),
           customSplits,
           currency: value.currency,
-          categoryId: value.categoryId ?? undefined,
+          categoryId: resolvedCategoryId,
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
@@ -129,6 +156,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
         mainButton.setParams.ifAvailable({
           isLoaderVisible: false,
         });
+
+        // Submitted successfully — drop the draft so a fresh Add Expense
+        // starts empty, not pre-filled with this expense's values.
+        clearFormDraft(draftKey);
 
         navigateBackToChat({
           selectedTab: "transaction",
@@ -150,6 +181,35 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
       }
     },
   });
+
+  // Auto-suggest lives at page scope so the 300ms debounce + in-flight
+  // mutation survive the user pressing Next during the debounce window.
+  // The hook also returns a confirmation snackbar when a category lands,
+  // which we render at the bottom of the page below. The "Change" action
+  // jumps back to step 0 where the Category picker lives.
+  const { snackbar: categoryAutoPickSnackbar } = useCategoryAutoSuggest({
+    form,
+    chatId,
+    disableAutoAssign: false,
+    onJumpToCategory: () => {
+      // Two paths to opening the picker, both need to be set:
+      //   1. Mark the sessionStorage flag for the remount case (user is
+      //      on step 1+, navigating to step 0 remounts CategoryFormStep
+      //      and its lazy useState reads the flag).
+      //   2. Dispatch a window event for the "already on step 0" case
+      //      where navigation is a no-op — the mounted CategoryFormStep
+      //      listens for this event and opens the picker directly.
+      markPickerForReopen(chatId);
+      navigate({
+        search: (prev) => ({ ...prev, currentFormStep: 0 }),
+      });
+      window.dispatchEvent(new Event(OPEN_CATEGORY_PICKER_EVENT));
+    },
+  });
+
+  // Persist form values to sessionStorage on every change so navigating
+  // out (e.g. to Organize picker) and back restores the draft verbatim.
+  useFormDraftCache(draftKey, form);
 
   // * Effects ====================================================================================
   // Show back button
@@ -291,11 +351,12 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             isEditMode={false}
             navigate={navigate}
             chatId={chatId}
-            disableAutoAssign={false}
             membersExpanded={routeApi.useSearch().membersExpanded}
           />
         )}
       </section>
+
+      {categoryAutoPickSnackbar}
     </div>
   );
 };

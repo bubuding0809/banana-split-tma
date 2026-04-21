@@ -1,6 +1,8 @@
-import { Cell } from "@telegram-apps/telegram-ui";
-import { ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Cell, Section, Subheadline } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
+import { ChevronRight, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "@/utils/trpc";
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 import {
@@ -10,42 +12,88 @@ import {
 import { withForm } from "@/hooks";
 import { formOpts } from "./AddExpenseForm";
 import { useStore } from "@tanstack/react-form";
-import { UseNavigateResult } from "@tanstack/react-router";
+
+// sessionStorage flag that signals "I was in the picker and just jumped
+// out to Create / Organize — reopen me when the form remounts".
+// chatId-scoped so two chats don't step on each other.
+const PICKER_REOPEN_PREFIX = "tma:picker-reopen:";
+
+// Window event the autopick snackbar dispatches to force the picker open
+// when the user taps Change while already on the step hosting the cell
+// (no remount, so the sessionStorage flag path doesn't fire).
+export const OPEN_CATEGORY_PICKER_EVENT = "tma:open-category-picker";
+
+export function markPickerForReopen(chatId: number) {
+  try {
+    sessionStorage.setItem(PICKER_REOPEN_PREFIX + chatId, "1");
+  } catch {
+    /* swallow */
+  }
+}
+
+function consumePickerReopen(chatId: number): boolean {
+  try {
+    const key = PICKER_REOPEN_PREFIX + chatId;
+    const flag = sessionStorage.getItem(key) === "1";
+    if (flag) sessionStorage.removeItem(key);
+    return flag;
+  } catch {
+    return false;
+  }
+}
 
 const CategoryFormStep = withForm({
   ...formOpts,
   props: {
-    step: 0,
-    isLastStep: false,
-    navigate: (() => {}) as unknown as UseNavigateResult<
-      "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
-    >,
-    isEditMode: false,
     chatId: 0,
-    membersExpanded: false,
-    disableAutoAssign: false as boolean | undefined,
   },
-  render: function Render({ form, chatId, disableAutoAssign }) {
-    const [open, setOpen] = useState(false);
-    const [autoPicked, setAutoPicked] = useState(false);
-    const userTouchedRef = useRef(false);
+  render: function Render({ form, chatId }) {
+    // Lazy-init reads and clears the reopen flag once on mount — so if the
+    // user just came back from Create / Organize, the picker pops open
+    // again for them. Fresh mounts (no flag) start closed.
+    const [open, setOpen] = useState(() => consumePickerReopen(chatId));
+    const navigate = useNavigate();
 
-    const { description, categoryId } = useStore(form.store, (state) => ({
-      description: state.values.description,
-      categoryId: state.values.categoryId,
-    }));
+    // When the user taps "Change" on the autopick snackbar while this step
+    // is already mounted, navigate is a no-op and the sessionStorage flag
+    // never gets read. Listening for a window event lets the snackbar
+    // force the picker open in that case.
+    useEffect(() => {
+      const handler = () => setOpen(true);
+      window.addEventListener(OPEN_CATEGORY_PICKER_EVENT, handler);
+      return () =>
+        window.removeEventListener(OPEN_CATEGORY_PICKER_EVENT, handler);
+    }, []);
+
+    // Everything drives off form state — the auto-suggest side effect lives
+    // in the parent page via useCategoryAutoSuggest, so this component is
+    // purely presentational and can unmount/remount across step navigation
+    // without losing any transient UI signal (Auto badge, pending spinner,
+    // manual-pick guard).
+    const { categoryId, autoPicked, suggestPending } = useStore(
+      form.store,
+      (state) => ({
+        categoryId: state.values.categoryId,
+        autoPicked: state.values.autoPicked,
+        suggestPending: state.values.suggestPending,
+      })
+    );
 
     const { data: cats } = trpc.category.listByChat.useQuery({ chatId });
 
+    const items = cats?.items ?? [];
+
     const chatRows: ChatCategoryRow[] = useMemo(
       () =>
-        (cats?.custom ?? []).map((c) => ({
-          id: c.id.replace(/^chat:/, ""),
-          chatId: BigInt(chatId),
-          emoji: c.emoji,
-          title: c.title,
-        })),
-      [cats?.custom, chatId]
+        items
+          .filter((c) => c.kind === "custom")
+          .map((c) => ({
+            id: c.id.replace(/^chat:/, ""),
+            chatId: BigInt(chatId),
+            emoji: c.emoji,
+            title: c.title,
+          })),
+      [items, chatId]
     );
 
     const resolved = useMemo(
@@ -53,64 +101,115 @@ const CategoryFormStep = withForm({
       [categoryId, chatRows]
     );
 
+    // Filter out tiles the user hid via the Organize page. Without this
+    // filter the hide feature is a no-op — hidden tiles would still render
+    // in the Add Expense picker.
     const allCategories = useMemo(
-      () => [...(cats?.base ?? []), ...(cats?.custom ?? [])],
-      [cats]
+      () => items.filter((c) => !c.hidden),
+      [items]
     );
 
-    const suggestMutation = trpc.category.suggest.useMutation();
-
-    // Debounced auto-suggest on description change (400ms). Only fires while the
-    // user hasn't manually picked.
-    useEffect(() => {
-      if (disableAutoAssign) return;
-      if (userTouchedRef.current) return;
-      if (!description || description.trim().length < 3) return;
-      const handle = setTimeout(() => {
-        if (userTouchedRef.current) return;
-        suggestMutation.mutate(
-          { chatId, description },
-          {
-            onSuccess: (res) => {
-              if (userTouchedRef.current) return;
-              if (!res.categoryId) return;
-              form.setFieldValue("categoryId", res.categoryId);
-              setAutoPicked(true);
-            },
-          }
-        );
-      }, 400);
-      return () => clearTimeout(handle);
-      // Intentionally omit suggestMutation/form from deps — re-subscribing on
-      // every render would double-fire. The effect depends only on the description
-      // and chatId changing.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [description, chatId, disableAutoAssign]);
+    const footer = suggestPending
+      ? "Cooking up a category…"
+      : autoPicked && categoryId
+        ? "Auto-picked from description. Tap to change."
+        : null;
 
     return (
       <>
-        <Cell
-          Component="button"
-          onClick={() => setOpen(true)}
-          before={<span className="text-xl">{resolved?.emoji ?? "🗂️"}</span>}
-          after={
-            <div className="flex items-center gap-2">
-              {autoPicked && categoryId ? <SparkleBadge /> : null}
-              <ChevronRight size={16} />
-            </div>
-          }
-        >
-          {resolved?.title ?? "Pick a category"}
-        </Cell>
+        <div className="flex flex-col gap-2">
+          <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
+            <Subheadline weight="2">Category</Subheadline>
+          </label>
+          <Section footer={footer}>
+            <Cell
+              onClick={() => setOpen(true)}
+              before={
+                resolved ? (
+                  <span className="text-xl leading-none">{resolved.emoji}</span>
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)] text-[var(--tg-theme-link-color)]">
+                    <Plus size={16} />
+                  </span>
+                )
+              }
+              after={
+                <div className="flex items-center gap-2">
+                  {suggestPending ? (
+                    <SparkleBadge pending />
+                  ) : autoPicked && categoryId ? (
+                    <SparkleBadge />
+                  ) : null}
+                  {resolved ? (
+                    <span
+                      role="button"
+                      aria-label="Clear category"
+                      onClick={(e) => {
+                        // Prevent the parent Cell's onClick (which opens the
+                        // picker) from firing when the user taps the clear X.
+                        e.stopPropagation();
+                        try {
+                          hapticFeedback.selectionChanged();
+                        } catch {
+                          /* non-TMA */
+                        }
+                        form.setFieldValue("userTouchedCategory", true);
+                        form.setFieldValue("autoPicked", false);
+                        form.setFieldValue("categoryId", null);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--tg-theme-subtitle-text-color)]"
+                      style={{
+                        backgroundColor: "rgba(127, 127, 127, 0.25)",
+                      }}
+                    >
+                      <X size={14} />
+                    </span>
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
+                </div>
+              }
+            >
+              <span
+                style={{
+                  color: resolved
+                    ? "var(--tg-theme-text-color)"
+                    : "var(--tg-theme-link-color)",
+                }}
+              >
+                {resolved?.title ?? "Pick a category"}
+              </span>
+            </Cell>
+          </Section>
+        </div>
 
         <CategoryPickerSheet
           open={open}
           onOpenChange={setOpen}
           categories={allCategories}
           selectedId={categoryId}
+          onOpenOrganize={() => {
+            setOpen(false);
+            // Signal the form to reopen the picker when we come back.
+            markPickerForReopen(chatId);
+            navigate({
+              to: "/chat/$chatId/settings/categories/organize",
+              params: { chatId: String(chatId) },
+            });
+          }}
+          onCreateCustom={() => {
+            setOpen(false);
+            markPickerForReopen(chatId);
+            navigate({
+              to: "/chat/$chatId/settings/categories/new",
+              params: { chatId: String(chatId) },
+            });
+          }}
           onSelect={(c) => {
-            userTouchedRef.current = true;
-            setAutoPicked(false);
+            // includeNoneOption is not set here, so c.id is always a real
+            // category id — clearing is done via the X button on the cell.
+            form.setFieldValue("userTouchedCategory", true);
+            form.setFieldValue("autoPicked", false);
             form.setFieldValue("categoryId", c.id);
             setOpen(false);
           }}

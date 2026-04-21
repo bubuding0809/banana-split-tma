@@ -33,6 +33,7 @@ import { formatDateKey, formatExpenseDate } from "@utils/date";
 import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
+import CategoryFormStep from "./CategoryFormStep";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -398,6 +399,9 @@ const AmountFormStep = withForm({
             </form.AppField>
           )}
         </form.AppField>
+
+        {/* Category — auto-picked from description, or choose your own */}
+        <CategoryFormStep form={form} chatId={chatId} />
       </div>
     );
   },

@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
+import { BASE_CATEGORIES } from "@repo/categories";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
 const inputSchema = z.object({
   chatCategoryId: z.string().uuid(),
   emoji: z.string().min(1).max(8).optional(),
-  title: z.string().trim().min(1).max(24).optional(),
+  title: z.string().trim().min(1).max(16).optional(),
 });
 
 const outputSchema = z.object({
@@ -30,6 +31,15 @@ export const updateChatCategoryHandler = async (
     throw new TRPCError({ code: "NOT_FOUND", message: "Category not found" });
 
   if (input.title !== undefined) {
+    // Reject collisions against the built-in base titles first — a user
+    // renaming their custom to "Food" would otherwise shadow the built-in.
+    const normalized = input.title.trim().toLowerCase();
+    if (BASE_CATEGORIES.some((c) => c.title.toLowerCase() === normalized)) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "A standard category with this title already exists",
+      });
+    }
     const clash = await db.chatCategory.findFirst({
       where: {
         chatId: row.chatId,

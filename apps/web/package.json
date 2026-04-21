@@ -15,6 +15,9 @@
   },
   "dependencies": {
     "@dko/trpc": "workspace:*",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@repo/categories": "workspace:*",
     "@tailwindcss/vite": "^4.1.10",
     "@tanstack/react-form": "^1.12.3",
@@ -32,6 +35,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "decimal.js": "^10.5.0",
+    "emoji-picker-react": "^4.18.0",
+    "emojilib": "^4.0.3",
     "eruda": "^3.4.1",
     "lucide-react": "^0.518.0",
     "qrcode.react": "^4.2.0",

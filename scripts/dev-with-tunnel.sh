@@ -14,4 +14,4 @@ bash scripts/tunnel.sh
 
 # Run the dev server in the foreground
 # We don't use 'exec' here because we want the trap to fire after turbo exits
-turbo dev --filter=!banana-split-mcp-server
+turbo dev --filter=!banana-split-mcp-server --concurrency=20

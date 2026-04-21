@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --concurrency=20",
     "lint": "turbo run lint",
     "test:ct": "turbo run test:ct",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

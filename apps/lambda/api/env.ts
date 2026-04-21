@@ -22,6 +22,18 @@ export const env = createEnv({
         1,
         "INTERNAL_AGENT_KEY is required for internal agent communication"
       ),
+    // Optional — powers category.suggest. Missing key degrades gracefully to
+    // categoryId: null (classifyCategory swallows the auth error). We warn at
+    // boot so the miss is visible instead of silent.
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+    AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
   },
   runtimeEnv: process.env,
+  emptyStringAsUndefined: true,
 });
+
+if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  console.warn(
+    "⚠️  GOOGLE_GENERATIVE_AI_API_KEY is not set — category.suggest will return null for every call. Add it to apps/lambda/env/.env.development to enable auto-assign."
+  );
+}

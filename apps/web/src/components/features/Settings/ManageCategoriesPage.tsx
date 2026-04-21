@@ -1,12 +1,18 @@
 import { useEffect } from "react";
-import { Cell, Section } from "@telegram-apps/telegram-ui";
-import { useNavigate } from "@tanstack/react-router";
-import { backButton, mainButton } from "@telegram-apps/sdk-react";
+import { ButtonCell, Cell, Section } from "@telegram-apps/telegram-ui";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  backButton,
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
+  const tButtonColor = useSignal(themeParams.buttonColor);
   const { data } = trpc.category.listByChat.useQuery({ chatId });
 
   useEffect(() => {
@@ -25,54 +31,53 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
     };
   }, [chatId, navigate]);
 
-  useEffect(() => {
-    mainButton.mount();
-    mainButton.setParams({
-      text: "Create custom category",
-      isVisible: true,
-      isEnabled: true,
-    });
-    const off = mainButton.onClick(() => {
-      navigate({
-        to: "/chat/$chatId/settings/categories/new",
-        params: { chatId: String(chatId) },
-      });
-    });
-    return () => {
-      off();
-      mainButton.setParams({ isVisible: false });
-    };
-  }, [chatId, navigate]);
-
-  const custom = data?.custom ?? [];
-  const base = data?.base ?? [];
+  const items = data?.items ?? [];
+  const custom = items.filter((c) => c.kind === "custom");
+  const base = items.filter((c) => c.kind === "base");
 
   return (
-    <div className="pb-24">
+    <main className="px-3 pb-8">
       <Section header="CUSTOM">
+        {/* "Create custom category" sits at the top of the section — mirrors
+            SnapshotPage's "Add Snapshots" ButtonCell placement. The
+            "Customize picker" (reorder + hide) entry lives on the main
+            Settings screen now, promoted to a full preview card. */}
+        <ButtonCell
+          onClick={() => {
+            navigate({
+              to: "/chat/$chatId/settings/categories/new",
+              params: { chatId: String(chatId) },
+            });
+            hapticFeedback.notificationOccurred("success");
+          }}
+          before={<Plus />}
+          style={{ color: tButtonColor }}
+        >
+          Create custom category
+        </ButtonCell>
+
         {custom.length === 0 ? (
-          <Cell description="Tap Create custom category below to add your first one.">
+          <Cell description="Tap Create custom category above to add your first one.">
             No custom categories yet
           </Cell>
         ) : (
           custom.map((c) => (
-            <Cell
+            <Link
               key={c.id}
-              Component="button"
-              before={<span className="text-xl">{c.emoji}</span>}
-              after={<ChevronRight size={16} />}
-              onClick={() =>
-                navigate({
-                  to: "/chat/$chatId/settings/categories/$categoryId",
-                  params: {
-                    chatId: String(chatId),
-                    categoryId: c.id.replace(/^chat:/, ""),
-                  },
-                })
-              }
+              to="/chat/$chatId/settings/categories/$categoryId"
+              params={{
+                chatId: String(chatId),
+                categoryId: c.id.replace(/^chat:/, ""),
+              }}
             >
-              {c.title}
-            </Cell>
+              <Cell
+                Component="label"
+                before={<span className="text-xl">{c.emoji}</span>}
+                after={<ChevronRight size={16} />}
+              >
+                {c.title}
+              </Cell>
+            </Link>
           ))
         )}
       </Section>
@@ -84,6 +89,6 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
           </Cell>
         ))}
       </Section>
-    </div>
+    </main>
   );
 }

@@ -255,14 +255,13 @@ importers:
         version: 34.4.0(@swc/core@1.15.21(@swc/helpers@0.5.20))
 
   apps/cli:
-    dependencies:
-      "@repo/categories":
-        specifier: workspace:*
-        version: link:../../packages/categories
     devDependencies:
       "@dko/trpc":
         specifier: workspace:*
         version: link:../../packages/trpc
+      "@repo/categories":
+        specifier: workspace:*
+        version: link:../../packages/categories
       "@repo/typescript-config":
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -449,6 +448,15 @@ importers:
       "@dko/trpc":
         specifier: workspace:*
         version: link:../../packages/trpc
+      "@dnd-kit/core":
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      "@dnd-kit/sortable":
+        specifier: ^10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
+      "@dnd-kit/utilities":
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.2.4)
       "@repo/categories":
         specifier: workspace:*
         version: link:../../packages/categories
@@ -500,6 +508,12 @@ importers:
       decimal.js:
         specifier: ^10.5.0
         version: 10.6.0
+      emoji-picker-react:
+        specifier: ^4.18.0
+        version: 4.18.0(react@19.2.4)
+      emojilib:
+        specifier: ^4.0.3
+        version: 4.0.3
       eruda:
         specifier: ^3.4.1
         version: 3.4.3
@@ -1585,6 +1599,40 @@ packages:
         integrity: sha512-hauBrOdvu08vOsagkZ/Aju5XuiZx6ldsLfByg1htFeldhex+PeMrYauANzFsMJeAA0+dyPLbDoX2OYuvVoLDkQ==,
       }
     engines: { node: ">= 6" }
+
+  "@dnd-kit/accessibility@3.1.1":
+    resolution:
+      {
+        integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
+
+  "@dnd-kit/core@6.3.1":
+    resolution:
+      {
+        integrity: sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
+      react-dom: ">=16.8.0"
+
+  "@dnd-kit/sortable@10.0.0":
+    resolution:
+      {
+        integrity: sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg==,
+      }
+    peerDependencies:
+      "@dnd-kit/core": ^6.3.0
+      react: ">=16.8.0"
+
+  "@dnd-kit/utilities@3.2.2":
+    resolution:
+      {
+        integrity: sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==,
+      }
+    peerDependencies:
+      react: ">=16.8.0"
 
   "@edge-runtime/cookies@3.4.1":
     resolution:
@@ -9714,6 +9762,15 @@ packages:
         integrity: sha512-jFNydB5kFtYUobh4IkWUnXeyDbjf/r9gcUEXe1xcrcUxIGfTdzPXA+ld6zBRbwvgIGVzDll/LTIiDztEtckSnA==,
       }
 
+  emoji-picker-react@4.18.0:
+    resolution:
+      {
+        integrity: sha512-vLTrLfApXAIciguGE57pXPWs9lPLBspbEpPMiUq03TIli2dHZBiB+aZ0R9/Wat0xmTfcd4AuEzQgSYxEZ8C88Q==,
+      }
+    engines: { node: ">=10" }
+    peerDependencies:
+      react: ">=16"
+
   emoji-regex@10.6.0:
     resolution:
       {
@@ -9736,6 +9793,12 @@ packages:
     resolution:
       {
         integrity: sha512-5U0rVMU5Y2n2+ykNLQqMoqklN9ICBT/KsvC1Gz6vqHbz2AXXGkG+Pm5rMWk/8Vjrr/mY9985Hi8DYzn1F09Nyw==,
+      }
+
+  emojilib@4.0.3:
+    resolution:
+      {
+        integrity: sha512-KbWiYre9aRSaPbHrHZIz9zmoM+21LAsK1VFJtnTh1VCtWE/rNMDviGhQTmselFl95dhqtGlY22iH0leG5BuW0g==,
       }
 
   emojis-list@3.0.0:
@@ -10665,6 +10728,12 @@ packages:
     resolution:
       {
         integrity: sha512-pVIECanWFC61Hzl2+oOCtoJ3F17kglZC/6N94eRWycFgBH35hHx0Li604ZIzhseh97mf2p0cv7vVrOZGoqhlEg==,
+      }
+
+  flairup@1.0.0:
+    resolution:
+      {
+        integrity: sha512-IKlE+pNvL2R+kVL1kEhUYqRxVqeFnjiIvHWDMLFXNaqyUdFXQM2wte44EfMYJNHkW16X991t2Zg8apKkhv7OBA==,
       }
 
   flat-cache@4.0.1:
@@ -18434,6 +18503,31 @@ snapshots:
       tunnel-agent: 0.6.0
       uuid: 8.3.2
 
+  "@dnd-kit/accessibility@3.1.1(react@19.2.4)":
+    dependencies:
+      react: 19.2.4
+      tslib: 2.8.1
+
+  "@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)":
+    dependencies:
+      "@dnd-kit/accessibility": 3.1.1(react@19.2.4)
+      "@dnd-kit/utilities": 3.2.2(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      tslib: 2.8.1
+
+  "@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)":
+    dependencies:
+      "@dnd-kit/core": 6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      "@dnd-kit/utilities": 3.2.2(react@19.2.4)
+      react: 19.2.4
+      tslib: 2.8.1
+
+  "@dnd-kit/utilities@3.2.2(react@19.2.4)":
+    dependencies:
+      react: 19.2.4
+      tslib: 2.8.1
+
   "@edge-runtime/cookies@3.4.1": {}
 
   "@edge-runtime/format@2.2.0": {}
@@ -24094,6 +24188,11 @@ snapshots:
 
   electron-to-chromium@1.5.330: {}
 
+  emoji-picker-react@4.18.0(react@19.2.4):
+    dependencies:
+      flairup: 1.0.0
+      react: 19.2.4
+
   emoji-regex@10.6.0: {}
 
   emoji-regex@8.0.0: {}
@@ -24101,6 +24200,8 @@ snapshots:
   emoji-regex@9.2.2: {}
 
   emojilib@2.4.0: {}
+
+  emojilib@4.0.3: {}
 
   emojis-list@3.0.0: {}
 
@@ -24910,6 +25011,8 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       rollup: 4.60.1
+
+  flairup@1.0.0: {}
 
   flat-cache@4.0.1:
     dependencies:

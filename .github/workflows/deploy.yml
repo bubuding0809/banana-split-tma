@@ -223,7 +223,11 @@ jobs:
       - name: Publish to npm (Trusted Publishing + provenance)
         if: steps.check.outputs.skip == 'false'
         working-directory: apps/cli
-        run: npm publish --access public --provenance
+        # pnpm publish (vs npm publish) — npm refuses the tarball because
+        # pnpm's workspace: protocol deps haven't been rewritten yet; pnpm
+        # resolves them correctly. --no-git-checks bypasses pnpm's
+        # uncommitted-change guard since CI runs on a clean checkout.
+        run: pnpm publish --access public --provenance --no-git-checks
 
       - name: Tag published version
         id: tag
