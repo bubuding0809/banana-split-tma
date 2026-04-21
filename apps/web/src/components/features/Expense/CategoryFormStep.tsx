@@ -97,7 +97,7 @@ const CategoryFormStep = withForm({
       ? "Cooking up a category…"
       : autoPicked && categoryId
         ? "Auto-picked from description. Tap to change."
-        : "Helps you track spending by type.";
+        : null;
 
     return (
       <>

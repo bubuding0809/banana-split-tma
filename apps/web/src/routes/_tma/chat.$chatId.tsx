@@ -16,6 +16,10 @@ const searchSchema = z.object({
   relatedOnly: z.boolean().catch(true),
   sortBy: z.enum(["date", "createdAt"]).catch("date"),
   sortOrder: z.enum(["asc", "desc"]).catch("desc"),
+  // Multi-select category filter. Each entry is a category id, or the
+  // synthetic "none" for Uncategorized. URL-backed so a filtered view
+  // survives tab switches, deep links, and refresh.
+  categoryFilters: z.array(z.string()).catch([]),
 });
 
 export const Route = createFileRoute("/_tma/chat/$chatId")({

@@ -40,7 +40,7 @@ interface VirtualizedCombinedTransactionSegmentProps {
       dates: { key: string; display: string; transactionIds: string[] }[];
     }[]
   ) => void;
-  categoryFilter?: string | null;
+  categoryFilters?: string[];
   chatRows?: ChatCategoryRow[];
 }
 
@@ -66,7 +66,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       chatId,
       showPayments,
       onAvailableDatesChange,
-      categoryFilter,
+      categoryFilters,
       chatRows = [],
     },
     ref
@@ -97,20 +97,16 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
 
     const isLoading = isExpensesLoading || isSettlementsLoading;
 
-    // Apply category filter predicate to expenses before grouping.
-    // "none" is the synthetic "Uncategorized" filter: matches rows with categoryId === null.
+    // Multi-select category filter. Empty array = no filter (pass through).
+    // "none" in the set matches expenses with a null categoryId (Uncategorized).
     const filteredExpenses = useMemo(() => {
       if (!expenses) return expenses;
-      if (!categoryFilter) return expenses;
-      if (categoryFilter === "none") {
-        return expenses.filter(
-          (e: (typeof expenses)[number]) => e.categoryId === null
-        );
-      }
-      return expenses.filter(
-        (e: (typeof expenses)[number]) => e.categoryId === categoryFilter
+      if (!categoryFilters || categoryFilters.length === 0) return expenses;
+      const selected = new Set(categoryFilters);
+      return expenses.filter((e: (typeof expenses)[number]) =>
+        selected.has(e.categoryId ?? "none")
       );
-    }, [expenses, categoryFilter]);
+    }, [expenses, categoryFilters]);
 
     // Use the extracted transaction grouping hook
     const { groupedTransactions, sortedKeys, monthGroupedData } =

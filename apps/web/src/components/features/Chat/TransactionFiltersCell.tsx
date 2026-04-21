@@ -8,18 +8,10 @@ import {
   ArrowUp,
 } from "lucide-react";
 import { useSignal, themeParams } from "@telegram-apps/sdk-react";
-import CategoryPill from "@/components/features/Category/CategoryPill";
 import React from "react";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
-
-// Minimal shape — covers ResolvedCategory and the synthetic "none" Uncategorized entry.
-export interface FilterCategoryDisplay {
-  id: string;
-  emoji: string;
-  title: string;
-}
 
 export interface TransactionFiltersCellProps {
   showPayments: boolean;
@@ -27,13 +19,7 @@ export interface TransactionFiltersCellProps {
   sortBy: SortByOption;
   sortOrder: SortOrderOption;
   onOpenModal: () => void;
-  categoryFilter: string | null;
-  resolvedCategory: FilterCategoryDisplay | null;
-  onOpenPicker: () => void;
-  onClearCategory: () => void;
 }
-
-const MAX_INLINE = 2;
 
 export default function TransactionFiltersCell({
   showPayments,
@@ -41,44 +27,13 @@ export default function TransactionFiltersCell({
   sortBy,
   sortOrder,
   onOpenModal,
-  categoryFilter: _categoryFilter,
-  resolvedCategory,
-  onOpenPicker,
-  onClearCategory,
 }: TransactionFiltersCellProps) {
   const tSecondaryBackgroundColor = useSignal(
     themeParams.secondaryBackgroundColor
   );
 
-  // Build priority-ordered list of active pills
   type Pill = { key: string; node: React.ReactNode };
   const activePills: Pill[] = [];
-
-  if (resolvedCategory) {
-    activePills.push({
-      key: "category",
-      node: (
-        <span onClick={(e) => e.stopPropagation()}>
-          <CategoryPill
-            emoji={resolvedCategory.emoji}
-            label={resolvedCategory.title}
-            active
-            onClick={onOpenModal}
-            onClear={onClearCategory}
-          />
-        </span>
-      ),
-    });
-  } else {
-    activePills.push({
-      key: "category-cta",
-      node: (
-        <span onClick={(e) => e.stopPropagation()}>
-          <CategoryPill label="Category" dashed onClick={onOpenPicker} />
-        </span>
-      ),
-    });
-  }
 
   if (showPayments) {
     activePills.push({
@@ -118,7 +73,8 @@ export default function TransactionFiltersCell({
     });
   }
 
-  // Sort pill always visible — append after conditional ones
+  // Sort pill always visible — category filtering moved to its own standalone
+  // strip below this cell, so the pill row only reflects toggle + sort state.
   activePills.push({
     key: "sort",
     node: (
@@ -139,9 +95,6 @@ export default function TransactionFiltersCell({
       </div>
     ),
   });
-
-  const inlinePills = activePills.slice(0, MAX_INLINE);
-  const overflowCount = activePills.length - inlinePills.length;
 
   return (
     <Cell
@@ -165,14 +118,9 @@ export default function TransactionFiltersCell({
       onClick={onOpenModal}
     >
       <div className="flex gap-1 overflow-auto">
-        {inlinePills.map((pill) => (
+        {activePills.map((pill) => (
           <React.Fragment key={pill.key}>{pill.node}</React.Fragment>
         ))}
-        {overflowCount > 0 && (
-          <span onClick={(e) => e.stopPropagation()}>
-            <CategoryPill label={`+${overflowCount}`} onClick={onOpenModal} />
-          </span>
-        )}
       </div>
     </Cell>
   );
