@@ -5,7 +5,7 @@ import { escapeMarkdownV2 } from "../utils/markdown.js";
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 import { Decimal } from "decimal.js";
-import { classifyCategory } from "@repo/categories";
+import { classifyCategory, resolveCategory } from "@repo/categories";
 import { getAgentModel } from "@repo/agent";
 import type { LanguageModel } from "ai";
 
@@ -24,6 +24,25 @@ interface Expense {
     userId: number;
     amount: number;
   }[];
+}
+
+// Human-friendly date for the expense confirmation. "Today" / "Yesterday"
+// read more naturally than the raw date when the user just recorded an
+// expense; anything further back falls through to a short date string.
+function formatDateLabel(date: Date): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / 86_400_000
+  );
+  if (diffDays === 0) return "Today";
+  if (diffDays === -1) return "Yesterday";
+  if (diffDays === 1) return "Tomorrow";
+  return target.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export const expensesFeature = new Composer<BotContext>();
@@ -318,11 +337,17 @@ expensesFeature.on("message:text", async (ctx, next) => {
     // Try to auto-assign a category. Null on LLM failure is acceptable — expense
     // still creates, just without a category.
     let categoryId: string | null = null;
+    let chatRows: {
+      id: string;
+      title: string;
+      emoji: string;
+      chatId: bigint;
+    }[] = [];
     try {
       const chatCategories = await ctx.trpc.category.listByChat({
         chatId: ctx.from.id,
       });
-      const chatRows = chatCategories.items
+      chatRows = chatCategories.items
         .filter((c) => c.kind === "custom")
         .map((c) => ({
           id: c.id.replace(/^chat:/, ""),
@@ -359,12 +384,24 @@ expensesFeature.on("message:text", async (ctx, next) => {
     const escapedCurrency = escapeMarkdownV2(currency);
     const formattedAmount = escapeMarkdownV2(parsed.amount.toFixed(2));
 
+    // Category + date appear below the main line so the user can verify
+    // everything the bot picked up from their message. Category is
+    // optional — if classification failed we just skip that row.
+    let categoryLine = "";
+    const resolved = resolveCategory(categoryId, chatRows);
+    if (resolved) {
+      categoryLine = `\n🏷 ${resolved.emoji} ${escapeMarkdownV2(resolved.title)}`;
+    }
+    const dateLabel = escapeMarkdownV2(formatDateLabel(expenseDate));
+
     const confirmation = BotMessages.EXPENSE_CREATED.replace(
       "{description}",
       escapedDesc
     )
       .replace("{currency}", escapedCurrency)
-      .replace("{amount}", formattedAmount);
+      .replace("{amount}", formattedAmount)
+      .replace("{category_line}", categoryLine)
+      .replace("{date_label}", dateLabel);
 
     const undoKeyboard = new InlineKeyboard().text(
       "🗑 Undo",
