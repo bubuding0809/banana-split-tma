@@ -179,7 +179,7 @@ jobs:
     if: needs.filter.outputs.cli == 'true' || inputs.force_deploy_apps
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # write: push git tag after successful publish
       id-token: write # Required for npm Trusted Publishing (OIDC) + provenance
     steps:
       - uses: actions/checkout@v4
@@ -212,7 +212,51 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace dependencies of the CLI
+        # The CLI's tsup config uses noExternal: [/.*/] so it bundles every
+        # workspace import. Those libraries (e.g. @repo/categories) need their
+        # dist/ built before tsup can resolve them. Turbo filter ^... means
+        # "all dependencies of @banananasplitz/cli, not the CLI itself".
+        if: steps.check.outputs.skip == 'false'
+        run: pnpm turbo run build --filter=@banananasplitz/cli^...
+
       - name: Publish to npm (Trusted Publishing + provenance)
         if: steps.check.outputs.skip == 'false'
         working-directory: apps/cli
+        # pnpm publish (vs npm publish) — npm refuses the tarball because
+        # pnpm's workspace: protocol deps haven't been rewritten yet; pnpm
+        # resolves them correctly. --no-git-checks bypasses pnpm's
+        # uncommitted-change guard since CI runs on a clean checkout.
         run: pnpm publish --access public --provenance --no-git-checks
+
+      - name: Tag published version
+        id: tag
+        if: steps.check.outputs.skip == 'false'
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          TAG="@banananasplitz/cli@${VERSION}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            echo "::notice::Tag ${TAG} already exists — skipping tag push."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Pushed git tag ${TAG}."
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.skip == 'false' && steps.tag.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes \
+            --latest
+          echo "::notice::Created GitHub Release ${TAG}."
