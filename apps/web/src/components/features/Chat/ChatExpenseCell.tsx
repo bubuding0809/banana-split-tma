@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
+import { getAnimalAvatarEmoji } from "@/utils/emoji";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import {
   formatExpenseDateShort,
@@ -93,6 +94,11 @@ const ChatExpenseCell = ({
     });
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
+  // Reused by ChatMemberAvatar inside the payer mini-badge. Keeps the cache
+  // hot — if the avatar is in the DOM too, this is essentially free.
+  const { data: payerPhotoUrl } = trpc.telegram.getUserProfilePhotoUrl.useQuery(
+    { userId: payerId }
+  );
 
   //* Mutations ====================================================================================
   const deleteExpenseMutation = trpc.expense.deleteExpense.useMutation({
@@ -270,7 +276,37 @@ const ChatExpenseCell = ({
         })}
         ref={cellRef}
         onClick={handleCellClick}
-        before={<ChatMemberAvatar userId={payerId} size={28} />}
+        before={
+          categoryEmoji ? (
+            // Category tile with payer mini-badge overlapping the bottom-right.
+            // The tile shows what the expense is about at a glance; the badge
+            // keeps payer identity visible. Uncategorized rows fall back to
+            // the plain payer avatar so the slot is never empty.
+            <div className="relative flex-shrink-0">
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-[20px] leading-none">
+                {categoryEmoji}
+              </div>
+              <div
+                className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-full"
+                style={{ boxShadow: "0 0 0 2px var(--tg-theme-bg-color)" }}
+              >
+                {payerPhotoUrl ? (
+                  <img
+                    src={payerPhotoUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-[var(--tg-theme-section-bg-color)] text-[10px] leading-none">
+                    {getAnimalAvatarEmoji(payerId.toString())}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <ChatMemberAvatar userId={payerId} size={28} />
+          )
+        }
         subhead={
           <Skeleton visible={isMemberLoading}>
             <Caption
@@ -366,9 +402,6 @@ const ChatExpenseCell = ({
               ?.flagEmoji
           }{" "}
           {formatCurrencyWithCode(expense.amount, expense.currency)}
-          {categoryEmoji && (
-            <span className="text-sm leading-none">{categoryEmoji}</span>
-          )}
         </span>
       </Cell>
       <ExpenseDetailsModal
