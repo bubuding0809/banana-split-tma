@@ -48,7 +48,7 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const base = data?.base ?? [];
 
   return (
-    <div className="pb-24">
+    <main className="px-3 pb-24">
       <Section header="CUSTOM">
         {custom.length === 0 ? (
           <Cell description="Tap Create custom category below to add your first one.">
@@ -84,6 +84,6 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
           </Cell>
         ))}
       </Section>
-    </div>
+    </main>
   );
 }

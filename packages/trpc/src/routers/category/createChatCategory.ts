@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
+import { BASE_CATEGORIES } from "@repo/categories";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -25,6 +26,16 @@ export const createChatCategoryHandler = async (
   db: Db,
   createdById: bigint
 ): Promise<z.infer<typeof outputSchema>> => {
+  // Reject collisions against both existing customs in this chat AND the
+  // built-in base titles — users expect "Food" to always mean the base Food
+  // category, not a custom override with the same label.
+  const normalized = input.title.trim().toLowerCase();
+  if (BASE_CATEGORIES.some((c) => c.title.toLowerCase() === normalized)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "A standard category with this title already exists",
+    });
+  }
   const existing = await db.chatCategory.findFirst({
     where: {
       chatId: input.chatId,

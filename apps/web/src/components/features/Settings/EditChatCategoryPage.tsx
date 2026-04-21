@@ -187,7 +187,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const canSave = title.trim().length > 0 && emoji.length > 0;
 
   return (
-    <div className="pb-8">
+    <main className="flex flex-col gap-4 px-3 pb-8">
       {/* Preview — emoji in a tinted panel over the category name, same
           styling as the prototype's header preview. */}
       <div className="flex flex-col items-center gap-2.5 py-6">
@@ -237,11 +237,8 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
                   className="flex aspect-square items-center justify-center rounded-lg text-xl leading-none"
                   style={{
                     backgroundColor: selected
-                      ? "color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)"
-                      : "rgba(127, 127, 127, 0.16)",
-                    outline: selected
-                      ? "1.5px solid var(--tg-theme-button-color)"
-                      : "none",
+                      ? "rgba(127, 127, 127, 0.28)"
+                      : "transparent",
                   }}
                 >
                   {e}
@@ -252,7 +249,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         </Section>
       </div>
 
-      <div className="flex flex-col gap-2 px-4 pt-4">
+      <div className="flex flex-col gap-2 pt-4">
         <Button size="l" onClick={onSave} disabled={!canSave}>
           {isEdit ? "Save" : "Create"}
         </Button>
@@ -268,6 +265,6 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
           Error
         </Snackbar>
       ) : null}
-    </div>
+    </main>
   );
 }
