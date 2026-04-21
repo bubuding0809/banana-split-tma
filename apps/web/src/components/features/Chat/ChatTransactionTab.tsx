@@ -136,14 +136,16 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
     return counts;
   }, [allExpensesForCounts]);
 
-  // Filter picker hides tiles the user hid via Organize. Trade-off: if a
-  // past expense was tagged with a now-hidden category, it won't be
-  // reachable from this filter — they'd need to unhide it first. That's
-  // the consistent contract with the add-expense picker and matches the
-  // spec's "filter hidden before rendering" rule.
+  // Visible categories always appear in the filter strip. Hidden ones
+  // only appear if they still have tagged expenses — otherwise a user
+  // can't filter to their existing history after hiding a category.
+  // Hidden-and-empty categories stay off the strip to avoid clutter.
   const allCategories = useMemo(
-    () => (categoriesData?.items ?? []).filter((c) => !c.hidden),
-    [categoriesData]
+    () =>
+      (categoriesData?.items ?? []).filter(
+        (c) => !c.hidden || (categoryCounts[c.id] ?? 0) > 0
+      ),
+    [categoriesData, categoryCounts]
   );
 
   const chatRows = useMemo<ChatCategoryRow[]>(

@@ -41,8 +41,8 @@ export default function CategoriesOnboarding({
           New: Categories
         </Caption>
         <div className="text-xs text-[var(--tg-theme-hint-color)]">
-          Tap the filter to narrow by category. Manage custom categories in chat
-          settings.
+          Tap the category chips below to filter the list. Manage custom
+          categories in chat settings.
         </div>
       </div>
       <button type="button" onClick={dismiss} className="p-1">
