@@ -16,8 +16,10 @@ export default function CategoriesSection({
   const custom = data?.custom ?? [];
   const total = base.length + custom.length;
 
-  const preview = [...custom, ...base].slice(0, 4);
-  const extra = Math.max(0, total - preview.length);
+  // Emoji-only chips — render every category in a horizontal scroll strip
+  // rather than slicing to 4 + "+N more". The chip is compact enough that
+  // all categories fit in the single-line overflow-x area.
+  const allCats = [...custom, ...base];
 
   const goManage = () =>
     navigate({
@@ -51,36 +53,28 @@ export default function CategoriesSection({
         Manage categories
       </Cell>
 
-      {/* Preview chip strip — sits inside the same Section card as the
-          Manage cell, separated by a hairline border. Horizontally scrolls
-          rather than wrapping so the row stays a single line regardless of
-          how many categories preview. */}
+      {/* Emoji-only chip strip — sits inside the same Section card as the
+          Manage cell, separated by a hairline border. Single-line horizontal
+          scroll. Each chip is a tile-style panel holding just the emoji so
+          the row fits many categories at a glance. */}
       <div
         role="button"
         onClick={goManage}
-        className="flex cursor-pointer gap-1.5 overflow-x-auto px-4 pb-3.5 pt-2.5"
+        className="flex cursor-pointer gap-1.5 overflow-x-auto px-4 pb-3 pt-2.5"
         style={{
           borderTop: "0.5px solid var(--tg-theme-section-separator-color)",
         }}
       >
-        {preview.map((c) => (
+        {allCats.map((c) => (
           <span
             key={c.id}
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] font-medium text-[var(--tg-theme-text-color)]"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--tg-theme-hint-color) 18%, transparent)",
-            }}
+            title={c.title}
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-base leading-none"
+            style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
           >
-            <span className="text-sm leading-none">{c.emoji}</span>
-            <span>{c.title}</span>
+            {c.emoji}
           </span>
         ))}
-        {extra > 0 ? (
-          <span className="inline-flex flex-shrink-0 items-center rounded-full px-2.5 py-1.5 text-[13px] font-medium text-[var(--tg-theme-hint-color)]">
-            +{extra} more
-          </span>
-        ) : null}
       </div>
     </Section>
   );
