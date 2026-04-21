@@ -390,7 +390,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
     let categoryLine = "";
     const resolved = resolveCategory(categoryId, chatRows);
     if (resolved) {
-      categoryLine = `\n🏷 ${resolved.emoji} ${escapeMarkdownV2(resolved.title)}`;
+      categoryLine = `\n>🏷 ${resolved.emoji} ${escapeMarkdownV2(resolved.title)}`;
     }
     const dateLabel = escapeMarkdownV2(formatDateLabel(expenseDate));
 
