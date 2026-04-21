@@ -1,3 +1,4 @@
+import { Badge } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { useMemo } from "react";
 
@@ -120,20 +121,15 @@ export default function CategoryFilterStrip({
             {(() => {
               const count = counts?.[c.id] ?? 0;
               if (count === 0) return null;
-              // Link-color badge pulled in slightly from the corner so it
-              // overlaps the tile instead of floating off the edge. The
-              // 2px bg-color border keeps it reading as a distinct pill.
+              // Badge sits slightly overlapped with the tile (-0.5) so it
+              // reads as attached rather than floating off the corner.
               return (
-                <span
+                <div
                   aria-hidden
-                  className="pointer-events-none absolute -bottom-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums leading-none text-white"
-                  style={{
-                    backgroundColor: "var(--tg-theme-link-color)",
-                    border: "2px solid var(--tg-theme-bg-color)",
-                  }}
+                  className="pointer-events-none absolute -bottom-0.5 -right-0.5"
                 >
-                  {formatCount(count)}
-                </span>
+                  <Badge type="number">{formatCount(count)}</Badge>
+                </div>
               );
             })()}
           </button>
