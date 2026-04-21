@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Input, Section, Button, Snackbar } from "@telegram-apps/telegram-ui";
+import {
+  Input,
+  Section,
+  Button,
+  Snackbar,
+  Subheadline,
+} from "@telegram-apps/telegram-ui";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
@@ -196,43 +202,55 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         </div>
       </div>
 
-      <Section
-        header="NAME"
-        footer={`${title.length} / ${TITLE_MAX_LENGTH} characters`}
-      >
-        <Input
-          placeholder="e.g. Bali Trip"
-          value={title}
-          maxLength={TITLE_MAX_LENGTH}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </Section>
+      {/* NAME — header + counter match the Details step in AmountFormStep
+          so the typography feels consistent between the two forms. */}
+      <div className="flex flex-col gap-2">
+        <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
+          <Subheadline weight="2">Name</Subheadline>
+          <span className="text-sm text-gray-500">
+            {title.length} / {TITLE_MAX_LENGTH} characters
+          </span>
+        </label>
+        <Section>
+          <Input
+            placeholder="e.g. Bali Trip"
+            value={title}
+            maxLength={TITLE_MAX_LENGTH}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </Section>
+      </div>
 
-      <Section header="EMOJI">
-        <div className="grid grid-cols-8 gap-1.5 p-3">
-          {EMOJI_POOL.map((e, i) => {
-            const selected = emoji === e;
-            return (
-              <button
-                key={`${e}-${i}`}
-                type="button"
-                onClick={() => setEmoji(e)}
-                className="flex aspect-square items-center justify-center rounded-lg text-xl leading-none"
-                style={{
-                  backgroundColor: selected
-                    ? "color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)"
-                    : "rgba(127, 127, 127, 0.16)",
-                  outline: selected
-                    ? "1.5px solid var(--tg-theme-button-color)"
-                    : "none",
-                }}
-              >
-                {e}
-              </button>
-            );
-          })}
-        </div>
-      </Section>
+      <div className="flex flex-col gap-2">
+        <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
+          <Subheadline weight="2">Emoji</Subheadline>
+        </label>
+        <Section>
+          <div className="grid grid-cols-8 gap-1.5 p-3">
+            {EMOJI_POOL.map((e, i) => {
+              const selected = emoji === e;
+              return (
+                <button
+                  key={`${e}-${i}`}
+                  type="button"
+                  onClick={() => setEmoji(e)}
+                  className="flex aspect-square items-center justify-center rounded-lg text-xl leading-none"
+                  style={{
+                    backgroundColor: selected
+                      ? "color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)"
+                      : "rgba(127, 127, 127, 0.16)",
+                    outline: selected
+                      ? "1.5px solid var(--tg-theme-button-color)"
+                      : "none",
+                  }}
+                >
+                  {e}
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+      </div>
 
       <div className="flex flex-col gap-2 px-4 pt-4">
         <Button size="l" onClick={onSave} disabled={!canSave}>
