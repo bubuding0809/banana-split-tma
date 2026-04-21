@@ -536,18 +536,32 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
           </SortableContext>
         </section>
 
-        {/* Inline instructions between the zones. No container, no border —
-            reads as margin-note guidance, not a tappable element.
-            Accent-colored icons add life without implying interactivity. */}
-        <div className="flex items-center justify-center gap-6 py-1 text-[13px] italic text-[var(--tg-theme-hint-color)]">
-          <span className="flex items-center gap-1.5">
+        {/* Inline instructions between the zones. A hairline rule runs
+            edge-to-edge through the row, cutting through both legend
+            items so they read as "floating" on a single divider — one
+            element that's both separator and cheat sheet. No container
+            or border, still reads as guidance not a tappable pill. */}
+        <div className="flex items-center gap-3 py-1 text-[13px] italic text-[var(--tg-theme-hint-color)]">
+          <span
+            aria-hidden
+            className="h-px flex-1 bg-[rgba(255,255,255,0.08)]"
+          />
+          <span className="flex flex-shrink-0 items-center gap-1.5">
             <Move size={14} strokeWidth={2.25} style={{ color: "#22c55e" }} />
             Drag to move
           </span>
-          <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="h-px flex-1 bg-[rgba(255,255,255,0.08)]"
+          />
+          <span className="flex flex-shrink-0 items-center gap-1.5">
             <Eye size={14} strokeWidth={2.25} style={{ color: "#f59e0b" }} />
             Tap eye to hide / show
           </span>
+          <span
+            aria-hidden
+            className="h-px flex-1 bg-[rgba(255,255,255,0.08)]"
+          />
         </div>
 
         <section>
