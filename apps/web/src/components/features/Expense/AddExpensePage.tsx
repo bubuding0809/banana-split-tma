@@ -157,8 +157,19 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           isLoaderVisible: false,
         });
 
-        // Submitted successfully — drop the draft so a fresh Add Expense
-        // starts empty, not pre-filled with this expense's values.
+        // Submitted successfully — reset the form *before* clearing the
+        // draft. useFormDraftCache subscribes to form.store, which fires
+        // on every state change including isSubmitting flipping back to
+        // false after onSubmit resolves. Without an explicit reset, that
+        // late fire re-saves the just-submitted values to sessionStorage
+        // *after* clearFormDraft ran, so reopening Add Expense pre-fills
+        // with the previous expense. Resetting makes any late fire write
+        // empty defaults instead.
+        form.reset({
+          ...formOpts.defaultValues,
+          payee: userId.toString(),
+          currency: dChatData?.baseCurrency ?? "SGD",
+        });
         clearFormDraft(draftKey);
 
         navigateBackToChat({
