@@ -38,12 +38,14 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const [title, setTitle] = useState(existing?.title ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  // True once the user has manually picked an emoji from the picker. We
-  // stop auto-suggesting after that so the classifier doesn't overwrite
-  // their explicit choice when they continue editing the name. Seeded
-  // true on edit for the same reason the expense form does it: a saved
-  // category's emoji is implicitly "touched".
-  const userTouchedEmojiRef = useRef(isEdit);
+  // True once the user has manually picked an emoji from the picker in
+  // *this* session. Stops auto-suggest from overwriting their explicit
+  // choice when they continue editing the name. Seeded `false` in both
+  // add and edit modes — on edit, the user often wants the emoji to
+  // re-sync after a title tweak (e.g. renaming "Food" → "Gym" should
+  // update 🍜 → 🏋️). The picker's onEmojiClick flips this true for the
+  // rest of the session.
+  const userTouchedEmojiRef = useRef(false);
 
   useEffect(() => {
     if (existing) {
