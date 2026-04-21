@@ -517,18 +517,40 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         </section>
 
         {/* Legend sits between the two zones — doubles as a divider and a
-            compact "how this works" cheat sheet. */}
-        <div className="-my-1 mx-1 flex items-center justify-center gap-3 rounded-lg bg-[rgba(255,255,255,0.03)] px-3 py-2 text-[11px] text-[var(--tg-theme-hint-color)]">
+            compact "how this works" cheat sheet. Accent-tinted so it
+            reads as part of the TMA theme, not page chrome. */}
+        <div
+          className="-my-1 mx-1 flex items-center justify-center gap-3 rounded-xl border px-3 py-2.5 text-[11.5px] font-medium"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--tg-theme-button-color) 10%, transparent)",
+            borderColor:
+              "color-mix(in srgb, var(--tg-theme-button-color) 25%, transparent)",
+            color: "var(--tg-theme-text-color)",
+          }}
+        >
           <span className="flex items-center gap-1.5">
-            <Move size={13} strokeWidth={2} />
+            <Move
+              size={14}
+              strokeWidth={2.25}
+              style={{ color: "var(--tg-theme-button-color)" }}
+            />
             Drag to move
           </span>
           <span
             aria-hidden
-            className="h-3.5 w-px bg-[rgba(255,255,255,0.12)]"
+            className="h-4 w-px"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--tg-theme-button-color) 30%, transparent)",
+            }}
           />
           <span className="flex items-center gap-1.5">
-            <Eye size={13} strokeWidth={2} />
+            <Eye
+              size={14}
+              strokeWidth={2.25}
+              style={{ color: "var(--tg-theme-button-color)" }}
+            />
             Tap eye to hide / show
           </span>
         </div>
