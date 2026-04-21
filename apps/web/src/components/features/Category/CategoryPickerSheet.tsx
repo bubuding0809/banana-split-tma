@@ -1,6 +1,14 @@
-import { Modal, Caption } from "@telegram-apps/telegram-ui";
+import { Modal } from "@telegram-apps/telegram-ui";
 import { Plus } from "lucide-react";
 import CategoryTile from "./CategoryTile";
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-2 px-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)] opacity-80">
+      {children}
+    </div>
+  );
+}
 
 interface PickerCategory {
   id: string;
@@ -45,9 +53,10 @@ export default function CategoryPickerSheet({
       onOpenChange={onOpenChange}
       header={<Modal.Header>Pick a category</Modal.Header>}
     >
-      <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+      <div className="max-h-[70vh] space-y-5 overflow-y-auto p-4">
         {includeNoneOption && (
-          <div>
+          <section>
+            <SectionHeader>Clear</SectionHeader>
             <div className="grid grid-cols-4 gap-2">
               <CategoryTile
                 emoji={UNCATEGORIZED_OPTION.emoji}
@@ -56,32 +65,12 @@ export default function CategoryPickerSheet({
                 onClick={() => onSelect(UNCATEGORIZED_OPTION)}
               />
             </div>
-          </div>
-        )}
-        {custom.length > 0 && (
-          <div>
-            <Caption level="1" weight="2">
-              Custom
-            </Caption>
-            <div className="mt-2 grid grid-cols-4 gap-2">
-              {custom.map((c) => (
-                <CategoryTile
-                  key={c.id}
-                  emoji={c.emoji}
-                  title={c.title}
-                  selected={selectedId === c.id}
-                  onClick={() => onSelect(c)}
-                />
-              ))}
-            </div>
-          </div>
+          </section>
         )}
 
-        <div>
-          <Caption level="1" weight="2">
-            Base
-          </Caption>
-          <div className="mt-2 grid grid-cols-4 gap-2">
+        <section>
+          <SectionHeader>Standard</SectionHeader>
+          <div className="grid grid-cols-4 gap-2">
             {base.map((c) => (
               <CategoryTile
                 key={c.id}
@@ -92,7 +81,24 @@ export default function CategoryPickerSheet({
               />
             ))}
           </div>
-        </div>
+        </section>
+
+        {custom.length > 0 && (
+          <section>
+            <SectionHeader>Custom</SectionHeader>
+            <div className="grid grid-cols-4 gap-2">
+              {custom.map((c) => (
+                <CategoryTile
+                  key={c.id}
+                  emoji={c.emoji}
+                  title={c.title}
+                  selected={selectedId === c.id}
+                  onClick={() => onSelect(c)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {onCreateCustom && (
           <button
