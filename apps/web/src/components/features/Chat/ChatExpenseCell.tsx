@@ -276,24 +276,8 @@ const ChatExpenseCell = ({
             // The tile shows what the expense is about at a glance; the badge
             // keeps payer identity visible. Uncategorized rows fall back to
             // the plain payer avatar so the slot is never empty.
-            <div className="relative flex-shrink-0">
-              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-[20px] leading-none">
-                {categoryEmoji}
-              </div>
-              <div
-                className="absolute -bottom-1 -right-1 rounded-full p-[2px]"
-                style={{
-                  // Outer ring cuts the badge out of the tile it overlaps
-                  // (matches row bg for a clean punch-out).
-                  boxShadow: "0 0 0 2px var(--tg-theme-section-bg-color)",
-                  // Lighter fill gives the avatar its own circular frame —
-                  // with padding below, a rim of this colour shows around
-                  // the inner photo.
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                }}
-              >
-                <ChatMemberAvatar userId={payerId} size={24} />
-              </div>
+            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-[20px] leading-none">
+              {categoryEmoji}
             </div>
           ) : (
             <ChatMemberAvatar userId={payerId} size={28} />
