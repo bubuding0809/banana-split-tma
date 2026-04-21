@@ -502,6 +502,9 @@ importers:
       emoji-picker-react:
         specifier: ^4.18.0
         version: 4.18.0(react@19.2.4)
+      emojilib:
+        specifier: ^4.0.3
+        version: 4.0.3
       eruda:
         specifier: ^3.4.1
         version: 3.4.3
@@ -9747,6 +9750,12 @@ packages:
     resolution:
       {
         integrity: sha512-5U0rVMU5Y2n2+ykNLQqMoqklN9ICBT/KsvC1Gz6vqHbz2AXXGkG+Pm5rMWk/8Vjrr/mY9985Hi8DYzn1F09Nyw==,
+      }
+
+  emojilib@4.0.3:
+    resolution:
+      {
+        integrity: sha512-KbWiYre9aRSaPbHrHZIz9zmoM+21LAsK1VFJtnTh1VCtWE/rNMDviGhQTmselFl95dhqtGlY22iH0leG5BuW0g==,
       }
 
   emojis-list@3.0.0:
@@ -24123,6 +24132,8 @@ snapshots:
   emoji-regex@9.2.2: {}
 
   emojilib@2.4.0: {}
+
+  emojilib@4.0.3: {}
 
   emojis-list@3.0.0: {}
 

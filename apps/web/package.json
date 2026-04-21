@@ -33,6 +33,7 @@
     "date-fns": "^4.1.0",
     "decimal.js": "^10.5.0",
     "emoji-picker-react": "^4.18.0",
+    "emojilib": "^4.0.3",
     "eruda": "^3.4.1",
     "lucide-react": "^0.518.0",
     "qrcode.react": "^4.2.0",

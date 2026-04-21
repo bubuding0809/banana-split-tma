@@ -13,8 +13,8 @@ import EmojiPicker, {
   SkinTonePickerLocation,
   Theme,
 } from "emoji-picker-react";
-import { LoaderPinwheel } from "lucide-react";
 import { trpc } from "@/utils/trpc";
+import { suggestEmojiForTitle } from "@/utils/suggestEmoji";
 
 interface Props {
   chatId: number;
@@ -95,33 +95,14 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     onError: (e) => setError(e.message),
   });
 
-  // Debounced emoji auto-suggest — fires on name change when the user
-  // hasn't manually picked. Same 300ms debounce + monotonic request id
-  // pattern as the expense form's category suggest to guard against stale
-  // responses from an earlier, slower request.
-  const suggestEmojiMut = trpc.category.suggestEmoji.useMutation();
-  const latestEmojiReqRef = useRef(0);
+  // Emoji auto-suggest — runs synchronously against a local keyword index
+  // (BASE_CATEGORIES + Unicode CLDR via emojilib). No debounce needed:
+  // lookup is ~0ms, so firing on every keystroke is cheap and immediate.
   useEffect(() => {
     if (userTouchedEmojiRef.current) return;
     if (title.trim().length < 2) return;
-    const handle = setTimeout(() => {
-      const requestId = ++latestEmojiReqRef.current;
-      suggestEmojiMut.mutate(
-        { title: title.trim() },
-        {
-          onSuccess: (res) => {
-            if (requestId !== latestEmojiReqRef.current) return;
-            if (userTouchedEmojiRef.current) return;
-            if (!res.emoji) return;
-            setEmoji(res.emoji);
-          },
-        }
-      );
-    }, 300);
-    return () => clearTimeout(handle);
-    // suggestEmojiMut intentionally omitted — its identity changes every
-    // render and would reset the debounce on each keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const suggestion = suggestEmojiForTitle(title);
+    if (suggestion) setEmoji(suggestion);
   }, [title]);
 
   const onSave = () => {
@@ -177,32 +158,15 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8">
-      {/* Preview — emoji in a tinted panel over the category name. While
-          the classifier is mid-flight, swap the emoji for a spinning
-          LoaderPinwheel with the violet sparkle treatment (matches the
-          SparkleBadge pending pill on the expense-form category cell so
-          the "AI is working" signal reads the same across screens). */}
+      {/* Preview — emoji in a tinted panel over the category name. Emoji
+          suggestion is synchronous (local keyword lookup, see
+          suggestEmojiForTitle), so there's no pending state to show. */}
       <div className="flex flex-col items-center gap-2.5 py-6">
         <div
           className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl text-[40px]"
-          style={
-            suggestEmojiMut.isPending
-              ? {
-                  background:
-                    "linear-gradient(90deg, rgba(167,139,250,0.18) 0%, rgba(236,72,153,0.18) 100%)",
-                }
-              : { backgroundColor: "rgba(127, 127, 127, 0.28)" }
-          }
+          style={{ backgroundColor: "rgba(127, 127, 127, 0.28)" }}
         >
-          {suggestEmojiMut.isPending ? (
-            <LoaderPinwheel
-              size={32}
-              className="animate-spin"
-              style={{ color: "rgb(139, 92, 246)" }}
-            />
-          ) : (
-            emoji
-          )}
+          {emoji}
         </div>
         <div className="text-[15px] font-semibold text-[var(--tg-theme-text-color)]">
           {title || "Category name"}
@@ -275,10 +239,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         >
           <EmojiPicker
             onEmojiClick={(e) => {
-              // Manual pick — lock out further auto-suggest and bump the
-              // request id so any in-flight suggest's onSuccess is dropped.
+              // Manual pick — lock out further auto-suggest so name edits
+              // don't overwrite the user's explicit choice.
               userTouchedEmojiRef.current = true;
-              latestEmojiReqRef.current += 1;
               setEmoji(e.emoji);
             }}
             theme={Theme.DARK}
