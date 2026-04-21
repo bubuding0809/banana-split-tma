@@ -77,7 +77,7 @@ export default function CategoryFilterStrip({
   if (allChips.length === 0) return null;
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 py-3 [&::-webkit-scrollbar]:hidden">
+    <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [&::-webkit-scrollbar]:hidden">
       {displayOrder.map((c) => {
         const selected = selectedIds.includes(c.id);
         return (
@@ -87,7 +87,7 @@ export default function CategoryFilterStrip({
             onClick={() => toggle(c.id)}
             aria-pressed={selected}
             aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-            className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-[22px] leading-none transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.94]"
+            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.94]"
             style={
               selected
                 ? {
@@ -98,8 +98,8 @@ export default function CategoryFilterStrip({
                     backgroundColor: "rgba(255,255,255,0.08)",
                     boxShadow: [
                       "0 0 0 1.5px var(--tg-theme-link-color)",
-                      "0 0 14px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
-                      "0 6px 14px rgba(0,0,0,0.45)",
+                      "0 0 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
+                      "0 3px 8px rgba(0,0,0,0.4)",
                     ].join(", "),
                   }
                 : { backgroundColor: "transparent" }
