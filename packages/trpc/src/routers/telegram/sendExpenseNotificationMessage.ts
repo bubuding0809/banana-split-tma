@@ -101,8 +101,11 @@ export const formatExpenseMessage = (
     payerMention = escapeMarkdown(payerName, 2);
   }
 
+  // Tree-style share list — `┣` for each branch, `┗` to close the
+  // list. Mirrors the style already used in the group reminder +
+  // snapshot messages (see sendGroupReminderMessage / shareSnapshotMessage).
   const participantList = participants
-    .map((participant) => {
+    .map((participant, index) => {
       const amount = escapeMarkdown(
         formatAmount(currency, participant.amount),
         2
@@ -113,7 +116,8 @@ export const formatExpenseMessage = (
       } catch {
         mention = escapeMarkdown(participant.name, 2);
       }
-      return `• ${mention}: ${amount}`;
+      const prefix = index === participants.length - 1 ? "┗" : "┣";
+      return `${prefix} ${mention}: ${amount}`;
     })
     .join("\n");
 
@@ -130,7 +134,7 @@ export const formatExpenseMessage = (
 > 💰 • ${escapedTotal}${categoryLine}
 > 🗓 • ${dateLabel}
 
-*Your shares:*
+💸 *Shares*
 ${participantList}`;
 };
 
