@@ -41,10 +41,9 @@ function tickSelection() {
  * category. Multi-select — tapping a chip toggles it. Selected chips float
  * to the start so active filters are always visible without scrolling.
  *
- * Selected chips get a filled link-color background with a subtle inner
- * highlight and drop shadow — they visually lift off the strip so the
- * active state reads at a glance. Unselected chips sit back on a faint
- * white-alpha fill so the strip feels cohesive but recedes.
+ * Selected chips get a gray fill + link-color highlight ring + drop
+ * shadow — they visually lift off the strip. Unselected chips have no
+ * background at all, so the strip feels airy and the active state pops.
  */
 export default function CategoryFilterStrip({
   categories,
@@ -88,18 +87,15 @@ export default function CategoryFilterStrip({
             onClick={() => toggle(c.id)}
             aria-pressed={selected}
             aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-            className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-[22px] leading-none transition-transform duration-150 ease-out active:scale-[0.94]"
+            className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-[22px] leading-none transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.94]"
             style={
               selected
                 ? {
-                    background: "var(--tg-theme-link-color)",
+                    backgroundColor: "rgba(255,255,255,0.08)",
                     boxShadow:
-                      "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 10px color-mix(in srgb, var(--tg-theme-link-color) 40%, transparent)",
+                      "0 0 0 1.5px var(--tg-theme-link-color), 0 4px 12px rgba(0,0,0,0.4)",
                   }
-                : {
-                    backgroundColor: "rgba(255,255,255,0.05)",
-                    opacity: 0.8,
-                  }
+                : undefined
             }
           >
             {c.emoji}
