@@ -35,7 +35,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const { data } = trpc.category.listByChat.useQuery({ chatId });
-  const existing = data?.custom.find((c) => c.id === `chat:${categoryId}`);
+  const existing = (data?.items ?? []).find(
+    (c) => c.kind === "custom" && c.id === `chat:${categoryId}`
+  );
 
   const [emoji, setEmoji] = useState(existing?.emoji ?? "🏷️");
   const [title, setTitle] = useState(existing?.title ?? "");

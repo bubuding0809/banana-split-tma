@@ -31,8 +31,9 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
     };
   }, [chatId, navigate]);
 
-  const custom = data?.custom ?? [];
-  const base = data?.base ?? [];
+  const items = data?.items ?? [];
+  const custom = items.filter((c) => c.kind === "custom");
+  const base = items.filter((c) => c.kind === "base");
 
   return (
     <main className="px-3 pb-8">

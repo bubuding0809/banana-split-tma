@@ -35,15 +35,19 @@ const CategoryFormStep = withForm({
 
     const { data: cats } = trpc.category.listByChat.useQuery({ chatId });
 
+    const items = cats?.items ?? [];
+
     const chatRows: ChatCategoryRow[] = useMemo(
       () =>
-        (cats?.custom ?? []).map((c) => ({
-          id: c.id.replace(/^chat:/, ""),
-          chatId: BigInt(chatId),
-          emoji: c.emoji,
-          title: c.title,
-        })),
-      [cats?.custom, chatId]
+        items
+          .filter((c) => c.kind === "custom")
+          .map((c) => ({
+            id: c.id.replace(/^chat:/, ""),
+            chatId: BigInt(chatId),
+            emoji: c.emoji,
+            title: c.title,
+          })),
+      [items, chatId]
     );
 
     const resolved = useMemo(
@@ -51,10 +55,7 @@ const CategoryFormStep = withForm({
       [categoryId, chatRows]
     );
 
-    const allCategories = useMemo(
-      () => [...(cats?.base ?? []), ...(cats?.custom ?? [])],
-      [cats]
-    );
+    const allCategories = useMemo(() => items, [items]);
 
     const footer = suggestPending
       ? "Cooking up a category…"

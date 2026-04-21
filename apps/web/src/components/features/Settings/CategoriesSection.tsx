@@ -11,14 +11,16 @@ export default function CategoriesSection({
   isPersonal: boolean;
 }) {
   const { data } = trpc.category.listByChat.useQuery({ chatId });
-  const base = data?.base ?? [];
-  const custom = data?.custom ?? [];
-  const total = base.length + custom.length;
+  const items = data?.items ?? [];
+  const visible = items.filter((c) => !c.hidden);
+  const custom = visible.filter((c) => c.kind === "custom");
+  const total = visible.length;
 
-  // Emoji-only chips — render every category in a horizontal scroll strip
-  // rather than slicing to 4 + "+N more". The chip is compact enough that
-  // all categories fit in the single-line overflow-x area.
-  const allCats = [...custom, ...base];
+  // Emoji-only chips — render every visible category in a horizontal scroll
+  // strip in the saved picker order. Hidden tiles (set via Organize) are
+  // filtered out; no custom-first bias any more — the user's reorder choice
+  // reflects here verbatim.
+  const allCats = visible;
 
   return (
     <Section

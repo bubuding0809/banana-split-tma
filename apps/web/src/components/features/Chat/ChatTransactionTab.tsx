@@ -122,18 +122,20 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   });
 
   const allCategories = useMemo(
-    () => [...(categoriesData?.base ?? []), ...(categoriesData?.custom ?? [])],
+    () => categoriesData?.items ?? [],
     [categoriesData]
   );
 
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
-      (categoriesData?.custom ?? []).map((c) => ({
-        id: c.id.replace(/^chat:/, ""),
-        chatId: BigInt(chatId),
-        emoji: c.emoji,
-        title: c.title,
-      })),
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          chatId: BigInt(chatId),
+          emoji: c.emoji,
+          title: c.title,
+        })),
     [categoriesData, chatId]
   );
 

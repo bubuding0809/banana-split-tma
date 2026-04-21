@@ -322,12 +322,14 @@ expensesFeature.on("message:text", async (ctx, next) => {
       const chatCategories = await ctx.trpc.category.listByChat({
         chatId: ctx.from.id,
       });
-      const chatRows = chatCategories.custom.map((c) => ({
-        id: c.id.replace(/^chat:/, ""),
-        emoji: c.emoji,
-        title: c.title,
-        chatId: BigInt(ctx.from.id),
-      }));
+      const chatRows = chatCategories.items
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          emoji: c.emoji,
+          title: c.title,
+          chatId: BigInt(ctx.from.id),
+        }));
       const suggestion = await classifyCategory({
         description: parsed.description,
         chatCategories: chatRows,
