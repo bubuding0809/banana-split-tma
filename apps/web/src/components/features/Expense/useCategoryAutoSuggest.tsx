@@ -31,10 +31,17 @@ export function useCategoryAutoSuggest({
   form,
   chatId,
   disableAutoAssign,
+  onJumpToCategory,
 }: {
   form: ExpenseForm;
   chatId: number;
   disableAutoAssign?: boolean;
+  /**
+   * Optional callback wired to the snackbar's "Change" action — lets the
+   * parent navigate back to whichever step hosts the category picker so
+   * the user can override an unwanted auto-pick with one tap.
+   */
+  onJumpToCategory?: () => void;
 }): { snackbar: ReactNode } {
   type FormState = {
     values: {
@@ -124,11 +131,23 @@ export function useCategoryAutoSuggest({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [description, chatId, disableAutoAssign, categoryId, userTouchedCategory]);
 
+  const dismiss = () => setSnackbarText(null);
+
   const snackbar = snackbarText ? (
     <Snackbar
-      duration={3000}
-      onClose={() => setSnackbarText(null)}
-      description="Tap the Category step to change."
+      duration={5000}
+      onClose={dismiss}
+      description="Not what you meant? Change the category."
+      after={
+        <Snackbar.Button
+          onClick={() => {
+            onJumpToCategory?.();
+            dismiss();
+          }}
+        >
+          {onJumpToCategory ? "Change" : "Dismiss"}
+        </Snackbar.Button>
+      }
     >
       {snackbarText}
     </Snackbar>

@@ -181,11 +181,17 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
   // Auto-suggest lives at page scope so the 300ms debounce + in-flight
   // mutation survive the user pressing Next during the debounce window.
   // The hook also returns a confirmation snackbar when a category lands,
-  // which we render at the bottom of the page below.
+  // which we render at the bottom of the page below. The "Change" action
+  // jumps back to step 0 where the Category picker lives.
   const { snackbar: categoryAutoPickSnackbar } = useCategoryAutoSuggest({
     form,
     chatId,
     disableAutoAssign: false,
+    onJumpToCategory: () => {
+      navigate({
+        search: (prev) => ({ ...prev, currentFormStep: 0 }),
+      });
+    },
   });
 
   // Persist form values to sessionStorage on every change so navigating
