@@ -47,12 +47,19 @@ const ZONE_HIDDEN_ID = "zone:hidden";
 
 function DroppableZone({
   id,
+  isDragActive,
   className,
+  hintClassName,
   activeClassName,
   children,
 }: {
   id: string;
+  /** True when any drag is in flight (not necessarily over this zone). */
+  isDragActive: boolean;
   className: string;
+  /** Applied while a drag is in flight but the pointer is elsewhere. */
+  hintClassName?: string;
+  /** Applied while the pointer is directly over this zone. */
   activeClassName?: string;
   children: React.ReactNode;
 }) {
@@ -60,9 +67,36 @@ function DroppableZone({
   return (
     <div
       ref={setNodeRef}
-      className={clsx(className, isOver && activeClassName)}
+      className={clsx(
+        className,
+        isDragActive && !isOver && hintClassName,
+        isOver && activeClassName
+      )}
     >
       {children}
+    </div>
+  );
+}
+
+function DropZoneEmptyLabel({
+  isOverHint,
+  idleText,
+  activeText,
+}: {
+  isOverHint: boolean;
+  idleText: string;
+  activeText: string;
+}) {
+  return (
+    <div
+      className={clsx(
+        "col-span-4 px-3 py-7 text-center text-[11px] italic transition-colors",
+        isOverHint
+          ? "font-semibold not-italic text-[var(--tg-theme-button-color)]"
+          : "text-[var(--tg-theme-subtitle-text-color)] opacity-70"
+      )}
+    >
+      {isOverHint ? activeText : idleText}
     </div>
   );
 }
@@ -436,13 +470,17 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
           >
             <DroppableZone
               id={ZONE_VISIBLE_ID}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-colors"
-              activeClassName="border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_8%,transparent)]"
+              isDragActive={activeId !== null}
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-transparent bg-[rgba(255,255,255,0.02)] p-1 transition-all duration-150"
+              hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
+              activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
             >
               {visible.length === 0 ? (
-                <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
-                  Drag a tile here to show it in the picker.
-                </div>
+                <DropZoneEmptyLabel
+                  isOverHint={activeId !== null}
+                  idleText="Drag a tile here to show it in the picker."
+                  activeText="Drop to show in picker"
+                />
               ) : (
                 visible.map((it) => (
                   <SortableTile
@@ -467,13 +505,17 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
           >
             <DroppableZone
               id={ZONE_HIDDEN_ID}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-colors"
-              activeClassName="border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_8%,transparent)]"
+              isDragActive={activeId !== null}
+              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.02)] p-1 transition-all duration-150"
+              hintClassName="border-[var(--tg-theme-subtitle-text-color)]/40"
+              activeClassName="scale-[1.01] border-[var(--tg-theme-button-color)] bg-[color-mix(in_srgb,var(--tg-theme-button-color)_15%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--tg-theme-button-color)_25%,transparent)]"
             >
               {hidden.length === 0 ? (
-                <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
-                  Drag a tile here (or tap its eye) to hide it from the picker.
-                </div>
+                <DropZoneEmptyLabel
+                  isOverHint={activeId !== null}
+                  idleText="Drag a tile here (or tap its eye) to hide it from the picker."
+                  activeText="Drop to hide from picker"
+                />
               ) : (
                 hidden.map((it) => (
                   <SortableTile
