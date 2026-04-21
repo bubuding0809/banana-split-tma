@@ -28,10 +28,10 @@ export default function CategoriesSection({
   const previewTiles = visible.slice(0, PREVIEW_COUNT);
   const overflowCount = Math.max(0, visible.length - PREVIEW_COUNT);
 
-  const customizeDescription =
-    hiddenCount > 0
-      ? `Reorder or hide · ${hiddenCount} hidden`
-      : "Drag to reorder or hide tiles";
+  // The overflow footer under the preview already reports the hidden
+  // count, so the cell description sticks to purpose-only — what the
+  // user can do here, not the current state.
+  const customizeDescription = "Drag to rearrange or hide tiles";
 
   const overflowLine =
     overflowCount > 0 && hiddenCount > 0
