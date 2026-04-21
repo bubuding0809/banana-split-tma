@@ -9,7 +9,8 @@ import {
   DndContext,
   DragEndEvent,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -233,8 +234,16 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
     data?.hasCustomOrder,
   ]);
 
+  // Split mouse + touch sensors so each platform gets its idiomatic
+  // activation rule. A single PointerSensor forced us to pick one or the
+  // other: `delay` works for touch (prevents scroll→drag) but never
+  // triggers on desktop where users click-and-drag immediately; `distance`
+  // works for desktop but makes touch scrolls accidentally start drags.
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
       activationConstraint: { delay: 180, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
