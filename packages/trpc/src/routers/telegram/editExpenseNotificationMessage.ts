@@ -22,6 +22,8 @@ interface EditExpenseMessageInput {
   totalAmount: number;
   participants: ExpenseParticipant[];
   currency: string;
+  categoryEmoji?: string;
+  categoryTitle?: string;
   threadId?: number;
 }
 
@@ -48,7 +50,9 @@ export const editExpenseMessageHandler = async (
       input.expenseDescription,
       input.totalAmount,
       input.participants,
-      input.currency
+      input.currency,
+      input.categoryEmoji,
+      input.categoryTitle
     );
 
     // Create the deep link keyboard

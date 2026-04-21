@@ -35,6 +35,12 @@ const inputSchema = z.object({
     .string()
     .length(3, "Currency must be a 3-letter code")
     .default("SGD"),
+  // Resolved category label for the notification. Caller resolves
+  // `categoryId` against base + chat categories so this handler stays
+  // purely presentational. Both fields are required together — pass
+  // both to show a category row, or neither to skip it.
+  categoryEmoji: z.string().optional(),
+  categoryTitle: z.string().optional(),
   threadId: z.number().optional(),
   force: z.boolean().default(false),
 });
@@ -53,7 +59,9 @@ export const formatExpenseMessage = (
   expenseDescription: string,
   totalAmount: number,
   participants: ExpenseParticipant[],
-  currency: string
+  currency: string,
+  categoryEmoji?: string,
+  categoryTitle?: string
 ): string => {
   // Format the total amount as currency with error handling
   let formattedTotalAmount: string;
@@ -115,10 +123,18 @@ export const formatExpenseMessage = (
     })
     .join("\n");
 
+  // Optional category row — only rendered when both emoji + title are
+  // provided. Sits inside the description blockquote so "what the
+  // expense is" stays visually grouped.
+  const categoryLine =
+    categoryEmoji && categoryTitle
+      ? `\n> 🏷 ${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}`
+      : "";
+
   // Create the expense notification message
   return `🧾 New expense paid by ${payerMention}\\!
 
-> ${escapedDescription}
+> ${escapedDescription}${categoryLine}
 Total: ${formattedTotalAmount}
 
 *Your shares:*\n${participantList}`;
@@ -161,7 +177,9 @@ export const sendExpenseNotificationMessageHandler = async (
     input.expenseDescription,
     input.totalAmount,
     input.participants,
-    input.currency
+    input.currency,
+    input.categoryEmoji,
+    input.categoryTitle
   );
 
   const chatContext = {

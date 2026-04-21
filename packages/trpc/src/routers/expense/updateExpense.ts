@@ -430,6 +430,36 @@ export const updateExpenseHandler = async (
               ? Number(existingExpense.chat.threadId)
               : undefined);
 
+          // Resolve the post-update category to emoji + title for the
+          // notification. `input.categoryId === undefined` means the
+          // caller didn't touch category, so we keep whatever the
+          // existing expense had.
+          const effectiveCategoryId =
+            input.categoryId === undefined
+              ? existingExpense.categoryId
+              : input.categoryId;
+          let categoryEmoji: string | undefined;
+          let categoryTitle: string | undefined;
+          if (effectiveCategoryId?.startsWith("base:")) {
+            const base = BASE_CATEGORIES.find(
+              (c) => c.id === effectiveCategoryId
+            );
+            if (base) {
+              categoryEmoji = base.emoji;
+              categoryTitle = base.title;
+            }
+          } else if (effectiveCategoryId?.startsWith("chat:")) {
+            const uuid = effectiveCategoryId.slice("chat:".length);
+            const row = await db.chatCategory.findFirst({
+              where: { id: uuid, chatId: input.chatId },
+              select: { emoji: true, title: true },
+            });
+            if (row) {
+              categoryEmoji = row.emoji;
+              categoryTitle = row.title;
+            }
+          }
+
           // If we have the original message ID, edit it instead of sending a new one
           if (existingExpense.telegramMessageId) {
             try {
@@ -445,6 +475,8 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
+                  categoryEmoji,
+                  categoryTitle,
                   threadId,
                 },
                 teleBot
@@ -492,6 +524,8 @@ export const updateExpenseHandler = async (
                   totalAmount: input.amount,
                   participants: participantsWithAmounts,
                   currency: currency,
+                  categoryEmoji,
+                  categoryTitle,
                   threadId,
                   force: false,
                 },
@@ -514,6 +548,8 @@ export const updateExpenseHandler = async (
                 totalAmount: input.amount,
                 participants: participantsWithAmounts,
                 currency: currency,
+                categoryEmoji,
+                categoryTitle,
                 threadId,
                 force: false,
               },
