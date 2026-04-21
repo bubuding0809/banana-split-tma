@@ -30,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Snackbar } from "@telegram-apps/telegram-ui";
+import { Eye, Move } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import CategoryTile from "@/components/features/Category/CategoryTile";
 
@@ -463,12 +464,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   }, [chatId, navigate]);
 
   return (
-    <main className="flex flex-col gap-4 px-3 pb-24">
-      <p className="px-1 pt-2 text-[12px] leading-snug text-[var(--tg-theme-subtitle-text-color)]">
-        Drag to reorder. Drag into the Hidden zone (or tap the eye icon) to
-        hide. Shared with everyone in this group.
-      </p>
-
+    <main className="flex flex-col gap-4 px-3 pb-24 pt-2">
       {visible.length === 0 && (
         <p className="rounded-lg border border-[rgba(232,148,60,0.3)] bg-[rgba(232,148,60,0.08)] px-3 py-2 text-[12px] leading-snug text-[var(--tg-theme-text-color)]">
           All tiles are hidden — the picker will be empty.
@@ -519,6 +515,23 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             </DroppableZone>
           </SortableContext>
         </section>
+
+        {/* Legend sits between the two zones — doubles as a divider and a
+            compact "how this works" cheat sheet. */}
+        <div className="-my-1 mx-1 flex items-center justify-center gap-3 rounded-lg bg-[rgba(255,255,255,0.03)] px-3 py-2 text-[11px] text-[var(--tg-theme-hint-color)]">
+          <span className="flex items-center gap-1.5">
+            <Move size={13} strokeWidth={2} />
+            Drag to move
+          </span>
+          <span
+            aria-hidden
+            className="h-3.5 w-px bg-[rgba(255,255,255,0.12)]"
+          />
+          <span className="flex items-center gap-1.5">
+            <Eye size={13} strokeWidth={2} />
+            Tap eye to hide / show
+          </span>
+        </div>
 
         <section>
           <div className="mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)]">
