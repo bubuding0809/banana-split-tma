@@ -29,7 +29,7 @@ export const expenseCommands: Command[] = [
       category: {
         type: "string",
         description:
-          "Filter expenses by category id (base:<slug> or chat:<uuid>). Settlements are never filtered out.",
+          "Filter expenses by category id (base:<slug> or chat:<uuid>). Pass 'none' to filter to uncategorized expenses.",
         required: false,
       },
     },
@@ -47,7 +47,9 @@ export const expenseCommands: Command[] = [
         }
         try {
           const result = await trpc.category.listByChat.query({ chatId });
-          for (const c of result.items.filter((item) => item.kind === "custom")) {
+          for (const c of result.items.filter(
+            (item) => item.kind === "custom"
+          )) {
             categoryMap.set(c.id, { emoji: c.emoji, title: c.title });
           }
         } catch {
@@ -59,11 +61,15 @@ export const expenseCommands: Command[] = [
           currency: opts.currency ? String(opts.currency) : undefined,
         });
 
-        // Apply category filter (settlements have no categoryId so they always pass).
+        // Strict category match. `getExpenseByChat` returns expenses only
+        // (no settlements), so there's no reason to let untagged rows
+        // pass through. The special value "none" filters to uncategorized
+        // expenses, mirroring the TMA's Uncategorized chip.
         if (opts.category) {
+          const target = String(opts.category);
           expenses = expenses.filter(
             (e: { categoryId?: string | null }) =>
-              e.categoryId == null || e.categoryId === String(opts.category)
+              (e.categoryId ?? "none") === target
           );
         }
 
