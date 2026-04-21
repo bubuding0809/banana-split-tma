@@ -12,11 +12,7 @@ import {
   mainButton,
   secondaryButton,
 } from "@telegram-apps/sdk-react";
-import EmojiPicker, {
-  EmojiStyle,
-  SkinTonePickerLocation,
-  Theme,
-} from "emoji-picker-react";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { trpc } from "@/utils/trpc";
 import { suggestEmojiForTitle } from "@/utils/suggestEmoji";
 
@@ -272,14 +268,9 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
           />
         </Section>
         {showNameError && (
-          <Caption
-            className="px-3"
-            style={{
-              color: "var(--tg-theme-destructive-text-color)",
-            }}
-          >
-            Name is required
-          </Caption>
+          <div className="flex flex-col gap-1 px-2">
+            <Caption className="text-sm text-red-500">Name is required</Caption>
+          </div>
         )}
       </div>
 
@@ -341,10 +332,8 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
             height={480}
             lazyLoadEmojis
             skinTonesDisabled
-            skinTonePickerLocation={SkinTonePickerLocation.SEARCH}
             previewConfig={{ showPreview: false }}
-            searchPlaceholder="Search emoji"
-            autoFocusSearch={false}
+            searchDisabled
           />
         </div>
       </div>
