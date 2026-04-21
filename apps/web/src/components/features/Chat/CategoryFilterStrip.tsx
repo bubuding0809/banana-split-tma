@@ -120,16 +120,15 @@ export default function CategoryFilterStrip({
             {(() => {
               const count = counts?.[c.id] ?? 0;
               if (count === 0) return null;
-              // Muted gray bottom-right badge. The 2px border matches the
-              // strip's background so the pill reads as floating above the
-              // tile rather than attached to it.
+              // Link-color badge pulled in slightly from the corner so it
+              // overlaps the tile instead of floating off the edge. The
+              // 2px bg-color border keeps it reading as a distinct pill.
               return (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute -bottom-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums leading-none"
+                  className="pointer-events-none absolute -bottom-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums leading-none text-white"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.1)",
-                    color: "var(--tg-theme-subtitle-text-color)",
+                    backgroundColor: "var(--tg-theme-link-color)",
                     border: "2px solid var(--tg-theme-bg-color)",
                   }}
                 >
