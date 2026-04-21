@@ -19,9 +19,11 @@ import { Route as TmaChatChatIdSnapshotsRouteImport } from './routes/_tma/chat.$
 import { Route as TmaChatChatIdSettingsRouteImport } from './routes/_tma/chat.$chatId_.settings'
 import { Route as TmaChatChatIdCreateSnapshotRouteImport } from './routes/_tma/chat.$chatId_.create-snapshot'
 import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
+import { Route as TmaChatChatIdSettingsIndexRouteImport } from './routes/_tma/chat.$chatId_.settings.index'
 import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
 import { Route as TmaChatChatIdEditSnapshotSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.edit-snapshot.$snapshotId'
 import { Route as TmaChatChatIdEditExpenseExpenseIdRouteImport } from './routes/_tma/chat.$chatId_.edit-expense.$expenseId'
+import { Route as TmaChatChatIdSettingsCategoriesIndexRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.index'
 import { Route as TmaChatChatIdSettingsCategoriesNewRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.new'
 import { Route as TmaChatChatIdSettingsCategoriesCategoryIdRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.$categoryId'
 
@@ -75,6 +77,12 @@ const TmaChatChatIdAddExpenseRoute = TmaChatChatIdAddExpenseRouteImport.update({
   path: '/$chatId/add-expense',
   getParentRoute: () => TmaChatRoute,
 } as any)
+const TmaChatChatIdSettingsIndexRoute =
+  TmaChatChatIdSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TmaChatChatIdSettingsRoute,
+  } as any)
 const TmaChatChatIdSettingsCategoriesRoute =
   TmaChatChatIdSettingsCategoriesRouteImport.update({
     id: '/categories',
@@ -92,6 +100,12 @@ const TmaChatChatIdEditExpenseExpenseIdRoute =
     id: '/$chatId_/edit-expense/$expenseId',
     path: '/$chatId/edit-expense/$expenseId',
     getParentRoute: () => TmaChatRoute,
+  } as any)
+const TmaChatChatIdSettingsCategoriesIndexRoute =
+  TmaChatChatIdSettingsCategoriesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TmaChatChatIdSettingsCategoriesRoute,
   } as any)
 const TmaChatChatIdSettingsCategoriesNewRoute =
   TmaChatChatIdSettingsCategoriesNewRouteImport.update({
@@ -119,8 +133,10 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/chat/$chatId/settings/': typeof TmaChatChatIdSettingsIndexRoute
   '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
   '/chat/$chatId/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
+  '/chat/$chatId/settings/categories/': typeof TmaChatChatIdSettingsCategoriesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -129,13 +145,13 @@ export interface FileRoutesByTo {
   '/chat': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
-  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
-  '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/chat/$chatId/settings': typeof TmaChatChatIdSettingsIndexRoute
   '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
   '/chat/$chatId/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
+  '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,8 +168,10 @@ export interface FileRoutesById {
   '/_tma/chat/$chatId_/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  '/_tma/chat/$chatId_/settings/': typeof TmaChatChatIdSettingsIndexRoute
   '/_tma/chat/$chatId_/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
   '/_tma/chat/$chatId_/settings/categories/new': typeof TmaChatChatIdSettingsCategoriesNewRoute
+  '/_tma/chat/$chatId_/settings/categories/': typeof TmaChatChatIdSettingsCategoriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,8 +188,10 @@ export interface FileRouteTypes {
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
     | '/chat/$chatId/settings/categories'
+    | '/chat/$chatId/settings/'
     | '/chat/$chatId/settings/categories/$categoryId'
     | '/chat/$chatId/settings/categories/new'
+    | '/chat/$chatId/settings/categories/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -180,13 +200,13 @@ export interface FileRouteTypes {
     | '/chat'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/create-snapshot'
-    | '/chat/$chatId/settings'
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
-    | '/chat/$chatId/settings/categories'
+    | '/chat/$chatId/settings'
     | '/chat/$chatId/settings/categories/$categoryId'
     | '/chat/$chatId/settings/categories/new'
+    | '/chat/$chatId/settings/categories'
   id:
     | '__root__'
     | '/'
@@ -202,8 +222,10 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/edit-expense/$expenseId'
     | '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
     | '/_tma/chat/$chatId_/settings/categories'
+    | '/_tma/chat/$chatId_/settings/'
     | '/_tma/chat/$chatId_/settings/categories/$categoryId'
     | '/_tma/chat/$chatId_/settings/categories/new'
+    | '/_tma/chat/$chatId_/settings/categories/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -283,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdAddExpenseRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/settings/': {
+      id: '/_tma/chat/$chatId_/settings/'
+      path: '/'
+      fullPath: '/chat/$chatId/settings/'
+      preLoaderRoute: typeof TmaChatChatIdSettingsIndexRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsRoute
+    }
     '/_tma/chat/$chatId_/settings/categories': {
       id: '/_tma/chat/$chatId_/settings/categories'
       path: '/categories'
@@ -304,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdEditExpenseExpenseIdRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/settings/categories/': {
+      id: '/_tma/chat/$chatId_/settings/categories/'
+      path: '/'
+      fullPath: '/chat/$chatId/settings/categories/'
+      preLoaderRoute: typeof TmaChatChatIdSettingsCategoriesIndexRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsCategoriesRoute
+    }
     '/_tma/chat/$chatId_/settings/categories/new': {
       id: '/_tma/chat/$chatId_/settings/categories/new'
       path: '/new'
@@ -324,6 +360,7 @@ declare module '@tanstack/react-router' {
 interface TmaChatChatIdSettingsCategoriesRouteChildren {
   TmaChatChatIdSettingsCategoriesCategoryIdRoute: typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
   TmaChatChatIdSettingsCategoriesNewRoute: typeof TmaChatChatIdSettingsCategoriesNewRoute
+  TmaChatChatIdSettingsCategoriesIndexRoute: typeof TmaChatChatIdSettingsCategoriesIndexRoute
 }
 
 const TmaChatChatIdSettingsCategoriesRouteChildren: TmaChatChatIdSettingsCategoriesRouteChildren =
@@ -332,6 +369,8 @@ const TmaChatChatIdSettingsCategoriesRouteChildren: TmaChatChatIdSettingsCategor
       TmaChatChatIdSettingsCategoriesCategoryIdRoute,
     TmaChatChatIdSettingsCategoriesNewRoute:
       TmaChatChatIdSettingsCategoriesNewRoute,
+    TmaChatChatIdSettingsCategoriesIndexRoute:
+      TmaChatChatIdSettingsCategoriesIndexRoute,
   }
 
 const TmaChatChatIdSettingsCategoriesRouteWithChildren =
@@ -341,11 +380,13 @@ const TmaChatChatIdSettingsCategoriesRouteWithChildren =
 
 interface TmaChatChatIdSettingsRouteChildren {
   TmaChatChatIdSettingsCategoriesRoute: typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
+  TmaChatChatIdSettingsIndexRoute: typeof TmaChatChatIdSettingsIndexRoute
 }
 
 const TmaChatChatIdSettingsRouteChildren: TmaChatChatIdSettingsRouteChildren = {
   TmaChatChatIdSettingsCategoriesRoute:
     TmaChatChatIdSettingsCategoriesRouteWithChildren,
+  TmaChatChatIdSettingsIndexRoute: TmaChatChatIdSettingsIndexRoute,
 }
 
 const TmaChatChatIdSettingsRouteWithChildren =
