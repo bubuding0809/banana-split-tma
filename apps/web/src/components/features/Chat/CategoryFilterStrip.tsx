@@ -67,21 +67,20 @@ export default function CategoryFilterStrip({
     [categories]
   );
 
-  // Selected chips float to the start so active filters stay visible.
-  // Within each group (selected / unselected) chips sort by expense count
-  // descending — most-used first, zero-count (including Uncategorized if
-  // empty) last. Using the count as the sort key means users glance left
-  // to see what they actually reach for.
+  // Selected chips render in the order they were selected — newly tapped
+  // chips append to the end of the selected group rather than jumping into
+  // the middle by count. Unselected chips sort by count desc (most-used
+  // first, zero-count last) so the scroll-right direction still surfaces
+  // the categories the user reaches for most.
   const displayOrder = useMemo(() => {
     const selectedSet = new Set(selectedIds);
-    const byCountDesc = (a: FilterCategory, b: FilterCategory) =>
-      (counts?.[b.id] ?? 0) - (counts?.[a.id] ?? 0);
-    const selected = allChips
-      .filter((c) => selectedSet.has(c.id))
-      .sort(byCountDesc);
+    const byId = new Map(allChips.map((c) => [c.id, c]));
+    const selected = selectedIds
+      .map((id) => byId.get(id))
+      .filter((c): c is FilterCategory => c !== undefined);
     const unselected = allChips
       .filter((c) => !selectedSet.has(c.id))
-      .sort(byCountDesc);
+      .sort((a, b) => (counts?.[b.id] ?? 0) - (counts?.[a.id] ?? 0));
     return [...selected, ...unselected];
   }, [allChips, selectedIds, counts]);
 
