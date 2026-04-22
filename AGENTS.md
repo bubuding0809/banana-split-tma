@@ -263,8 +263,19 @@ export default publicProcedure
 ### Monorepo Structure
 
 - `apps/lambda` - Express.js API server deployed to AWS Lambda
+- `apps/cli` - Agent-first CLI for the tRPC API (`@banananasplitz/cli`, binary `banana`)
 - `packages/trpc` - tRPC router definitions, procedures, and handlers
 - `packages/database` - Prisma schema and generated client
+
+### CLI Change Discipline (`apps/cli`)
+
+The CLI is published to npm as a standalone tool and ships with an agent skill (`apps/cli/skills/banana-cli/SKILL.md`). Any change to CLI runtime source **must** be accompanied by all three of these — the "CLI version bump + skill parity" PR check blocks merge otherwise.
+
+1. **Bump `apps/cli/package.json` version.** The CI workflow (`.github/workflows/pr-checks.yml` → "CLI version bump + skill parity") fails if runtime source under `apps/cli/src/**` changed vs the base branch without a version bump OR a CHANGELOG entry. Prefer bumping.
+2. **Update `apps/cli/skills/banana-cli/SKILL.md`.** The same check asserts `metadata.version` in the skill frontmatter matches `package.json`. Beyond the version line: whenever you add or change a command or flag, update the command table and the relevant workflow section so agents pick up the new capability. A CLI change that isn't reflected in the skill is effectively invisible to agents loading the skill.
+3. **Add a CHANGELOG entry** to `apps/cli/CHANGELOG.md` under a new version heading. Follow Keep-a-Changelog sections (`### Added` / `### Changed` / `### Fixed`).
+
+Skip only when the change is exempt from the check (tests, pure documentation, comments). When in doubt, bump and log.
 
 ### tRPC Procedure Organization
 
