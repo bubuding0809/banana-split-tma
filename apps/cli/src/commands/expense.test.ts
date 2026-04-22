@@ -59,16 +59,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -96,16 +94,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -228,16 +224,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -288,16 +282,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -335,16 +327,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -372,16 +362,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -398,16 +386,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -421,16 +407,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -566,16 +550,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;
@@ -592,16 +574,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
         updateExpense: { mutate: mutateMock },
       },
@@ -643,16 +623,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
         updateExpense: { mutate: mutateMock },
       },
@@ -685,16 +663,14 @@ describe("expense commands", () => {
     const trpcMock = {
       expense: {
         getExpenseDetails: {
-          query: vi
-            .fn()
-            .mockResolvedValue({
-              creatorId: 1,
-              payerId: 1,
-              amount: 10,
-              splitMode: "EQUAL",
-              participants: [],
-              shares: [],
-            }),
+          query: vi.fn().mockResolvedValue({
+            creatorId: 1,
+            payerId: 1,
+            amount: 10,
+            splitMode: "EQUAL",
+            participants: [],
+            shares: [],
+          }),
         },
       },
     } as any;

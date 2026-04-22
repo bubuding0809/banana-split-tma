@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-22
+
+### Changed
+
+- `update-expense` now supports **partial updates** — only `--expense-id` is required. Any omitted field (`--payer-id`, `--description`, `--amount`, `--split-mode`, `--participant-ids`, `--currency`, `--date`, `--category`) falls back to the expense's current value fetched via `get-expense`. This prevents accidental data loss when updating a single field (e.g. category) on an expense with a non-EQUAL split.
+
 ## [0.9.0] - 2026-04-22
 
 ### Added
