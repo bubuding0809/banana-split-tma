@@ -27,6 +27,9 @@ interface CategoryAggregationTickerProps {
     title: string;
     kind: "base" | "custom";
   }[];
+  /** Controlled month selection — shared with the transaction list below. */
+  pickedMonthKey: string | null;
+  onPickedMonthChange: (monthKey: string | null) => void;
   onCategoryFiltersChange: (ids: string[]) => void;
 }
 
@@ -43,10 +46,11 @@ export default function CategoryAggregationTicker({
   userId,
   categoryFilters,
   categories,
+  pickedMonthKey,
+  onPickedMonthChange,
   onCategoryFiltersChange,
 }: CategoryAggregationTickerProps) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
   // Tracks whether any telegram-ui Modal anywhere on the page is open
   // (including our own — we don't want the pill peeking from behind our
   // own modal either, since it only takes up 50vh).
@@ -306,7 +310,7 @@ export default function CategoryAggregationTicker({
                 value={effectiveMonthKey ?? ""}
                 onChange={(e) => {
                   hapticFeedback.selectionChanged.ifAvailable?.();
-                  setPickedMonthKey(e.target.value);
+                  onPickedMonthChange(e.target.value);
                 }}
                 className="cursor-pointer rounded-md px-2 py-1 text-[15px] font-semibold outline-none"
                 style={{

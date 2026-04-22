@@ -31,7 +31,7 @@ import {
   ChevronsUpDown,
   X,
 } from "lucide-react";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
 import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
@@ -94,6 +94,38 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
 
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
+
+  // Shared "which month is the user looking at" state. The ticker's
+  // month picker and the list's scroll position both read/write here,
+  // making them a two-way sync pair. `programmaticScrollRef` suppresses
+  // the scroll → picker callback while a picker-driven scroll is in
+  // flight so we don't get a feedback loop.
+  const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
+  const programmaticScrollRef = useRef(false);
+
+  const handlePickedMonthChange = useCallback(
+    async (monthKey: string | null) => {
+      setPickedMonthKey(monthKey);
+      if (!monthKey) return;
+      programmaticScrollRef.current = true;
+      await virtualizedRef.current?.scrollToMonth(monthKey);
+      // Scroll event fires on next paint; release the guard two rAF
+      // ticks out so our own scroll doesn't bounce back through the
+      // visible-month callback.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false;
+        });
+      });
+    },
+    []
+  );
+
+  const handleVisibleMonthChange = useCallback((monthKey: string | null) => {
+    if (programmaticScrollRef.current) return;
+    if (!monthKey) return;
+    setPickedMonthKey((prev) => (prev === monthKey ? prev : monthKey));
+  }, []);
 
   useEffect(() => {
     const isFirstLoadDone = firstLoadDoneRef.current;
@@ -508,6 +540,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onAvailableDatesChange={setMonthGroupedData}
         categoryFilters={categoryFilters}
         chatRows={chatRows}
+        onVisibleMonthChange={handleVisibleMonthChange}
       />
 
       <CategoryAggregationTicker
@@ -515,6 +548,8 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         userId={userId}
         categoryFilters={categoryFilters}
         categories={allCategories}
+        pickedMonthKey={pickedMonthKey}
+        onPickedMonthChange={handlePickedMonthChange}
         onCategoryFiltersChange={(ids) =>
           updateSearchParams((prev) => ({
             ...prev,
