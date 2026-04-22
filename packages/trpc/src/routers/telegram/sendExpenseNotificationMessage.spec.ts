@@ -93,7 +93,7 @@ describe("sendExpenseNotificationMessage gating", () => {
     const call = mockTeleBot.sendMessage.mock.calls[0];
     if (!call) throw new Error("sendMessage was not called");
     const message = call[1];
-    expect(message).toContain("🏷 • 🍜 Food");
+    expect(message).toContain("> 🏷 • 🍜 Food");
   });
 
   it("skips the category row when emoji or title is missing", async () => {
