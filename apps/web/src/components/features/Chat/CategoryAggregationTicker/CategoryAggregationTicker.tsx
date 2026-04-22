@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { cn } from "@/utils/cn";
+import CategoryFilterStrip from "../CategoryFilterStrip";
 import {
   useCategoryAggregation,
   type AggregationResult,
@@ -15,6 +16,14 @@ interface CategoryAggregationTickerProps {
   chatId: number;
   userId: number;
   categoryFilters: string[];
+  categories: {
+    id: string;
+    emoji: string;
+    title: string;
+    kind: "base" | "custom";
+  }[];
+  categoryCounts: Record<string, number>;
+  onCategoryFiltersChange: (ids: string[]) => void;
 }
 
 // Card max-height cap: 60vh on short viewports, 480px ceiling on tall ones.
@@ -34,6 +43,9 @@ export default function CategoryAggregationTicker({
   chatId,
   userId,
   categoryFilters,
+  categories,
+  categoryCounts,
+  onCategoryFiltersChange,
 }: CategoryAggregationTickerProps) {
   const [expanded, setExpanded] = useState(false);
   const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
@@ -279,6 +291,17 @@ export default function CategoryAggregationTicker({
           }}
           aria-hidden={!expanded}
         >
+          <div className="bg-white/12 h-px" />
+          {categories.length > 0 && (
+            <div className="py-1">
+              <CategoryFilterStrip
+                categories={categories}
+                selectedIds={categoryFilters}
+                counts={categoryCounts}
+                onChange={onCategoryFiltersChange}
+              />
+            </div>
+          )}
           <div className="bg-white/12 h-px" />
           {empty ? (
             <div className="px-4 py-5 text-center text-[11px] opacity-65">
