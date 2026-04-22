@@ -515,7 +515,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         userId={userId}
         categoryFilters={categoryFilters}
         categories={allCategories}
-        categoryCounts={categoryCounts}
         onCategoryFiltersChange={(ids) =>
           updateSearchParams((prev) => ({
             ...prev,

@@ -27,7 +27,6 @@ interface CategoryAggregationTickerProps {
     title: string;
     kind: "base" | "custom";
   }[];
-  categoryCounts: Record<string, number>;
   onCategoryFiltersChange: (ids: string[]) => void;
 }
 
@@ -44,7 +43,6 @@ export default function CategoryAggregationTicker({
   userId,
   categoryFilters,
   categories,
-  categoryCounts,
   onCategoryFiltersChange,
 }: CategoryAggregationTickerProps) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -356,10 +354,13 @@ export default function CategoryAggregationTicker({
           {/* Interactive category filter strip */}
           {categories.length > 0 && (
             <div className="dark:border-white/12 shrink-0 border-t border-black/5 py-1">
+              {/* Counts intentionally omitted — the badges were all-time
+                  totals sitting next to a month-scoped select, which
+                  read as inconsistent. The strip is purely a filter
+                  toggle here. */}
               <CategoryFilterStrip
                 categories={categories}
                 selectedIds={categoryFilters}
-                counts={categoryCounts}
                 onChange={onCategoryFiltersChange}
               />
             </div>
