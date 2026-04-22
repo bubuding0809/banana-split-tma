@@ -50,6 +50,10 @@ export default function CategoryAggregationTicker({
   const [modalOpen, setModalOpen] = useState(false);
   const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Tracks whether any modal owned by another component is currently open.
+  // We slide the pill away when true so it doesn't poke out from behind
+  // category/expense/settlement/etc modals.
+  const [otherModalOpen, setOtherModalOpen] = useState(false);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   // * Queries ============================================================
@@ -118,6 +122,29 @@ export default function CategoryAggregationTicker({
     setPickerOpen(false);
   }, [categoryFilters, modalOpen]);
 
+  // Watch for any other modal opening anywhere on the page. telegram-ui's
+  // Modal (Radix-backed) marks its dialog root with role="dialog" and
+  // data-state="open". If more than our own are open, something else is
+  // up and we hide the pill.
+  useEffect(() => {
+    const update = () => {
+      const openDialogs = document.querySelectorAll(
+        '[role="dialog"][data-state="open"]'
+      );
+      const ownCount = modalOpen ? 1 : 0;
+      setOtherModalOpen(openDialogs.length > ownCount);
+    };
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-state"],
+      childList: true,
+    });
+    update();
+    return () => observer.disconnect();
+  }, [modalOpen]);
+
   // * Render =============================================================
   if (!expensesData || aggregation.monthList.length === 0) {
     return null;
@@ -144,12 +171,25 @@ export default function CategoryAggregationTicker({
 
   return (
     <>
-      {/* Always-visible pill. Tap → opens the modal below. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+      {/* Always-visible pill. Slides down out of view when any other modal
+          opens so it doesn't show behind them. Strong ease-out curve +
+          translateY(120%) + opacity via CSS transitions (interruptible,
+          hardware-accelerated). */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3"
+        style={{
+          transform: otherModalOpen ? "translateY(120%)" : "translateY(0)",
+          opacity: otherModalOpen ? 0 : 1,
+          transition:
+            "transform 260ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms ease-out",
+        }}
+        aria-hidden={otherModalOpen}
+      >
         <button
           type="button"
           onClick={openModal}
           aria-label="Open category damage summary"
+          tabIndex={otherModalOpen ? -1 : 0}
           className={cn(
             "pointer-events-auto flex cursor-pointer select-none items-center gap-3 rounded-full",
             "w-[min(85vw,440px)] px-5 py-3 text-left text-white",
@@ -227,7 +267,7 @@ export default function CategoryAggregationTicker({
           />
         }
       >
-        <div className="flex max-h-[70vh] min-h-64 flex-col pb-4">
+        <div className="flex max-h-[50vh] min-h-64 flex-col pb-4">
           {/* Sub-header — month pill (opens picker) + chip summary + amount */}
           <div className="relative flex w-full shrink-0 items-center gap-3 px-5 py-3">
             <button
