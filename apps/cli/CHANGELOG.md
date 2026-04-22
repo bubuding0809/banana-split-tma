@@ -6,6 +6,11 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [0.10.0] - 2026-04-22
 
+### Added
+
+- `bulk-update-expenses` command — update many expenses at once from a JSON file. Each row is a partial update keyed by `expenseId`; omitted fields keep their current values (same merge semantics as `update-expense`). Rows are processed sequentially and failures are reported per-row (the batch does not abort on the first error). Useful for re-tagging categories or backfilling metadata across many expenses.
+- `--notify` flag on `bulk-update-expenses` and `bulk-import-expenses` — emits a single condensed Telegram summary message after the batch (e.g. "📝 5 expenses updated" with a bullet list of descriptions + amounts + categories). Off by default: both bulk commands now suppress per-row notifications entirely, so agents re-tagging categories across many expenses no longer spam the chat. Backed by a new `trpc.expense.sendBatchExpenseSummary` endpoint.
+
 ### Changed
 
 - `update-expense` now supports **partial updates** — only `--expense-id` is required. Any omitted field (`--payer-id`, `--description`, `--amount`, `--split-mode`, `--participant-ids`, `--currency`, `--date`, `--category`) falls back to the expense's current value fetched via `get-expense`. This prevents accidental data loss when updating a single field (e.g. category) on an expense with a non-EQUAL split.
