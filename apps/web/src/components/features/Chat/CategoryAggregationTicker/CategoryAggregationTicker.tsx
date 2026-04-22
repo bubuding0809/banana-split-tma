@@ -53,6 +53,8 @@ export default function CategoryAggregationTicker({
   // own modal either, since it only takes up 50vh).
   const [anyModalOpen, setAnyModalOpen] = useState(false);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tSectionBackgroundColor = useSignal(themeParams.sectionBackgroundColor);
+  const tSectionHeaderTextColor = useSignal(themeParams.sectionHeaderTextColor);
 
   // * Queries ============================================================
   const { data: expensesData } = trpc.expense.getAllExpensesByChat.useQuery(
@@ -244,8 +246,12 @@ export default function CategoryAggregationTicker({
                 }}
                 className="cursor-pointer rounded-md px-2 py-1 text-[15px] font-semibold outline-none"
                 style={{
-                  color: "var(--tg-theme-text-color)",
-                  backgroundColor: "var(--tg-theme-secondary-bg-color)",
+                  color: tSectionHeaderTextColor,
+                  backgroundColor: tSectionBackgroundColor,
+                  // color-scheme makes the browser tint the native
+                  // dropdown arrow in line with the element's color —
+                  // pure-CSS, no SVG overrides.
+                  colorScheme: "light dark",
                 }}
               >
                 {monthList.map((m) => (
