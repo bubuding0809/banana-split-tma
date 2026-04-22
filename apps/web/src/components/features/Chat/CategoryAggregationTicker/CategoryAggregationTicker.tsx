@@ -232,39 +232,34 @@ export default function CategoryAggregationTicker({
         header={
           <Modal.Header
             before={
-              <div className="flex items-center gap-2">
-                {/* Native <select> as the modal title. Picking a month
-                    drives pickedMonthKey in one tap; iOS/Android render
-                    the system wheel picker automatically. */}
-                <select
-                  aria-label="Pick month"
-                  value={monthKey ?? ""}
-                  onChange={(e) => {
-                    hapticFeedback.selectionChanged.ifAvailable?.();
-                    setPickedMonthKey(e.target.value);
-                  }}
-                  className="cursor-pointer appearance-none bg-transparent pr-5 text-[17px] font-semibold outline-none"
-                  style={{
-                    backgroundImage:
-                      "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>\")",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right center",
-                    backgroundSize: "10px",
-                  }}
-                >
-                  {monthList.map((m) => (
-                    <option key={m.monthKey} value={m.monthKey}>
-                      {m.monthDisplay}
-                    </option>
-                  ))}
-                </select>
-                <span
-                  className="whitespace-nowrap text-[15px] font-bold tabular-nums"
-                  style={{ color: "var(--tg-theme-link-color)" }}
-                >
-                  {formatCurrencyWithCode(baseTotal, baseCurrency)}
-                </span>
-              </div>
+              // Native <select> chip — picking a month drives
+              // pickedMonthKey in one tap; iOS/Android render the system
+              // wheel picker automatically. Pill-shaped secondary-bg
+              // background differentiates it as an interactive control.
+              <select
+                aria-label="Pick month"
+                value={monthKey ?? ""}
+                onChange={(e) => {
+                  hapticFeedback.selectionChanged.ifAvailable?.();
+                  setPickedMonthKey(e.target.value);
+                }}
+                className="cursor-pointer appearance-none rounded-full py-1.5 pl-3.5 pr-7 text-[14px] font-semibold outline-none"
+                style={{
+                  backgroundColor: "var(--tg-theme-secondary-bg-color)",
+                  color: "var(--tg-theme-text-color)",
+                  backgroundImage:
+                    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 12px center",
+                  backgroundSize: "10px",
+                }}
+              >
+                {monthList.map((m) => (
+                  <option key={m.monthKey} value={m.monthKey}>
+                    {m.monthDisplay}
+                  </option>
+                ))}
+              </select>
             }
             after={
               <Modal.Close>
@@ -281,7 +276,14 @@ export default function CategoryAggregationTicker({
                 </IconButton>
               </Modal.Close>
             }
-          />
+          >
+            <span
+              className="whitespace-nowrap text-[15px] font-bold tabular-nums"
+              style={{ color: "var(--tg-theme-link-color)" }}
+            >
+              {formatCurrencyWithCode(baseTotal, baseCurrency)}
+            </span>
+          </Modal.Header>
         }
       >
         <div className="flex h-[50vh] flex-col pb-4">
