@@ -4,7 +4,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { IconButton, Modal } from "@telegram-apps/telegram-ui";
+import { IconButton, Modal, Select } from "@telegram-apps/telegram-ui";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
@@ -48,10 +48,10 @@ export default function CategoryAggregationTicker({
 }: CategoryAggregationTickerProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
-  // Tracks whether any modal owned by another component is currently open.
-  // We slide the pill away when true so it doesn't poke out from behind
-  // category/expense/settlement/etc modals.
-  const [otherModalOpen, setOtherModalOpen] = useState(false);
+  // Tracks whether any telegram-ui Modal anywhere on the page is open
+  // (including our own — we don't want the pill peeking from behind our
+  // own modal either, since it only takes up 50vh).
+  const [anyModalOpen, setAnyModalOpen] = useState(false);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   // * Queries ============================================================
@@ -115,17 +115,17 @@ export default function CategoryAggregationTicker({
       preliminary.targetCurrencies.length === 0 || ratesStatus === "success",
   });
 
-  // Watch for any other modal opening anywhere on the page. telegram-ui's
-  // Modal (Radix-backed) marks its dialog root with role="dialog" and
-  // data-state="open". If more than our own are open, something else is
-  // up and we hide the pill.
+  // Watch for any modal opening anywhere on the page. telegram-ui's
+  // Modal is built on Vaul which uses Radix Dialog — its content root
+  // carries role="dialog" and data-state="open" when visible. The
+  // observer fires on any data-state change so we can toggle the pill
+  // in lockstep.
   useEffect(() => {
     const update = () => {
       const openDialogs = document.querySelectorAll(
         '[role="dialog"][data-state="open"]'
       );
-      const ownCount = modalOpen ? 1 : 0;
-      setOtherModalOpen(openDialogs.length > ownCount);
+      setAnyModalOpen(openDialogs.length > 0);
     };
     const observer = new MutationObserver(update);
     observer.observe(document.body, {
@@ -136,7 +136,7 @@ export default function CategoryAggregationTicker({
     });
     update();
     return () => observer.disconnect();
-  }, [modalOpen]);
+  }, []);
 
   // * Render =============================================================
   if (!expensesData || aggregation.monthList.length === 0) {
@@ -165,18 +165,18 @@ export default function CategoryAggregationTicker({
       <div
         className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3"
         style={{
-          transform: otherModalOpen ? "translateY(120%)" : "translateY(0)",
-          opacity: otherModalOpen ? 0 : 1,
+          transform: anyModalOpen ? "translateY(120%)" : "translateY(0)",
+          opacity: anyModalOpen ? 0 : 1,
           transition:
             "transform 260ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms ease-out",
         }}
-        aria-hidden={otherModalOpen}
+        aria-hidden={anyModalOpen}
       >
         <button
           type="button"
           onClick={openModal}
           aria-label="Open category damage summary"
-          tabIndex={otherModalOpen ? -1 : 0}
+          tabIndex={anyModalOpen ? -1 : 0}
           className={cn(
             "pointer-events-auto flex cursor-pointer select-none items-center gap-3 rounded-full",
             "w-[min(85vw,440px)] px-5 py-3 text-left text-white",
@@ -232,34 +232,26 @@ export default function CategoryAggregationTicker({
         header={
           <Modal.Header
             before={
-              // Native <select> chip — picking a month drives
-              // pickedMonthKey in one tap; iOS/Android render the system
-              // wheel picker automatically. Pill-shaped secondary-bg
-              // background differentiates it as an interactive control.
-              <select
-                aria-label="Pick month"
-                value={monthKey ?? ""}
-                onChange={(e) => {
-                  hapticFeedback.selectionChanged.ifAvailable?.();
-                  setPickedMonthKey(e.target.value);
-                }}
-                className="cursor-pointer appearance-none rounded-full py-1.5 pl-3.5 pr-7 text-[14px] font-semibold outline-none"
-                style={{
-                  backgroundColor: "var(--tg-theme-secondary-bg-color)",
-                  color: "var(--tg-theme-text-color)",
-                  backgroundImage:
-                    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>\")",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 12px center",
-                  backgroundSize: "10px",
-                }}
-              >
-                {monthList.map((m) => (
-                  <option key={m.monthKey} value={m.monthKey}>
-                    {m.monthDisplay}
-                  </option>
-                ))}
-              </select>
+              // telegram-ui Select — triggers the OS wheel picker on
+              // iOS/Android and renders consistent styling across themes.
+              // Wrapper div narrows the FormInput width so it fits the
+              // header next to the centered amount.
+              <div className="w-32">
+                <Select
+                  aria-label="Pick month"
+                  value={monthKey ?? ""}
+                  onChange={(e) => {
+                    hapticFeedback.selectionChanged.ifAvailable?.();
+                    setPickedMonthKey(e.target.value);
+                  }}
+                >
+                  {monthList.map((m) => (
+                    <option key={m.monthKey} value={m.monthKey}>
+                      {m.monthDisplay}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             }
             after={
               <Modal.Close>
