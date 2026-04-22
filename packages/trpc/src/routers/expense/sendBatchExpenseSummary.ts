@@ -119,10 +119,26 @@ export const sendBatchExpenseSummaryHandler = async (
 ) => {
   const chat = await db.chat.findUnique({
     where: { id: input.chatId },
-    select: { id: true, threadId: true },
+    select: {
+      id: true,
+      threadId: true,
+      notifyOnExpense: true,
+      notifyOnExpenseUpdate: true,
+    },
   });
   if (!chat) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Chat not found" });
+  }
+
+  // Per-chat notification toggles override the caller's intent. A user
+  // who turned off "Expense added" / "Expense updated" in Settings
+  // shouldn't get a bulk summary for that kind even when the CLI opts
+  // in via --notify.
+  if (input.kind === "created" && !chat.notifyOnExpense) {
+    return { sent: false, messageId: null };
+  }
+  if (input.kind === "updated" && !chat.notifyOnExpenseUpdate) {
+    return { sent: false, messageId: null };
   }
 
   // Resolve category labels in one DB round-trip per chat.

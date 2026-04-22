@@ -4,6 +4,16 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-04-23
+
+### Added
+
+- `update-chat-settings` now exposes `--notify-on-expense`, `--notify-on-expense-update`, and `--notify-on-settlement`, so notification preferences can be toggled from the CLI. The new `notifyOnExpenseUpdate` column on `Chat` gates singular update-expense notifications and also overrides the `bulk-update-expenses --notify` summary; `notifyOnExpense` now also gates the `bulk-import-expenses --notify` summary, for symmetry with the existing "Expense added" toggle.
+
+### Changed
+
+- Batch summary rows render as per-item MarkdownV2 blockquotes with each field (amount, payer, category, split mode + participant count) on its own ┣/┗ branch. Empty fields drop out of the block and the last present field auto-promotes to ┗.
+
 ## [0.11.0] - 2026-04-23
 
 ### Changed

@@ -16,6 +16,7 @@ export const inputSchema = z.object({
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean().optional(),
   notifyOnExpense: z.boolean().optional(),
+  notifyOnExpenseUpdate: z.boolean().optional(),
   notifyOnSettlement: z.boolean().optional(),
 });
 
@@ -28,6 +29,7 @@ export const outputSchema = z.object({
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean(),
   notifyOnExpense: z.boolean(),
+  notifyOnExpenseUpdate: z.boolean(),
   notifyOnSettlement: z.boolean(),
   updatedAt: z.date(),
 });
@@ -58,6 +60,7 @@ export const updateChatHandler = async (
       baseCurrency?: string;
       debtSimplificationEnabled?: boolean;
       notifyOnExpense?: boolean;
+      notifyOnExpenseUpdate?: boolean;
       notifyOnSettlement?: boolean;
     } = {};
 
@@ -81,6 +84,9 @@ export const updateChatHandler = async (
     }
     if (input.notifyOnExpense !== undefined) {
       updateData.notifyOnExpense = input.notifyOnExpense;
+    }
+    if (input.notifyOnExpenseUpdate !== undefined) {
+      updateData.notifyOnExpenseUpdate = input.notifyOnExpenseUpdate;
     }
     if (input.notifyOnSettlement !== undefined) {
       updateData.notifyOnSettlement = input.notifyOnSettlement;

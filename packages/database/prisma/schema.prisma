@@ -26,6 +26,7 @@ model Chat {
   baseCurrency               String            @default("SGD")
   debtSimplificationEnabled  Boolean           @default(false)
   notifyOnExpense            Boolean           @default(true)
+  notifyOnExpenseUpdate      Boolean           @default(true)
   notifyOnSettlement         Boolean           @default(true)
   members                    User[]
   expenses                   Expense[]

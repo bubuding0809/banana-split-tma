@@ -131,11 +131,13 @@ export const chatCommands: Command[] = [
 
   {
     name: "update-chat-settings",
-    description: "Update chat settings (debt simplification, base currency)",
+    description:
+      "Update chat settings (debt simplification, base currency, notification toggles)",
     agentGuidance:
-      "Use this to change how debts are calculated or the default currency.",
+      "Use this to change how debts are calculated, the default currency, or notification preferences.",
     examples: [
       "banana update-chat-settings --chat-id 123456789 --debt-simplification true --base-currency USD",
+      "banana update-chat-settings --chat-id 123456789 --notify-on-expense-update false",
     ],
     options: {
       "chat-id": {
@@ -153,6 +155,23 @@ export const chatCommands: Command[] = [
         description: "Update default 3-letter currency code (e.g. USD)",
         required: false,
       },
+      "notify-on-expense": {
+        type: "string",
+        description: "Notify the chat when an expense is added (true/false)",
+        required: false,
+      },
+      "notify-on-expense-update": {
+        type: "string",
+        description:
+          "Notify the chat when an expense is edited. Also overrides bulk-update-expenses summary notifications (true/false).",
+        required: false,
+      },
+      "notify-on-settlement": {
+        type: "string",
+        description:
+          "Notify the chat when a settlement is recorded (true/false)",
+        required: false,
+      },
     },
     execute: (opts, trpc) =>
       run("update-chat-settings", async () => {
@@ -165,6 +184,9 @@ export const chatCommands: Command[] = [
           chatId: number;
           debtSimplificationEnabled?: boolean;
           baseCurrency?: string;
+          notifyOnExpense?: boolean;
+          notifyOnExpenseUpdate?: boolean;
+          notifyOnSettlement?: boolean;
         } = { chatId };
 
         if (opts["debt-simplification"] !== undefined) {
@@ -173,6 +195,18 @@ export const chatCommands: Command[] = [
         }
         if (opts["base-currency"] !== undefined) {
           updateData.baseCurrency = String(opts["base-currency"]);
+        }
+        if (opts["notify-on-expense"] !== undefined) {
+          updateData.notifyOnExpense =
+            String(opts["notify-on-expense"]) === "true";
+        }
+        if (opts["notify-on-expense-update"] !== undefined) {
+          updateData.notifyOnExpenseUpdate =
+            String(opts["notify-on-expense-update"]) === "true";
+        }
+        if (opts["notify-on-settlement"] !== undefined) {
+          updateData.notifyOnSettlement =
+            String(opts["notify-on-settlement"]) === "true";
         }
 
         return trpc.chat.updateChat.mutate(updateData);
