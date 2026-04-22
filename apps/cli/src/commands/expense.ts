@@ -808,7 +808,7 @@ export const expenseCommands: Command[] = [
     description:
       "Update multiple expenses from a JSON file. Each row is a partial update keyed by expenseId.",
     agentGuidance:
-      "Use this to update many expenses at once (e.g. retagging categories). Each row only needs `expenseId` plus the fields you want to change; omitted fields keep their current values. Failures are reported per-row — the batch does not abort on the first error. Per-row Telegram notifications are suppressed; pass `--notify` to emit a single condensed summary message after the batch.",
+      "Use this to update many expenses at once (e.g. retagging categories). Each row only needs `expenseId` plus the fields you want to change; omitted fields keep their current values. Rows are processed in parallel on the server and failures are reported per-row — the batch does not abort on the first error. Per-row Telegram notifications are suppressed; pass `--notify` to emit a single condensed summary message after the batch.",
     examples: [
       "banana bulk-update-expenses --file ./updates.json",
       "banana bulk-update-expenses --file ./updates.json --notify",
@@ -881,111 +881,49 @@ export const expenseCommands: Command[] = [
         );
         const notify = Boolean(opts.notify);
 
-        const results: Array<{
-          index: number;
-          status: "success" | "error";
-          expenseId?: string;
-          description?: string;
-          error?: string;
-          expense?: any;
-        }> = [];
-        let succeeded = 0;
-        let failed = 0;
-
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
+        // Translate CLI-friendly row shape → server's update schema.
+        // `category` (CLI) → `categoryId` (server): omit = leave unchanged,
+        // "none"/null = clear, string = set.
+        type BulkUpdateInput = Parameters<
+          typeof trpc.expense.updateExpensesBulk.mutate
+        >[0];
+        type BulkUpdateRow = BulkUpdateInput["expenses"][number];
+        const expenses: BulkUpdateRow[] = rows.map((row, i) => {
           if (!row || typeof row.expenseId !== "string" || !row.expenseId) {
-            results.push({
-              index: i,
-              status: "error",
-              error: "row is missing expenseId",
-            });
-            failed++;
-            continue;
+            throw new Error(`row ${i}: missing expenseId`);
           }
-          try {
-            let date: Date | undefined;
-            if (row.date !== undefined) {
-              date = new Date(row.date);
-              if (Number.isNaN(date.getTime())) {
-                throw new Error("date must be a valid ISO 8601 string");
-              }
+          const out: BulkUpdateRow = { expenseId: row.expenseId };
+          if (row.payerId !== undefined) out.payerId = row.payerId;
+          if (row.creatorId !== undefined) out.creatorId = row.creatorId;
+          if (row.description !== undefined) out.description = row.description;
+          if (row.amount !== undefined) out.amount = row.amount;
+          if (row.currency !== undefined) out.currency = row.currency;
+          if (row.splitMode !== undefined) out.splitMode = row.splitMode;
+          if (row.participantIds !== undefined)
+            out.participantIds = row.participantIds;
+          if (row.customSplits !== undefined)
+            out.customSplits = row.customSplits;
+          if (row.date !== undefined) {
+            const d = new Date(row.date);
+            if (Number.isNaN(d.getTime())) {
+              throw new Error(`row ${i}: date must be a valid ISO 8601 string`);
             }
-            const categoryId: string | null | undefined =
-              row.category === undefined
-                ? undefined
-                : row.category === null || row.category === "none"
-                  ? null
-                  : row.category;
-
-            const expense = await applyExpensePartialUpdate(
-              {
-                expenseId: row.expenseId,
-                payerId: row.payerId,
-                creatorId: row.creatorId,
-                description: row.description,
-                amount: row.amount,
-                currency: row.currency,
-                splitMode: row.splitMode,
-                participantIds: row.participantIds,
-                customSplits: row.customSplits,
-                date,
-                categoryId,
-              },
-              trpc,
-              chatId,
-              { sendNotification: false }
-            );
-            results.push({
-              index: i,
-              status: "success",
-              expenseId: row.expenseId,
-              description: row.description,
-              expense,
-            });
-            succeeded++;
-          } catch (e) {
-            results.push({
-              index: i,
-              status: "error",
-              expenseId: row.expenseId,
-              error: e instanceof Error ? e.message : String(e),
-            });
-            failed++;
+            out.date = d;
           }
-        }
-
-        let summary: { sent: boolean; messageId: number | null } | undefined;
-        if (notify && succeeded > 0) {
-          const items = results
-            .filter(
-              (r): r is typeof r & { expense: any } =>
-                r.status === "success" && !!r.expense
-            )
-            .map((r) => ({
-              description: String(r.expense.description ?? r.description ?? ""),
-              amount: Number(r.expense.amount),
-              currency: String(r.expense.currency),
-              categoryId: r.expense.categoryId ?? null,
-            }));
-          try {
-            summary = await trpc.expense.sendBatchExpenseSummary.mutate({
-              chatId,
-              kind: "updated",
-              items,
-            });
-          } catch (e) {
-            summary = { sent: false, messageId: null };
+          if (row.category !== undefined) {
+            out.categoryId =
+              row.category === null || row.category === "none"
+                ? null
+                : row.category;
           }
-        }
+          return out;
+        });
 
-        return {
-          total: rows.length,
-          succeeded,
-          failed,
-          results,
-          ...(summary ? { summary } : {}),
-        };
+        return trpc.expense.updateExpensesBulk.mutate({
+          chatId,
+          expenses,
+          sendNotification: notify,
+        });
       });
     },
   },

@@ -571,172 +571,65 @@ describe("expense commands", () => {
     });
   });
 
-  it("bulk-update-expenses should fan-out updateExpense per row and return a summary", async () => {
+  it("bulk-update-expenses should translate rows and call updateExpensesBulk with server-side shape", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
     const rows = [
       { expenseId: "exp-1", amount: 42 },
-      { expenseId: "exp-2", category: "base:food" },
-    ];
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        creatorId: 1,
-        payerId: 1,
-        amount: 10,
-        currency: "SGD",
-        splitMode: "EXACT",
-        participants: [{ id: 1 }, { id: 2 }],
-        shares: [
-          { userId: 1, amount: 5 },
-          { userId: 2, amount: 5 },
-        ],
-        categoryId: null,
-        description: "Lunch",
-      })
-      .mockResolvedValueOnce({
-        creatorId: 1,
-        payerId: 2,
-        amount: 20,
-        currency: "SGD",
-        splitMode: "EQUAL",
-        participants: [{ id: 1 }, { id: 2 }],
-        shares: [],
-        categoryId: null,
-        description: "Taxi",
-      });
-    const mutateMock = vi
-      .fn()
-      .mockResolvedValueOnce({ id: "exp-1" })
-      .mockResolvedValueOnce({ id: "exp-2" });
-
-    const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
-    } as any;
-
-    const result = (await cmd?.execute(
-      { file: "updates.json", "chat-id": "123" },
-      trpcMock
-    )) as any;
-
-    expect(queryMock).toHaveBeenCalledTimes(2);
-    expect(mutateMock).toHaveBeenCalledTimes(2);
-    // Row 0: only amount changed; shares preserved from existing
-    expect(mutateMock).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        expenseId: "exp-1",
-        amount: 42,
-        splitMode: "EXACT",
-        customSplits: [
-          { userId: 1, amount: 5 },
-          { userId: 2, amount: 5 },
-        ],
-        categoryId: null,
-      })
-    );
-    // Row 1: only category changed; amount/splitMode preserved
-    expect(mutateMock).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
+      {
         expenseId: "exp-2",
-        amount: 20,
-        splitMode: "EQUAL",
-        categoryId: "base:food",
-      })
-    );
-    expect(result).toMatchObject({
-      total: 2,
-      succeeded: 2,
-      failed: 0,
-    });
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0]).toMatchObject({
-      index: 0,
-      status: "success",
-      expenseId: "exp-1",
-    });
-  });
-
-  it("bulk-update-expenses should continue on error and report per-row failures", async () => {
-    const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "exp-1", amount: 10 },
-      { expenseId: "exp-2", amount: 20 },
+        category: "base:food",
+        date: "2026-03-04T10:00:00Z",
+      },
+      { expenseId: "exp-3", category: "none" },
+      { expenseId: "exp-4", category: null },
     ];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
 
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 100,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: null,
-      description: "X",
+    const bulkMutate = vi.fn().mockResolvedValue({
+      total: 4,
+      succeeded: 4,
+      failed: 0,
+      results: [],
     });
-    const mutateMock = vi
-      .fn()
-      .mockResolvedValueOnce({ id: "exp-1" })
-      .mockRejectedValueOnce(new Error("Forbidden"));
 
     const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
+      expense: { updateExpensesBulk: { mutate: bulkMutate } },
     } as any;
 
-    const result = (await cmd?.execute(
-      { file: "updates.json" },
-      trpcMock
-    )) as any;
+    await cmd?.execute({ file: "updates.json", "chat-id": "123" }, trpcMock);
 
-    expect(result.total).toBe(2);
-    expect(result.succeeded).toBe(1);
-    expect(result.failed).toBe(1);
-    expect(result.results[0]).toMatchObject({
-      index: 0,
-      status: "success",
-      expenseId: "exp-1",
-    });
-    expect(result.results[1]).toMatchObject({
-      index: 1,
-      status: "error",
-      expenseId: "exp-2",
-      error: "Forbidden",
-    });
+    expect(bulkMutate).toHaveBeenCalledTimes(1);
+    const call = bulkMutate.mock.calls[0][0];
+    expect(call.chatId).toBe(123);
+    expect(call.sendNotification).toBe(false);
+    expect(call.expenses).toHaveLength(4);
+
+    // Row 0: only amount set; other fields omitted so server falls back to
+    // existing values.
+    expect(call.expenses[0]).toEqual({ expenseId: "exp-1", amount: 42 });
+
+    // Row 1: category renamed to categoryId, date parsed to Date.
+    expect(call.expenses[1].expenseId).toBe("exp-2");
+    expect(call.expenses[1].categoryId).toBe("base:food");
+    expect(call.expenses[1].date).toBeInstanceOf(Date);
+    expect(call.expenses[1].date.toISOString()).toBe(
+      "2026-03-04T10:00:00.000Z"
+    );
+
+    // Row 2: category "none" → categoryId: null (clear)
+    expect(call.expenses[2]).toEqual({ expenseId: "exp-3", categoryId: null });
+
+    // Row 3: category null → categoryId: null (clear)
+    expect(call.expenses[3]).toEqual({ expenseId: "exp-4", categoryId: null });
   });
 
-  it("bulk-update-expenses should flag rows missing expenseId without calling the server", async () => {
+  it("bulk-update-expenses should throw api_error if a row is missing expenseId (no server call)", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
     const rows = [{ amount: 10 }, { expenseId: "exp-2", amount: 20 }];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 100,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: null,
-      description: "X",
-    });
-    const mutateMock = vi.fn().mockResolvedValue({ id: "exp-2" });
-
+    const bulkMutate = vi.fn();
     const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
+      expense: { updateExpensesBulk: { mutate: bulkMutate } },
     } as any;
 
     const result = (await cmd?.execute(
@@ -744,49 +637,20 @@ describe("expense commands", () => {
       trpcMock
     )) as any;
 
-    expect(queryMock).toHaveBeenCalledTimes(1);
-    expect(mutateMock).toHaveBeenCalledTimes(1);
-    expect(result.total).toBe(2);
-    expect(result.succeeded).toBe(1);
-    expect(result.failed).toBe(1);
-    expect(result.results[0]).toMatchObject({
-      index: 0,
-      status: "error",
-      error: "row is missing expenseId",
+    expect(result).toMatchObject({
+      code: "api_error",
+      message: "row 0: missing expenseId",
     });
-    expect(result.results[1]).toMatchObject({
-      index: 1,
-      status: "success",
-      expenseId: "exp-2",
-    });
+    expect(bulkMutate).not.toHaveBeenCalled();
   });
 
-  it("bulk-update-expenses should reject invalid date per row without aborting the batch", async () => {
+  it("bulk-update-expenses should throw api_error for invalid row date (no server call)", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "exp-1", date: "not-a-date" },
-      { expenseId: "exp-2", amount: 5 },
-    ];
+    const rows = [{ expenseId: "exp-1", date: "not-a-date" }];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 100,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: null,
-      description: "X",
-    });
-    const mutateMock = vi.fn().mockResolvedValue({ id: "exp-2" });
-
+    const bulkMutate = vi.fn();
     const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
+      expense: { updateExpensesBulk: { mutate: bulkMutate } },
     } as any;
 
     const result = (await cmd?.execute(
@@ -794,88 +658,41 @@ describe("expense commands", () => {
       trpcMock
     )) as any;
 
-    expect(result.total).toBe(2);
-    expect(result.succeeded).toBe(1);
-    expect(result.failed).toBe(1);
-    expect(result.results[0]).toMatchObject({
-      index: 0,
-      status: "error",
-      expenseId: "exp-1",
-      error: "date must be a valid ISO 8601 string",
+    expect(result).toMatchObject({
+      code: "api_error",
+      message: "row 0: date must be a valid ISO 8601 string",
     });
-    expect(mutateMock).toHaveBeenCalledTimes(1);
+    expect(bulkMutate).not.toHaveBeenCalled();
   });
 
-  it("bulk-update-expenses should parse row.date to a Date object before calling updateExpense", async () => {
+  it("bulk-update-expenses --notify should pass sendNotification=true to the server", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "exp-1", date: "2026-03-04T10:00:00Z", amount: 9 },
-    ];
+    const rows = [{ expenseId: "exp-1", category: "base:food" }];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
 
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 100,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: null,
-      description: "X",
+    const bulkMutate = vi.fn().mockResolvedValue({
+      total: 1,
+      succeeded: 1,
+      failed: 0,
+      results: [
+        {
+          index: 0,
+          status: "success",
+          expenseId: "exp-1",
+          expense: {
+            id: "exp-1",
+            description: "X",
+            amount: 1,
+            currency: "SGD",
+            categoryId: "base:food",
+          },
+        },
+      ],
+      summary: { sent: true, messageId: 42 },
     });
-    const mutateMock = vi.fn().mockResolvedValue({ id: "exp-1" });
 
     const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
-    } as any;
-
-    await cmd?.execute({ file: "updates.json" }, trpcMock);
-
-    const call = mutateMock.mock.calls[0][0];
-    expect(call.date).toBeInstanceOf(Date);
-    expect(call.date.toISOString()).toBe("2026-03-04T10:00:00.000Z");
-  });
-
-  it("bulk-update-expenses --notify should call sendBatchExpenseSummary with resolved items", async () => {
-    const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "exp-1", category: "base:food" },
-      { expenseId: "exp-2", category: "base:transport" },
-    ];
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 20,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }, { id: 2 }],
-      shares: [],
-      categoryId: null,
-      description: "Meal",
-    });
-    const updateMutate = vi.fn().mockImplementation(async (args: any) => ({
-      id: args.expenseId,
-      description: args.description,
-      amount: args.amount,
-      currency: args.currency,
-      categoryId: args.categoryId,
-    }));
-    const summaryMutate = vi
-      .fn()
-      .mockResolvedValue({ sent: true, messageId: 42 });
-
-    const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: updateMutate },
-        sendBatchExpenseSummary: { mutate: summaryMutate },
-      },
+      expense: { updateExpensesBulk: { mutate: bulkMutate } },
     } as any;
 
     const result = (await cmd?.execute(
@@ -883,63 +700,48 @@ describe("expense commands", () => {
       trpcMock
     )) as any;
 
-    // All per-row updates were called silently
-    expect(updateMutate).toHaveBeenCalledTimes(2);
-    for (const call of updateMutate.mock.calls) {
-      expect(call[0]).toMatchObject({ sendNotification: false });
-    }
-    // Summary was called once with the resolved items
-    expect(summaryMutate).toHaveBeenCalledTimes(1);
-    expect(summaryMutate).toHaveBeenCalledWith(
+    expect(bulkMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         chatId: 123,
-        kind: "updated",
-        items: expect.arrayContaining([
-          expect.objectContaining({
-            description: "Meal",
-            categoryId: "base:food",
-            currency: "SGD",
-          }),
-          expect.objectContaining({
-            description: "Meal",
-            categoryId: "base:transport",
-          }),
-        ]),
+        sendNotification: true,
       })
     );
     expect(result).toMatchObject({
-      total: 2,
-      succeeded: 2,
-      failed: 0,
+      total: 1,
+      succeeded: 1,
       summary: { sent: true, messageId: 42 },
     });
   });
 
-  it("bulk-update-expenses without --notify should not call sendBatchExpenseSummary", async () => {
+  it("bulk-update-expenses should pass through per-row errors from the server response", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [{ expenseId: "exp-1", amount: 5 }];
+    const rows = [
+      { expenseId: "exp-1", amount: 10 },
+      { expenseId: "missing", amount: 20 },
+    ];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
 
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 10,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: null,
-      description: "X",
+    const bulkMutate = vi.fn().mockResolvedValue({
+      total: 2,
+      succeeded: 1,
+      failed: 1,
+      results: [
+        {
+          index: 0,
+          status: "success",
+          expenseId: "exp-1",
+          expense: { id: "exp-1" },
+        },
+        {
+          index: 1,
+          status: "error",
+          expenseId: "missing",
+          error: "expense missing not found",
+        },
+      ],
     });
-    const updateMutate = vi.fn().mockResolvedValue({ id: "exp-1" });
-    const summaryMutate = vi.fn();
-
     const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: updateMutate },
-        sendBatchExpenseSummary: { mutate: summaryMutate },
-      },
+      expense: { updateExpensesBulk: { mutate: bulkMutate } },
     } as any;
 
     const result = (await cmd?.execute(
@@ -947,9 +749,14 @@ describe("expense commands", () => {
       trpcMock
     )) as any;
 
-    expect(updateMutate).toHaveBeenCalledTimes(1);
-    expect(summaryMutate).not.toHaveBeenCalled();
-    expect(result.summary).toBeUndefined();
+    expect(result.total).toBe(2);
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.results[1]).toMatchObject({
+      status: "error",
+      expenseId: "missing",
+      error: "expense missing not found",
+    });
   });
 
   it("bulk-import-expenses --notify should call sendBatchExpenseSummary with kind=created", async () => {
@@ -1013,104 +820,6 @@ describe("expense commands", () => {
       succeeded: 1,
       summary: { sent: true, messageId: 99 },
     });
-  });
-
-  it("bulk-update-expenses should surface a clean 'not found' error for unknown expenseId", async () => {
-    const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "does-not-exist", category: "base:food" },
-      { expenseId: "exp-2", amount: 5 },
-    ];
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi
-      .fn()
-      // Mirrors prod: getExpenseDetails returns an empty-ish shape (not an
-      // error) for unknown IDs.
-      .mockResolvedValueOnce({
-        amount: null,
-        categoryId: null,
-        participants: [],
-        shares: [],
-      })
-      .mockResolvedValueOnce({
-        creatorId: 1,
-        payerId: 1,
-        amount: 100,
-        currency: "SGD",
-        splitMode: "EQUAL",
-        participants: [{ id: 1 }],
-        shares: [],
-        categoryId: null,
-        description: "X",
-      });
-    const mutateMock = vi.fn().mockResolvedValueOnce({ id: "exp-2" });
-
-    const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
-    } as any;
-
-    const result = (await cmd?.execute(
-      { file: "updates.json" },
-      trpcMock
-    )) as any;
-
-    expect(mutateMock).toHaveBeenCalledTimes(1);
-    expect(result).toMatchObject({ total: 2, succeeded: 1, failed: 1 });
-    expect(result.results[0]).toMatchObject({
-      index: 0,
-      status: "error",
-      expenseId: "does-not-exist",
-      error: "expense does-not-exist not found",
-    });
-  });
-
-  it("bulk-update-expenses should treat category 'none' or null as clear", async () => {
-    const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
-    const rows = [
-      { expenseId: "exp-1", category: "none" },
-      { expenseId: "exp-2", category: null },
-      { expenseId: "exp-3", category: "base:food" },
-    ];
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
-
-    const queryMock = vi.fn().mockResolvedValue({
-      creatorId: 1,
-      payerId: 1,
-      amount: 100,
-      currency: "SGD",
-      splitMode: "EQUAL",
-      participants: [{ id: 1 }],
-      shares: [],
-      categoryId: "base:old",
-      description: "X",
-    });
-    const mutateMock = vi.fn().mockResolvedValue({ id: "exp" });
-
-    const trpcMock = {
-      expense: {
-        getExpenseDetails: { query: queryMock },
-        updateExpense: { mutate: mutateMock },
-      },
-    } as any;
-
-    await cmd?.execute({ file: "updates.json" }, trpcMock);
-
-    expect(mutateMock).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ expenseId: "exp-1", categoryId: null })
-    );
-    expect(mutateMock).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ expenseId: "exp-2", categoryId: null })
-    );
-    expect(mutateMock).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({ expenseId: "exp-3", categoryId: "base:food" })
-    );
   });
 
   it("update-expense should fail if required options are missing", async () => {
