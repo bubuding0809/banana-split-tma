@@ -165,7 +165,7 @@ export default function CategoryAggregationTicker({
           translateY(120%) + opacity via CSS transitions (interruptible,
           hardware-accelerated). */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 py-2 pb-4 shadow-lg"
         style={{
           transform: anyModalOpen ? "translateY(120%)" : "translateY(0)",
           opacity: anyModalOpen ? 0 : 1,
@@ -182,13 +182,27 @@ export default function CategoryAggregationTicker({
           className={cn(
             "pointer-events-auto flex cursor-pointer select-none items-center gap-3 rounded-full",
             "w-[min(85vw,440px)] px-5 py-3 text-left text-white",
-            "shadow-[0_10px_28px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.1)]",
             "transition-transform duration-150 active:scale-[0.98]"
           )}
           style={{
-            backgroundColor: "rgba(20,20,25,0.94)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
+            // Dark translucent base — low alpha so the backdrop shows
+            // through and the blur+saturate has something to work on.
+            // A subtle top-to-bottom white gradient simulates light
+            // hitting the top of the glass.
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 100%)",
+            backgroundColor: "rgba(20,20,25,0.55)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            // Layered shadows give the glass its lift: an inset top
+            // highlight (specular edge), an inset hairline border,
+            // plus two drop shadows (close + ambient).
+            boxShadow: [
+              "inset 0 1px 0 rgba(255,255,255,0.22)",
+              "inset 0 0 0 1px rgba(255,255,255,0.08)",
+              "0 1px 2px rgba(0,0,0,0.25)",
+              "0 12px 32px rgba(0,0,0,0.35)",
+            ].join(", "),
           }}
         >
           <span className="text-[13px] font-semibold opacity-85">
