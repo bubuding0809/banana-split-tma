@@ -4,6 +4,13 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-04-23
+
+### Changed
+
+- `bulk-update-expenses` now calls a new server-side `trpc.expense.updateExpensesBulk` mutation instead of fanning out client-side sequentially. Rows are processed in parallel on the server with dedup'd validation (single `assertUsersInChat`, single `chatCategory.findMany`) and a single bulk-fetch of the affected expenses. The command output stays the same shape (`{total, succeeded, failed, results, summary?}`) but the batch now completes in roughly one server round-trip instead of N+1. Matches the pattern already used by `bulk-import-expenses`.
+- The optional condensed Telegram summary (`--notify`) is now emitted in-process on the server at the end of the batch — no second tRPC round-trip from the CLI, and nothing is sent when every row failed.
+
 ## [0.10.0] - 2026-04-22
 
 ### Added

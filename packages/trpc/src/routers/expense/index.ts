@@ -4,6 +4,7 @@ import getExpenseDetails from "./getExpenseDetails.js";
 import createExpense from "./createExpense.js";
 import createExpensesBulk from "./createExpensesBulk.js";
 import updateExpense from "./updateExpense.js";
+import updateExpensesBulk from "./updateExpensesBulk.js";
 import deleteExpense from "./deleteExpense.js";
 import convertCurrencyBulk from "./convertCurrencyBulk.js";
 import sendBatchExpenseSummary from "./sendBatchExpenseSummary.js";
@@ -16,6 +17,7 @@ export const expenseRouter = createTRPCRouter({
   createExpense,
   createExpensesBulk,
   updateExpense,
+  updateExpensesBulk,
   deleteExpense,
   convertCurrencyBulk,
   sendBatchExpenseSummary,
