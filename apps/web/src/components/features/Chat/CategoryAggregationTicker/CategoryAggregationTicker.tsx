@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
-import { Skeleton } from "@telegram-apps/telegram-ui";
 import { ChevronDown } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
@@ -146,15 +145,8 @@ export default function CategoryAggregationTicker({
     return null;
   }
 
-  const {
-    monthKey,
-    baseTotal,
-    needsConversion,
-    byCategory,
-    monthList,
-    ratesReady,
-    empty,
-  } = aggregation;
+  const { monthKey, baseTotal, byCategory, monthList, ratesReady, empty } =
+    aggregation;
 
   const monthDisplay =
     monthList.find((m) => m.monthKey === monthKey)?.monthDisplay ?? "—";
@@ -256,17 +248,13 @@ export default function CategoryAggregationTicker({
 
           <span
             className={cn(
-              "shrink-0 text-[12.5px] font-bold tabular-nums",
-              empty && "opacity-45"
+              "shrink-0 whitespace-nowrap text-[12.5px] font-bold tabular-nums",
+              empty && "opacity-45",
+              !ratesReady && !empty && "opacity-50"
             )}
             style={{ color: empty ? undefined : "#66b3ff" }}
           >
-            {needsConversion && (
-              <span className="mr-0.5 font-normal opacity-55">≈</span>
-            )}
-            <Skeleton visible={!ratesReady && !empty}>
-              {formatCurrencyWithCode(baseTotal, baseCurrency)}
-            </Skeleton>
+            {formatCurrencyWithCode(baseTotal, baseCurrency)}
           </span>
 
           {/* Expand/collapse caret (kept subtle; the whole row is tappable) */}
@@ -343,6 +331,7 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
     (cat.byCurrency.length === 1 &&
       cat.byCurrency[0].currency !== baseCurrency);
 
+  const loading = !ratesReady && cat.needsConversion;
   return (
     <div className="border-white/6 grid grid-cols-[1fr_auto] items-start gap-x-4 border-t px-4 py-2.5 first:border-t-0">
       <div className="flex items-center gap-2 text-[12px] font-semibold">
@@ -351,21 +340,19 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <div
-          className="text-[12.5px] font-bold tabular-nums"
+          className={cn(
+            "whitespace-nowrap text-[12.5px] font-bold tabular-nums",
+            loading && "opacity-50"
+          )}
           style={{ color: "#66b3ff" }}
         >
-          {cat.needsConversion && (
-            <span className="mr-0.5 font-normal opacity-55">≈</span>
-          )}
-          <Skeleton visible={!ratesReady && cat.needsConversion}>
-            {formatCurrencyWithCode(cat.baseTotal, baseCurrency)}
-          </Skeleton>
+          {formatCurrencyWithCode(cat.baseTotal, baseCurrency)}
         </div>
         {showBreakdown &&
           cat.byCurrency.map((bc) => (
             <div
               key={bc.currency}
-              className="text-[10px] font-medium tabular-nums opacity-55"
+              className="whitespace-nowrap text-[10px] font-medium tabular-nums opacity-55"
             >
               {formatCurrencyWithCode(bc.amount, bc.currency)}
             </div>

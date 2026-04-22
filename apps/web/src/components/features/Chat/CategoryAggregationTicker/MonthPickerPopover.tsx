@@ -50,10 +50,7 @@ export default function MonthPickerPopover({
               <span className="text-[13px] font-semibold">
                 {m.monthDisplay}
               </span>
-              <span className="text-[10.5px] font-medium tabular-nums opacity-70">
-                {m.needsConversion && (
-                  <span className="mr-0.5 opacity-60">≈</span>
-                )}
+              <span className="whitespace-nowrap text-[10.5px] font-medium tabular-nums opacity-70">
                 {formatCurrencyWithCode(m.baseTotal, baseCurrency)}
               </span>
             </button>
