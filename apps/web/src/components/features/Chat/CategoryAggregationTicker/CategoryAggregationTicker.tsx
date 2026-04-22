@@ -193,8 +193,8 @@ export default function CategoryAggregationTicker({
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
           borderRadius: expanded ? 18 : 999,
-          minWidth: "min(88vw, 300px)",
-          maxWidth: "min(94vw, 440px)",
+          minWidth: "min(80vw, 280px)",
+          maxWidth: "min(80vw, 440px)",
           transition: `border-radius 280ms ${EASE}`,
         }}
       >
