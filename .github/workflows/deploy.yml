@@ -26,32 +26,44 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      lambda: ${{ steps.filter.outputs.lambda }}
-      web: ${{ steps.filter.outputs.web }}
-      bot: ${{ steps.filter.outputs.bot }}
-      admin: ${{ steps.filter.outputs.admin }}
-      cli: ${{ steps.filter.outputs.cli }}
+      lambda: ${{ steps.check.outputs.lambda }}
+      web: ${{ steps.check.outputs.web }}
+      bot: ${{ steps.check.outputs.bot }}
+      admin: ${{ steps.check.outputs.admin }}
+      cli: ${{ steps.check.outputs.cli }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            lambda:
-              - 'apps/lambda/**'
-              - 'packages/**'
-            web:
-              - 'apps/web/**'
-              - 'packages/**'
-            bot:
-              - 'apps/bot/**'
-              - 'packages/**'
-            admin:
-              - 'apps/admin/**'
-              - 'packages/**'
-            cli:
-              - 'apps/cli/**'
-              - 'packages/**'
+          # turbo-ignore diffs HEAD against HEAD~1 to decide whether a
+          # package's dep subgraph changed. fetch-depth defaults to 1,
+          # which leaves HEAD~1 unresolvable — bump to 2.
+          fetch-depth: 2
+      - uses: ./.github/actions/setup
+      - name: Compute per-app build gates via turbo-ignore
+        id: check
+        # turbo-ignore walks each app's workspace-dep subgraph and
+        # compares input hashes between HEAD and the fallback SHA.
+        # Exit 0 = "ignore" (no change → skip deploy); exit 1 = "build"
+        # (something the app depends on changed → proceed). Flipping
+        # that into the filter outputs keeps the downstream deploy
+        # jobs' `if: needs.filter.outputs.<app> == 'true'` contract
+        # unchanged.
+        run: |
+          set -u
+          gate() {
+            local out_key=$1
+            local pkg=$2
+            if npx turbo-ignore "$pkg" --fallback=HEAD~1; then
+              echo "$out_key=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "$out_key=true" >> "$GITHUB_OUTPUT"
+            fi
+          }
+          gate lambda lambda
+          gate web web
+          gate bot bot
+          gate admin admin
+          gate cli @banananasplitz/cli
 
   migrate:
     runs-on: ubuntu-latest
@@ -104,6 +116,12 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LAMBDA }}
+          # Git metadata — Vercel CLI auto-attaches these to the
+          # deployment record so the inspector shows SHA/branch/commit
+          # message even after the dashboard git integration is off.
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-web:
@@ -129,6 +147,9 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-bot:
@@ -154,6 +175,9 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-admin:
@@ -179,6 +203,9 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   publish-cli:
