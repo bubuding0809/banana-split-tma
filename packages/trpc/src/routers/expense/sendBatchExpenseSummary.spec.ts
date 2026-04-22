@@ -72,12 +72,50 @@ describe("formatBatchSummaryMessage", () => {
     }));
     const msg = formatBatchSummaryMessage("created", items);
     expect(msg).toContain("📥 *15 expenses imported*");
-    // First 10 shown
-    expect(msg).toContain("Expense 1 ");
-    expect(msg).toContain("Expense 10 ");
+    // First 10 shown (each row is a blockquote with 🧾 <desc> on its own line)
+    expect(msg).toContain(">🧾 Expense 1\n");
+    expect(msg).toContain(">🧾 Expense 10\n");
     // 11+ not shown
-    expect(msg).not.toContain("Expense 11 ");
+    expect(msg).not.toContain(">🧾 Expense 11");
     expect(msg).toContain("…and 5 more");
+  });
+
+  it("renders a tree-style blockquote per item with every field on its own branch", () => {
+    const msg = formatBatchSummaryMessage(
+      "created",
+      [
+        {
+          description: "Ramen dinner",
+          amount: 48.5,
+          currency: "SGD",
+          payerName: "Ruoqian",
+          splitMode: "EQUAL" as any,
+          participantCount: 3,
+          categoryEmoji: "🍜",
+          categoryTitle: "Food",
+        },
+      ],
+      "Ruoqian"
+    );
+    expect(msg).toContain(">🧾 Ramen dinner");
+    expect(msg).toContain(">┣ SGD 48\\.50");
+    expect(msg).toContain(">┣ paid by Ruoqian");
+    expect(msg).toContain(">┣ 🍜 Food");
+    expect(msg).toContain(">┗ EQUAL split across 3");
+  });
+
+  it("promotes the last present branch to ┗ when later ones are absent", () => {
+    const msgOnlyAmount = formatBatchSummaryMessage("created", [
+      { description: "Bare", amount: 1, currency: "SGD" },
+    ]);
+    expect(msgOnlyAmount).toContain(">┗ SGD 1\\.00");
+    expect(msgOnlyAmount).not.toContain(">┣ ");
+
+    const msgAmountAndPayer = formatBatchSummaryMessage("created", [
+      { description: "Two", amount: 2, currency: "SGD", payerName: "R" },
+    ]);
+    expect(msgAmountAndPayer).toContain(">┣ SGD 2\\.00");
+    expect(msgAmountAndPayer).toContain(">┗ paid by R");
   });
 
   it("omits footer when no actorName provided", () => {
