@@ -438,21 +438,28 @@ function renderChipSummary(
   if (categoryFilters.length === 0) {
     return { content: "All", dim: true, label: "" };
   }
-  if (categoryFilters.length <= 3) {
-    const emojis = categoryFilters
-      .map((id) =>
-        id === "none" ? "📭" : (categoriesIndex.get(id)?.emoji ?? "🏷️")
-      )
-      .join("");
-    return {
-      content: <span className="text-[13px] tracking-[-1px]">{emojis}</span>,
-      dim: false,
-      label: `${categoryFilters.length} ${categoryFilters.length === 1 ? "category" : "categories"}`,
-    };
-  }
+  const emojiFor = (id: string) =>
+    id === "none" ? "📭" : (categoriesIndex.get(id)?.emoji ?? "🏷️");
+
+  // Always render at most 3 emojis with a small gap; anything beyond 3
+  // collapses into a +N suffix so the pill stays compact.
+  const shown = categoryFilters.slice(0, 3);
+  const remaining = categoryFilters.length - shown.length;
+
   return {
-    content: `${categoryFilters.length} cat.`,
-    dim: true,
-    label: `${categoryFilters.length} categories`,
+    content: (
+      <span className="inline-flex items-center gap-1 text-[14px] leading-none">
+        {shown.map((id) => (
+          <span key={id}>{emojiFor(id)}</span>
+        ))}
+        {remaining > 0 && (
+          <span className="ml-0.5 text-[11.5px] font-semibold opacity-70">
+            +{remaining}
+          </span>
+        )}
+      </span>
+    ),
+    dim: false,
+    label: `${categoryFilters.length} ${categoryFilters.length === 1 ? "category" : "categories"}`,
   };
 }
