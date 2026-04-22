@@ -108,6 +108,59 @@ describe("formatBatchSummaryMessage", () => {
     expect(msg).toContain(">┗ EQUAL split across 3");
   });
 
+  it("marks changed branches with ✏️ when kind is updated", () => {
+    const msg = formatBatchSummaryMessage(
+      "updated",
+      [
+        {
+          description: "Ramen",
+          amount: 48.5,
+          currency: "SGD",
+          payerName: "Ruoqian",
+          splitMode: "EQUAL" as any,
+          participantCount: 3,
+          categoryEmoji: "🍜",
+          categoryTitle: "Food",
+          changedFields: ["category", "split"],
+        },
+      ],
+      "Ruoqian"
+    );
+    // Only the category and split branches should carry the marker.
+    expect(msg).toContain(">┣ 🍜 Food ✏️");
+    expect(msg).toContain(">┗ EQUAL split across 3 ✏️");
+    expect(msg).toContain(">┣ SGD 48\\.50\n"); // amount NOT marked
+    expect(msg).toContain(">┣ paid by Ruoqian\n"); // payer NOT marked
+    expect(msg).toContain(">🧾 Ramen\n"); // description NOT marked
+  });
+
+  it("marks the title line with ✏️ when description changed", () => {
+    const msg = formatBatchSummaryMessage("updated", [
+      {
+        description: "New name",
+        amount: 10,
+        currency: "SGD",
+        changedFields: ["description"],
+      },
+    ]);
+    expect(msg).toContain(">🧾 New name ✏️");
+  });
+
+  it("does NOT mark branches on a created summary even when changedFields is set", () => {
+    const msg = formatBatchSummaryMessage("created", [
+      {
+        description: "Brand new",
+        amount: 10,
+        currency: "SGD",
+        payerName: "R",
+        splitMode: "EQUAL" as any,
+        participantCount: 2,
+        changedFields: ["amount", "payer", "category", "split", "description"],
+      },
+    ]);
+    expect(msg).not.toContain("✏️");
+  });
+
   it("promotes the last present branch to ┗ when later ones are absent", () => {
     const msgOnlyAmount = formatBatchSummaryMessage("created", [
       { description: "Bare", amount: 1, currency: "SGD" },

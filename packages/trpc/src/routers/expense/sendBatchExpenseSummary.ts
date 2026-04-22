@@ -9,6 +9,19 @@ import { escapeMarkdown } from "../../utils/telegram.js";
 
 const MAX_ITEMS_SHOWN = 10;
 
+// Fields we flag with a ✏️ marker in `kind: "updated"` summaries so the
+// reader can see at a glance what actually changed on an expense, while
+// still getting the full post-update context. The server populates this
+// per item by diffing the pre- and post-update state.
+const CHANGED_FIELDS = [
+  "description",
+  "amount",
+  "payer",
+  "category",
+  "split", // covers splitMode + participants — they share one branch
+] as const;
+export type BatchSummaryChangedField = (typeof CHANGED_FIELDS)[number];
+
 const summaryItemSchema = z.object({
   description: z.string().min(1),
   amount: z.number().nonnegative(),
@@ -20,6 +33,9 @@ const summaryItemSchema = z.object({
     .optional(),
   splitMode: z.nativeEnum(SplitMode).optional(),
   participantCount: z.number().int().positive().optional(),
+  // Optional per-item list of fields that actually changed in this
+  // update. Only rendered as ✏️ markers when kind === "updated".
+  changedFields: z.array(z.enum(CHANGED_FIELDS)).optional(),
 });
 
 export const inputSchema = z.object({
@@ -47,6 +63,7 @@ type ResolvedItem = {
   payerName?: string;
   splitMode?: SplitMode;
   participantCount?: number;
+  changedFields?: BatchSummaryChangedField[];
 };
 
 export const formatBatchSummaryMessage = (
@@ -71,14 +88,25 @@ export const formatBatchSummaryMessage = (
     const desc = escapeMarkdown(item.description, 2);
     const amt = escapeMarkdown(formatAmount(item.currency, item.amount), 2);
 
+    // ✏️ only appears on kind=updated; for created summaries we never
+    // mark fields because "all fields are new" would defeat the signal.
+    const changed = kind === "updated" ? (item.changedFields ?? []) : [];
+    const mark = (field: BatchSummaryChangedField, body: string) =>
+      changed.includes(field) ? `${body} ✏️` : body;
+
     // Order matters — these are the branches under the 🧾 title line.
-    const branches: string[] = [amt];
+    const branches: string[] = [mark("amount", amt)];
     if (item.payerName) {
-      branches.push(`paid by ${escapeMarkdown(item.payerName, 2)}`);
+      branches.push(
+        mark("payer", `paid by ${escapeMarkdown(item.payerName, 2)}`)
+      );
     }
     if (item.categoryEmoji && item.categoryTitle) {
       branches.push(
-        `${item.categoryEmoji} ${escapeMarkdown(item.categoryTitle, 2)}`
+        mark(
+          "category",
+          `${item.categoryEmoji} ${escapeMarkdown(item.categoryTitle, 2)}`
+        )
       );
     }
     if (item.splitMode !== undefined || item.participantCount !== undefined) {
@@ -89,12 +117,13 @@ export const formatBatchSummaryMessage = (
         item.participantCount !== undefined
           ? ` split across ${item.participantCount}`
           : "";
-      branches.push(`${mode}${acrossN}`);
+      branches.push(mark("split", `${mode}${acrossN}`));
     }
 
     const lastIdx = branches.length - 1;
+    const titleLine = mark("description", `🧾 ${desc}`);
     const lines = [
-      `>🧾 ${desc}`,
+      `>${titleLine}`,
       ...branches.map((b, i) => `>${i === lastIdx ? "┗" : "┣"} ${b}`),
     ];
 
@@ -206,6 +235,7 @@ export const sendBatchExpenseSummaryHandler = async (
       payerName,
       splitMode: item.splitMode,
       participantCount: item.participantCount,
+      changedFields: item.changedFields,
     };
   });
 
