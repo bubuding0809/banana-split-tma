@@ -4,7 +4,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { IconButton, Modal, Select } from "@telegram-apps/telegram-ui";
+import { IconButton, Modal } from "@telegram-apps/telegram-ui";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
@@ -232,26 +232,25 @@ export default function CategoryAggregationTicker({
         header={
           <Modal.Header
             before={
-              // telegram-ui Select — triggers the OS wheel picker on
-              // iOS/Android and renders consistent styling across themes.
-              // Wrapper div narrows the FormInput width so it fits the
-              // header next to the centered amount.
-              <div className="w-32">
-                <Select
-                  aria-label="Pick month"
-                  value={monthKey ?? ""}
-                  onChange={(e) => {
-                    hapticFeedback.selectionChanged.ifAvailable?.();
-                    setPickedMonthKey(e.target.value);
-                  }}
-                >
-                  {monthList.map((m) => (
-                    <option key={m.monthKey} value={m.monthKey}>
-                      {m.monthDisplay}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              // Simple native <select> — triggers the OS wheel picker on
+              // iOS/Android with zero chrome. Minimal styling; lets the
+              // header title slot stay compact.
+              <select
+                aria-label="Pick month"
+                value={monthKey ?? ""}
+                onChange={(e) => {
+                  hapticFeedback.selectionChanged.ifAvailable?.();
+                  setPickedMonthKey(e.target.value);
+                }}
+                className="cursor-pointer bg-transparent text-[15px] font-semibold outline-none"
+                style={{ color: "var(--tg-theme-text-color)" }}
+              >
+                {monthList.map((m) => (
+                  <option key={m.monthKey} value={m.monthKey}>
+                    {m.monthDisplay}
+                  </option>
+                ))}
+              </select>
             }
             after={
               <Modal.Close>
