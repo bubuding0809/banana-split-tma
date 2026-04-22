@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { formatBatchSummaryMessage } from "./sendBatchExpenseSummary.js";
+import { describe, it, expect, vi } from "vitest";
+import {
+  formatBatchSummaryMessage,
+  sendBatchExpenseSummaryHandler,
+} from "./sendBatchExpenseSummary.js";
+import { Telegram } from "telegraf";
 
 describe("formatBatchSummaryMessage", () => {
   it("formats a single created expense (singular noun)", () => {
@@ -72,12 +76,50 @@ describe("formatBatchSummaryMessage", () => {
     }));
     const msg = formatBatchSummaryMessage("created", items);
     expect(msg).toContain("📥 *15 expenses imported*");
-    // First 10 shown
-    expect(msg).toContain("Expense 1 ");
-    expect(msg).toContain("Expense 10 ");
+    // First 10 shown (each row is a blockquote with 🧾 <desc> on its own line)
+    expect(msg).toContain(">🧾 Expense 1\n");
+    expect(msg).toContain(">🧾 Expense 10\n");
     // 11+ not shown
-    expect(msg).not.toContain("Expense 11 ");
+    expect(msg).not.toContain(">🧾 Expense 11");
     expect(msg).toContain("…and 5 more");
+  });
+
+  it("renders a tree-style blockquote per item with every field on its own branch", () => {
+    const msg = formatBatchSummaryMessage(
+      "created",
+      [
+        {
+          description: "Ramen dinner",
+          amount: 48.5,
+          currency: "SGD",
+          payerName: "Ruoqian",
+          splitMode: "EQUAL" as any,
+          participantCount: 3,
+          categoryEmoji: "🍜",
+          categoryTitle: "Food",
+        },
+      ],
+      "Ruoqian"
+    );
+    expect(msg).toContain(">🧾 Ramen dinner");
+    expect(msg).toContain(">┣ SGD 48\\.50");
+    expect(msg).toContain(">┣ paid by Ruoqian");
+    expect(msg).toContain(">┣ 🍜 Food");
+    expect(msg).toContain(">┗ EQUAL split across 3");
+  });
+
+  it("promotes the last present branch to ┗ when later ones are absent", () => {
+    const msgOnlyAmount = formatBatchSummaryMessage("created", [
+      { description: "Bare", amount: 1, currency: "SGD" },
+    ]);
+    expect(msgOnlyAmount).toContain(">┗ SGD 1\\.00");
+    expect(msgOnlyAmount).not.toContain(">┣ ");
+
+    const msgAmountAndPayer = formatBatchSummaryMessage("created", [
+      { description: "Two", amount: 2, currency: "SGD", payerName: "R" },
+    ]);
+    expect(msgAmountAndPayer).toContain(">┣ SGD 2\\.00");
+    expect(msgAmountAndPayer).toContain(">┗ paid by R");
   });
 
   it("omits footer when no actorName provided", () => {
@@ -105,5 +147,99 @@ describe("formatBatchSummaryMessage", () => {
     // Neither line should have the " · " category suffix since they lack the pair
     expect(msg).not.toContain(" · 🍜");
     expect(msg).not.toContain(" · Food");
+  });
+});
+
+describe("sendBatchExpenseSummaryHandler gating", () => {
+  const baseItem = {
+    description: "Test",
+    amount: 1,
+    currency: "SGD",
+  };
+
+  function makeDb(chat: {
+    notifyOnExpense: boolean;
+    notifyOnExpenseUpdate: boolean;
+  }) {
+    return {
+      chat: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: BigInt(123),
+          threadId: null,
+          ...chat,
+        }),
+      },
+      chatCategory: { findMany: vi.fn().mockResolvedValue([]) },
+      user: { findMany: vi.fn().mockResolvedValue([]) },
+    } as any;
+  }
+
+  function makeTeleBot() {
+    const sendMessage = vi.fn().mockResolvedValue({ message_id: 999 });
+    return { bot: { sendMessage } as unknown as Telegram, sendMessage };
+  }
+
+  it("skips the send when kind=updated and notifyOnExpenseUpdate is false", async () => {
+    const db = makeDb({
+      notifyOnExpense: true,
+      notifyOnExpenseUpdate: false,
+    });
+    const { bot, sendMessage } = makeTeleBot();
+
+    const result = await sendBatchExpenseSummaryHandler(
+      {
+        chatId: BigInt(123),
+        kind: "updated",
+        items: [baseItem],
+      },
+      db,
+      bot
+    );
+
+    expect(result).toEqual({ sent: false, messageId: null });
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("skips the send when kind=created and notifyOnExpense is false", async () => {
+    const db = makeDb({
+      notifyOnExpense: false,
+      notifyOnExpenseUpdate: true,
+    });
+    const { bot, sendMessage } = makeTeleBot();
+
+    const result = await sendBatchExpenseSummaryHandler(
+      {
+        chatId: BigInt(123),
+        kind: "created",
+        items: [baseItem],
+      },
+      db,
+      bot
+    );
+
+    expect(result).toEqual({ sent: false, messageId: null });
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("still sends when the opposite kind's flag is false", async () => {
+    // notifyOnExpense=false should NOT silence kind=updated.
+    const db = makeDb({
+      notifyOnExpense: false,
+      notifyOnExpenseUpdate: true,
+    });
+    const { bot, sendMessage } = makeTeleBot();
+
+    const result = await sendBatchExpenseSummaryHandler(
+      {
+        chatId: BigInt(123),
+        kind: "updated",
+        items: [baseItem],
+      },
+      db,
+      bot
+    );
+
+    expect(result).toEqual({ sent: true, messageId: 999 });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 });

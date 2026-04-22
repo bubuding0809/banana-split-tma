@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Telegram } from "telegraf";
+import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
@@ -13,6 +14,12 @@ const summaryItemSchema = z.object({
   amount: z.number().nonnegative(),
   currency: z.string().length(3),
   categoryId: z.string().nullable().optional(),
+  payerId: z
+    .number()
+    .transform((v) => BigInt(v))
+    .optional(),
+  splitMode: z.nativeEnum(SplitMode).optional(),
+  participantCount: z.number().int().positive().optional(),
 });
 
 export const inputSchema = z.object({
@@ -37,6 +44,9 @@ type ResolvedItem = {
   currency: string;
   categoryEmoji?: string;
   categoryTitle?: string;
+  payerName?: string;
+  splitMode?: SplitMode;
+  participantCount?: number;
 };
 
 export const formatBatchSummaryMessage = (
@@ -53,25 +63,53 @@ export const formatBatchSummaryMessage = (
   const shown = items.slice(0, MAX_ITEMS_SHOWN);
   const overflow = count - shown.length;
 
-  const lines = shown.map((item) => {
+  // Each row becomes a Telegram MarkdownV2 blockquote (`>` line prefix),
+  // which renders as a muted/tighter block that visually shrinks the
+  // item next to the header. Every field lives on its own ┣/┗ branch;
+  // fields that aren't provided just drop out of the block.
+  const blocks = shown.map((item) => {
     const desc = escapeMarkdown(item.description, 2);
     const amt = escapeMarkdown(formatAmount(item.currency, item.amount), 2);
-    const cat =
-      item.categoryEmoji && item.categoryTitle
-        ? ` · ${item.categoryEmoji} ${escapeMarkdown(item.categoryTitle, 2)}`
-        : "";
-    return `• ${desc} — ${amt}${cat}`;
+
+    // Order matters — these are the branches under the 🧾 title line.
+    const branches: string[] = [amt];
+    if (item.payerName) {
+      branches.push(`paid by ${escapeMarkdown(item.payerName, 2)}`);
+    }
+    if (item.categoryEmoji && item.categoryTitle) {
+      branches.push(
+        `${item.categoryEmoji} ${escapeMarkdown(item.categoryTitle, 2)}`
+      );
+    }
+    if (item.splitMode !== undefined || item.participantCount !== undefined) {
+      const mode = item.splitMode
+        ? escapeMarkdown(String(item.splitMode), 2)
+        : "split";
+      const acrossN =
+        item.participantCount !== undefined
+          ? ` split across ${item.participantCount}`
+          : "";
+      branches.push(`${mode}${acrossN}`);
+    }
+
+    const lastIdx = branches.length - 1;
+    const lines = [
+      `>🧾 ${desc}`,
+      ...branches.map((b, i) => `>${i === lastIdx ? "┗" : "┣"} ${b}`),
+    ];
+
+    return lines.join("\n");
   });
 
   if (overflow > 0) {
-    lines.push(`_…and ${overflow} more_`);
+    blocks.push(`_…and ${overflow} more_`);
   }
 
   const footer = actorName
     ? `\n\n_— ${action} by ${escapeMarkdown(actorName, 2)}_`
     : "";
 
-  return `${header}\n\n${lines.join("\n")}${footer}`;
+  return `${header}\n\n${blocks.join("\n\n")}${footer}`;
 };
 
 export const sendBatchExpenseSummaryHandler = async (
@@ -81,15 +119,29 @@ export const sendBatchExpenseSummaryHandler = async (
 ) => {
   const chat = await db.chat.findUnique({
     where: { id: input.chatId },
-    select: { id: true, threadId: true },
+    select: {
+      id: true,
+      threadId: true,
+      notifyOnExpense: true,
+      notifyOnExpenseUpdate: true,
+    },
   });
   if (!chat) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Chat not found" });
   }
 
-  // Resolve category labels for items that reference a category. Batch the
-  // chat-category lookups so we hit the DB once per chat regardless of how
-  // many items reference custom categories.
+  // Per-chat notification toggles override the caller's intent. A user
+  // who turned off "Expense added" / "Expense updated" in Settings
+  // shouldn't get a bulk summary for that kind even when the CLI opts
+  // in via --notify.
+  if (input.kind === "created" && !chat.notifyOnExpense) {
+    return { sent: false, messageId: null };
+  }
+  if (input.kind === "updated" && !chat.notifyOnExpenseUpdate) {
+    return { sent: false, messageId: null };
+  }
+
+  // Resolve category labels in one DB round-trip per chat.
   const chatCategoryUuids = new Set<string>();
   for (const item of input.items) {
     if (item.categoryId?.startsWith("chat:")) {
@@ -109,6 +161,21 @@ export const sendBatchExpenseSummaryHandler = async (
     chatCategoryRows.map((r) => [r.id, { emoji: r.emoji, title: r.title }])
   );
 
+  // Resolve payer firstNames in one round-trip across the batch.
+  const payerIds = new Set<bigint>();
+  for (const item of input.items) {
+    if (item.payerId !== undefined) payerIds.add(item.payerId);
+  }
+  const payerRows = payerIds.size
+    ? await db.user.findMany({
+        where: { id: { in: Array.from(payerIds) } },
+        select: { id: true, firstName: true },
+      })
+    : [];
+  const payerById = new Map(
+    payerRows.map((r) => [r.id.toString(), r.firstName])
+  );
+
   const resolved: ResolvedItem[] = input.items.map((item) => {
     let categoryEmoji: string | undefined;
     let categoryTitle: string | undefined;
@@ -126,12 +193,19 @@ export const sendBatchExpenseSummaryHandler = async (
         categoryTitle = row.title;
       }
     }
+    const payerName =
+      item.payerId !== undefined
+        ? payerById.get(item.payerId.toString())
+        : undefined;
     return {
       description: item.description,
       amount: item.amount,
       currency: item.currency,
       categoryEmoji,
       categoryTitle,
+      payerName,
+      splitMode: item.splitMode,
+      participantCount: item.participantCount,
     };
   });
 
@@ -168,7 +242,7 @@ export default protectedProcedure
       tags: ["expense"],
       summary: "Send a one-off Telegram summary message for a batch operation",
       description:
-        "Emits a single consolidated MarkdownV2 message listing the expenses in a batch (created or updated). Intended to be called by CLI bulk commands after the batch completes — replaces per-row notifications.",
+        "Emits a single consolidated MarkdownV2 message listing the expenses in a batch (created or updated). Each row can carry payer / split-mode / participant-count for a richer tree-style layout; missing fields collapse the block gracefully. Intended to be called by CLI bulk commands after the batch completes — replaces per-row notifications.",
     },
   })
   .input(inputSchema)

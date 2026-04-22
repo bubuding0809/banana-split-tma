@@ -779,14 +779,25 @@ export const expenseCommands: Command[] = [
 
         let summary: { sent: boolean; messageId: number | null } | undefined;
         if (notify && bulkResult.succeeded > 0) {
+          // Join server response (final amount/currency/categoryId) with
+          // the original input row (payerId/splitMode/participantIds) so
+          // the summary can render the richer per-row block.
           const items = bulkResult.results
             .filter((r: any) => r.status === "success" && r.expense)
-            .map((r: any) => ({
-              description: String(r.expense.description ?? r.description ?? ""),
-              amount: Number(r.expense.amount),
-              currency: String(r.expense.currency),
-              categoryId: r.expense.categoryId ?? null,
-            }));
+            .map((r: any) => {
+              const inputRow = rows[r.index];
+              return {
+                description: String(
+                  r.expense.description ?? r.description ?? ""
+                ),
+                amount: Number(r.expense.amount),
+                currency: String(r.expense.currency),
+                categoryId: r.expense.categoryId ?? null,
+                payerId: inputRow?.payerId,
+                splitMode: inputRow?.splitMode,
+                participantCount: inputRow?.participantIds?.length,
+              };
+            });
           try {
             summary = await trpc.expense.sendBatchExpenseSummary.mutate({
               chatId,

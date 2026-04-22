@@ -257,16 +257,32 @@ export const updateExpensesBulkHandler = async (
   //    non-fatal — the batch has already committed row by row.
   let summary: { sent: boolean; messageId: number | null } | undefined;
   if (input.sendNotification && succeeded > 0) {
+    // The updateExpense output schema doesn't include participants, so
+    // reconstruct per-row counts from the request (participantIds override)
+    // with a fallback to the pre-fetched existing expense.
     const items = results
       .filter(
         (r): r is typeof r & { status: "success" } => r.status === "success"
       )
-      .map((r) => ({
-        description: r.expense.description,
-        amount: Number(r.expense.amount),
-        currency: r.expense.currency,
-        categoryId: r.expense.categoryId ?? null,
-      }));
+      .map((r) => {
+        const inputRow = input.expenses[r.index];
+        const existing = existingById.get(r.expenseId);
+        const participantCount =
+          inputRow?.participantIds?.length ??
+          existing?.participants.length ??
+          undefined;
+        return {
+          description: r.expense.description,
+          amount: Number(r.expense.amount),
+          currency: r.expense.currency,
+          categoryId: r.expense.categoryId ?? null,
+          // updateExpense output serialises payerId to a string; the
+          // summary handler expects the post-transform bigint.
+          payerId: BigInt(r.expense.payerId),
+          splitMode: r.expense.splitMode,
+          participantCount,
+        };
+      });
 
     summary = await sendBatchExpenseSummaryHandler(
       {

@@ -61,13 +61,20 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
   // * Mutations ===================================================================================
   const updateChatMutation = trpc.chat.updateChat.useMutation({
-    onMutate: ({ baseCurrency, notifyOnExpense, notifyOnSettlement }) => {
+    onMutate: ({
+      baseCurrency,
+      notifyOnExpense,
+      notifyOnExpenseUpdate,
+      notifyOnSettlement,
+    }) => {
       trpcUtils.chat.getChat.setData({ chatId }, (prev) => {
         if (!prev) return prev;
         return {
           ...prev,
           baseCurrency: baseCurrency ?? prev.baseCurrency,
           notifyOnExpense: notifyOnExpense ?? prev.notifyOnExpense,
+          notifyOnExpenseUpdate:
+            notifyOnExpenseUpdate ?? prev.notifyOnExpenseUpdate,
           notifyOnSettlement: notifyOnSettlement ?? prev.notifyOnSettlement,
         };
       });
@@ -82,6 +89,7 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
           ...prev,
           baseCurrency: dChatData?.baseCurrency ?? "SGD",
           notifyOnExpense: dChatData?.notifyOnExpense ?? true,
+          notifyOnExpenseUpdate: dChatData?.notifyOnExpenseUpdate ?? true,
           notifyOnSettlement: dChatData?.notifyOnSettlement ?? true,
         };
       });
@@ -174,6 +182,26 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       {
         chatId,
         notifyOnExpense: newValue,
+      },
+      {
+        onError: () => {
+          alert(`Something went wrong, try again later.`);
+          hapticFeedback.notificationOccurred("error");
+        },
+        onSuccess: () => {
+          hapticFeedback.notificationOccurred("success");
+        },
+      }
+    );
+  };
+
+  const handleNotifyOnExpenseUpdateToggle = () => {
+    const newValue = !(dChatData?.notifyOnExpenseUpdate ?? true);
+
+    updateChatMutation.mutate(
+      {
+        chatId,
+        notifyOnExpenseUpdate: newValue,
       },
       {
         onError: () => {
@@ -347,6 +375,19 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
             onClick={handleNotifyOnExpenseToggle}
           >
             Expense added
+          </Cell>
+          <Cell
+            Component="label"
+            before={<Bell size={20} />}
+            after={
+              <Switch
+                checked={dChatData?.notifyOnExpenseUpdate ?? true}
+                onChange={handleNotifyOnExpenseUpdateToggle}
+              />
+            }
+            onClick={handleNotifyOnExpenseUpdateToggle}
+          >
+            Expense updated
           </Cell>
           <Cell
             Component="label"

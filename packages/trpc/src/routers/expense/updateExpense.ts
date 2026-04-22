@@ -390,8 +390,11 @@ export const updateExpenseHandler = async (
       return expense;
     });
 
-    // Send notification if requested and teleBot is available
-    if (input.sendNotification) {
+    // Send notification if requested and teleBot is available.
+    // Also respect the per-chat `notifyOnExpenseUpdate` preference —
+    // users can disable the edit+bump for every update (singular or
+    // driven by bulk-update fan-out) via Settings.
+    if (input.sendNotification && existingExpense.chat.notifyOnExpenseUpdate) {
       try {
         // Fetch creator and participant details for notification
         const [payer, creator, participants] = await Promise.all([
