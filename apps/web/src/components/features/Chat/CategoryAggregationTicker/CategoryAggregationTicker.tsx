@@ -4,8 +4,8 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { IconButton, Modal, Title } from "@telegram-apps/telegram-ui";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { IconButton, Modal } from "@telegram-apps/telegram-ui";
+import { ChevronUp, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { cn } from "@/utils/cn";
@@ -15,7 +15,6 @@ import {
   type AggregationResult,
   type CategoryAggregate,
 } from "./useCategoryAggregation";
-import MonthPickerPopover from "./MonthPickerPopover";
 
 interface CategoryAggregationTickerProps {
   chatId: number;
@@ -49,7 +48,6 @@ export default function CategoryAggregationTicker({
 }: CategoryAggregationTickerProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   // Tracks whether any modal owned by another component is currently open.
   // We slide the pill away when true so it doesn't poke out from behind
   // category/expense/settlement/etc modals.
@@ -117,11 +115,6 @@ export default function CategoryAggregationTicker({
       preliminary.targetCurrencies.length === 0 || ratesStatus === "success",
   });
 
-  // Close the month picker whenever filters change or modal closes.
-  useEffect(() => {
-    setPickerOpen(false);
-  }, [categoryFilters, modalOpen]);
-
   // Watch for any other modal opening anywhere on the page. telegram-ui's
   // Modal (Radix-backed) marks its dialog root with role="dialog" and
   // data-state="open". If more than our own are open, something else is
@@ -161,12 +154,6 @@ export default function CategoryAggregationTicker({
   const openModal = () => {
     tick();
     setModalOpen(true);
-  };
-
-  const toggleMonthPicker: React.MouseEventHandler = (e) => {
-    e.stopPropagation();
-    tick();
-    setPickerOpen((p) => !p);
   };
 
   return (
@@ -245,9 +232,39 @@ export default function CategoryAggregationTicker({
         header={
           <Modal.Header
             before={
-              <Title level="3" weight="1">
-                Damage · {monthDisplay}
-              </Title>
+              <div className="flex items-center gap-2">
+                {/* Native <select> as the modal title. Picking a month
+                    drives pickedMonthKey in one tap; iOS/Android render
+                    the system wheel picker automatically. */}
+                <select
+                  aria-label="Pick month"
+                  value={monthKey ?? ""}
+                  onChange={(e) => {
+                    hapticFeedback.selectionChanged.ifAvailable?.();
+                    setPickedMonthKey(e.target.value);
+                  }}
+                  className="cursor-pointer appearance-none bg-transparent pr-5 text-[17px] font-semibold outline-none"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right center",
+                    backgroundSize: "10px",
+                  }}
+                >
+                  {monthList.map((m) => (
+                    <option key={m.monthKey} value={m.monthKey}>
+                      {m.monthDisplay}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  className="whitespace-nowrap text-[15px] font-bold tabular-nums"
+                  style={{ color: "var(--tg-theme-link-color)" }}
+                >
+                  {formatCurrencyWithCode(baseTotal, baseCurrency)}
+                </span>
+              </div>
             }
             after={
               <Modal.Close>
@@ -267,66 +284,7 @@ export default function CategoryAggregationTicker({
           />
         }
       >
-        <div className="flex max-h-[50vh] min-h-64 flex-col pb-4">
-          {/* Sub-header — month pill (opens picker) + chip summary + amount */}
-          <div className="relative flex w-full shrink-0 items-center gap-3 px-5 py-3">
-            <button
-              type="button"
-              onClick={toggleMonthPicker}
-              aria-haspopup="listbox"
-              aria-expanded={pickerOpen}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors",
-                pickerOpen
-                  ? "bg-black/15 dark:bg-white/25"
-                  : "bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
-              )}
-            >
-              <span>{monthDisplay}</span>
-              <ChevronDown
-                size={14}
-                strokeWidth={2.5}
-                className={cn(
-                  "opacity-70 transition-transform duration-200",
-                  pickerOpen && "rotate-180"
-                )}
-              />
-            </button>
-
-            <span
-              className="h-3.5 w-px shrink-0 bg-black/15 dark:bg-white/20"
-              aria-hidden
-            />
-
-            <span
-              className={cn(
-                "min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight",
-                chipSummary.dim && "text-[11.5px] uppercase opacity-65"
-              )}
-            >
-              {chipSummary.content}
-            </span>
-
-            <span
-              className="shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums"
-              style={{ color: "var(--tg-theme-link-color)" }}
-            >
-              {formatCurrencyWithCode(baseTotal, baseCurrency)}
-            </span>
-
-            {pickerOpen && (
-              <MonthPickerPopover
-                months={monthList}
-                activeMonthKey={monthKey}
-                baseCurrency={baseCurrency}
-                onPick={(mk) => {
-                  setPickedMonthKey(mk);
-                  setPickerOpen(false);
-                }}
-              />
-            )}
-          </div>
-
+        <div className="flex h-[50vh] flex-col pb-4">
           {/* Interactive category filter strip */}
           {categories.length > 0 && (
             <div className="dark:border-white/12 shrink-0 border-t border-black/5 py-1">
