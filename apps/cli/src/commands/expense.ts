@@ -122,6 +122,7 @@ export const expenseCommands: Command[] = [
       "Use this when a user adds a new expense. Always resolve the chat ID first. For EQUAL splits, you don't need custom-splits.",
     examples: [
       "banana create-expense --amount 50 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
+      "banana create-expense --amount 12 --description 'Lunch' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category base:food",
       'banana create-expense --amount 100 --description \'Groceries\' --payer-id 123 --split-mode EXACT --participant-ids 123,456 --custom-splits \'[{"userId":123,"amount":60},{"userId":456,"amount":40}]\'',
     ],
     options: {
@@ -175,6 +176,12 @@ export const expenseCommands: Command[] = [
         type: "string",
         description:
           "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z). Defaults to now.",
+        required: false,
+      },
+      category: {
+        type: "string",
+        description:
+          "Category id (e.g. base:food or chat:<uuid>). Run list-categories to see options.",
         required: false,
       },
     },
@@ -303,6 +310,7 @@ export const expenseCommands: Command[] = [
             | "SHARES",
           participantIds,
           customSplits,
+          categoryId: opts.category ? String(opts.category) : undefined,
           sendNotification: true,
         });
       });
@@ -316,6 +324,8 @@ export const expenseCommands: Command[] = [
       "Use this to modify an expense. You must provide all required fields, even if they haven't changed. Use get-expense first to get current values.",
     examples: [
       "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
+      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category base:food",
+      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category none",
     ],
     options: {
       "expense-id": {
@@ -373,6 +383,12 @@ export const expenseCommands: Command[] = [
         type: "string",
         description:
           "ISO 8601 date string (e.g. 2026-03-04 or 2026-03-04T10:00:00Z)",
+        required: false,
+      },
+      category: {
+        type: "string",
+        description:
+          "Category id (base:<slug> or chat:<uuid>). Pass 'none' to clear. Omit to leave unchanged.",
         required: false,
       },
     },
@@ -457,6 +473,15 @@ export const expenseCommands: Command[] = [
         }
       }
 
+      // `--category` is tri-state: omitted (leave unchanged),
+      // "none" (clear), or an id string (set). Map to the API's
+      // undefined / null / string contract.
+      let categoryId: string | null | undefined;
+      if (opts.category !== undefined) {
+        const raw = String(opts.category);
+        categoryId = raw === "none" ? null : raw;
+      }
+
       return run("update-expense", async () => {
         const chatId = await resolveChatId(
           trpc,
@@ -478,6 +503,7 @@ export const expenseCommands: Command[] = [
             | "SHARES",
           participantIds,
           customSplits,
+          categoryId,
           sendNotification: true,
         });
       });
