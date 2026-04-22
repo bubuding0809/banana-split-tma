@@ -242,8 +242,11 @@ export default function CategoryAggregationTicker({
                   hapticFeedback.selectionChanged.ifAvailable?.();
                   setPickedMonthKey(e.target.value);
                 }}
-                className="cursor-pointer bg-transparent text-[15px] font-semibold outline-none"
-                style={{ color: "var(--tg-theme-text-color)" }}
+                className="cursor-pointer rounded-md px-2 py-1 text-[15px] font-semibold outline-none"
+                style={{
+                  color: "var(--tg-theme-text-color)",
+                  backgroundColor: "var(--tg-theme-secondary-bg-color)",
+                }}
               >
                 {monthList.map((m) => (
                   <option key={m.monthKey} value={m.monthKey}>
