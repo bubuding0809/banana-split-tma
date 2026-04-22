@@ -181,7 +181,8 @@ export default function CategoryAggregationTicker({
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
           borderRadius: expanded ? 18 : 999,
-          maxWidth: "min(92vw, 420px)",
+          minWidth: "min(88vw, 300px)",
+          maxWidth: "min(94vw, 440px)",
           transition: `border-radius 280ms ${EASE}`,
         }}
       >
@@ -203,7 +204,7 @@ export default function CategoryAggregationTicker({
               ? "Collapse aggregation ticker"
               : "Expand aggregation ticker"
           }
-          className="flex w-full cursor-pointer select-none items-center gap-2 px-4 py-2.5 text-left"
+          className="flex w-full cursor-pointer select-none items-center gap-3 px-5 py-3 text-left"
         >
           {/* Month pill — separate tap target when expanded */}
           {expanded ? (
