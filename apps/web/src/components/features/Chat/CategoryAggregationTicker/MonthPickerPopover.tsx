@@ -47,10 +47,10 @@ export default function MonthPickerPopover({
                 active ? "bg-white/15" : "hover:bg-white/8 active:bg-white/10"
               )}
             >
-              <span className="text-[13px] font-semibold">
+              <span className="text-[14px] font-semibold">
                 {m.monthDisplay}
               </span>
-              <span className="whitespace-nowrap text-[10.5px] font-medium tabular-nums opacity-70">
+              <span className="whitespace-nowrap text-[12px] font-medium tabular-nums opacity-70">
                 {formatCurrencyWithCode(m.baseTotal, baseCurrency)}
               </span>
             </button>

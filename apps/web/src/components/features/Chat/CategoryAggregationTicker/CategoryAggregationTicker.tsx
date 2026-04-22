@@ -214,7 +214,7 @@ export default function CategoryAggregationTicker({
               aria-haspopup="listbox"
               aria-expanded={pickerOpen}
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-colors",
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors",
                 pickerOpen
                   ? "bg-white/25"
                   : "bg-white/10 hover:bg-white/15 active:bg-white/20"
@@ -222,7 +222,7 @@ export default function CategoryAggregationTicker({
             >
               <span>{monthDisplay}</span>
               <ChevronDown
-                size={12}
+                size={14}
                 strokeWidth={2.5}
                 className={cn(
                   "opacity-70 transition-transform duration-200",
@@ -231,17 +231,17 @@ export default function CategoryAggregationTicker({
               />
             </button>
           ) : (
-            <span className="text-[11px] font-semibold opacity-85">
+            <span className="text-[13px] font-semibold opacity-85">
               {monthDisplay}
             </span>
           )}
 
-          <span className="h-3 w-px shrink-0 bg-white/20" aria-hidden />
+          <span className="h-3.5 w-px shrink-0 bg-white/20" aria-hidden />
 
           <span
             className={cn(
-              "min-w-0 flex-1 truncate text-[12px] font-semibold tracking-tight",
-              chipSummary.dim && "text-[10.5px] uppercase opacity-65"
+              "min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight",
+              chipSummary.dim && "text-[11.5px] uppercase opacity-65"
             )}
           >
             {chipSummary.content}
@@ -249,7 +249,7 @@ export default function CategoryAggregationTicker({
 
           <span
             className={cn(
-              "shrink-0 whitespace-nowrap text-[12.5px] font-bold tabular-nums",
+              "shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums",
               empty && "opacity-45",
               !ratesReady && !empty && "opacity-50"
             )}
@@ -260,7 +260,7 @@ export default function CategoryAggregationTicker({
 
           {/* Expand/collapse caret (kept subtle; the whole row is tappable) */}
           <ChevronDown
-            size={14}
+            size={16}
             strokeWidth={2.5}
             className={cn(
               "shrink-0 opacity-50 transition-transform duration-200",
@@ -334,15 +334,15 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
 
   const loading = !ratesReady && cat.needsConversion;
   return (
-    <div className="border-white/6 grid grid-cols-[1fr_auto] items-start gap-x-4 border-t px-4 py-2.5 first:border-t-0">
-      <div className="flex items-center gap-2 text-[12px] font-semibold">
-        <span className="text-[16px] leading-none">{cat.emoji}</span>
+    <div className="border-white/6 grid grid-cols-[1fr_auto] items-start gap-x-4 border-t px-5 py-3 first:border-t-0">
+      <div className="flex items-center gap-2.5 text-[14px] font-semibold">
+        <span className="text-[18px] leading-none">{cat.emoji}</span>
         <span className="truncate">{cat.title}</span>
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <div
           className={cn(
-            "whitespace-nowrap text-[12.5px] font-bold tabular-nums",
+            "whitespace-nowrap text-[15px] font-bold tabular-nums",
             loading && "opacity-50"
           )}
           style={{ color: "#66b3ff" }}
@@ -353,7 +353,7 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
           cat.byCurrency.map((bc) => (
             <div
               key={bc.currency}
-              className="whitespace-nowrap text-[10px] font-medium tabular-nums opacity-55"
+              className="whitespace-nowrap text-[11px] font-medium tabular-nums opacity-55"
             >
               {formatCurrencyWithCode(bc.amount, bc.currency)}
             </div>
