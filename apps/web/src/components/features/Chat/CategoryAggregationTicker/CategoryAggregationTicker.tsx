@@ -5,7 +5,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { IconButton, Modal } from "@telegram-apps/telegram-ui";
-import { ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { cn } from "@/utils/cn";
@@ -268,7 +268,7 @@ export default function CategoryAggregationTicker({
                   mode="gray"
                   onClick={() => hapticFeedback.impactOccurred("light")}
                 >
-                  <X
+                  <ChevronDown
                     size={20}
                     strokeWidth={3}
                     style={{ color: tSubtitleTextColor }}
