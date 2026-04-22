@@ -12,6 +12,7 @@ import {
   Section,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
+import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
@@ -311,7 +312,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   ]);
 
   return (
-    <section className="flex h-full flex-col">
+    <section className="relative flex h-full flex-col">
       {/* Transaction filters section */}
       <div className="shadow-xs">
         <TransactionFiltersCell
@@ -541,6 +542,12 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onAvailableDatesChange={setMonthGroupedData}
         categoryFilters={categoryFilters}
         chatRows={chatRows}
+      />
+
+      <CategoryAggregationTicker
+        chatId={chatId}
+        userId={userId}
+        categoryFilters={categoryFilters}
       />
     </section>
   );
