@@ -180,7 +180,7 @@ export default function CategoryAggregationTicker({
           aria-label="Open category damage summary"
           tabIndex={anyModalOpen ? -1 : 0}
           className={cn(
-            "pointer-events-auto flex cursor-pointer select-none items-center gap-3 rounded-full",
+            "pointer-events-auto relative flex cursor-pointer select-none items-center gap-3 overflow-hidden rounded-full",
             "w-[min(85vw,440px)] px-5 py-3 text-left text-white",
             "transition-transform duration-150 active:scale-[0.98]"
           )}
@@ -205,6 +205,21 @@ export default function CategoryAggregationTicker({
             ].join(", "),
           }}
         >
+          {/* Shimmer overlay — a diagonal light streak sweeps across
+              the pill every ~5s to draw the eye. pointer-events-none
+              so it doesn't swallow taps. Paused for users with
+              prefers-reduced-motion. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%)",
+              animation: "ticker-shimmer 5s ease-in-out 1.5s infinite",
+              transform: "translateX(-120%)",
+            }}
+          />
+
           <span className="text-[13px] font-semibold opacity-85">
             {monthDisplay}
           </span>

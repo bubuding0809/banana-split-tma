@@ -51,6 +51,21 @@
   100% { transform: translateY(0) scale(1); }
 }
 
+/* Diagonal shimmer sweep for the aggregation ticker's collapsed pill.
+   Sweeps left → right in ~1.4s, then pauses for ~3.6s before the next
+   cycle so the motion draws the eye without becoming noisy. */
+@keyframes ticker-shimmer {
+  0%   { transform: translateX(-120%); }
+  28%  { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes ticker-shimmer {
+    0%, 100% { transform: translateX(-120%); }
+  }
+}
+
 /* emoji-picker-react — strip the picker's 1px border. Setting
    --epr-picker-border-color to transparent wasn't enough; the package
    also applies a box-shadow in its dark theme. Override both. */
