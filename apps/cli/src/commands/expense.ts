@@ -321,11 +321,10 @@ export const expenseCommands: Command[] = [
     name: "update-expense",
     description: "Update an existing expense",
     agentGuidance:
-      "Use this to modify an expense. You must provide all required fields, even if they haven't changed. Use get-expense first to get current values.",
+      "Use this to modify an expense. Omitted fields will keep their current values. Use get-expense first to get current values if needed.",
     examples: [
-      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
-      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category base:food",
-      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category none",
+      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --amount 60",
+      "banana update-expense --expense-id 123e4567-e89b-12d3-a456-426614174000 --category base:food",
     ],
     options: {
       "expense-id": {
@@ -341,22 +340,22 @@ export const expenseCommands: Command[] = [
       "payer-id": {
         type: "string",
         description: "The user ID who paid the expense",
-        required: true,
+        required: false,
       },
       "creator-id": {
         type: "string",
-        description: "The user ID creating the update (defaults to payer-id)",
+        description: "The user ID creating the update",
         required: false,
       },
       description: {
         type: "string",
         description: "Short description of the expense (max 60 chars)",
-        required: true,
+        required: false,
       },
       amount: {
         type: "string",
         description: "The total amount of the expense",
-        required: true,
+        required: false,
       },
       currency: {
         type: "string",
@@ -366,12 +365,12 @@ export const expenseCommands: Command[] = [
       "split-mode": {
         type: "string",
         description: "How to split: EQUAL, EXACT, PERCENTAGE, or SHARES",
-        required: true,
+        required: false,
       },
       "participant-ids": {
         type: "string",
         description: "Comma-separated user IDs participating in the split",
-        required: true,
+        required: false,
       },
       "custom-splits": {
         type: "string",
@@ -400,107 +399,101 @@ export const expenseCommands: Command[] = [
           "update-expense"
         );
       }
-      if (!opts["payer-id"]) {
-        return error(
-          "missing_option",
-          "--payer-id is required",
-          "update-expense"
-        );
-      }
-      if (!opts.description) {
-        return error(
-          "missing_option",
-          "--description is required",
-          "update-expense"
-        );
-      }
-      if (!opts.amount) {
-        return error(
-          "missing_option",
-          "--amount is required",
-          "update-expense"
-        );
-      }
-      if (!opts["split-mode"]) {
-        return error(
-          "missing_option",
-          "--split-mode is required",
-          "update-expense"
-        );
-      }
-      if (!opts["participant-ids"]) {
-        return error(
-          "missing_option",
-          "--participant-ids is required",
-          "update-expense"
-        );
-      }
-
-      const payerId = Number(opts["payer-id"]);
-      const amount = Number(opts.amount);
-      const creatorId = opts["creator-id"]
-        ? Number(opts["creator-id"])
-        : payerId;
-      const participantIds = String(opts["participant-ids"])
-        .split(",")
-        .map(Number);
-
-      let customSplits: { userId: number; amount: number }[] | undefined;
-      if (opts["custom-splits"]) {
-        try {
-          customSplits = JSON.parse(String(opts["custom-splits"])) as {
-            userId: number;
-            amount: number;
-          }[];
-        } catch {
-          return error(
-            "invalid_option",
-            "--custom-splits must be valid JSON array",
-            "update-expense"
-          );
-        }
-      }
-
-      let date: Date | undefined;
-      if (opts.date) {
-        date = new Date(String(opts.date));
-        if (Number.isNaN(date.getTime())) {
-          return error(
-            "invalid_option",
-            "--date must be a valid ISO 8601 date string",
-            "update-expense"
-          );
-        }
-      }
-
-      // `--category` is tri-state: omitted (leave unchanged),
-      // "none" (clear), or an id string (set). Map to the API's
-      // undefined / null / string contract.
-      let categoryId: string | null | undefined;
-      if (opts.category !== undefined) {
-        const raw = String(opts.category);
-        categoryId = raw === "none" ? null : raw;
-      }
 
       return run("update-expense", async () => {
+        const expenseId = String(opts["expense-id"]);
+        const existing = await trpc.expense.getExpenseDetails.query({
+          expenseId,
+        });
+
+        const payerId = opts["payer-id"]
+          ? Number(opts["payer-id"])
+          : Number(existing.payerId);
+        if (opts["payer-id"] && Number.isNaN(payerId)) {
+          throw new Error("--payer-id must be a valid number");
+        }
+
+        const amount = opts.amount
+          ? Number(opts.amount)
+          : Number(existing.amount);
+        if (opts.amount && (Number.isNaN(amount) || amount <= 0)) {
+          throw new Error("--amount must be a positive number");
+        }
+
+        const creatorId = opts["creator-id"]
+          ? Number(opts["creator-id"])
+          : Number(existing.creatorId);
+        if (opts["creator-id"] && Number.isNaN(creatorId)) {
+          throw new Error("--creator-id must be a valid number");
+        }
+
+        const description = opts.description
+          ? String(opts.description)
+          : String(existing.description);
+        const splitMode = opts["split-mode"]
+          ? String(opts["split-mode"])
+          : existing.splitMode;
+
+        let participantIds: number[];
+        if (opts["participant-ids"]) {
+          participantIds = String(opts["participant-ids"])
+            .split(",")
+            .map(Number);
+          if (participantIds.some(Number.isNaN)) {
+            throw new Error(
+              "--participant-ids must be comma-separated numbers"
+            );
+          }
+        } else {
+          participantIds = existing.participants.map((p: any) => p.id);
+        }
+
+        let customSplits: { userId: number; amount: number }[] | undefined;
+        if (opts["custom-splits"]) {
+          try {
+            customSplits = JSON.parse(String(opts["custom-splits"])) as {
+              userId: number;
+              amount: number;
+            }[];
+          } catch {
+            throw new Error("--custom-splits must be valid JSON array");
+          }
+        } else if (splitMode !== "EQUAL") {
+          customSplits = existing.shares.map((s: any) => ({
+            userId: s.userId,
+            amount: s.amount,
+          }));
+        }
+
+        let date: Date | undefined = existing.date;
+        if (opts.date) {
+          date = new Date(String(opts.date));
+          if (Number.isNaN(date.getTime())) {
+            throw new Error("--date must be a valid ISO 8601 date string");
+          }
+        }
+
+        let categoryId: string | null | undefined = existing.categoryId;
+        if (opts.category !== undefined) {
+          const raw = String(opts.category);
+          categoryId = raw === "none" ? null : raw;
+        }
+
         const chatId = await resolveChatId(
           trpc,
           opts["chat-id"] as string | undefined
         );
+
         return trpc.expense.updateExpense.mutate({
-          expenseId: String(opts["expense-id"]),
+          expenseId,
           chatId,
           creatorId,
           payerId,
-          description: String(opts.description),
+          description,
           amount,
           date,
-          currency: opts.currency ? String(opts.currency) : undefined,
-          splitMode: String(opts["split-mode"]) as
-            | "EQUAL"
-            | "EXACT"
-            | "PERCENTAGE"
-            | "SHARES",
+          currency: opts.currency ? String(opts.currency) : existing.currency,
+          splitMode: splitMode as "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES",
           participantIds,
           customSplits,
           categoryId,

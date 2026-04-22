@@ -56,7 +56,22 @@ describe("expense commands", () => {
 
   it("get-expense should fail if expense-id is missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "get-expense");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({}, trpcMock);
 
     expect(result).toMatchObject({
@@ -78,7 +93,22 @@ describe("expense commands", () => {
 
   it("create-expense should fail if required options are missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "create-expense");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
       code: "missing_option",
@@ -182,7 +212,7 @@ describe("expense commands", () => {
         amount: "100",
         "split-mode": "EQUAL",
         "participant-ids": "1,2",
-        date: "not-a-date",
+        date: "invalid",
       },
       trpcMock
     );
@@ -195,7 +225,22 @@ describe("expense commands", () => {
 
   it("get-net-share should fail if required options are missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "get-net-share");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
       code: "missing_option",
@@ -240,7 +285,22 @@ describe("expense commands", () => {
 
   it("get-totals should fail if user-id is missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "get-totals");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({}, trpcMock);
 
     expect(result).toMatchObject({
@@ -272,7 +332,22 @@ describe("expense commands", () => {
 
   it("delete-expense should fail when expense-id is missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "delete-expense");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({}, trpcMock);
 
     expect(result).toMatchObject({
@@ -294,7 +369,22 @@ describe("expense commands", () => {
 
   it("bulk-import-expenses should fail if --file is missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({}, trpcMock);
     expect(result).toMatchObject({
       code: "missing_option",
@@ -305,7 +395,22 @@ describe("expense commands", () => {
   it("bulk-import-expenses should fail if file contains invalid JSON", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
     vi.mocked(fs.readFileSync).mockReturnValueOnce("not-json");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({ file: "bad.json" }, trpcMock);
     expect(result).toMatchObject({ code: "invalid_option" });
   });
@@ -313,7 +418,22 @@ describe("expense commands", () => {
   it("bulk-import-expenses should fail if JSON is not an array", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify({ foo: 1 }));
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
     const result = await cmd?.execute({ file: "obj.json" }, trpcMock);
     expect(result).toMatchObject({
       code: "invalid_option",
@@ -443,18 +563,26 @@ describe("expense commands", () => {
 
   it("update-expense should fail if required options are missing", async () => {
     const cmd = expenseCommands.find((c) => c.name === "update-expense");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
       code: "missing_option",
       message: "--expense-id is required",
-    });
-
-    expect(
-      await cmd?.execute({ "expense-id": "exp-1" }, trpcMock)
-    ).toMatchObject({
-      code: "missing_option",
-      message: "--payer-id is required",
     });
   });
 
@@ -462,7 +590,21 @@ describe("expense commands", () => {
     const cmd = expenseCommands.find((c) => c.name === "update-expense");
     const mutateMock = vi.fn().mockResolvedValue({ id: "exp-123" });
     const trpcMock = {
-      expense: { updateExpense: { mutate: mutateMock } },
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+        updateExpense: { mutate: mutateMock },
+      },
     } as any;
 
     await cmd?.execute(
@@ -499,7 +641,21 @@ describe("expense commands", () => {
     const cmd = expenseCommands.find((c) => c.name === "update-expense");
     const mutateMock = vi.fn().mockResolvedValue({ id: "exp-123" });
     const trpcMock = {
-      expense: { updateExpense: { mutate: mutateMock } },
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+        updateExpense: { mutate: mutateMock },
+      },
     } as any;
 
     await cmd?.execute(
@@ -526,7 +682,22 @@ describe("expense commands", () => {
 
   it("update-expense should reject invalid --date", async () => {
     const cmd = expenseCommands.find((c) => c.name === "update-expense");
-    const trpcMock = {} as any;
+    const trpcMock = {
+      expense: {
+        getExpenseDetails: {
+          query: vi
+            .fn()
+            .mockResolvedValue({
+              creatorId: 1,
+              payerId: 1,
+              amount: 10,
+              splitMode: "EQUAL",
+              participants: [],
+              shares: [],
+            }),
+        },
+      },
+    } as any;
 
     const result = await cmd?.execute(
       {
@@ -542,7 +713,7 @@ describe("expense commands", () => {
     );
 
     expect(result).toMatchObject({
-      code: "invalid_option",
+      code: "api_error",
       message: "--date must be a valid ISO 8601 date string",
     });
   });
