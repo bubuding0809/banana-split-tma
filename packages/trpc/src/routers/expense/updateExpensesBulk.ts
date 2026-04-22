@@ -271,6 +271,64 @@ export const updateExpensesBulkHandler = async (
           inputRow?.participantIds?.length ??
           existing?.participants.length ??
           undefined;
+
+        // Diff pre- vs post-update state so the summary can mark each
+        // changed branch with ✏️. We compare the *input patch* against
+        // the existing row rather than the serialised updateExpense
+        // output so string/number/bigint round-tripping doesn't trigger
+        // false positives (e.g. BigInt(123n) === 123 on a stringifier).
+        const changedFields: (
+          | "description"
+          | "amount"
+          | "payer"
+          | "category"
+          | "split"
+        )[] = [];
+        if (existing && inputRow) {
+          if (
+            inputRow.description !== undefined &&
+            inputRow.description !== existing.description
+          ) {
+            changedFields.push("description");
+          }
+          if (
+            inputRow.amount !== undefined &&
+            inputRow.amount !== Number(existing.amount)
+          ) {
+            changedFields.push("amount");
+          }
+          if (
+            inputRow.payerId !== undefined &&
+            inputRow.payerId !== existing.payerId
+          ) {
+            changedFields.push("payer");
+          }
+          if (
+            inputRow.categoryId !== undefined &&
+            inputRow.categoryId !== existing.categoryId
+          ) {
+            changedFields.push("category");
+          }
+          const splitModeChanged =
+            inputRow.splitMode !== undefined &&
+            inputRow.splitMode !== existing.splitMode;
+          let participantsChanged = false;
+          if (inputRow.participantIds !== undefined) {
+            const before = new Set(
+              existing.participants.map((p) => p.id.toString())
+            );
+            const after = new Set(
+              inputRow.participantIds.map((id) => id.toString())
+            );
+            participantsChanged =
+              before.size !== after.size ||
+              [...before].some((id) => !after.has(id));
+          }
+          if (splitModeChanged || participantsChanged) {
+            changedFields.push("split");
+          }
+        }
+
         return {
           description: r.expense.description,
           amount: Number(r.expense.amount),
@@ -281,6 +339,7 @@ export const updateExpensesBulkHandler = async (
           payerId: BigInt(r.expense.payerId),
           splitMode: r.expense.splitMode,
           participantCount,
+          changedFields: changedFields.length > 0 ? changedFields : undefined,
         };
       });
 
