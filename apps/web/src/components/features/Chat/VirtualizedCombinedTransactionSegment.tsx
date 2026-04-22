@@ -42,10 +42,23 @@ interface VirtualizedCombinedTransactionSegmentProps {
   ) => void;
   categoryFilters?: string[];
   chatRows?: ChatCategoryRow[];
+  /**
+   * Fires whenever the top-most visible month changes as the user
+   * scrolls. Used by the aggregation ticker to keep its month picker
+   * in sync with the list.
+   */
+  onVisibleMonthChange?: (monthKey: string | null) => void;
 }
 
 export interface VirtualizedCombinedTransactionSegmentRef {
   scrollToTransaction: (transactionId: string) => Promise<boolean>;
+  /**
+   * Scroll the list so the given month's header (or its first
+   * transaction as a fallback) aligns with the top of the viewport.
+   * Returns false if the month isn't present in the current filtered
+   * view.
+   */
+  scrollToMonth: (monthKey: string) => Promise<boolean>;
 }
 
 type VirtualListItem =
@@ -68,6 +81,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       onAvailableDatesChange,
       categoryFilters,
       chatRows = [],
+      onVisibleMonthChange,
     },
     ref
   ) => {
@@ -205,14 +219,86 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       [virtualizer, findTransactionIndex]
     );
 
+    // Scroll to the first item under the given month key. Prefers the
+    // month's header row; falls back to its first transaction if the
+    // header somehow isn't present in the current virtualItems (e.g.,
+    // the filter hid everything but a single row).
+    const scrollToMonth = useCallback(
+      async (monthKey: string): Promise<boolean> => {
+        const headerKey = `header-${monthKey}`;
+        let index = virtualItems.findIndex(
+          (item) => item.type === "header" && item.key === headerKey
+        );
+        if (index === -1) {
+          index = virtualItems.findIndex(
+            (item) => item.type === "transaction" && item.monthKey === monthKey
+          );
+        }
+        if (index === -1) return false;
+
+        virtualizer.scrollToIndex(index, {
+          align: "start",
+          behavior: "auto",
+        });
+        return true;
+      },
+      [virtualizer, virtualItems]
+    );
+
     // Expose methods via ref
     useImperativeHandle(
       ref,
       () => ({
         scrollToTransaction,
+        scrollToMonth,
       }),
-      [scrollToTransaction]
+      [scrollToTransaction, scrollToMonth]
     );
+
+    // Watch the scroll position and emit a month-change callback when
+    // the top-most visible row crosses into a new month. rAF-throttled
+    // so fast scrolls don't flood the parent with updates.
+    const lastEmittedMonthRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (!onVisibleMonthChange) return;
+      const el = parentRef.current;
+      if (!el) return;
+
+      let raf = 0;
+      const detect = () => {
+        raf = 0;
+        const items = virtualizer.getVirtualItems();
+        if (items.length === 0) return;
+        // First item whose end is past the current scroll offset is the
+        // one visually at the top of the viewport (partial rows count).
+        const offset = virtualizer.scrollOffset ?? 0;
+        const topVirtual =
+          items.find((v) => v.end > offset) ?? items[0] ?? null;
+        if (!topVirtual) return;
+        const item = virtualItems[topVirtual.index];
+        if (!item) return;
+        const monthKey =
+          item.type === "header"
+            ? item.key.replace(/^header-/, "")
+            : item.monthKey;
+        if (monthKey === lastEmittedMonthRef.current) return;
+        lastEmittedMonthRef.current = monthKey;
+        onVisibleMonthChange(monthKey);
+      };
+      const onScroll = () => {
+        if (raf !== 0) return;
+        raf = requestAnimationFrame(detect);
+      };
+
+      el.addEventListener("scroll", onScroll, { passive: true });
+      // Fire once on mount so the initial top month propagates.
+      detect();
+
+      return () => {
+        el.removeEventListener("scroll", onScroll);
+        if (raf !== 0) cancelAnimationFrame(raf);
+      };
+    }, [virtualizer, virtualItems, onVisibleMonthChange]);
 
     // Check if both arrays are empty (not loading and no data)
     const hasNoTransactions =
