@@ -12,6 +12,7 @@ import {
   Section,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
+import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
@@ -311,7 +312,7 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   ]);
 
   return (
-    <section className="flex h-full flex-col">
+    <section className="relative flex h-full flex-col">
       {/* Transaction filters section */}
       <div className="shadow-xs">
         <TransactionFiltersCell
@@ -320,26 +321,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onOpenModal={() => setFiltersOpen(true)}
-          selectedCategories={(() => {
-            // Preserve selection order + handle the synthetic
-            // "Uncategorized" chip (id "none") which isn't in
-            // allCategories.
-            const byId = new Map(allCategories.map((c) => [c.id, c]));
-            const out: { id: string; emoji: string; title: string }[] = [];
-            for (const id of categoryFilters) {
-              if (id === "none") {
-                out.push({
-                  id: "none",
-                  emoji: "📭",
-                  title: "Uncategorized",
-                });
-              } else {
-                const c = byId.get(id);
-                if (c) out.push({ id: c.id, emoji: c.emoji, title: c.title });
-              }
-            }
-            return out;
-          })()}
         />
         <Divider />
 
@@ -479,20 +460,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onSortOrderChange={handleSortOrderChange}
         monthGroupedData={monthGroupedData}
         onDateSelect={handleDateSelect}
-        categoryStripCategories={allCategories}
-        categoryStripSelectedIds={categoryFilters}
-        categoryStripCounts={categoryCounts}
-        onCategoryFiltersChange={(ids) =>
-          updateSearchParams((prev) => ({
-            ...prev,
-            categoryFilters: ids,
-            // Payments don't carry a categoryId, so letting them pass
-            // through an active category filter reads as junk. Flip
-            // the toggle in lockstep: off when any category is
-            // selected, back on when all are cleared.
-            showPayments: ids.length === 0,
-          }))
-        }
       />
 
       {/* Standalone Jump to date modal */}
@@ -541,6 +508,24 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onAvailableDatesChange={setMonthGroupedData}
         categoryFilters={categoryFilters}
         chatRows={chatRows}
+      />
+
+      <CategoryAggregationTicker
+        chatId={chatId}
+        userId={userId}
+        categoryFilters={categoryFilters}
+        categories={allCategories}
+        onCategoryFiltersChange={(ids) =>
+          updateSearchParams((prev) => ({
+            ...prev,
+            categoryFilters: ids,
+            // Payments don't carry a categoryId, so letting them pass
+            // through an active category filter reads as junk. Flip the
+            // toggle in lockstep: off when any category is selected,
+            // back on when all are cleared.
+            showPayments: ids.length === 0,
+          }))
+        }
       />
     </section>
   );

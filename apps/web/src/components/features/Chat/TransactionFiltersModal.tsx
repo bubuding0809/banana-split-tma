@@ -23,7 +23,6 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { useState } from "react";
-import CategoryFilterStrip from "./CategoryFilterStrip";
 import DateSelector from "./DateSelector";
 import SortOptionsSelector from "./SortOptionsSelector";
 
@@ -47,15 +46,6 @@ export interface TransactionFiltersModalProps {
     dates: { key: string; display: string; transactionIds: string[] }[];
   }[];
   onDateSelect: (dateKey: string) => void;
-  categoryStripCategories: {
-    id: string;
-    emoji: string;
-    title: string;
-    kind: "base" | "custom";
-  }[];
-  categoryStripSelectedIds: string[];
-  categoryStripCounts: Record<string, number>;
-  onCategoryFiltersChange: (ids: string[]) => void;
 }
 
 export default function TransactionFiltersModal({
@@ -71,10 +61,6 @@ export default function TransactionFiltersModal({
   onSortOrderChange,
   monthGroupedData,
   onDateSelect,
-  categoryStripCategories,
-  categoryStripSelectedIds,
-  categoryStripCounts,
-  onCategoryFiltersChange,
 }: TransactionFiltersModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const [modalView, setModalView] = useState<
@@ -161,22 +147,6 @@ export default function TransactionFiltersModal({
       <div className="min-h-64 pb-10">
         {modalView === "filters" ? (
           <>
-            {categoryStripCategories.length > 0 && (
-              <div className="flex flex-col gap-1 pb-2 pt-1">
-                <Caption
-                  className="px-5 pb-0.5 uppercase"
-                  style={{ color: tSubtitleTextColor }}
-                >
-                  Filter by category
-                </Caption>
-                <CategoryFilterStrip
-                  categories={categoryStripCategories}
-                  selectedIds={categoryStripSelectedIds}
-                  counts={categoryStripCounts}
-                  onChange={onCategoryFiltersChange}
-                />
-              </div>
-            )}
             <Section>
               <ButtonCell
                 before={<CalendarArrowUp size={20} />}

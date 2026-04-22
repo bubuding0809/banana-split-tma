@@ -51,6 +51,21 @@
   100% { transform: translateY(0) scale(1); }
 }
 
+/* Diagonal shimmer sweep for the aggregation ticker's collapsed pill.
+   Slower sweep (~2s) with a shorter idle (~1.5s) between cycles —
+   reads as a gentler glide rather than a snappy flash. */
+@keyframes ticker-shimmer {
+  0%   { transform: translateX(-120%); }
+  57%  { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes ticker-shimmer {
+    0%, 100% { transform: translateX(-120%); }
+  }
+}
+
 /* emoji-picker-react — strip the picker's 1px border. Setting
    --epr-picker-border-color to transparent wasn't enough; the package
    also applies a box-shadow in its dark theme. Override both. */
