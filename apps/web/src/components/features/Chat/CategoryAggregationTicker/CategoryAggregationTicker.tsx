@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { ChevronDown } from "lucide-react";
+import { Drawer } from "vaul";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { cn } from "@/utils/cn";
@@ -26,10 +27,13 @@ interface CategoryAggregationTickerProps {
   onCategoryFiltersChange: (ids: string[]) => void;
 }
 
-// Card max-height cap: 60vh on short viewports, 480px ceiling on tall ones.
-const EXPANDED_MAX_HEIGHT = "min(60vh, 480px)";
-
-const EASE = "cubic-bezier(0.23,1,0.32,1)";
+// Snap points drive the pill ↔ expanded transition.
+// "56px" is the collapsed pill height. 0.6 = 60% viewport height for the
+// expanded card. Vaul animates translateY between these; our job is to
+// render the right content at each point.
+const SNAP_COLLAPSED = "56px";
+const SNAP_EXPANDED = 0.6;
+const SNAP_POINTS: (string | number)[] = [SNAP_COLLAPSED, SNAP_EXPANDED];
 
 function tick() {
   try {
@@ -47,11 +51,14 @@ export default function CategoryAggregationTicker({
   categoryCounts,
   onCategoryFiltersChange,
 }: CategoryAggregationTickerProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [activeSnap, setActiveSnap] = useState<number | string | null>(
+    SNAP_COLLAPSED
+  );
   const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const expanded = activeSnap !== SNAP_COLLAPSED && activeSnap !== null;
 
   // * Queries ============================================================
   const { data: expensesData } = trpc.expense.getAllExpensesByChat.useQuery(
@@ -77,8 +84,6 @@ export default function CategoryAggregationTicker({
     return m;
   }, [categoriesData?.items]);
 
-  // First pass — compute targetCurrencies from the dataset without rates, so
-  // we can drive the FX query's `enabled` flag correctly.
   const preliminary: AggregationResult = useCategoryAggregation({
     expenses: expensesData ?? [],
     userId,
@@ -100,13 +105,10 @@ export default function CategoryAggregationTicker({
         enabled:
           !!baseCurrency &&
           preliminary.targetCurrencies.length > 0 &&
-          // Only fetch once we actually have a user id — avoids a stray
-          // request on first paint.
           userId > 0,
       }
     );
 
-  // Second pass — now with live rates.
   const aggregation = useCategoryAggregation({
     expenses: expensesData ?? [],
     userId,
@@ -120,20 +122,17 @@ export default function CategoryAggregationTicker({
   });
 
   // * Interactions =======================================================
-  const collapseAll = useCallback(() => {
-    setExpanded(false);
-    setPickerOpen(false);
-  }, []);
-
-  // Tap outside collapses the card + picker. Use mousedown to match the feel
-  // of Telegram modals (pre-release dismissal).
+  // Vaul's modal={false} doesn't provide tap-outside-to-close, so we keep
+  // the hand-rolled listener. When the user taps anywhere outside the
+  // drawer while expanded, snap back to the pill.
   useEffect(() => {
     if (!expanded) return;
     const handler = (e: MouseEvent | TouchEvent) => {
       const node = rootRef.current;
       if (!node) return;
       if (node.contains(e.target as Node)) return;
-      collapseAll();
+      setActiveSnap(SNAP_COLLAPSED);
+      setPickerOpen(false);
     };
     document.addEventListener("mousedown", handler);
     document.addEventListener("touchstart", handler, { passive: true });
@@ -141,18 +140,15 @@ export default function CategoryAggregationTicker({
       document.removeEventListener("mousedown", handler);
       document.removeEventListener("touchstart", handler);
     };
-  }, [expanded, collapseAll]);
+  }, [expanded]);
 
-  // When filters change, close the picker — but don't collapse the card or
-  // reset pickedMonthKey (spec: user keeps their picked month even if it
-  // becomes empty under a new filter).
+  // When filters change, close the picker — but don't collapse the drawer
+  // or reset pickedMonthKey.
   useEffect(() => {
     setPickerOpen(false);
   }, [categoryFilters]);
 
   // * Render =============================================================
-  // Hide the ticker entirely when there's nothing to show. Two cases: chat
-  // has no expenses at all, or user has no shares anywhere in the chat.
   if (!expensesData || aggregation.monthList.length === 0) {
     return null;
   }
@@ -167,7 +163,7 @@ export default function CategoryAggregationTicker({
 
   const togglePill = () => {
     tick();
-    setExpanded((prev) => !prev);
+    setActiveSnap(expanded ? SNAP_COLLAPSED : SNAP_EXPANDED);
     setPickerOpen(false);
   };
 
@@ -178,166 +174,184 @@ export default function CategoryAggregationTicker({
   };
 
   return (
-    <div
-      className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3"
-      aria-live="polite"
+    <Drawer.Root
+      open
+      modal={false}
+      dismissible={false}
+      repositionInputs={false}
+      snapPoints={SNAP_POINTS}
+      activeSnapPoint={activeSnap}
+      setActiveSnapPoint={setActiveSnap}
     >
-      <div
-        ref={rootRef}
-        className={cn(
-          "pointer-events-auto relative overflow-visible text-white",
-          "shadow-[0_10px_28px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.1)]"
-        )}
-        style={{
-          backgroundColor: "rgba(20,20,25,0.94)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          borderRadius: expanded ? 18 : 999,
-          minWidth: "min(85vw, 280px)",
-          maxWidth: "min(85vw, 440px)",
-          transition: `border-radius 280ms ${EASE}`,
-        }}
-      >
-        {/* Header row — tappable to toggle expanded state. Using div+role to
-            avoid nesting a real <button> (month pill) inside another. */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={togglePill}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              togglePill();
-            }
+      <Drawer.Portal>
+        {/* Visually-hidden title/description satisfy Radix Dialog's a11y
+            requirements without adding UI chrome. */}
+        <Drawer.Title className="sr-only">
+          Category damage · {monthDisplay}
+        </Drawer.Title>
+        <Drawer.Description className="sr-only">
+          Your personal share of expenses for {monthDisplay},
+          {chipSummary.label
+            ? ` filtered by ${chipSummary.label}`
+            : " across all categories"}
+          .
+        </Drawer.Description>
+
+        <Drawer.Content
+          ref={rootRef}
+          className={cn(
+            "fixed bottom-3 left-0 right-0 z-20 mx-auto flex flex-col",
+            "w-[min(85vw,440px)] text-white outline-none",
+            "shadow-[0_10px_28px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.1)]"
+          )}
+          style={{
+            backgroundColor: "rgba(20,20,25,0.94)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            // Fully round when collapsed (pill); softly round when expanded
+            // (card). Vaul handles height transitions; we handle the corner
+            // radius to make the pill/card morph feel continuous.
+            borderRadius: expanded ? 18 : 999,
+            transition: "border-radius 280ms cubic-bezier(0.23,1,0.32,1)",
           }}
-          aria-expanded={expanded}
-          aria-label={
-            expanded
-              ? "Collapse aggregation ticker"
-              : "Expand aggregation ticker"
-          }
-          className="flex w-full cursor-pointer select-none items-center gap-3 px-5 py-3 text-left"
         >
-          {/* Month pill — separate tap target when expanded */}
-          {expanded ? (
-            <button
-              type="button"
-              onClick={toggleMonthPicker}
-              aria-haspopup="listbox"
-              aria-expanded={pickerOpen}
+          {/* Header row — tappable to toggle between snap points. Using
+              div+role to avoid nesting a real button (the month pill)
+              inside another button. */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={togglePill}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                togglePill();
+              }
+            }}
+            aria-expanded={expanded}
+            aria-label={
+              expanded
+                ? "Collapse aggregation ticker"
+                : "Expand aggregation ticker"
+            }
+            className="flex w-full flex-shrink-0 cursor-pointer select-none items-center gap-3 px-5 py-3 text-left"
+          >
+            {expanded ? (
+              <button
+                type="button"
+                onClick={toggleMonthPicker}
+                aria-haspopup="listbox"
+                aria-expanded={pickerOpen}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors",
+                  pickerOpen
+                    ? "bg-white/25"
+                    : "bg-white/10 hover:bg-white/15 active:bg-white/20"
+                )}
+              >
+                <span>{monthDisplay}</span>
+                <ChevronDown
+                  size={14}
+                  strokeWidth={2.5}
+                  className={cn(
+                    "opacity-70 transition-transform duration-200",
+                    pickerOpen && "rotate-180"
+                  )}
+                />
+              </button>
+            ) : (
+              <span className="text-[13px] font-semibold opacity-85">
+                {monthDisplay}
+              </span>
+            )}
+
+            <span className="h-3.5 w-px shrink-0 bg-white/20" aria-hidden />
+
+            <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors",
-                pickerOpen
-                  ? "bg-white/25"
-                  : "bg-white/10 hover:bg-white/15 active:bg-white/20"
+                "min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight",
+                chipSummary.dim && "text-[11.5px] uppercase opacity-65"
               )}
             >
-              <span>{monthDisplay}</span>
-              <ChevronDown
-                size={14}
-                strokeWidth={2.5}
-                className={cn(
-                  "opacity-70 transition-transform duration-200",
-                  pickerOpen && "rotate-180"
-                )}
-              />
-            </button>
-          ) : (
-            <span className="text-[13px] font-semibold opacity-85">
-              {monthDisplay}
+              {chipSummary.content}
             </span>
-          )}
 
-          <span className="h-3.5 w-px shrink-0 bg-white/20" aria-hidden />
-
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight",
-              chipSummary.dim && "text-[11.5px] uppercase opacity-65"
-            )}
-          >
-            {chipSummary.content}
-          </span>
-
-          <span
-            className={cn(
-              "shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums",
-              empty && "opacity-45",
-              !ratesReady && !empty && "opacity-50"
-            )}
-            style={{ color: empty ? undefined : "#66b3ff" }}
-          >
-            {formatCurrencyWithCode(baseTotal, baseCurrency)}
-          </span>
-
-          {/* Expand/collapse caret (kept subtle; the whole row is tappable) */}
-          <ChevronDown
-            size={16}
-            strokeWidth={2.5}
-            className={cn(
-              "shrink-0 opacity-50 transition-transform duration-200",
-              expanded && "rotate-180"
-            )}
-          />
-        </div>
-
-        {/* Expanded body */}
-        <div
-          className="overflow-hidden"
-          style={{
-            maxHeight: expanded ? EXPANDED_MAX_HEIGHT : 0,
-            opacity: expanded ? 1 : 0,
-            transition: `max-height 280ms ${EASE}, opacity 220ms ${EASE}`,
-          }}
-          aria-hidden={!expanded}
-        >
-          <div className="bg-white/12 h-px" />
-          {categories.length > 0 && (
-            <div className="py-1">
-              <CategoryFilterStrip
-                categories={categories}
-                selectedIds={categoryFilters}
-                counts={categoryCounts}
-                onChange={onCategoryFiltersChange}
-              />
-            </div>
-          )}
-          <div className="bg-white/12 h-px" />
-          {empty ? (
-            <div className="px-4 py-5 text-center text-[11px] opacity-65">
-              No expenses in {monthDisplay} match this filter.
-            </div>
-          ) : (
-            <div
-              className="max-h-[60vh] overflow-y-auto [&::-webkit-scrollbar]:hidden"
-              style={{ maxHeight: "min(60vh, 420px)" }}
+            <span
+              className={cn(
+                "shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums",
+                empty && "opacity-45",
+                !ratesReady && !empty && "opacity-50"
+              )}
+              style={{ color: empty ? undefined : "#66b3ff" }}
             >
-              {byCategory.map((cat) => (
-                <CategoryRow
-                  key={cat.categoryId}
-                  cat={cat}
-                  baseCurrency={baseCurrency}
-                  ratesReady={ratesReady}
-                />
-              ))}
+              {formatCurrencyWithCode(baseTotal, baseCurrency)}
+            </span>
+
+            <ChevronDown
+              size={16}
+              strokeWidth={2.5}
+              className={cn(
+                "shrink-0 opacity-50 transition-transform duration-200",
+                expanded && "rotate-180"
+              )}
+            />
+          </div>
+
+          {/* Expanded body. Only mounted when we're at (or animating to)
+              the expanded snap — Vaul clips the overflow at the collapsed
+              snap, but rendering nothing below avoids layout thrash. */}
+          {expanded && (
+            <div
+              className="flex min-h-0 flex-1 flex-col"
+              aria-hidden={!expanded}
+            >
+              <div className="bg-white/12 h-px" />
+              {categories.length > 0 && (
+                <div className="py-1">
+                  <CategoryFilterStrip
+                    categories={categories}
+                    selectedIds={categoryFilters}
+                    counts={categoryCounts}
+                    onChange={onCategoryFiltersChange}
+                  />
+                </div>
+              )}
+              <div className="bg-white/12 h-px" />
+              {empty ? (
+                <div className="px-4 py-5 text-center text-[11px] opacity-65">
+                  No expenses in {monthDisplay} match this filter.
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                  {byCategory.map((cat) => (
+                    <CategoryRow
+                      key={cat.categoryId}
+                      cat={cat}
+                      baseCurrency={baseCurrency}
+                      ratesReady={ratesReady}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        {/* Month picker popover — positioned above the month pill */}
-        {expanded && pickerOpen && (
-          <MonthPickerPopover
-            months={monthList}
-            activeMonthKey={monthKey}
-            baseCurrency={baseCurrency}
-            onPick={(mk) => {
-              setPickedMonthKey(mk);
-              setPickerOpen(false);
-            }}
-          />
-        )}
-      </div>
-    </div>
+          {/* Month picker popover — mounts inside Drawer.Content so its
+              positioning stays relative to the card. */}
+          {expanded && pickerOpen && (
+            <MonthPickerPopover
+              months={monthList}
+              activeMonthKey={monthKey}
+              baseCurrency={baseCurrency}
+              onPick={(mk) => {
+                setPickedMonthKey(mk);
+                setPickerOpen(false);
+              }}
+            />
+          )}
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
 
@@ -348,8 +362,6 @@ interface CategoryRowProps {
 }
 
 function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
-  // Skip native breakdown lines when the category has just one currency and
-  // that currency is the base — the total already conveys the same number.
   const showBreakdown =
     cat.byCurrency.length > 1 ||
     (cat.byCurrency.length === 1 &&
@@ -386,15 +398,13 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
   );
 }
 
-// Renders the "chips or 'All'" summary in the collapsed/expanded header.
 function renderChipSummary(
   categoryFilters: string[],
   categoriesIndex: Map<string, { emoji: string; title: string }>
-): { content: React.ReactNode; dim: boolean } {
+): { content: React.ReactNode; dim: boolean; label: string } {
   if (categoryFilters.length === 0) {
-    return { content: "All", dim: true };
+    return { content: "All", dim: true, label: "" };
   }
-  // Show the emoji run up to 3 chips; collapse past that.
   if (categoryFilters.length <= 3) {
     const emojis = categoryFilters
       .map((id) =>
@@ -404,7 +414,12 @@ function renderChipSummary(
     return {
       content: <span className="text-[13px] tracking-[-1px]">{emojis}</span>,
       dim: false,
+      label: `${categoryFilters.length} ${categoryFilters.length === 1 ? "category" : "categories"}`,
     };
   }
-  return { content: `${categoryFilters.length} cat.`, dim: true };
+  return {
+    content: `${categoryFilters.length} cat.`,
+    dim: true,
+    label: `${categoryFilters.length} categories`,
+  };
 }
