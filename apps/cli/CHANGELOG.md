@@ -4,6 +4,14 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-22
+
+### Added
+
+- `list-categories` command — pass-through wrapper around `category.listByChat`; returns base + custom categories with `id`, `emoji`, `title`, `kind`, `hidden`, and `sortOrder`.
+- `--category <id>` flag on `create-expense` — tags the new expense with a category (`base:<slug>` or `chat:<uuid>`). Omit for uncategorized.
+- `--category <id>` flag on `update-expense` — tri-state: omit leaves the category unchanged, `--category none` clears it, any other value sets it (server validates the id prefix).
+
 ## [0.8.1] - 2026-04-20
 
 ### Fixed
