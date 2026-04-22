@@ -52,11 +52,11 @@
 }
 
 /* Diagonal shimmer sweep for the aggregation ticker's collapsed pill.
-   Sweeps left → right in ~1.4s, then pauses for ~3.6s before the next
-   cycle so the motion draws the eye without becoming noisy. */
+   Slower sweep (~2s) with a shorter idle (~1.5s) between cycles —
+   reads as a gentler glide rather than a snappy flash. */
 @keyframes ticker-shimmer {
   0%   { transform: translateX(-120%); }
-  28%  { transform: translateX(120%); }
+  57%  { transform: translateX(120%); }
   100% { transform: translateX(120%); }
 }
 

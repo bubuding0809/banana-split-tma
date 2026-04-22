@@ -6,6 +6,7 @@ import {
 } from "@telegram-apps/sdk-react";
 import { IconButton, Modal } from "@telegram-apps/telegram-ui";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { format, getMonth, getYear } from "date-fns";
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { cn } from "@/utils/cn";
@@ -140,16 +141,48 @@ export default function CategoryAggregationTicker({
     return () => observer.disconnect();
   }, []);
 
+  // Unfiltered month list — covers every month the user has a share
+  // in, regardless of the active category filter. Drives the month
+  // picker so it stays navigable even when the current filter yields
+  // zero matches (otherwise the ticker would disappear and the user
+  // couldn't reach the filter strip to undo their selection).
+  const allUserMonths = useMemo(() => {
+    if (!expensesData) return [];
+    const seen = new Map<string, string>();
+    for (const e of expensesData) {
+      if (!e.shares.some((s: { userId: number }) => s.userId === userId))
+        continue;
+      const key = `${getYear(e.date)}-${(getMonth(e.date) + 1)
+        .toString()
+        .padStart(2, "0")}`;
+      if (!seen.has(key)) {
+        seen.set(key, format(e.date, "MMM yyyy"));
+      }
+    }
+    return [...seen.entries()]
+      .map(([monthKey, monthDisplay]) => ({ monthKey, monthDisplay }))
+      .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1));
+  }, [expensesData, userId]);
+
   // * Render =============================================================
-  if (!expensesData || aggregation.monthList.length === 0) {
+  // Only unmount when the user has truly nothing to aggregate (no
+  // expenses with a share). A filter that currently matches nothing
+  // keeps the ticker mounted — its empty state + filter strip let the
+  // user recover without getting stuck.
+  if (!expensesData || allUserMonths.length === 0) {
     return null;
   }
 
-  const { monthKey, baseTotal, byCategory, monthList, ratesReady, empty } =
-    aggregation;
+  const { baseTotal, byCategory, ratesReady, empty } = aggregation;
 
+  const effectiveMonthKey =
+    aggregation.monthKey ??
+    pickedMonthKey ??
+    allUserMonths[0]?.monthKey ??
+    null;
   const monthDisplay =
-    monthList.find((m) => m.monthKey === monthKey)?.monthDisplay ?? "—";
+    allUserMonths.find((m) => m.monthKey === effectiveMonthKey)?.monthDisplay ??
+    "—";
 
   const chipSummary = renderChipSummary(categoryFilters, categoriesIndex);
 
@@ -213,9 +246,13 @@ export default function CategoryAggregationTicker({
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
+              // Wider, softer gradient + lower peak opacity for a more
+              // mellow sweep. Combined with the slower keyframe timing
+              // and the shorter 3.5s cycle this reads as an ambient
+              // glide rather than a flashy highlight.
               background:
-                "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%)",
-              animation: "ticker-shimmer 5s ease-in-out 1.5s infinite",
+                "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
+              animation: "ticker-shimmer 3.5s ease-in-out 1s infinite",
               transform: "translateX(-120%)",
             }}
           />
@@ -268,7 +305,7 @@ export default function CategoryAggregationTicker({
               // header title slot stay compact.
               <select
                 aria-label="Pick month"
-                value={monthKey ?? ""}
+                value={effectiveMonthKey ?? ""}
                 onChange={(e) => {
                   hapticFeedback.selectionChanged.ifAvailable?.();
                   setPickedMonthKey(e.target.value);
@@ -283,7 +320,7 @@ export default function CategoryAggregationTicker({
                   colorScheme: "light dark",
                 }}
               >
-                {monthList.map((m) => (
+                {allUserMonths.map((m) => (
                   <option key={m.monthKey} value={m.monthKey}>
                     {m.monthDisplay}
                   </option>
