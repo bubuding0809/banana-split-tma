@@ -51,11 +51,11 @@ describe("shareSnapshotMessage procedure", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("should format message correctly, truncate >15 users, and omit 0 damage", async () => {
-    // Generate 16 users who owe money
+  it("should render per-pax shares sorted desc with tree prefixes and truncate >15 users", async () => {
+    // 16 users, each with a distinct share amount so sort order is deterministic
     const shares = Array.from({ length: 16 }).map((_, i) => ({
       userId: BigInt(i + 200),
-      amount: "10.00",
+      amount: (100 - i).toFixed(2), // User 0 = 100.00, User 15 = 85.00
       user: { firstName: `User ${i}` },
     }));
 
@@ -70,22 +70,13 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
-        debtSimplificationEnabled: false,
       },
       expenses: [
         {
-          amount: "160.00",
+          amount: "1480.00", // sum of shares 100+99+...+85 = 1480
           payerId: 111n,
           payer: { firstName: "Creator", username: "creator_usr" },
           shares: shares,
-        },
-        {
-          amount: "5.00",
-          payerId: 999n,
-          payer: { firstName: "Zero User" },
-          shares: [
-            { userId: 999n, amount: "5.00", user: { firstName: "Zero User" } },
-          ], // self share, no debt generated
         },
       ],
     });
@@ -100,73 +91,36 @@ describe("shareSnapshotMessage procedure", () => {
     );
 
     expect(mockTeleBot.sendMessage).toHaveBeenCalled();
-
     const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
 
-    // Assert formatting and escaping
-    expect(sentMessage).toContain("Test Snapshot\\! \\(2024\\)"); // Title escaped
-    expect(sentMessage).toContain("SGD 165\\.00"); // Total escaped
+    // Header + total escaping
+    expect(sentMessage).toContain("Test Snapshot\\! \\(2024\\)");
+    expect(sentMessage).toContain("SGD 1,480\\.00");
+    expect(sentMessage).toContain("🧾 *Shares*");
 
-    // Truncation check
-    expect(sentMessage).toContain("User 0");
-    expect(sentMessage).toContain("User 14");
-    expect(sentMessage).not.toContain("User 15"); // 16th negative user omitted
-    expect(sentMessage).toContain("and 1 others\\.\\.\\."); // 16 non-zero users total - 15 displayed
+    // Shares rendering — top 15 shown (highest first), 16th truncated
+    expect(sentMessage).toContain("User 0"); // share 100
+    expect(sentMessage).toContain("User 14"); // share 86
+    expect(sentMessage).not.toContain("User 15"); // share 85 — truncated
 
-    // Omission checks
-    expect(sentMessage).not.toContain("Zero User"); // self share
+    // Tree prefixes present — ┣ for mid, ┗ for last shown entry
+    expect(sentMessage).toContain("┣");
+    expect(sentMessage).toContain("┗");
+
+    // Truncation summary
+    expect(sentMessage).toContain("and 1 others\\.\\.\\.");
   });
 
-  it("should completely omit Group Damage section if all users have 0 net balance", async () => {
+  it("should omit Shares block when no shares exist", async () => {
     (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
       id: "mock-id",
-      title: "Empty Damage",
+      title: "Empty Snapshot",
       chatId: -1001234567890n,
       currency: "SGD",
       creatorId: 111n,
       creator: { firstName: "Creator" },
       chat: {
         type: "group",
-        members: [{ userId: 123n }],
-        baseCurrency: "SGD",
-        debtSimplificationEnabled: false,
-      },
-      expenses: [
-        {
-          amount: "10.00",
-          payerId: 111n,
-          payer: { firstName: "Creator" },
-          shares: [
-            { userId: 111n, amount: "10.00", user: { firstName: "Creator" } },
-          ],
-        },
-      ],
-    });
-
-    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
-    await shareSnapshotMessageHandler(
-      { snapshotId: "mock-id" },
-      mockDb,
-      mockTeleBot as any,
-      123n
-    );
-
-    const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
-    expect(sentMessage).toContain("Total spent");
-    expect(sentMessage).toContain("All debts are settled");
-  });
-
-  it("should pass message_thread_id if chat has a threadId", async () => {
-    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
-      id: "mock-id",
-      title: "Topic Snapshot",
-      chatId: -1001234567890n,
-      currency: "SGD",
-      creatorId: 111n,
-      creator: { firstName: "Creator" },
-      chat: {
-        type: "group",
-        threadId: 555n,
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
       },
@@ -181,9 +135,88 @@ describe("shareSnapshotMessage procedure", () => {
       123n
     );
 
-    expect(mockTeleBot.sendMessage).toHaveBeenCalled();
-    const options = mockTeleBot.sendMessage.mock.calls[0]![2];
-    expect(options).toHaveProperty("message_thread_id", 555);
+    const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
+    expect(sentMessage).toContain("Total spent");
+    expect(sentMessage).not.toContain("🧾 *Shares*");
+  });
+
+  it("should aggregate shares across multiple expenses per user", async () => {
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Multi Expense",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Ruoqian", username: "ruoqian" },
+      chat: {
+        type: "group",
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+      },
+      expenses: [
+        {
+          amount: "60.00",
+          payerId: 111n,
+          payer: { firstName: "Ruoqian", username: "ruoqian" },
+          shares: [
+            {
+              userId: 111n,
+              amount: "30.00",
+              user: { firstName: "Ruoqian", username: "ruoqian" },
+            },
+            {
+              userId: 222n,
+              amount: "30.00",
+              user: { firstName: "Ting", username: "xuetingg" },
+            },
+          ],
+        },
+        {
+          amount: "40.00",
+          payerId: 222n,
+          payer: { firstName: "Ting", username: "xuetingg" },
+          shares: [
+            {
+              userId: 111n,
+              amount: "10.00",
+              user: { firstName: "Ruoqian", username: "ruoqian" },
+            },
+            {
+              userId: 222n,
+              amount: "30.00",
+              user: { firstName: "Ting", username: "xuetingg" },
+            },
+          ],
+        },
+      ],
+    });
+
+    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
+    await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    const sentMessage = mockTeleBot.sendMessage.mock.calls[0]![1];
+
+    // Total = 100.00
+    expect(sentMessage).toContain("SGD 100\\.00");
+
+    // Ting total share = 60 (30 + 30)
+    expect(sentMessage).toContain("@xuetingg: SGD 60\\.00");
+    // Ruoqian total share = 40 (30 + 10)
+    expect(sentMessage).toContain("@ruoqian: SGD 40\\.00");
+
+    // Tree ordering: ting (larger) uses ┣, ruoqian (last) uses ┗
+    const tingIdx = sentMessage.indexOf("@xuetingg");
+    const ruoIdx = sentMessage.indexOf("@ruoqian:");
+    expect(tingIdx).toBeGreaterThan(-1);
+    expect(ruoIdx).toBeGreaterThan(tingIdx);
+    // @xuetingg line should start with ┣ (not last), @ruoqian with ┗ (last)
+    expect(sentMessage).toMatch(/┣ @xuetingg: SGD 60\\\.00/);
+    expect(sentMessage).toMatch(/┗ @ruoqian: SGD 40\\\.00/);
   });
 
   it("should pass message_thread_id if chat has a threadId", async () => {
