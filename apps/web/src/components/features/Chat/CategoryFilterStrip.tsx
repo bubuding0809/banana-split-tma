@@ -1,4 +1,4 @@
-import { Badge } from "@telegram-apps/telegram-ui";
+import { Badge, Caption } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef } from "react";
@@ -35,7 +35,7 @@ function formatCount(n: number): string {
 // Matches the "none" id used in the expense-list predicate.
 const UNCATEGORIZED: FilterCategory = {
   id: "none",
-  emoji: "📭",
+  emoji: "❓",
   title: "Uncategorized",
   kind: "none",
 };
@@ -64,7 +64,7 @@ export default function CategoryFilterStrip({
   onChange,
 }: CategoryFilterStripProps) {
   const allChips = useMemo<FilterCategory[]>(
-    () => [...categories, UNCATEGORIZED],
+    () => [UNCATEGORIZED, ...categories],
     [categories]
   );
 
@@ -72,7 +72,10 @@ export default function CategoryFilterStrip({
   // chips append to the end of the selected group rather than jumping into
   // the middle by count. Unselected chips sort by count desc (most-used
   // first, zero-count last) so the scroll-right direction still surfaces
-  // the categories the user reaches for most.
+  // the categories the user reaches for most. Uncategorized is pinned to
+  // the head of the unselected group (regardless of count) because the
+  // chip doubles as an "untagged items" affordance — users need to reach
+  // it without horizontal-scrolling past every real category.
   const displayOrder = useMemo(() => {
     const selectedSet = new Set(selectedIds);
     const byId = new Map(allChips.map((c) => [c.id, c]));
@@ -81,7 +84,11 @@ export default function CategoryFilterStrip({
       .filter((c): c is FilterCategory => c !== undefined);
     const unselected = allChips
       .filter((c) => !selectedSet.has(c.id))
-      .sort((a, b) => (counts?.[b.id] ?? 0) - (counts?.[a.id] ?? 0));
+      .sort((a, b) => {
+        if (a.id === UNCATEGORIZED.id) return -1;
+        if (b.id === UNCATEGORIZED.id) return 1;
+        return (counts?.[b.id] ?? 0) - (counts?.[a.id] ?? 0);
+      });
     return [...selected, ...unselected];
   }, [allChips, selectedIds, counts]);
 
@@ -138,6 +145,13 @@ export default function CategoryFilterStrip({
           the container's content box triggers an accidental vertical
           scroll. Padding inside the scroll container absorbs the badge
           overhang. */}
+      {!hasSelection && (
+        <div className="rounded-full bg-[rgba(127,127,127,0.22)] px-2 py-1 text-xs uppercase">
+          <Caption weight="1" className="tracking-tight">
+            All
+          </Caption>
+        </div>
+      )}
       <div className="flex flex-1 gap-1.5 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
         {displayOrder.map((c) => {
           const selected = selectedIds.includes(c.id);
@@ -152,7 +166,7 @@ export default function CategoryFilterStrip({
               onClick={() => toggle(c.id)}
               aria-pressed={selected}
               aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-              className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
               style={
                 selected
                   ? {

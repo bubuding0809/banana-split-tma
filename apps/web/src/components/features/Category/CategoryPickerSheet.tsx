@@ -55,7 +55,7 @@ interface CategoryPickerSheetProps {
 
 export const UNCATEGORIZED_OPTION: PickerCategory = {
   id: "none",
-  emoji: "📭",
+  emoji: "❓",
   title: "Uncategorized",
   kind: "none",
 };
