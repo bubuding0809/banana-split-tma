@@ -7,7 +7,6 @@ import {
   hapticFeedback,
 } from "@telegram-apps/sdk-react";
 import {
-  Badge,
   Caption,
   Cell,
   Info,
@@ -19,7 +18,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
-import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
 import {
   formatExpenseDateShort,
@@ -29,7 +27,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { useNavigate, useRouter, useSearch } from "@tanstack/react-router";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
-import { Link, Link2Off } from "lucide-react";
+import { Link2Off } from "lucide-react";
 
 interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
@@ -129,32 +127,20 @@ const ChatExpenseCell = ({
     }
   }, [expenseDetails?.shares, member?.user.id, userId]);
 
-  // Amount borrowed for this expense
-  const borrowedAmount = useMemo(() => {
-    if (expenseRelation !== "borrower") return 0;
-    if (!expenseDetails?.shares) return 0;
+  // Whether the user has a share in this expense (either as payer or borrower)
+  const hasShare = useMemo(() => {
+    if (!expenseDetails?.shares) return false;
+    return expenseDetails.shares.some((share) => share.userId === userId);
+  }, [expenseDetails?.shares, userId]);
 
-    // Find the current user's share amount
+  // User's share of the expense
+  const shareAmount = useMemo(() => {
+    if (!hasShare || !expenseDetails?.shares) return 0;
     const userShare = expenseDetails.shares.find(
       (share) => share.userId === userId
     );
     return userShare?.amount ?? 0;
-  }, [userId, expenseDetails, expenseRelation]);
-
-  // Amount lent for this expense
-  const lentAmount = useMemo(() => {
-    if (expenseRelation !== "payer") return 0;
-    if (!expenseDetails?.shares) return 0;
-
-    // Sum all shares except the payer's own share
-    let total = 0;
-    for (const share of expenseDetails.shares) {
-      if (share.userId !== userId) {
-        total += share.amount;
-      }
-    }
-    return total;
-  }, [expenseRelation, expenseDetails?.shares, userId]);
+  }, [hasShare, expenseDetails?.shares, userId]);
 
   const onDeleteExpense = async () => {
     const action = await popup.open.ifAvailable({
@@ -271,17 +257,13 @@ const ChatExpenseCell = ({
         ref={cellRef}
         onClick={handleCellClick}
         before={
-          // Every row leads with the category emoji tile. Uncategorized
-          // expenses fall back to the 📭 Uncategorized emoji so the
-          // slot stays consistent across the list.
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[rgba(255,255,255,0.06)] text-2xl leading-none">
-            {categoryEmoji ?? "📭"}
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
+            {categoryEmoji ?? "❓"}
           </div>
         }
         subhead={
           <Skeleton visible={isMemberLoading}>
             <div className="flex items-center gap-1.5">
-              <ChatMemberAvatar userId={payerId} size={20} />
               <Caption
                 weight="1"
                 level="1"
@@ -291,11 +273,6 @@ const ChatExpenseCell = ({
               >
                 {expenseRelation === "payer" ? "You" : memberFullName} spent
               </Caption>
-              {expenseRelation !== "unrelated" && (
-                <Badge type="number">
-                  <Link size={10} />
-                </Badge>
-              )}
             </div>
           </Skeleton>
         }
@@ -321,23 +298,16 @@ const ChatExpenseCell = ({
                     {(() => {
                       switch (expenseRelation) {
                         case "payer":
-                          return lentAmount === 0 ? (
-                            <Text weight="3">✅</Text>
-                          ) : (
-                            <Text weight="3" className="text-green-600">
-                              {formatCurrencyWithCode(
-                                lentAmount,
-                                expense.currency
-                              )}
-                            </Text>
-                          );
                         case "borrower":
-                          return borrowedAmount === 0 ? (
-                            <Text weight="3">✅</Text>
-                          ) : (
-                            <Text weight="3" className="text-red-600">
+                          return (
+                            <Text
+                              weight="3"
+                              className={cn(
+                                shareAmount !== 0 && "text-red-600"
+                              )}
+                            >
                               {formatCurrencyWithCode(
-                                borrowedAmount,
+                                shareAmount,
                                 expense.currency
                               )}
                             </Text>
@@ -351,16 +321,9 @@ const ChatExpenseCell = ({
                   </Skeleton>
                   <Caption className="w-max">
                     {(() => {
-                      switch (expenseRelation) {
-                        case "unrelated":
-                          return "Unrelated";
-                        case "borrower":
-                          return borrowedAmount === 0 ? "Even" : "Borrowed";
-                        case "payer":
-                          return lentAmount === 0 ? "Even" : "Lent";
-                        default:
-                          return "";
-                      }
+                      if (expenseRelation === "unrelated") return "unrelated";
+                      if (!hasShare) return "No share";
+                      return "share";
                     })()}
                   </Caption>
                 </div>

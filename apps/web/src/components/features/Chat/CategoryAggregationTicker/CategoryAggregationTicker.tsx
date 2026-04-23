@@ -4,7 +4,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { IconButton, Modal } from "@telegram-apps/telegram-ui";
+import { Caption, IconButton, Modal, Text } from "@telegram-apps/telegram-ui";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format, getMonth, getYear } from "date-fns";
 import { trpc } from "@/utils/trpc";
@@ -201,7 +201,7 @@ export default function CategoryAggregationTicker({
           hardware-accelerated). Positioning is handled by the parent
           page — this component only manages its own visibility state. */}
       <div
-        className="pointer-events-none flex justify-center px-3 py-2 pb-4"
+        className="pointer-events-none flex justify-center px-3 py-2 pb-6"
         style={{
           transform: anyModalOpen ? "translateY(120%)" : "translateY(0)",
           opacity: anyModalOpen ? 0 : 1,
@@ -217,7 +217,7 @@ export default function CategoryAggregationTicker({
           tabIndex={anyModalOpen ? -1 : 0}
           className={cn(
             "pointer-events-auto relative flex cursor-pointer select-none items-center gap-3 overflow-hidden rounded-full",
-            "w-[min(85vw,440px)] px-5 py-3 text-left text-white",
+            "w-[min(90vw,440px)] px-5 py-3 text-left text-white",
             "transition-transform duration-150 active:scale-[0.98]"
           )}
           style={{
@@ -260,37 +260,40 @@ export default function CategoryAggregationTicker({
             }}
           />
 
-          <span className="text-[13px] font-semibold opacity-85">
+          <span className="text-nowrap text-[13px] font-semibold opacity-85">
             {monthDisplay}
           </span>
 
-          <span className="h-3.5 w-px shrink-0 bg-white/20" aria-hidden />
+          <span className="h-5 w-px shrink-0 bg-white/25" aria-hidden />
 
-          <span
+          <Caption
+            weight="1"
             className={cn(
-              "min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight",
-              chipSummary.dim && "text-[11.5px] uppercase opacity-65"
+              "w-min min-w-0 overflow-x-auto text-ellipsis text-nowrap text-sm tracking-tight",
+              chipSummary.dim && "text-xs uppercase opacity-65"
             )}
           >
             {chipSummary.content}
-          </span>
+          </Caption>
 
-          <span
-            className={cn(
-              "shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums",
-              empty && "opacity-45",
-              !ratesReady && !empty && "opacity-50"
-            )}
-            style={{ color: empty ? undefined : "#66b3ff" }}
-          >
-            {formatCurrencyWithCode(baseTotal, baseCurrency)}
-          </span>
+          <div className="ml-auto flex flex-row items-center gap-1.5">
+            <span
+              className={cn(
+                "shrink-0 whitespace-nowrap text-base font-bold tabular-nums",
+                empty && "opacity-45",
+                !ratesReady && !empty && "opacity-50",
+                !empty && "text-red-500"
+              )}
+            >
+              {formatCurrencyWithCode(baseTotal, baseCurrency)}
+            </span>
 
-          <ChevronUp
-            size={16}
-            strokeWidth={2.5}
-            className="shrink-0 opacity-50"
-          />
+            <ChevronUp
+              size={16}
+              strokeWidth={2.5}
+              className="shrink-0 opacity-50"
+            />
+          </div>
         </button>
       </div>
 
@@ -346,12 +349,12 @@ export default function CategoryAggregationTicker({
               </Modal.Close>
             }
           >
-            <span
-              className="whitespace-nowrap text-[15px] font-bold tabular-nums"
-              style={{ color: "var(--tg-theme-link-color)" }}
+            <Text
+              className="whitespace-nowrap text-base tabular-nums text-red-500"
+              weight="1"
             >
               {formatCurrencyWithCode(baseTotal, baseCurrency)}
-            </span>
+            </Text>
           </Modal.Header>
         }
       >
@@ -410,13 +413,15 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
   return (
     <div className="dark:border-white/6 grid grid-cols-[1fr_auto] items-start gap-x-4 border-t border-black/5 px-5 py-3 first:border-t-0">
       <div className="flex items-center gap-2.5 text-[14px] font-semibold">
-        <span className="text-[18px] leading-none">{cat.emoji}</span>
-        <span className="truncate">{cat.title}</span>
+        <Text>{cat.emoji}</Text>
+        <Text className="truncate capitalize" weight="2">
+          {cat.title}
+        </Text>
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <div
           className={cn(
-            "whitespace-nowrap text-[15px] font-bold tabular-nums",
+            "whitespace-nowrap text-base font-medium",
             loading && "opacity-50"
           )}
           style={{ color: "var(--tg-theme-link-color)" }}
@@ -424,14 +429,17 @@ function CategoryRow({ cat, baseCurrency, ratesReady }: CategoryRowProps) {
           {formatCurrencyWithCode(cat.baseTotal, baseCurrency)}
         </div>
         {showBreakdown &&
-          cat.byCurrency.map((bc) => (
-            <div
-              key={bc.currency}
-              className="whitespace-nowrap text-[11px] font-medium tabular-nums opacity-55"
-            >
-              {formatCurrencyWithCode(bc.amount, bc.currency)}
-            </div>
-          ))}
+          cat.byCurrency.map((bc) => {
+            const isForeign = bc.currency !== baseCurrency;
+            return (
+              <Caption className="whitespace-nowrap text-sm font-medium opacity-55">
+                {formatCurrencyWithCode(bc.amount, bc.currency)}
+                {isForeign &&
+                  bc.convertedAmount !== null &&
+                  ` ≈ ${formatCurrencyWithCode(bc.convertedAmount, baseCurrency)}`}
+              </Caption>
+            );
+          })}
       </div>
     </div>
   );
@@ -445,7 +453,7 @@ function renderChipSummary(
     return { content: "All", dim: true, label: "" };
   }
   const emojiFor = (id: string) =>
-    id === "none" ? "📭" : (categoriesIndex.get(id)?.emoji ?? "🏷️");
+    id === "none" ? "❓" : (categoriesIndex.get(id)?.emoji ?? "🏷️");
 
   // Always render at most 3 emojis with a small gap; anything beyond 3
   // collapses into a +N suffix so the pill stays compact.

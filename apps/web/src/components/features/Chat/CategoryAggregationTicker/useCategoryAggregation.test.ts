@@ -101,7 +101,7 @@ describe("computeCategoryAggregation", () => {
       needsConversion: false,
     });
     expect(result.byCategory[0].byCurrency).toEqual([
-      { currency: "SGD", amount: 40 },
+      { currency: "SGD", amount: 40, convertedAmount: 40 },
     ]);
   });
 
@@ -126,7 +126,7 @@ describe("computeCategoryAggregation", () => {
     expect(result.baseTotal).toBeCloseTo(37 / 0.74, 4);
     expect(result.needsConversion).toBe(true);
     expect(result.byCategory[0].byCurrency).toEqual([
-      { currency: "USD", amount: 37 },
+      { currency: "USD", amount: 37, convertedAmount: 37 / 0.74 },
     ]);
   });
 
@@ -163,8 +163,8 @@ describe("computeCategoryAggregation", () => {
     expect(cat.needsConversion).toBe(true);
     expect(cat.byCurrency).toEqual([
       // USD entry first (35 > 30 in native units, sorted desc by native amount)
-      { currency: "USD", amount: 35 },
-      { currency: "SGD", amount: 30 },
+      { currency: "USD", amount: 35, convertedAmount: 35 / 0.74 },
+      { currency: "SGD", amount: 30, convertedAmount: 30 },
     ]);
     expect(cat.baseTotal).toBeCloseTo(30 + 35 / 0.74, 4);
   });
@@ -259,7 +259,7 @@ describe("computeCategoryAggregation", () => {
     expect(
       result.byCategory.find((c) => c.categoryId === "none")
     ).toMatchObject({
-      emoji: "📭",
+      emoji: "❓",
       title: "Uncategorized",
     });
   });
@@ -443,7 +443,7 @@ describe("computeCategoryAggregation", () => {
     });
   });
 
-  it("treats null categoryId as the synthetic 'none' bucket with 📭 Uncategorized metadata", () => {
+  it("treats null categoryId as the synthetic 'none' bucket with ❓ Uncategorized metadata", () => {
     const result = computeCategoryAggregation({
       expenses: [
         mkExpense({
@@ -462,7 +462,7 @@ describe("computeCategoryAggregation", () => {
 
     expect(result.byCategory[0]).toMatchObject({
       categoryId: "none",
-      emoji: "📭",
+      emoji: "❓",
       title: "Uncategorized",
     });
   });

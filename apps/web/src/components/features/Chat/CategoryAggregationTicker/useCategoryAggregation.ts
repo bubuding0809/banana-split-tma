@@ -14,6 +14,13 @@ export type TickerExpense = {
 export type CurrencyBreakdown = {
   currency: string;
   amount: number;
+  /**
+   * `amount` converted into the user's base currency. Equals `amount`
+   * when `currency === baseCurrency`. `null` when the FX rate is
+   * missing (either still loading or genuinely unsupported) — the
+   * renderer hides the converted line in that case.
+   */
+  convertedAmount: number | null;
 };
 
 export type CategoryAggregate = {
@@ -55,7 +62,7 @@ export type ComputeCategoryAggregationInput = {
 };
 
 const UNCATEGORIZED_ID = "none";
-const UNCATEGORIZED_META = { emoji: "📭", title: "Uncategorized" } as const;
+const UNCATEGORIZED_META = { emoji: "❓", title: "Uncategorized" } as const;
 const UNKNOWN_META = { emoji: "🏷️", title: "Unknown" } as const;
 
 function formatMonthKey(date: Date): string {
@@ -243,7 +250,11 @@ export function computeCategoryAggregation(
       baseTotal,
       needsConversion: s.hasForeign,
       byCurrency: Array.from(s.byCurrencyMap.entries())
-        .map(([currency, amount]) => ({ currency, amount }))
+        .map(([currency, amount]) => ({
+          currency,
+          amount,
+          convertedAmount: convertToBase(amount, currency, baseCurrency, rates),
+        }))
         .sort((a, b) => b.amount - a.amount),
     });
   }
