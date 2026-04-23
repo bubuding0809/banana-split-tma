@@ -37,21 +37,47 @@ const getExpenseDetailsHandler = async (
     await assertChatAccess(session, db, expense.chatId);
   }
 
+  if (!expense) {
+    return null;
+  }
+
+  // Drop Prisma-level BigInt fields the client doesn't consume.
+  // superjson preserves bigint end-to-end, and React 19's component
+  // render tracing crashes on any bigint it walks in props.
+  const {
+    telegramMessageId,
+    telegramUpdateBumpMessageIds,
+    creator,
+    payer,
+    chat,
+    ...rest
+  } = expense;
+  void telegramMessageId;
+  void telegramUpdateBumpMessageIds;
+
   return {
-    ...expense,
-    amount: Number(expense?.amount),
-    categoryId: expense?.categoryId ?? null,
-    participants:
-      expense?.participants.map((p) => ({
-        ...p,
-        id: Number(p.id),
-      })) ?? [],
-    shares:
-      expense?.shares.map((s) => ({
-        ...s,
-        userId: Number(s.userId),
-        amount: Number(s.amount),
-      })) ?? [],
+    ...rest,
+    chatId: Number(expense.chatId),
+    creatorId: Number(expense.creatorId),
+    payerId: Number(expense.payerId),
+    amount: Number(expense.amount),
+    categoryId: expense.categoryId ?? null,
+    creator: { ...creator, id: Number(creator.id) },
+    payer: { ...payer, id: Number(payer.id) },
+    chat: {
+      ...chat,
+      id: Number(chat.id),
+      threadId: chat.threadId === null ? null : Number(chat.threadId),
+    },
+    participants: expense.participants.map((p) => ({
+      ...p,
+      id: Number(p.id),
+    })),
+    shares: expense.shares.map((s) => ({
+      ...s,
+      userId: Number(s.userId),
+      amount: Number(s.amount),
+    })),
   };
 };
 

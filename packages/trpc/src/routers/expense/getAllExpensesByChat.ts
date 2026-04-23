@@ -22,19 +22,28 @@ export const getAllExpensesByChatHandler = async (
       date: "desc",
     },
   });
-  return expenses.map((expense) => ({
-    ...expense,
-    creatorId: Number(expense.creatorId),
-    payerId: Number(expense.payerId),
-    chatId: Number(expense.chatId),
-    amount: Number(expense.amount),
-    categoryId: expense.categoryId ?? null,
-    shares: expense.shares.map((share) => ({
-      ...share,
-      userId: Number(share.userId),
-      amount: Number(share.amount),
-    })),
-  }));
+  return expenses.map((expense) => {
+    // Drop Prisma-level BigInt fields the client doesn't consume —
+    // superjson preserves bigint all the way through, and React 19's
+    // component-render tracing crashes on any bigint it walks in props.
+    const { telegramMessageId, telegramUpdateBumpMessageIds, ...rest } =
+      expense;
+    void telegramMessageId;
+    void telegramUpdateBumpMessageIds;
+    return {
+      ...rest,
+      creatorId: Number(expense.creatorId),
+      payerId: Number(expense.payerId),
+      chatId: Number(expense.chatId),
+      amount: Number(expense.amount),
+      categoryId: expense.categoryId ?? null,
+      shares: expense.shares.map((share) => ({
+        ...share,
+        userId: Number(share.userId),
+        amount: Number(share.amount),
+      })),
+    };
+  });
 };
 
 export default protectedProcedure

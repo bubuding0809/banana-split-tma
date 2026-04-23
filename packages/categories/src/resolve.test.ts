@@ -5,7 +5,6 @@ import type { ChatCategoryRow } from "./types.js";
 const rows: ChatCategoryRow[] = [
   {
     id: "11111111-1111-1111-1111-111111111111",
-    chatId: 1n,
     emoji: "🏖️",
     title: "Bali trip",
   },
