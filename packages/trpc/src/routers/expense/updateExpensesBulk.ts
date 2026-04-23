@@ -253,17 +253,39 @@ export const updateExpensesBulkHandler = async (
   //    for every field are short-circuited — we don't call the
   //    handler at all, so `updatedAt` is left untouched and the DB
   //    doesn't take an unnecessary transaction.
-  type RowOutcome =
-    | {
-        kind: "noop";
-        expense: (typeof existingExpenses)[number];
-        changedFields: ChangedField[];
-      }
-    | {
-        kind: "updated";
-        expense: Awaited<ReturnType<typeof updateExpenseHandler>>;
-        changedFields: ChangedField[];
-      };
+  // For noop rows we hand back the existing row as the "expense"
+  // payload, but `findMany({ include })` hands us relations we don't
+  // need and — critically — an `amount` typed as Prisma Decimal which
+  // fails the output schema's `z.number()`. Strip relations and coerce
+  // Decimal→number so both branches match the handler-return shape.
+  const normalizeExistingAsExpense = (
+    e: (typeof existingExpenses)[number]
+  ) => ({
+    id: e.id,
+    chatId: e.chatId,
+    creatorId: e.creatorId,
+    payerId: e.payerId,
+    description: e.description,
+    amount: Number(e.amount),
+    currency: e.currency,
+    splitMode: e.splitMode,
+    date: e.date,
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
+    categoryId: e.categoryId,
+    telegramMessageId: e.telegramMessageId,
+    telegramUpdateBumpMessageIds: e.telegramUpdateBumpMessageIds,
+  });
+
+  type NormalizedExpense =
+    | Awaited<ReturnType<typeof updateExpenseHandler>>
+    | ReturnType<typeof normalizeExistingAsExpense>;
+
+  type RowOutcome = {
+    kind: "noop" | "updated";
+    expense: NormalizedExpense;
+    changedFields: ChangedField[];
+  };
 
   const settled = await Promise.allSettled(
     input.expenses.map(async (row): Promise<RowOutcome> => {
@@ -281,9 +303,14 @@ export const updateExpensesBulkHandler = async (
 
       if (changedFields.length === 0) {
         // Row submitted but nothing would actually change. Skip the
-        // DB write entirely and hand back the existing row as the
-        // "expense" payload so callers still see a per-row entry.
-        return { kind: "noop", expense: existing, changedFields };
+        // DB write entirely and hand back the existing row (normalised
+        // to the handler-return shape) so callers still see a per-row
+        // entry without violating the procedure's output schema.
+        return {
+          kind: "noop",
+          expense: normalizeExistingAsExpense(existing),
+          changedFields,
+        };
       }
 
       const splitMode = row.splitMode ?? existing.splitMode;
