@@ -11,7 +11,6 @@ export interface ChatCategoryRow {
   id: string; // uuid as stored in ChatCategory.id (no prefix)
   emoji: string;
   title: string;
-  chatId: bigint;
 }
 
 export interface ResolvedCategory {

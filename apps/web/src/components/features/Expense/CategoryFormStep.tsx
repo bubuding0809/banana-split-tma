@@ -89,11 +89,10 @@ const CategoryFormStep = withForm({
           .filter((c) => c.kind === "custom")
           .map((c) => ({
             id: c.id.replace(/^chat:/, ""),
-            chatId: BigInt(chatId),
             emoji: c.emoji,
             title: c.title,
           })),
-      [items, chatId]
+      [items]
     );
 
     const resolved = useMemo(

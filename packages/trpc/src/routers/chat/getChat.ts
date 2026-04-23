@@ -20,6 +20,7 @@ export const getChatHandler = async (
 
   return {
     ...chat,
+    id: Number(chat.id),
     threadId: chat?.threadId ? Number(chat.threadId) : undefined,
     debtSimplificationEnabled: chat?.debtSimplificationEnabled ?? false,
     notifyOnExpense: chat?.notifyOnExpense ?? true,

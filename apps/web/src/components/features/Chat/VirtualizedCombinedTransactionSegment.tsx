@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import {
+import React, {
   useRef,
   useMemo,
   memo,
@@ -170,7 +170,16 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       return items;
     }, [sortedKeys, groupedTransactions]);
 
-    // Create virtualizer with dynamic sizing
+    // Create virtualizer with dynamic sizing.
+    //
+    // `useFlushSync: false` — tanstack-virtual@3 wraps its internal
+    // rerender in `flushSync` when the scroll observer reports a sync
+    // change. Under React 19 that fires the "flushSync called from
+    // inside a lifecycle method" warning whenever the observer lands
+    // mid-commit (common once the ticker drives scroll programmatically
+    // via refs). Queueing a normal rerender is fine for our UX — the
+    // virtualizer still measures synchronously; only the React commit
+    // becomes scheduled instead of forced.
     const virtualizer = useVirtualizer({
       count: virtualItems.length,
       getScrollElement: () => parentRef.current,
@@ -186,6 +195,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       },
       overscan: 5,
       getItemKey: (index) => virtualItems[index]?.key ?? index,
+      useFlushSync: false,
     });
 
     // Utility function to find virtual item index from transaction ID
@@ -359,9 +369,8 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
             </Skeleton>
           </div>
           {Array.from({ length: 10 }).map((_, i) => (
-            <>
+            <React.Fragment key={i}>
               <Cell
-                key={i}
                 before={<ChatMemberAvatar userId={398} size={48} />}
                 subhead={
                   <Skeleton visible>
@@ -401,7 +410,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
                 <Skeleton visible>Loading</Skeleton>
               </Cell>
               <Divider />
-            </>
+            </React.Fragment>
           ))}
         </ul>
       );

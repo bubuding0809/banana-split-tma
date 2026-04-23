@@ -74,11 +74,10 @@ export function useCategoryAutoSuggest({
         .filter((c) => c.kind === "custom")
         .map((c) => ({
           id: c.id.replace(/^chat:/, ""),
-          chatId: BigInt(chatId),
           emoji: c.emoji,
           title: c.title,
         })),
-    [categoriesData, chatId]
+    [categoriesData]
   );
 
   const [snackbarText, setSnackbarText] = useState<string | null>(null);

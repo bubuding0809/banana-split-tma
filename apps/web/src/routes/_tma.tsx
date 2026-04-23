@@ -57,12 +57,18 @@ function LayoutComponent() {
     // Ensure initData is properly restored
     initData.restore();
 
-    // Mount required tma components
-    mainButton.mount();
-    secondaryButton.mount();
-    viewport.mount();
-    themeParams.mount();
-    backButton.mount();
+    // Mount required tma components. Each `mount()` call is guarded
+    // because React 19 StrictMode double-invokes this effect in dev —
+    // the second pass hits a still-mounting / already-mounted SDK
+    // component and throws "already mounting".
+    if (!mainButton.isMounted()) mainButton.mount();
+    if (!secondaryButton.isMounted()) secondaryButton.mount();
+    if (!viewport.isMounted() && !viewport.isMounting())
+      void viewport.mount().catch(() => {
+        /* another mount call won the race — harmless */
+      });
+    if (!themeParams.isMounted()) themeParams.mount();
+    if (!backButton.isMounted()) backButton.mount();
 
     return () => {
       mainButton.unmount();

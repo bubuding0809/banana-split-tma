@@ -172,7 +172,11 @@ export function computeCategoryAggregation(
       rates
     );
     if (converted === null) {
-      if (!warnedCurrencies.has(r.currency)) {
+      // Suppress while rates are still loading — the hook is called
+      // twice per render (preliminary pass with empty rates to collect
+      // targetCurrencies, then real pass with fetched rates). Warning
+      // on the preliminary pass floods the console on every render.
+      if (ratesReadyFlag && !warnedCurrencies.has(r.currency)) {
         warnedCurrencies.add(r.currency);
 
         console.warn(

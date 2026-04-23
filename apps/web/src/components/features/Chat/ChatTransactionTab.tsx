@@ -159,11 +159,10 @@ const ChatTransactionTab = forwardRef<
         .filter((c) => c.kind === "custom")
         .map((c) => ({
           id: c.id.replace(/^chat:/, ""),
-          chatId: BigInt(chatId),
           emoji: c.emoji,
           title: c.title,
         })),
-    [categoriesData, chatId]
+    [categoriesData]
   );
 
   // * Mutations ==================================================================================
