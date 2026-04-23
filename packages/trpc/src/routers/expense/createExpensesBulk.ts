@@ -45,6 +45,18 @@ const singleExpenseSchema = z.object({
       })
     )
     .optional(),
+  // Optional at import time. Validation happens inside
+  // createExpenseHandler per row (base: against BASE_CATEGORIES,
+  // chat: against chatCategory).
+  categoryId: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v.startsWith("base:") || v.startsWith("chat:"),
+      "categoryId must start with 'base:' or 'chat:'"
+    )
+    .nullable()
+    .optional(),
 });
 
 export const inputSchema = z.object({
@@ -121,6 +133,7 @@ export const createExpensesBulkHandler = async (
           splitMode: expense.splitMode,
           participantIds: expense.participantIds,
           customSplits: expense.customSplits,
+          categoryId: expense.categoryId,
           sendNotification: false,
         },
         db,
