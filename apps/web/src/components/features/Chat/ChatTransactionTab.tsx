@@ -12,7 +12,6 @@ import {
   Section,
 } from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
-import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import DateSelector from "./DateSelector";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
 import TransactionFiltersCell from "./TransactionFiltersCell";
@@ -31,20 +30,39 @@ import {
   ChevronsUpDown,
   X,
 } from "lucide-react";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import { useTransactionHighlight } from "@/hooks/useTransactionHighlight";
-import { VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
+import { type VirtualizedCombinedTransactionSegmentRef } from "./VirtualizedCombinedTransactionSegment";
 import { trpc } from "@/utils/trpc";
 import { type ChatCategoryRow } from "@repo/categories";
 
 type SortByOption = "date" | "createdAt";
 type SortOrderOption = "asc" | "desc";
 
+export type ChatTransactionTabRef = VirtualizedCombinedTransactionSegmentRef;
+
 interface ChatTransactionTabProps {
   chatId: number;
+  /**
+   * Notified when the top-most visible month in the list changes.
+   * The parent page wires this to the shared category-aggregation
+   * ticker so its month picker stays in sync with the list's scroll
+   * position.
+   */
+  onVisibleMonthChange?: (monthKey: string | null) => void;
 }
 
-const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
+const ChatTransactionTab = forwardRef<
+  ChatTransactionTabRef,
+  ChatTransactionTabProps
+>(({ chatId, onVisibleMonthChange }, ref) => {
   const {
     selectedExpense,
     showPayments = true,
@@ -95,37 +113,22 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const { highlightTransactions } = useTransactionHighlight(tButtonColor);
   const virtualizedRef = useRef<VirtualizedCombinedTransactionSegmentRef>(null);
 
-  // Shared "which month is the user looking at" state. The ticker's
-  // month picker and the list's scroll position both read/write here,
-  // making them a two-way sync pair. `programmaticScrollRef` suppresses
-  // the scroll → picker callback while a picker-driven scroll is in
-  // flight so we don't get a feedback loop.
-  const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
-  const programmaticScrollRef = useRef(false);
-
-  const handlePickedMonthChange = useCallback(
-    async (monthKey: string | null) => {
-      setPickedMonthKey(monthKey);
-      if (!monthKey) return;
-      programmaticScrollRef.current = true;
-      await virtualizedRef.current?.scrollToMonth(monthKey);
-      // Scroll event fires on next paint; release the guard two rAF
-      // ticks out so our own scroll doesn't bounce back through the
-      // visible-month callback.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          programmaticScrollRef.current = false;
-        });
-      });
-    },
+  // Expose the virtualized list's imperative API to the parent so the
+  // floating aggregation ticker (now mounted at the page level) can
+  // drive scrollToMonth without having to climb back through a ref
+  // chain.
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToTransaction: (transactionId: string) =>
+        virtualizedRef.current?.scrollToTransaction(transactionId) ??
+        Promise.resolve(false),
+      scrollToMonth: (monthKey: string) =>
+        virtualizedRef.current?.scrollToMonth(monthKey) ??
+        Promise.resolve(false),
+    }),
     []
   );
-
-  const handleVisibleMonthChange = useCallback((monthKey: string | null) => {
-    if (programmaticScrollRef.current) return;
-    if (!monthKey) return;
-    setPickedMonthKey((prev) => (prev === monthKey ? prev : monthKey));
-  }, []);
 
   useEffect(() => {
     const isFirstLoadDone = firstLoadDoneRef.current;
@@ -149,39 +152,6 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
   const { data: categoriesData } = trpc.category.listByChat.useQuery({
     chatId,
   });
-  // Same query the list view uses — tRPC caches it so this is essentially
-  // free; we only need it for the per-category counts on the filter strip.
-  const { data: allExpensesForCounts } =
-    trpc.expense.getAllExpensesByChat.useQuery({ chatId });
-
-  // Count expenses per categoryId (null → "none" bucket to match the
-  // strip's synthetic Uncategorized chip). Other filters (payments,
-  // related-only, sort) don't affect this — the badge answers "how many
-  // expenses live under this category" regardless of current view.
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const e of allExpensesForCounts ?? []) {
-      const key = e.categoryId ?? "none";
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-    return counts;
-  }, [allExpensesForCounts]);
-
-  // Only render a chip if the category has at least one tagged expense,
-  // OR the user already has it selected (so deselect stays reachable
-  // after the last expense under it gets deleted). Empty + unselected
-  // chips are pure noise — no way to match anything if you tap them.
-  const selectedFilterSet = useMemo(
-    () => new Set(categoryFilters),
-    [categoryFilters]
-  );
-  const allCategories = useMemo(
-    () =>
-      (categoriesData?.items ?? []).filter(
-        (c) => (categoryCounts[c.id] ?? 0) > 0 || selectedFilterSet.has(c.id)
-      ),
-    [categoriesData, categoryCounts, selectedFilterSet]
-  );
 
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
@@ -540,30 +510,12 @@ const ChatTransactionTab = ({ chatId }: ChatTransactionTabProps) => {
         onAvailableDatesChange={setMonthGroupedData}
         categoryFilters={categoryFilters}
         chatRows={chatRows}
-        onVisibleMonthChange={handleVisibleMonthChange}
-      />
-
-      <CategoryAggregationTicker
-        chatId={chatId}
-        userId={userId}
-        categoryFilters={categoryFilters}
-        categories={allCategories}
-        pickedMonthKey={pickedMonthKey}
-        onPickedMonthChange={handlePickedMonthChange}
-        onCategoryFiltersChange={(ids) =>
-          updateSearchParams((prev) => ({
-            ...prev,
-            categoryFilters: ids,
-            // Payments don't carry a categoryId, so letting them pass
-            // through an active category filter reads as junk. Flip the
-            // toggle in lockstep: off when any category is selected,
-            // back on when all are cleared.
-            showPayments: ids.length === 0,
-          }))
-        }
+        onVisibleMonthChange={onVisibleMonthChange}
       />
     </section>
   );
-};
+});
+
+ChatTransactionTab.displayName = "ChatTransactionTab";
 
 export default ChatTransactionTab;

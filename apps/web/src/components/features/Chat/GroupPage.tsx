@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useSearch } from "@tanstack/react-router";
 import {
   hapticFeedback,
   initData,
@@ -27,12 +27,15 @@ import {
 } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatBalanceTab from "./ChatBalanceTab";
-import ChatTransactionTab from "./ChatTransactionTab";
+import ChatTransactionTab, {
+  type ChatTransactionTabRef,
+} from "./ChatTransactionTab";
+import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import SnapshotsLink from "../Snapshot/SnapshotsLink";
 import AddExpenseButton from "../Expense/AddExpenseButton";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useIsMobile from "@/hooks/useIsMobile";
 import { RouterOutputs } from "@dko/trpc";
 
@@ -45,6 +48,9 @@ interface GroupPageProps {
 const GroupPage = ({ chatData }: GroupPageProps) => {
   // * Hooks =======================================================================================
   const { selectedTab } = routeApi.useSearch();
+  const { categoryFilters = [] } = useSearch({ strict: false }) as {
+    categoryFilters?: string[];
+  };
   const navigate = routeApi.useNavigate();
   const tUserData = useSignal(initData.user);
   const tStartParams = useStartParams();
@@ -146,6 +152,15 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
+  // Shared "which month is the user looking at" state. The ticker's
+  // month picker and the list's scroll position both read/write here,
+  // making them a two-way sync pair. `programmaticScrollRef` suppresses
+  // the scroll → picker callback while a picker-driven scroll is in
+  // flight so we don't get a feedback loop.
+  const chatTransactionTabRef = useRef<ChatTransactionTabRef>(null);
+  const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
+  const programmaticScrollRef = useRef(false);
+
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
   const chatId = tStartParams?.chat_id ?? 0;
@@ -175,6 +190,83 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   const { data: tChatData } = trpc.telegram.getChat.useQuery({
     chatId,
   });
+  // Ticker-only data — both queries are tRPC-cached, so pulling them
+  // here costs nothing when ChatTransactionTab later asks for them too.
+  const { data: categoriesData } = trpc.category.listByChat.useQuery(
+    { chatId },
+    { enabled: chatId > 0 }
+  );
+  const { data: allExpensesForCounts } =
+    trpc.expense.getAllExpensesByChat.useQuery(
+      { chatId },
+      { enabled: chatId > 0 }
+    );
+
+  // Count expenses per categoryId (null → "none" bucket). Only used to
+  // decide whether to show a chip in the filter strip — a category with
+  // zero tagged expenses is noise unless it's already selected.
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of allExpensesForCounts ?? []) {
+      const key = e.categoryId ?? "none";
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [allExpensesForCounts]);
+
+  const selectedFilterSet = useMemo(
+    () => new Set(categoryFilters),
+    [categoryFilters]
+  );
+  const allCategories = useMemo(
+    () =>
+      (categoriesData?.items ?? []).filter(
+        (c) => (categoryCounts[c.id] ?? 0) > 0 || selectedFilterSet.has(c.id)
+      ),
+    [categoriesData, categoryCounts, selectedFilterSet]
+  );
+
+  // * Ticker handlers =============================================================================
+  const handlePickedMonthChange = useCallback(
+    async (monthKey: string | null) => {
+      setPickedMonthKey(monthKey);
+      if (!monthKey) return;
+      programmaticScrollRef.current = true;
+      await chatTransactionTabRef.current?.scrollToMonth(monthKey);
+      // Scroll event fires on next paint; release the guard two rAF
+      // ticks out so our own scroll doesn't bounce back through the
+      // visible-month callback.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false;
+        });
+      });
+    },
+    []
+  );
+
+  const handleVisibleMonthChange = useCallback((monthKey: string | null) => {
+    if (programmaticScrollRef.current) return;
+    if (!monthKey) return;
+    setPickedMonthKey((prev) => (prev === monthKey ? prev : monthKey));
+  }, []);
+
+  const handleCategoryFiltersChange = useCallback(
+    (ids: string[]) => {
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          categoryFilters: ids,
+          // Payments don't carry a categoryId, so letting them pass
+          // through an active category filter reads as junk. Flip the
+          // toggle in lockstep: off when any category is selected,
+          // back on when all are cleared.
+          showPayments: ids.length === 0,
+        }),
+      });
+    },
+    [navigate]
+  );
 
   const handleTabChange = (tab: typeof selectedTab) => {
     hapticFeedback.selectionChanged();
@@ -386,10 +478,33 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
             <ChatBalanceTab chatId={chatId} isSimplified={isSimplified} />
           )}
           {selectedTab === "transaction" && (
-            <ChatTransactionTab chatId={chatId} />
+            <ChatTransactionTab
+              ref={chatTransactionTabRef}
+              chatId={chatId}
+              onVisibleMonthChange={handleVisibleMonthChange}
+            />
           )}
         </div>
       </section>
+
+      {/* Floating category-aggregation ticker. Pinned to the viewport
+          bottom so it stays visible as soon as the transaction tab is
+          selected, independent of the tab's internal scroll container.
+          pointer-events-none on the wrapper lets taps pass through the
+          empty margin around the pill; the pill itself re-enables them. */}
+      {selectedTab === "transaction" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
+          <CategoryAggregationTicker
+            chatId={chatId}
+            userId={userId}
+            categoryFilters={categoryFilters}
+            categories={allCategories}
+            pickedMonthKey={pickedMonthKey}
+            onPickedMonthChange={handlePickedMonthChange}
+            onCategoryFiltersChange={handleCategoryFiltersChange}
+          />
+        </div>
+      )}
     </main>
   );
 };
