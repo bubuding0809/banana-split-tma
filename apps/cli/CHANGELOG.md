@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-23
+
+### Fixed
+
+- `bulk-import-expenses` now honours `categoryId` on each input row. Previously the field was silently dropped by the CLI's row mapper and ignored by the server's `createExpensesBulk` input schema, so imports always landed uncategorised even when the JSON specified a category. Pass `"categoryId": "base:<slug>"` or `"categoryId": "chat:<uuid>"` on a row to set the category at import time; omit or `null` leaves it uncategorised. Matches the precedent set by singular `create-expense --category`.
+
 ## [0.12.0] - 2026-04-23
 
 ### Added

@@ -425,6 +425,53 @@ describe("expense commands", () => {
     });
   });
 
+  it("bulk-import-expenses should pass row.categoryId through to the server", async () => {
+    const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
+    const rows = [
+      {
+        payerId: 1,
+        description: "Food row",
+        amount: 15,
+        currency: "SGD",
+        splitMode: "EQUAL",
+        participantIds: [1, 2],
+        categoryId: "base:food",
+      },
+      {
+        payerId: 1,
+        description: "Plain row (no category)",
+        amount: 5,
+        currency: "SGD",
+        splitMode: "EQUAL",
+        participantIds: [1, 2],
+      },
+    ];
+    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
+    const mutateMock = vi.fn().mockResolvedValueOnce({
+      total: 2,
+      succeeded: 2,
+      failed: 0,
+      results: [],
+    });
+    const trpcMock = {
+      expense: { createExpensesBulk: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute({ file: "expenses.json" }, trpcMock);
+
+    expect(mutateMock).toHaveBeenCalledTimes(1);
+    const call = mutateMock.mock.calls[0][0];
+    expect(call.expenses).toHaveLength(2);
+    expect(call.expenses[0]).toMatchObject({
+      description: "Food row",
+      categoryId: "base:food",
+    });
+    // Row without categoryId should carry the field as undefined, not
+    // something coerced — the server's schema treats undefined as "no
+    // category at import time".
+    expect(call.expenses[1].categoryId).toBeUndefined();
+  });
+
   it("bulk-import-expenses should call createExpensesBulk with all rows in one request", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-import-expenses");
     const rows = [

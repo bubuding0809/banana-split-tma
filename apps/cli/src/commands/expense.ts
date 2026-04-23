@@ -734,6 +734,7 @@ export const expenseCommands: Command[] = [
         participantIds: number[];
         customSplits?: { userId: number; amount: number }[];
         date?: string;
+        categoryId?: string | null;
       };
 
       let rows: ExpenseRow[];
@@ -774,6 +775,7 @@ export const expenseCommands: Command[] = [
             participantIds: row.participantIds,
             customSplits: row.customSplits,
             date: row.date ? new Date(row.date) : undefined,
+            categoryId: row.categoryId,
           })),
         });
 
