@@ -256,8 +256,11 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
     );
 
     // Watch the scroll position and emit a month-change callback when
-    // the top-most visible row crosses into a new month. rAF-throttled
-    // so fast scrolls don't flood the parent with updates.
+    // the dominant visible month changes. Picks the month that occupies
+    // the most vertical area inside the viewport — "topmost" would lag
+    // at the bottom of the list (the last row of the newest month stays
+    // partially visible as a thin strip while the older months fill the
+    // screen). rAF-throttled so fast scrolls don't flood the parent.
     const lastEmittedMonthRef = useRef<string | null>(null);
     useEffect(() => {
       if (!onVisibleMonthChange) return;
@@ -269,21 +272,34 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
         raf = 0;
         const items = virtualizer.getVirtualItems();
         if (items.length === 0) return;
-        // First item whose end is past the current scroll offset is the
-        // one visually at the top of the viewport (partial rows count).
         const offset = virtualizer.scrollOffset ?? 0;
-        const topVirtual =
-          items.find((v) => v.end > offset) ?? items[0] ?? null;
-        if (!topVirtual) return;
-        const item = virtualItems[topVirtual.index];
-        if (!item) return;
-        const monthKey =
-          item.type === "header"
-            ? item.key.replace(/^header-/, "")
-            : item.monthKey;
-        if (monthKey === lastEmittedMonthRef.current) return;
-        lastEmittedMonthRef.current = monthKey;
-        onVisibleMonthChange(monthKey);
+        const viewportEnd = offset + el.clientHeight;
+        const areaByMonth = new Map<string, number>();
+        for (const v of items) {
+          const top = Math.max(v.start, offset);
+          const bottom = Math.min(v.end, viewportEnd);
+          const visible = bottom - top;
+          if (visible <= 0) continue;
+          const item = virtualItems[v.index];
+          if (!item) continue;
+          const monthKey =
+            item.type === "header"
+              ? item.key.replace(/^header-/, "")
+              : item.monthKey;
+          areaByMonth.set(monthKey, (areaByMonth.get(monthKey) ?? 0) + visible);
+        }
+        let bestMonth: string | null = null;
+        let bestArea = 0;
+        for (const [m, a] of areaByMonth) {
+          if (a > bestArea) {
+            bestArea = a;
+            bestMonth = m;
+          }
+        }
+        if (!bestMonth) return;
+        if (bestMonth === lastEmittedMonthRef.current) return;
+        lastEmittedMonthRef.current = bestMonth;
+        onVisibleMonthChange(bestMonth);
       };
       const onScroll = () => {
         if (raf !== 0) return;
