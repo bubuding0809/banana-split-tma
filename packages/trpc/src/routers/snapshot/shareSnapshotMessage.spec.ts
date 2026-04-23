@@ -70,10 +70,15 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        chatCategories: [],
       },
       expenses: [
         {
           amount: "1480.00", // sum of shares 100+99+...+85 = 1480
+          currency: "SGD",
+          date: new Date("2026-04-15T00:00:00Z"),
+          description: "Bulk test expense",
+          categoryId: null,
           payerId: 111n,
           payer: { firstName: "Creator", username: "creator_usr" },
           shares: shares,
@@ -123,6 +128,7 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        chatCategories: [],
       },
       expenses: [],
     });
@@ -152,10 +158,15 @@ describe("shareSnapshotMessage procedure", () => {
         type: "group",
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        chatCategories: [],
       },
       expenses: [
         {
           amount: "60.00",
+          currency: "SGD",
+          date: new Date("2026-04-10T00:00:00Z"),
+          description: "Dinner",
+          categoryId: "base:food",
           payerId: 111n,
           payer: { firstName: "Ruoqian", username: "ruoqian" },
           shares: [
@@ -173,6 +184,10 @@ describe("shareSnapshotMessage procedure", () => {
         },
         {
           amount: "40.00",
+          currency: "SGD",
+          date: new Date("2026-04-05T00:00:00Z"),
+          description: "Laundry",
+          categoryId: null,
           payerId: 222n,
           payer: { firstName: "Ting", username: "xuetingg" },
           shares: [
@@ -232,6 +247,7 @@ describe("shareSnapshotMessage procedure", () => {
         threadId: 555n,
         members: [{ userId: 123n }],
         baseCurrency: "SGD",
+        chatCategories: [],
       },
       expenses: [],
     });

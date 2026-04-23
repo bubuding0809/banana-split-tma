@@ -16,12 +16,61 @@ import { inlineKeyboard } from "telegraf/markup";
 import { Telegram } from "telegraf";
 import { Prisma } from "@dko/database";
 import { getMultipleRatesHandler } from "../currency/getMultipleRates.js";
+import { resolveCategory } from "@repo/categories";
 
 const MAX_DISPLAYED_USERS = 15;
+// Total line-item cap across all categories, to keep messages under
+// Telegram's 4096-char limit. We truncate per-category when hit.
+const MAX_EXPENSE_LINES = 50;
 
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
 });
+
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const formatShortDate = (d: Date): string =>
+  `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+
+const formatDateRange = (earliest: Date, latest: Date): string => {
+  const sameYear = earliest.getFullYear() === latest.getFullYear();
+  const sameMonth = sameYear && earliest.getMonth() === latest.getMonth();
+  if (sameMonth) {
+    // "1–20 Apr 2026"
+    return `${earliest.getDate()}–${latest.getDate()} ${MONTH_SHORT[latest.getMonth()]} ${latest.getFullYear()}`;
+  }
+  if (sameYear) {
+    // "28 Mar – 20 Apr 2026"
+    return `${formatShortDate(earliest)} – ${formatShortDate(latest)} ${latest.getFullYear()}`;
+  }
+  // "28 Dec 2025 – 20 Jan 2026"
+  return `${formatShortDate(earliest)} ${earliest.getFullYear()} – ${formatShortDate(latest)} ${latest.getFullYear()}`;
+};
+
+type CategoryGroup = {
+  key: string; // category id ("base:x", "chat:uuid") or "__none__"
+  emoji: string;
+  title: string;
+  total: Prisma.Decimal;
+  items: Array<{
+    description: string;
+    date: Date;
+    amountInBase: Prisma.Decimal;
+  }>;
+};
 
 export const shareSnapshotMessageHandler = async (
   input: z.infer<typeof inputSchema>,
@@ -37,6 +86,9 @@ export const shareSnapshotMessageHandler = async (
         include: {
           members: {
             where: { id: userId }, // Optimization: Only query current user
+          },
+          chatCategories: {
+            select: { id: true, emoji: true, title: true },
           },
         },
       },
@@ -65,10 +117,11 @@ export const shareSnapshotMessageHandler = async (
     });
   }
 
-  // 3. Calculate total spent and per-user share totals
+  // 3. Calculate total spent, per-user share totals, category groupings
   let totalSpent = toDecimal(0);
   const memberMap = new Map<bigint, { name: string; username?: string }>();
   const shareByUser = new Map<bigint, Prisma.Decimal>();
+  const categoryMap = new Map<string, CategoryGroup>();
 
   // Use chat's base currency if available, otherwise snapshot's, fallback to SGD
   const currencyCode = snapshot.chat.baseCurrency || snapshot.currency || "SGD";
@@ -100,6 +153,8 @@ export const shareSnapshotMessageHandler = async (
     }
   }
 
+  const chatCategoryRows = snapshot.chat.chatCategories;
+
   snapshot.expenses.forEach((expense) => {
     // Determine conversion rate
     let rate = 1;
@@ -129,6 +184,35 @@ export const shareSnapshotMessageHandler = async (
       const current = shareByUser.get(share.userId) || toDecimal(0);
       shareByUser.set(share.userId, current.plus(shareInBase));
     });
+
+    // Category grouping
+    const resolved = resolveCategory(expense.categoryId, chatCategoryRows);
+    const key = resolved?.id ?? "__none__";
+    const emoji = resolved?.emoji ?? "❓";
+    const title = resolved?.title ?? "Uncategorized";
+    const existing = categoryMap.get(key);
+    if (existing) {
+      existing.total = existing.total.plus(amountInBaseCurrency);
+      existing.items.push({
+        description: expense.description,
+        date: expense.date,
+        amountInBase: amountInBaseCurrency,
+      });
+    } else {
+      categoryMap.set(key, {
+        key,
+        emoji,
+        title,
+        total: amountInBaseCurrency,
+        items: [
+          {
+            description: expense.description,
+            date: expense.date,
+            amountInBase: amountInBaseCurrency,
+          },
+        ],
+      });
+    }
   });
 
   // 4. Format Telegram Message
@@ -147,11 +231,26 @@ export const shareSnapshotMessageHandler = async (
   const escapedTotal = escapeMarkdown(formattedTotal, 2);
   const escapedTitle = escapeMarkdown(snapshot.title, 2);
 
+  // Date range line (only if there's at least one expense)
+  let dateRangeLine = "";
+  if (snapshot.expenses.length > 0) {
+    const dates = snapshot.expenses
+      .map((e) => e.date)
+      .sort((a, b) => a.getTime() - b.getTime());
+    const earliest = dates[0]!;
+    const latest = dates[dates.length - 1]!;
+    const range = formatDateRange(earliest, latest);
+    dateRangeLine = `🗓 ${escapeMarkdown(range, 2)} · ${snapshot.expenses.length} ${
+      snapshot.expenses.length === 1 ? "expense" : "expenses"
+    }`;
+  }
+
   // NOTE: Static formatting like `*` for bold must NOT be escaped, only the dynamic values and literal chars
   const messageLines: string[] = [
     `📊 *${escapedTitle}* shared by ${creatorMention}`,
-    `Total spent: *${escapedTotal}* \\(${snapshot.expenses.length} expenses\\)`,
   ];
+  if (dateRangeLine) messageLines.push(dateRangeLine);
+  messageLines.push(`Total spent: *${escapedTotal}*`);
 
   // 5. Per-pax share breakdown, sorted by share desc
   const sortedShares = Array.from(shareByUser.entries())
@@ -188,9 +287,91 @@ export const shareSnapshotMessageHandler = async (
     }
   }
 
+  // 6. Per-category expense listing, categories sorted by total desc.
+  // Within each category, items sorted by date desc (most recent first).
+  // Rendered as a single continuous MarkdownV2 blockquote (every line
+  // prefixed with `>`) so the whole breakdown reads as a muted / tighter
+  // block next to the Shares section.
+  const sortedCategories = Array.from(categoryMap.values()).sort((a, b) =>
+    b.total.comparedTo(a.total)
+  );
+
+  let linesRemaining = MAX_EXPENSE_LINES;
+  let truncatedExpenses = 0;
+  let truncatedFromCategories = 0;
+  const breakdownLines: string[] = [];
+
+  for (const group of sortedCategories) {
+    if (linesRemaining <= 0) {
+      truncatedExpenses += group.items.length;
+      truncatedFromCategories += 1;
+      continue;
+    }
+
+    const items = [...group.items].sort(
+      (a, b) => b.date.getTime() - a.date.getTime()
+    );
+
+    const groupTotal = escapeMarkdown(
+      formatCurrencyWithCode(group.total.toNumber(), currencyCode).replace(
+        / /g,
+        " "
+      ),
+      2
+    );
+    const groupTitle = escapeMarkdown(group.title, 2);
+
+    // Internal separator between categories (a `>` alone keeps the
+    // blockquote continuous while adding vertical breathing room).
+    if (breakdownLines.length > 0) breakdownLines.push(">");
+    breakdownLines.push(`>${group.emoji} *${groupTitle}* · ${groupTotal}`);
+
+    const shownItems = items.slice(0, linesRemaining);
+    const overflowInGroup = items.length - shownItems.length;
+    truncatedExpenses += overflowInGroup;
+
+    shownItems.forEach((item, idx) => {
+      const isLast = idx === shownItems.length - 1 && overflowInGroup === 0;
+      const prefix = isLast ? "┗" : "┣";
+      const desc = escapeMarkdown(item.description, 2);
+      const dateStr = escapeMarkdown(formatShortDate(item.date), 2);
+      const amt = escapeMarkdown(
+        formatCurrencyWithCode(
+          item.amountInBase.toNumber(),
+          currencyCode
+        ).replace(/ /g, " "),
+        2
+      );
+      breakdownLines.push(`>${prefix} ${desc} · ${dateStr} · ${amt}`);
+    });
+
+    if (overflowInGroup > 0) {
+      breakdownLines.push(
+        `>┗ _…and ${escapeMarkdown(overflowInGroup.toString(), 2)} more_`
+      );
+    }
+
+    linesRemaining -= shownItems.length;
+  }
+
+  if (breakdownLines.length > 0) {
+    messageLines.push("");
+    messageLines.push(...breakdownLines);
+  }
+
+  if (truncatedExpenses > 0 && truncatedFromCategories > 0) {
+    messageLines.push(
+      `
+_…and ${escapeMarkdown(truncatedExpenses.toString(), 2)} more expenses across ${escapeMarkdown(
+        truncatedFromCategories.toString(),
+        2
+      )} categories not shown_`
+    );
+  }
+
   const message = messageLines.join("\n");
 
-  // 6. Generate deep link
+  // 7. Generate deep link
   let payload = "";
   try {
     payload = encodeV1DeepLink(
@@ -209,7 +390,7 @@ export const shareSnapshotMessageHandler = async (
     { text: "View Snapshot 📊", url: deepLink },
   ]);
 
-  // 7. Send message
+  // 8. Send message
   try {
     await teleBot.sendMessage(Number(snapshot.chatId), message, {
       parse_mode: "MarkdownV2",
