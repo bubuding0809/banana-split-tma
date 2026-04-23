@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   hapticFeedback,
   initData,
@@ -19,16 +19,20 @@ import { ArrowRightLeft, Settings, Users } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import useIsMobile from "@/hooks/useIsMobile";
 import { cn } from "@/utils/cn";
-import ChatTransactionTab from "./ChatTransactionTab";
+import ChatTransactionTab, {
+  type ChatTransactionTabRef,
+} from "./ChatTransactionTab";
+import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import UserBalancesTab from "./UserBalancesTab";
 import SnapshotsLink from "../Snapshot/SnapshotsLink";
 import AddExpenseButton from "../Expense/AddExpenseButton";
+import { trpc } from "@utils/trpc";
 
 const routeApi = getRouteApi("/_tma/chat/");
 
 const UserPage = () => {
   // * Hooks =======================================================================================
-  const { selectedTab } = routeApi.useSearch();
+  const { selectedTab, categoryFilters = [] } = routeApi.useSearch();
   const tabNavigate = routeApi.useNavigate();
   const navigate = useNavigate();
   const tUserData = useSignal(initData.user);
@@ -44,6 +48,11 @@ const UserPage = () => {
   const headerRefReal = useRef<HTMLElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
+  // Ticker/list shared state — see GroupPage for the same pattern.
+  const chatTransactionTabRef = useRef<ChatTransactionTabRef>(null);
+  const [pickedMonthKey, setPickedMonthKey] = useState<string | null>(null);
+  const programmaticScrollRef = useRef(false);
+
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
 
@@ -51,6 +60,75 @@ const UserPage = () => {
   // tab split and only knows "balance" | "transaction").
   const addExpenseTab: "balance" | "transaction" =
     selectedTab === "personal" ? "transaction" : "balance";
+
+  // * Queries =====================================================================================
+  // Ticker-only data — tRPC-cached so this is free when ChatTransactionTab
+  // also subscribes.
+  const { data: categoriesData } = trpc.category.listByChat.useQuery(
+    { chatId: userId },
+    { enabled: userId > 0 }
+  );
+  const { data: allExpensesForCounts } =
+    trpc.expense.getAllExpensesByChat.useQuery(
+      { chatId: userId },
+      { enabled: userId > 0 }
+    );
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const e of allExpensesForCounts ?? []) {
+      const key = e.categoryId ?? "none";
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [allExpensesForCounts]);
+
+  const selectedFilterSet = useMemo(
+    () => new Set(categoryFilters),
+    [categoryFilters]
+  );
+  const allCategories = useMemo(
+    () =>
+      (categoriesData?.items ?? []).filter(
+        (c) => (categoryCounts[c.id] ?? 0) > 0 || selectedFilterSet.has(c.id)
+      ),
+    [categoriesData, categoryCounts, selectedFilterSet]
+  );
+
+  // * Ticker handlers =============================================================================
+  const handlePickedMonthChange = useCallback(
+    async (monthKey: string | null) => {
+      setPickedMonthKey(monthKey);
+      if (!monthKey) return;
+      programmaticScrollRef.current = true;
+      await chatTransactionTabRef.current?.scrollToMonth(monthKey);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false;
+        });
+      });
+    },
+    []
+  );
+
+  const handleVisibleMonthChange = useCallback((monthKey: string | null) => {
+    if (programmaticScrollRef.current) return;
+    if (!monthKey) return;
+    setPickedMonthKey((prev) => (prev === monthKey ? prev : monthKey));
+  }, []);
+
+  const handleCategoryFiltersChange = useCallback(
+    (ids: string[]) => {
+      void tabNavigate({
+        search: (prev) => ({
+          ...prev,
+          categoryFilters: ids,
+          showPayments: ids.length === 0,
+        }),
+      });
+    },
+    [tabNavigate]
+  );
 
   // * Effects =====================================================================================
   useEffect(() => {
@@ -232,9 +310,31 @@ const UserPage = () => {
           }}
         >
           {selectedTab === "groups" && <UserBalancesTab />}
-          {selectedTab === "personal" && <ChatTransactionTab chatId={userId} />}
+          {selectedTab === "personal" && (
+            <ChatTransactionTab
+              ref={chatTransactionTabRef}
+              chatId={userId}
+              onVisibleMonthChange={handleVisibleMonthChange}
+            />
+          )}
         </div>
       </section>
+
+      {/* Floating category-aggregation ticker — mirrors GroupPage so the
+          pill is pinned to the viewport on the personal tab. */}
+      {selectedTab === "personal" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
+          <CategoryAggregationTicker
+            chatId={userId}
+            userId={userId}
+            categoryFilters={categoryFilters}
+            categories={allCategories}
+            pickedMonthKey={pickedMonthKey}
+            onPickedMonthChange={handlePickedMonthChange}
+            onCategoryFiltersChange={handleCategoryFiltersChange}
+          />
+        </div>
+      )}
     </main>
   );
 };

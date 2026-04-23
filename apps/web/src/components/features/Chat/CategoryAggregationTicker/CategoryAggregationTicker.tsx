@@ -198,9 +198,10 @@ export default function CategoryAggregationTicker({
       {/* Always-visible pill. Slides down out of view when any other modal
           opens so it doesn't show behind them. Strong ease-out curve +
           translateY(120%) + opacity via CSS transitions (interruptible,
-          hardware-accelerated). */}
+          hardware-accelerated). Positioning is handled by the parent
+          page — this component only manages its own visibility state. */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 py-2 pb-4 shadow-lg"
+        className="pointer-events-none flex justify-center px-3 py-2 pb-4"
         style={{
           transform: anyModalOpen ? "translateY(120%)" : "translateY(0)",
           opacity: anyModalOpen ? 0 : 1,
