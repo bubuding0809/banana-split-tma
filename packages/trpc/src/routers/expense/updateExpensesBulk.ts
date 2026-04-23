@@ -77,6 +77,17 @@ const itemResultSchema = z.discriminatedUnion("status", [
     expense: expenseOutputSchema,
   }),
   z.object({
+    // Row was in the batch but every provided field already matched
+    // the stored value — we skipped the DB write entirely, so
+    // `updatedAt` doesn't move. Returned for audit/reporting so the
+    // caller can distinguish "touched and re-wrote the same bytes"
+    // from "recognised as no-op and left alone".
+    index: z.number(),
+    status: z.literal("noop"),
+    expenseId: z.string(),
+    expense: expenseOutputSchema,
+  }),
+  z.object({
     index: z.number(),
     status: z.literal("error"),
     expenseId: z.string(),
@@ -87,6 +98,7 @@ const itemResultSchema = z.discriminatedUnion("status", [
 export const outputSchema = z.object({
   total: z.number(),
   succeeded: z.number(),
+  noop: z.number(),
   failed: z.number(),
   results: z.array(itemResultSchema),
   summary: z
@@ -96,6 +108,64 @@ export const outputSchema = z.object({
     })
     .optional(),
 });
+
+type ChangedField = "description" | "amount" | "payer" | "category" | "split";
+
+/**
+ * Compare an input patch against the pre-fetched existing expense and
+ * return the list of fields that would actually change. A field is
+ * only counted as changed when the patch provides it AND its value
+ * differs from storage — a patch that echoes the current value is not
+ * a change.
+ */
+function computeChangedFields(
+  row: {
+    description?: string;
+    amount?: number;
+    payerId?: bigint;
+    categoryId?: string | null;
+    splitMode?: SplitMode;
+    participantIds?: bigint[];
+  },
+  existing: {
+    description: string;
+    amount: { toString(): string } | number;
+    payerId: bigint;
+    categoryId: string | null;
+    splitMode: SplitMode;
+    participants: { id: bigint }[];
+  }
+): ChangedField[] {
+  const changed: ChangedField[] = [];
+  if (
+    row.description !== undefined &&
+    row.description !== existing.description
+  ) {
+    changed.push("description");
+  }
+  if (row.amount !== undefined && row.amount !== Number(existing.amount)) {
+    changed.push("amount");
+  }
+  if (row.payerId !== undefined && row.payerId !== existing.payerId) {
+    changed.push("payer");
+  }
+  if (row.categoryId !== undefined && row.categoryId !== existing.categoryId) {
+    changed.push("category");
+  }
+  const splitModeChanged =
+    row.splitMode !== undefined && row.splitMode !== existing.splitMode;
+  let participantsChanged = false;
+  if (row.participantIds !== undefined) {
+    const before = new Set(existing.participants.map((p) => p.id.toString()));
+    const after = new Set(row.participantIds.map((id) => id.toString()));
+    participantsChanged =
+      before.size !== after.size || [...before].some((id) => !after.has(id));
+  }
+  if (splitModeChanged || participantsChanged) {
+    changed.push("split");
+  }
+  return changed;
+}
 
 export const updateExpensesBulkHandler = async (
   input: z.infer<typeof inputSchema>,
@@ -178,8 +248,25 @@ export const updateExpensesBulkHandler = async (
   //    updateExpenseHandler which owns its own per-row $transaction
   //    (same atomicity boundary as singular update-expense). Per-row
   //    notifications are suppressed so we can emit one summary below.
+  //
+  //    Rows whose patch is either empty or echoes the current value
+  //    for every field are short-circuited — we don't call the
+  //    handler at all, so `updatedAt` is left untouched and the DB
+  //    doesn't take an unnecessary transaction.
+  type RowOutcome =
+    | {
+        kind: "noop";
+        expense: (typeof existingExpenses)[number];
+        changedFields: ChangedField[];
+      }
+    | {
+        kind: "updated";
+        expense: Awaited<ReturnType<typeof updateExpenseHandler>>;
+        changedFields: ChangedField[];
+      };
+
   const settled = await Promise.allSettled(
-    input.expenses.map(async (row) => {
+    input.expenses.map(async (row): Promise<RowOutcome> => {
       const existing = existingById.get(row.expenseId);
       if (!existing) {
         throw new Error(`expense ${row.expenseId} not found`);
@@ -188,6 +275,15 @@ export const updateExpensesBulkHandler = async (
         throw new Error(
           `expense ${row.expenseId} is not in the specified chat`
         );
+      }
+
+      const changedFields = computeChangedFields(row, existing);
+
+      if (changedFields.length === 0) {
+        // Row submitted but nothing would actually change. Skip the
+        // DB write entirely and hand back the existing row as the
+        // "expense" payload so callers still see a per-row entry.
+        return { kind: "noop", expense: existing, changedFields };
       }
 
       const splitMode = row.splitMode ?? existing.splitMode;
@@ -208,7 +304,7 @@ export const updateExpensesBulkHandler = async (
       const categoryId =
         row.categoryId !== undefined ? row.categoryId : existing.categoryId;
 
-      return updateExpenseHandler(
+      const updated = await updateExpenseHandler(
         {
           expenseId: row.expenseId,
           chatId: input.chatId,
@@ -228,6 +324,7 @@ export const updateExpensesBulkHandler = async (
         db,
         teleBot
       );
+      return { kind: "updated", expense: updated, changedFields };
     })
   );
 
@@ -236,9 +333,13 @@ export const updateExpensesBulkHandler = async (
     if (r.status === "fulfilled") {
       return {
         index,
-        status: "success" as const,
+        status:
+          r.value.kind === "noop" ? ("noop" as const) : ("success" as const),
         expenseId: row.expenseId,
-        expense: r.value,
+        expense: r.value.expense,
+        // kept internally for summary filtering/marking; not part of
+        // the discriminated union we return to the caller.
+        _changedFields: r.value.changedFields,
       };
     }
     return {
@@ -250,85 +351,31 @@ export const updateExpensesBulkHandler = async (
   });
 
   const succeeded = results.filter((r) => r.status === "success").length;
+  const noopCount = results.filter((r) => r.status === "noop").length;
   const failed = results.filter((r) => r.status === "error").length;
 
-  // 6. If the caller asked for it and at least one row landed, fire a
-  //    single consolidated Telegram summary. Failures here are
-  //    non-fatal — the batch has already committed row by row.
+  // 6. If the caller asked for it AND at least one row actually
+  //    changed state, fire a single consolidated Telegram summary.
+  //    No-op rows are intentionally skipped — they clutter the block
+  //    with "nothing changed here" entries. If every row was a no-op,
+  //    no summary is sent at all.
   let summary: { sent: boolean; messageId: number | null } | undefined;
   if (input.sendNotification && succeeded > 0) {
-    // The updateExpense output schema doesn't include participants, so
-    // reconstruct per-row counts from the request (participantIds override)
-    // with a fallback to the pre-fetched existing expense.
     const items = results
       .filter(
-        (r): r is typeof r & { status: "success" } => r.status === "success"
+        (r): r is typeof r & { status: "success" } =>
+          r.status === "success" && "expense" in r
       )
       .map((r) => {
         const inputRow = input.expenses[r.index];
         const existing = existingById.get(r.expenseId);
+        // updateExpense output doesn't include participants, so fall
+        // back through the patch (if it set them) to the pre-fetched
+        // existing row for the count.
         const participantCount =
           inputRow?.participantIds?.length ??
           existing?.participants.length ??
           undefined;
-
-        // Diff pre- vs post-update state so the summary can mark each
-        // changed branch with ✏️. We compare the *input patch* against
-        // the existing row rather than the serialised updateExpense
-        // output so string/number/bigint round-tripping doesn't trigger
-        // false positives (e.g. BigInt(123n) === 123 on a stringifier).
-        const changedFields: (
-          | "description"
-          | "amount"
-          | "payer"
-          | "category"
-          | "split"
-        )[] = [];
-        if (existing && inputRow) {
-          if (
-            inputRow.description !== undefined &&
-            inputRow.description !== existing.description
-          ) {
-            changedFields.push("description");
-          }
-          if (
-            inputRow.amount !== undefined &&
-            inputRow.amount !== Number(existing.amount)
-          ) {
-            changedFields.push("amount");
-          }
-          if (
-            inputRow.payerId !== undefined &&
-            inputRow.payerId !== existing.payerId
-          ) {
-            changedFields.push("payer");
-          }
-          if (
-            inputRow.categoryId !== undefined &&
-            inputRow.categoryId !== existing.categoryId
-          ) {
-            changedFields.push("category");
-          }
-          const splitModeChanged =
-            inputRow.splitMode !== undefined &&
-            inputRow.splitMode !== existing.splitMode;
-          let participantsChanged = false;
-          if (inputRow.participantIds !== undefined) {
-            const before = new Set(
-              existing.participants.map((p) => p.id.toString())
-            );
-            const after = new Set(
-              inputRow.participantIds.map((id) => id.toString())
-            );
-            participantsChanged =
-              before.size !== after.size ||
-              [...before].some((id) => !after.has(id));
-          }
-          if (splitModeChanged || participantsChanged) {
-            changedFields.push("split");
-          }
-        }
-
         return {
           description: r.expense.description,
           amount: Number(r.expense.amount),
@@ -339,7 +386,8 @@ export const updateExpensesBulkHandler = async (
           payerId: BigInt(r.expense.payerId),
           splitMode: r.expense.splitMode,
           participantCount,
-          changedFields: changedFields.length > 0 ? changedFields : undefined,
+          changedFields:
+            r._changedFields.length > 0 ? r._changedFields : undefined,
         };
       });
 
@@ -358,11 +406,18 @@ export const updateExpensesBulkHandler = async (
     );
   }
 
+  // Strip the internal `_changedFields` field before returning — it's
+  // for summary plumbing only and isn't part of the output schema.
+  const publicResults = results.map(
+    ({ _changedFields: _omit, ...rest }: any) => rest
+  );
+
   return {
     total: input.expenses.length,
     succeeded,
+    noop: noopCount,
     failed,
-    results,
+    results: publicResults,
     ...(summary ? { summary } : {}),
   };
 };
