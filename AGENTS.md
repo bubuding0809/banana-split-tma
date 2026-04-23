@@ -366,6 +366,34 @@ If users open the bot and land on the wrong app, check (2). If the "Open App" bu
 - `pnpm --filter @dko/database exec prisma studio` — open a DB GUI in the browser
 - `pnpm --filter @dko/database exec prisma migrate dev --name <change>` — author a new migration from schema changes
 
+### Post-deploy UAT workflow
+
+After a PR auto-merges and the prod deploy finishes, split UAT between a subagent and the user:
+
+**Subagent-driven UAT** (`general-purpose` subagent, one-shot) — for anything the agent can assert programmatically:
+
+- CLI behavior: dispatch `node apps/cli/dist/cli.js ...` against prod, parse JSON responses.
+- tRPC input/output shapes and new fields.
+- DB state: `get-expense`/`get-chat`/etc. between steps to confirm reads/writes landed.
+- Per-row counters (`succeeded`/`noop`/`failed`) and downstream effects like `summary.sent`.
+
+Brief the subagent like a smart colleague: what PR shipped, what to test, concrete JSON templates for scratch files, chat IDs, and explicit cleanup instructions. The subagent must delete every scratch row it creates — DEV-BOX-2 accumulates cruft otherwise. Don't use `run_in_background: true` for UAT; you want the structured report back before moving on.
+
+**Manual UAT via `AskUserQuestion`** — for anything user-facing that the agent cannot see:
+
+- Telegram message rendering (emoji, blockquotes, MarkdownV2 escapes, thread IDs, message-edit vs new-message behavior).
+- TMA web UI (toggle switches, haptic feedback, optimistic updates, form edit/create flows).
+- Bot handler UX (slash commands, update bumps, keyboards).
+- Anything where the user's eye is the ground truth.
+
+The subagent should **always** return a "user-verify items" section listing Telegram `messageId`s and expected visual outcomes, so the user can cross-check in-app in one pass instead of having to re-derive what should be there. Established pattern in PRs #201, #202, #203.
+
+**What to never delegate:**
+
+- Git/PR operations (commits, pushes, merges) — main session only.
+- Scope decisions — what to ship, what to cut.
+- Actions affecting shared state outside this repo/DB (e.g. posting to chats the user hasn't authorized, sending group reminders) without prior approval.
+
 ### Git Workflows for Features and Hotfixes
 
 **CRITICAL**: When starting any new feature or hotfix, you MUST use isolated git worktrees rather than checking out branches in the main workspace.
