@@ -256,11 +256,19 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
     );
 
     // Watch the scroll position and emit a month-change callback when
-    // the bottom-most visible row crosses into a new month. Picks the
-    // last virtual item whose top edge is above the viewport bottom
-    // and whose bottom edge is below the viewport top — i.e. the row
-    // nearest the foot of the visible area. rAF-throttled so fast
-    // scrolls don't flood the parent.
+    // the dominant visible month changes.
+    //
+    // Default rule: pick the month with the most vertical area inside
+    // the viewport — reads as "the month you're looking at" and keeps
+    // the pill stable when a neighbouring month's header peeks in.
+    //
+    // End-of-scroll exception: once the list is pinned to its bottom,
+    // the oldest month often has too few rows to ever dominate by area
+    // (footer + short tail crowd it out), so we fall back to the
+    // bottom-most visible row's month. Without this the pill would
+    // never reach the final month just by scrolling.
+    //
+    // rAF-throttled so fast scrolls don't flood the parent.
     const lastEmittedMonthRef = useRef<string | null>(null);
     useEffect(() => {
       if (!onVisibleMonthChange) return;
@@ -274,21 +282,51 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
         if (items.length === 0) return;
         const offset = virtualizer.scrollOffset ?? 0;
         const viewportEnd = offset + el.clientHeight;
-        let bottomVirtual: (typeof items)[number] | null = null;
-        for (let i = items.length - 1; i >= 0; i--) {
-          const v = items[i];
-          if (v.start < viewportEnd && v.end > offset) {
-            bottomVirtual = v;
-            break;
-          }
-        }
-        if (!bottomVirtual) return;
-        const item = virtualItems[bottomVirtual.index];
-        if (!item) return;
-        const monthKey =
-          item.type === "header"
+        const atBottom = viewportEnd >= el.scrollHeight - 1;
+
+        const itemMonthKey = (idx: number): string | null => {
+          const item = virtualItems[idx];
+          if (!item) return null;
+          return item.type === "header"
             ? item.key.replace(/^header-/, "")
             : item.monthKey;
+        };
+
+        let monthKey: string | null = null;
+
+        if (atBottom) {
+          // Bottom-most visible row — iterates from the tail so we
+          // hit the last row whose extents overlap the viewport.
+          for (let i = items.length - 1; i >= 0; i--) {
+            const v = items[i];
+            if (v.start < viewportEnd && v.end > offset) {
+              monthKey = itemMonthKey(v.index);
+              break;
+            }
+          }
+        } else {
+          // Max-area — sum visible height per month and keep the
+          // largest.
+          const areaByMonth = new Map<string, number>();
+          for (const v of items) {
+            const top = Math.max(v.start, offset);
+            const bottom = Math.min(v.end, viewportEnd);
+            const visible = bottom - top;
+            if (visible <= 0) continue;
+            const key = itemMonthKey(v.index);
+            if (!key) continue;
+            areaByMonth.set(key, (areaByMonth.get(key) ?? 0) + visible);
+          }
+          let bestArea = 0;
+          for (const [m, a] of areaByMonth) {
+            if (a > bestArea) {
+              bestArea = a;
+              monthKey = m;
+            }
+          }
+        }
+
+        if (!monthKey) return;
         if (monthKey === lastEmittedMonthRef.current) return;
         lastEmittedMonthRef.current = monthKey;
         onVisibleMonthChange(monthKey);
