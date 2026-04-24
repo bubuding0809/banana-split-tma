@@ -1,20 +1,14 @@
-import { useMemo } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { BarChart } from "@tremor/react";
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
-import {
-  SnapshotBarTooltip,
-  type SnapshotBarDatum,
-} from "./SnapshotBarTooltip";
+import { Caption, Text } from "@telegram-apps/telegram-ui";
+import { formatCurrencyWithCode } from "@/utils/financial";
 
-export type { SnapshotBarDatum };
+export type SnapshotBarDatum = {
+  key: string;
+  label: string;
+  value: number;
+  count: number;
+};
 
 type Orientation = "horizontal" | "vertical";
 
@@ -22,21 +16,18 @@ interface SnapshotBarChartProps {
   data: SnapshotBarDatum[];
   orientation: Orientation;
   baseCurrency: string;
-  /** Pixel height of the chart canvas (width is 100%). */
+  /** Pixel height of the chart. */
   height?: number;
 }
 
 /**
- * Recharts wrapper for the snapshot views. The ONLY file (with
- * SnapshotBarTooltip) that imports from `recharts`.
+ * Tremor BarChart wrapper. Tremor sits on top of Recharts but handles
+ * ResponsiveContainer + axis sizing with better defaults for dashboards.
  *
- * - `horizontal` = rows stacked top-to-bottom, bars grow to the right.
- *                  Used on Category + Payer tabs.
- * - `vertical`   = columns left-to-right, bars grow from the bottom.
- *                  Used on the Date tab.
- *
- * Bars are tappable: taps surface a rich Telegram-UI-styled tooltip with
- * the slice label, amount, count, and % of total.
+ * `horizontal` = bars grow left-to-right (Tremor `layout="vertical"`).
+ *                Used on Category + Payer tabs.
+ * `vertical`   = bars grow bottom-to-top (Tremor `layout="horizontal"`).
+ *                Used on the Date tab.
  */
 export function SnapshotBarChart({
   data,
@@ -45,75 +36,60 @@ export function SnapshotBarChart({
   height,
 }: SnapshotBarChartProps) {
   const buttonColor = useSignal(themeParams.buttonColor) ?? "#5288c1";
-  const subtitleColor = useSignal(themeParams.subtitleTextColor) ?? "#8e8e93";
-
-  // Recharts uses layout="vertical" for visually-horizontal bars and
-  // layout="horizontal" for vertical bars. Translate at the boundary so
-  // our orientation prop stays intuitive.
-  const rechartsLayout =
-    orientation === "horizontal" ? "vertical" : "horizontal";
-
-  const total = useMemo(
-    () => data.reduce((sum, d) => sum + d.value, 0),
-    [data]
-  );
 
   if (data.length === 0) return null;
 
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const tremorLayout = orientation === "horizontal" ? "vertical" : "horizontal";
   const effectiveHeight =
     height ??
-    (orientation === "horizontal" ? Math.max(140, data.length * 36 + 16) : 180);
+    (orientation === "horizontal" ? Math.max(160, data.length * 36 + 24) : 200);
+
+  // Tremor keys categories by the `index` column, so we rename `label` → name.
+  const chartRows = data.map((d) => ({
+    name: d.label,
+    Amount: d.value,
+    __count: d.count,
+    __key: d.key,
+  }));
 
   return (
-    <ResponsiveContainer width="100%" height={effectiveHeight}>
+    <div style={{ height: `${effectiveHeight}px` }}>
       <BarChart
-        data={data}
-        layout={rechartsLayout}
-        margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
-        barCategoryGap={orientation === "horizontal" ? 6 : 8}
-      >
-        {orientation === "horizontal" ? (
-          <>
-            <XAxis type="number" hide />
-            <YAxis
-              type="category"
-              dataKey="label"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: subtitleColor, fontSize: 12 }}
-              width={140}
-              interval={0}
-            />
-          </>
-        ) : (
-          <>
-            <XAxis
-              dataKey="label"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: subtitleColor, fontSize: 10 }}
-              interval="preserveStartEnd"
-            />
-            <YAxis hide />
-          </>
-        )}
-        <Tooltip
-          cursor={{ fill: "rgba(255,255,255,0.05)" }}
-          content={
-            <SnapshotBarTooltip total={total} baseCurrency={baseCurrency} />
-          }
-          wrapperStyle={{ outline: "none", zIndex: 10 }}
-        />
-        <Bar
-          dataKey="value"
-          radius={orientation === "horizontal" ? [0, 4, 4, 0] : [4, 4, 0, 0]}
-          minPointSize={3}
-        >
-          {data.map((d) => (
-            <Cell key={d.key} fill={buttonColor} cursor="pointer" />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+        data={chartRows}
+        index="name"
+        categories={["Amount"]}
+        colors={[buttonColor]}
+        layout={tremorLayout}
+        yAxisWidth={orientation === "horizontal" ? 140 : 60}
+        showLegend={false}
+        showGridLines={false}
+        showAnimation
+        valueFormatter={(value) => formatCurrencyWithCode(value, baseCurrency)}
+        customTooltip={({ active, payload }) => {
+          if (!active || !payload?.length) return null;
+          const datum = payload[0]!.payload as {
+            name: string;
+            Amount: number;
+            __count: number;
+          };
+          const pct = total > 0 ? Math.round((datum.Amount / total) * 100) : 0;
+          return (
+            <div className="rounded-lg border border-white/10 bg-neutral-900/95 px-3 py-2 shadow-lg">
+              <Caption weight="2" level="1" className="block">
+                {datum.name}
+              </Caption>
+              <Text weight="2">
+                {formatCurrencyWithCode(datum.Amount, baseCurrency)}
+              </Text>
+              <Caption level="1" weight="3" className="mt-0.5 block opacity-60">
+                {datum.__count} {datum.__count === 1 ? "expense" : "expenses"} ·{" "}
+                {pct}% of total
+              </Caption>
+            </div>
+          );
+        }}
+      />
+    </div>
   );
 }
