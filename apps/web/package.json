@@ -28,7 +28,6 @@
     "@tanstack/zod-adapter": "^1.121.24",
     "@telegram-apps/sdk-react": "^2.0.25",
     "@telegram-apps/telegram-ui": "^2.1.8",
-    "@tremor/react": "^3.18.7",
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
