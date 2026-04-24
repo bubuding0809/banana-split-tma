@@ -1,8 +1,8 @@
 import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
-import { format } from "date-fns";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
+import { SnapshotExpenseRow } from "./SnapshotExpenseRow";
 import type { SnapshotAggregations } from "../aggregations/computeSnapshotAggregations";
 
 interface PayerViewProps {
@@ -21,21 +21,21 @@ export function PayerView({ aggregations }: PayerViewProps) {
   return (
     <>
       <Section header="By payer">
-        <Cell multiline>
+        <div className="px-4 py-3">
           <SnapshotBarChart
             data={chartData}
             orientation="horizontal"
             baseCurrency={baseCurrency}
           />
-        </Cell>
+        </div>
       </Section>
 
       {byPayer.map((group) => (
         <Section key={group.payerId}>
           <Cell
             before={<ChatMemberAvatar userId={group.payerId} size={40} />}
-            subtitle={
-              <Caption level="1" weight="3">
+            subhead={
+              <Caption weight="1" level="1">
                 {group.items.length}{" "}
                 {group.items.length === 1 ? "expense" : "expenses"}
               </Caption>
@@ -49,21 +49,11 @@ export function PayerView({ aggregations }: PayerViewProps) {
             <Text weight="2">{group.payer.firstName}</Text>
           </Cell>
           {group.items.map((item) => (
-            <Cell
+            <SnapshotExpenseRow
               key={item.id}
-              subhead={
-                <Caption level="1" weight="3">
-                  {item.categoryEmoji} · {format(item.date, "d MMM")}
-                </Caption>
-              }
-              after={
-                <Text weight="3">
-                  {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
-                </Text>
-              }
-            >
-              <Text weight="3">{item.description}</Text>
-            </Cell>
+              item={item}
+              baseCurrency={baseCurrency}
+            />
           ))}
         </Section>
       ))}

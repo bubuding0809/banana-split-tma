@@ -118,15 +118,12 @@ export function SnapshotBarChart({
             i === data.length - 1 ||
             i === Math.floor(data.length / 2);
           return (
-            <div
-              key={`${d.key}-label`}
-              className="flex flex-1 justify-center overflow-hidden"
-            >
+            <div key={`${d.key}-label`} className="flex flex-1 justify-center">
               {showLabel && (
                 <Text
                   Component="span"
                   weight="3"
-                  className="truncate text-[10px] opacity-60"
+                  className="whitespace-nowrap text-[10px] opacity-60"
                 >
                   {d.label}
                 </Text>

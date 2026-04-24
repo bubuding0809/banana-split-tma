@@ -1,7 +1,7 @@
 import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
-import { format } from "date-fns";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
+import { SnapshotExpenseRow } from "./SnapshotExpenseRow";
 import type { SnapshotAggregations } from "../aggregations/computeSnapshotAggregations";
 
 const TOP_N = 8;
@@ -37,25 +37,25 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
   return (
     <>
       <Section header="By category">
-        <Cell multiline>
+        <div className="px-4 py-3">
           <SnapshotBarChart
             data={chartData}
             orientation="horizontal"
             baseCurrency={baseCurrency}
           />
-        </Cell>
+        </div>
       </Section>
 
       {byCategory.map((group) => (
         <Section key={group.key}>
           <Cell
             before={
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)] text-lg leading-none">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
                 {group.emoji}
               </div>
             }
-            subtitle={
-              <Caption level="1" weight="3">
+            subhead={
+              <Caption weight="1" level="1">
                 {group.items.length}{" "}
                 {group.items.length === 1 ? "expense" : "expenses"}
               </Caption>
@@ -69,21 +69,11 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
             <Text weight="2">{group.title}</Text>
           </Cell>
           {group.items.map((item) => (
-            <Cell
+            <SnapshotExpenseRow
               key={item.id}
-              subhead={
-                <Caption level="1" weight="3">
-                  {item.payer.firstName} · {format(item.date, "d MMM")}
-                </Caption>
-              }
-              after={
-                <Text weight="3">
-                  {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
-                </Text>
-              }
-            >
-              <Text weight="3">{item.description}</Text>
-            </Cell>
+              item={item}
+              baseCurrency={baseCurrency}
+            />
           ))}
         </Section>
       ))}
