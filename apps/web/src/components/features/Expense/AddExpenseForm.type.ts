@@ -2,6 +2,47 @@ import { z } from "zod";
 
 const SplitMode = z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES"]);
 
+const Weekday = z.enum(["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]);
+
+// Form-only — UI representation. Backend stores the canonical (frequency,interval,weekdays).
+// `superRefine` wrapping the discriminated union (rather than the active option)
+// because zod's `discriminatedUnion` only accepts plain ZodObject options, not
+// ZodEffects produced by `.superRefine()` on a child.
+const RecurrenceForm = z
+  .discriminatedUnion("preset", [
+    z.object({ preset: z.literal("NONE") }),
+    z.object({
+      preset: z.enum([
+        "DAILY",
+        "WEEKLY",
+        "BIWEEKLY",
+        "MONTHLY",
+        "EVERY_3_MONTHS",
+        "EVERY_6_MONTHS",
+        "YEARLY",
+        "CUSTOM",
+      ]),
+      customFrequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]),
+      customInterval: z.number().int().positive(),
+      weekdays: z.array(Weekday),
+      endDate: z.string().optional(), // ISO YYYY-MM-DD
+    }),
+  ])
+  .superRefine((val, ctx) => {
+    if (val.preset === "NONE") return;
+    const isWeekly =
+      val.preset === "WEEKLY" ||
+      val.preset === "BIWEEKLY" ||
+      (val.preset === "CUSTOM" && val.customFrequency === "WEEKLY");
+    if (isWeekly && val.weekdays.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["weekdays"],
+        message: "Pick at least one day",
+      });
+    }
+  });
+
 export const expenseFormSchema = z.object({
   amount: z.string().min(1, "An amount is required"),
   currency: z.string().min(3).max(3, "Currency code must be 3 characters"),
@@ -42,6 +83,7 @@ export const expenseFormSchema = z.object({
         }),
     })
   ),
+  recurrence: RecurrenceForm,
 });
 
 export type SplitModeType = z.infer<typeof SplitMode>;

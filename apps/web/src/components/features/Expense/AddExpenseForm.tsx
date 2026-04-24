@@ -21,6 +21,23 @@ export const formOpts = formOptions({
     userTouchedCategory: false,
     suggestPending: false,
     customSplits: [] as { userId: string; amount: string }[],
+    recurrence: { preset: "NONE" } as
+      | { preset: "NONE" }
+      | {
+          preset:
+            | "DAILY"
+            | "WEEKLY"
+            | "BIWEEKLY"
+            | "MONTHLY"
+            | "EVERY_3_MONTHS"
+            | "EVERY_6_MONTHS"
+            | "YEARLY"
+            | "CUSTOM";
+          customFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+          customInterval: number;
+          weekdays: ("SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT")[];
+          endDate?: string;
+        },
   },
   validators: {
     onChange: expenseFormSchema,
