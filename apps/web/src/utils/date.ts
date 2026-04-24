@@ -86,3 +86,41 @@ export const formatJumpToDate = (date: Date): string => {
 export const formatDateKey = (date: Date): string => {
   return format(date, "yyyy-MM-dd");
 };
+
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+const formatShortDate = (d: Date): string =>
+  `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+
+/**
+ * Formats a snapshot's earliest → latest expense date range.
+ * Mirrors the server-side formatDateRange in shareSnapshotMessage.ts
+ * so the in-app header reads identically to the Telegram share header.
+ */
+export const formatSnapshotDateRange = (
+  earliest: Date,
+  latest: Date
+): string => {
+  const sameYear = earliest.getFullYear() === latest.getFullYear();
+  const sameMonth = sameYear && earliest.getMonth() === latest.getMonth();
+  if (sameMonth) {
+    return `${earliest.getDate()}–${latest.getDate()} ${MONTH_SHORT[latest.getMonth()]} ${latest.getFullYear()}`;
+  }
+  if (sameYear) {
+    return `${formatShortDate(earliest)} – ${formatShortDate(latest)} ${latest.getFullYear()}`;
+  }
+  return `${formatShortDate(earliest)} ${earliest.getFullYear()} – ${formatShortDate(latest)} ${latest.getFullYear()}`;
+};
