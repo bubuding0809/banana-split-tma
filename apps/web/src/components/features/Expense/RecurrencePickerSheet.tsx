@@ -312,9 +312,14 @@ export default function RecurrencePickerSheet({
                           onChange({ ...value, weekdays: next });
                         }}
                         className={
-                          "flex size-8 items-center justify-center rounded-full text-[13px] font-medium " +
+                          // Selected: link-color background with bg-color text.
+                          // Link color is always a vivid accent in Telegram themes
+                          // (button-color can clash with secondary-bg-color in some
+                          // themes); bg-color is the inverse of link-color by design,
+                          // so contrast always works in both Light and Dark themes.
+                          "flex size-8 items-center justify-center rounded-full text-[13px] font-medium transition-colors " +
                           (selected
-                            ? "bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color)"
+                            ? "bg-(--tg-theme-link-color) text-(--tg-theme-bg-color)"
                             : "bg-(--tg-theme-secondary-bg-color)")
                         }
                       >
