@@ -396,7 +396,10 @@ const SnapshotDetailsModal = ({
         <Section className="mt-0">
           <Cell
             before={
-              <span className="bg-(--tg-theme-button-color,#5288c1) rounded-lg p-1.5">
+              <span
+                className="rounded-lg p-1.5"
+                style={{ backgroundColor: tButtonColor ?? "#5288c1" }}
+              >
                 <BarChart3 size={18} color="white" />
               </span>
             }

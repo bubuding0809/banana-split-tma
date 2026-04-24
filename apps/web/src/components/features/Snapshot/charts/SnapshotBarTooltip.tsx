@@ -1,5 +1,6 @@
 import { Caption, Text } from "@telegram-apps/telegram-ui";
 import type { TooltipProps } from "recharts";
+import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 
 export type SnapshotBarTooltipPayload = {
@@ -12,12 +13,15 @@ export function SnapshotBarTooltip(
   props: TooltipProps<number, string> & { baseCurrency: string }
 ) {
   const { active, payload, baseCurrency } = props;
+  const secondaryBg =
+    useSignal(themeParams.secondaryBackgroundColor) ?? "#212a33";
+
   if (!active || !payload || payload.length === 0) return null;
   const datum = payload[0]!.payload as SnapshotBarTooltipPayload;
   return (
     <div
       style={{
-        background: "var(--tg-theme-secondary-bg-color, #212a33)",
+        background: secondaryBg,
         border: "1px solid rgba(255,255,255,0.08)",
         borderRadius: 8,
         padding: "6px 10px",
