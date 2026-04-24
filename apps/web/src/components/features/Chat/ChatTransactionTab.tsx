@@ -130,16 +130,44 @@ const ChatTransactionTab = forwardRef<
     []
   );
 
+  // Auto-scroll to a deep-linked expense (e.g. tapped from a bot
+  // notification's "View Expense" button). The virtualized segment's
+  // `scrollToTransaction` only succeeds once the expenses query has
+  // resolved AND the target is present in the current filtered view.
+  // On a cold deep-link open the data isn't there yet, so the first
+  // call returns false. Poll on a short interval until it succeeds or
+  // we hit the cap — cheap, contained to this mount, and naturally
+  // gives up for deleted/filtered-out expenses without user-visible
+  // noise.
   useEffect(() => {
-    const isFirstLoadDone = firstLoadDoneRef.current;
-    const timeout = setTimeout(() => {
-      if (selectedExpense && virtualizedRef.current && !isFirstLoadDone) {
-        virtualizedRef.current.scrollToTransaction(selectedExpense);
-      }
-      firstLoadDoneRef.current = true;
-    }, 100);
+    if (!selectedExpense || firstLoadDoneRef.current) return;
 
-    return () => clearTimeout(timeout);
+    let cancelled = false;
+    const MAX_ATTEMPTS = 25; // ~5s at 200ms
+    const INTERVAL_MS = 200;
+
+    const run = async () => {
+      for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        if (cancelled) return;
+        const ok =
+          await virtualizedRef.current?.scrollToTransaction(selectedExpense);
+        if (ok) {
+          firstLoadDoneRef.current = true;
+          return;
+        }
+        await new Promise((r) => setTimeout(r, INTERVAL_MS));
+      }
+      // Give up quietly. Target may be deleted or filtered out — the
+      // user still lands on the transaction tab and can scroll/filter
+      // manually.
+      firstLoadDoneRef.current = true;
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedExpense]);
 
   // * Queries ==================================================================================
