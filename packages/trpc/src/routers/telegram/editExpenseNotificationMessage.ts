@@ -162,8 +162,11 @@ export const sendExpenseUpdateStandaloneHandler = async (
     );
     const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
 
+    // Description rendered as a MarkdownV2 blockquote so it visually
+    // sits under the header as a quoted expense identifier, matching
+    // the "> 📝 • …" style used by the full notification.
     const escapedDescription = escapeMarkdown(input.expenseDescription, 2);
-    const message = `📝 Expense updated by ${updaterMention}: ${escapedDescription}`;
+    const message = `📝 Expense updated by ${updaterMention}\n> ${escapedDescription}`;
 
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
