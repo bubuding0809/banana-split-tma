@@ -10,6 +10,7 @@ import {
   Info,
   Placeholder,
   Button,
+  ButtonCell,
   Spinner,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
@@ -394,7 +395,7 @@ const SnapshotDetailsModal = ({
       <div className="max-h-[80vh]">
         {/* Open full view CTA */}
         <Section className="mt-0">
-          <Cell
+          <ButtonCell
             before={
               <span
                 className="rounded-lg p-1.5"
@@ -417,10 +418,9 @@ const SnapshotDetailsModal = ({
                 search: { view: "cat" },
               });
             }}
-            description="Category, date, payer breakdowns with charts"
           >
-            <Text weight="2">Open full view</Text>
-          </Cell>
+            Open full view
+          </ButtonCell>
         </Section>
 
         {/* Header Information */}
