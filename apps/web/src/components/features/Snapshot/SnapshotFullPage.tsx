@@ -134,17 +134,15 @@ export function SnapshotFullPage({
   };
 
   return (
-    <>
+    <div className="flex flex-col gap-2">
       <SnapshotHero
         aggregations={aggregations}
         onYourShareClick={() => handleTabChange("payer")}
       />
-      <div style={{ padding: "8px 16px" }}>
-        <SnapshotViewTabs value={view} onChange={handleTabChange} />
-      </div>
+      <SnapshotViewTabs value={view} onChange={handleTabChange} />
       {view === "cat" && <CategoryView aggregations={aggregations} />}
       {view === "date" && <DateView aggregations={aggregations} />}
       {view === "payer" && <PayerView aggregations={aggregations} />}
-    </>
+    </div>
   );
 }

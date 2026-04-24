@@ -1,5 +1,6 @@
 import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
 import { format } from "date-fns";
+import { CalendarDays } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
 import type { SnapshotAggregations } from "../aggregations/computeSnapshotAggregations";
@@ -17,33 +18,44 @@ export function DateView({ aggregations }: DateViewProps) {
     value: g.totalInBase,
   }));
 
+  // List order matches the share message: newest day first.
   const listGroups = [...byDate].reverse();
 
   return (
     <>
       <Section header="By date">
-        <div style={{ padding: "12px 0" }}>
+        <Cell multiline>
           <SnapshotBarChart
             data={chartData}
             orientation="vertical"
             baseCurrency={baseCurrency}
-            height={180}
+            height={140}
           />
-        </div>
+        </Cell>
       </Section>
 
       {listGroups.map((group) => (
-        <Section
-          key={group.key}
-          header={
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>📅 {format(group.date, "d MMM yyyy")}</span>
-              <span>
+        <Section key={group.key}>
+          <Cell
+            before={
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)]">
+                <CalendarDays size={18} className="opacity-80" />
+              </div>
+            }
+            subtitle={
+              <Caption level="1" weight="3">
+                {group.items.length}{" "}
+                {group.items.length === 1 ? "expense" : "expenses"}
+              </Caption>
+            }
+            after={
+              <Text weight="2">
                 {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </span>
-            </div>
-          }
-        >
+              </Text>
+            }
+          >
+            <Text weight="2">{format(group.date, "d MMM yyyy")}</Text>
+          </Cell>
           {group.items.map((item) => (
             <Cell
               key={item.id}
@@ -53,12 +65,12 @@ export function DateView({ aggregations }: DateViewProps) {
                 </Caption>
               }
               after={
-                <Text weight="2">
+                <Text weight="3">
                   {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
                 </Text>
               }
             >
-              {item.description}
+              <Text weight="3">{item.description}</Text>
             </Cell>
           ))}
         </Section>

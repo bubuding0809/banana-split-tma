@@ -21,40 +21,33 @@ export function PayerView({ aggregations }: PayerViewProps) {
   return (
     <>
       <Section header="By payer">
-        <div style={{ padding: "12px 0" }}>
+        <Cell multiline>
           <SnapshotBarChart
             data={chartData}
             orientation="horizontal"
             baseCurrency={baseCurrency}
-            height={Math.max(140, chartData.length * 32 + 20)}
           />
-        </div>
+        </Cell>
       </Section>
 
       {byPayer.map((group) => (
-        <Section
-          key={group.payerId}
-          header={
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ChatMemberAvatar userId={group.payerId} size={24} />
-                <span>
-                  {group.payer.firstName} · {group.items.length}
-                  {group.items.length === 1 ? " expense" : " expenses"}
-                </span>
-              </div>
-              <span>
+        <Section key={group.payerId}>
+          <Cell
+            before={<ChatMemberAvatar userId={group.payerId} size={40} />}
+            subtitle={
+              <Caption level="1" weight="3">
+                {group.items.length}{" "}
+                {group.items.length === 1 ? "expense" : "expenses"}
+              </Caption>
+            }
+            after={
+              <Text weight="2">
                 {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </span>
-            </div>
-          }
-        >
+              </Text>
+            }
+          >
+            <Text weight="2">{group.payer.firstName}</Text>
+          </Cell>
           {group.items.map((item) => (
             <Cell
               key={item.id}
@@ -64,12 +57,12 @@ export function PayerView({ aggregations }: PayerViewProps) {
                 </Caption>
               }
               after={
-                <Text weight="2">
+                <Text weight="3">
                   {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
                 </Text>
               }
             >
-              {item.description}
+              <Text weight="3">{item.description}</Text>
             </Cell>
           ))}
         </Section>

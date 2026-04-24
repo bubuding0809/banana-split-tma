@@ -351,6 +351,32 @@ const SnapshotDetailsModal = ({
               <IconButton
                 size="s"
                 mode="gray"
+                onClick={() => {
+                  if (!snapShotDetails) return;
+                  if (hapticFeedback.isSupported())
+                    hapticFeedback.impactOccurred("light");
+                  onOpenChange(false);
+                  navigate({
+                    to: "/chat/$chatId/snapshots/$snapshotId",
+                    params: {
+                      chatId: String(snapShotDetails.chatId),
+                      snapshotId,
+                    },
+                    search: { view: "cat" },
+                  });
+                }}
+                className="p-1"
+                disabled={!snapShotDetails}
+              >
+                <BarChart3
+                  size={20}
+                  strokeWidth={3}
+                  style={{ color: tButtonColor }}
+                />
+              </IconButton>
+              <IconButton
+                size="s"
+                mode="gray"
                 onClick={handleShareClick}
                 className="p-1"
                 disabled={shareSnapshotMutation.isPending}
@@ -392,36 +418,6 @@ const SnapshotDetailsModal = ({
       }
     >
       <div className="max-h-[80vh]">
-        {/* Open full view CTA */}
-        <div className="px-4 pt-2">
-          <Button
-            stretched
-            size="m"
-            mode="filled"
-            before={<BarChart3 size={18} />}
-            onClick={() => {
-              if (!snapShotDetails) return;
-              if (hapticFeedback.isSupported())
-                hapticFeedback.impactOccurred("light");
-              onOpenChange(false);
-              navigate({
-                to: "/chat/$chatId/snapshots/$snapshotId",
-                params: {
-                  chatId: String(snapShotDetails.chatId),
-                  snapshotId,
-                },
-                search: { view: "cat" },
-              });
-            }}
-            style={{
-              backgroundColor: tButtonColor ?? "#5288c1",
-              color: "white",
-            }}
-          >
-            Open full view
-          </Button>
-        </div>
-
         {/* Header Information */}
         <Section>
           <Cell

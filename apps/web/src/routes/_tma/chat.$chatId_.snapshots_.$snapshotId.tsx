@@ -17,5 +17,9 @@ export const Route = createFileRoute(
 
 function SnapshotDetailsRoute() {
   const { chatId, snapshotId } = Route.useParams();
-  return <SnapshotFullPage chatId={Number(chatId)} snapshotId={snapshotId} />;
+  return (
+    <div className="p-4">
+      <SnapshotFullPage chatId={Number(chatId)} snapshotId={snapshotId} />
+    </div>
+  );
 }

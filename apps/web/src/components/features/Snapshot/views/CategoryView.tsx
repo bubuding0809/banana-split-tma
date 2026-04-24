@@ -37,30 +37,37 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
   return (
     <>
       <Section header="By category">
-        <div style={{ padding: "12px 0" }}>
+        <Cell multiline>
           <SnapshotBarChart
             data={chartData}
             orientation="horizontal"
             baseCurrency={baseCurrency}
-            height={Math.max(160, chartData.length * 28 + 20)}
           />
-        </div>
+        </Cell>
       </Section>
 
       {byCategory.map((group) => (
-        <Section
-          key={group.key}
-          header={
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>
-                {group.emoji} {group.title}
-              </span>
-              <span>
+        <Section key={group.key}>
+          <Cell
+            before={
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)] text-lg leading-none">
+                {group.emoji}
+              </div>
+            }
+            subtitle={
+              <Caption level="1" weight="3">
+                {group.items.length}{" "}
+                {group.items.length === 1 ? "expense" : "expenses"}
+              </Caption>
+            }
+            after={
+              <Text weight="2">
                 {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </span>
-            </div>
-          }
-        >
+              </Text>
+            }
+          >
+            <Text weight="2">{group.title}</Text>
+          </Cell>
           {group.items.map((item) => (
             <Cell
               key={item.id}
@@ -70,12 +77,12 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
                 </Caption>
               }
               after={
-                <Text weight="2">
+                <Text weight="3">
                   {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
                 </Text>
               }
             >
-              {item.description}
+              <Text weight="3">{item.description}</Text>
             </Cell>
           ))}
         </Section>
