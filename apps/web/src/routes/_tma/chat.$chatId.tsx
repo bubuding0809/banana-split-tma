@@ -54,6 +54,26 @@ function ChatIdRoute() {
         replace: true,
       });
     }
+
+    // Expense deep link — lands on the edit-expense page for the
+    // specific expense. Used by the "View Expense" CTA on create + edit
+    // notifications posted by the bot.
+    if (
+      startParams?.entity_type === "e" &&
+      startParams?.entity_id &&
+      !sessionStorage.getItem(deepLinkConsumedKey)
+    ) {
+      sessionStorage.setItem(deepLinkConsumedKey, "true");
+
+      navigate({
+        to: "/chat/$chatId/edit-expense/$expenseId",
+        params: {
+          chatId: chatId.toString(),
+          expenseId: startParams.entity_id,
+        },
+        replace: true,
+      });
+    }
   }, [startParams?.entity_type, startParams?.entity_id, chatId, navigate]);
 
   // Validate chat existence and handle errors

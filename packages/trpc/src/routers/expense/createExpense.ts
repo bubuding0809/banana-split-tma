@@ -437,6 +437,7 @@ export const createExpenseHandler = async (
             {
               chatId: Number(input.chatId),
               chatType: chatForNotification?.type ?? "group",
+              expenseId: expense.id,
               payerId: Number(input.payerId),
               payerName: payer.firstName,
               creatorUserId: Number(creator.id),

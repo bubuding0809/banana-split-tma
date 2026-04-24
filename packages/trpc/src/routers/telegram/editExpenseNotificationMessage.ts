@@ -3,18 +3,22 @@ import { Telegram } from "telegraf";
 import {
   formatExpenseMessage,
   ExpenseParticipant,
+  ExpenseChangedField,
 } from "./sendExpenseNotificationMessage.js";
 import {
   escapeMarkdown,
   mentionMarkdown,
   createDeepLinkedUrl,
-  toBase64Url,
 } from "../../utils/telegram.js";
+import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { inlineKeyboard } from "telegraf/markup";
 
 interface EditExpenseMessageInput {
   chatId: number;
   chatType: string;
+  // Expense UUID — deep link target for the "View Expense" CTA so the
+  // tapper lands on the specific expense, not just the chat.
+  expenseId: string;
   messageId: number;
   payerId: number;
   payerName: string;
@@ -25,6 +29,9 @@ interface EditExpenseMessageInput {
   expenseDate: Date;
   categoryEmoji?: string;
   categoryTitle?: string;
+  // Fields that actually changed in this update. Each gets a trailing
+  // ✏️ in the rendered message; empty/undefined means no markers.
+  changedFields?: readonly ExpenseChangedField[];
   threadId?: number;
 }
 
@@ -44,7 +51,9 @@ export const editExpenseMessageHandler = async (
   teleBot: Telegram
 ): Promise<boolean> => {
   try {
-    // Format the updated message using the shared formatter
+    // Format the updated message using the shared formatter. isUpdate
+    // flips the title from "🧾 New Expense" to "🧾 Expense"; changedFields
+    // places ✏️ markers on whatever actually changed.
     const message = formatExpenseMessage(
       input.payerId,
       input.payerName,
@@ -54,24 +63,26 @@ export const editExpenseMessageHandler = async (
       input.currency,
       input.expenseDate,
       input.categoryEmoji,
-      input.categoryTitle
+      input.categoryTitle,
+      { isUpdate: true, changedFields: input.changedFields }
     );
 
-    // Create the deep link keyboard
-    const chatContext = {
-      chat_id: input.chatId,
-      chat_type: input.chatType === "private" ? "p" : "g",
-    };
-    const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
+    // Build the "View Expense" deep link payload. Uses the v1 protocol
+    // with entity_type="e" so the TMA can route straight to the
+    // edit-expense page on tap.
     const botInfo = await teleBot.getMe();
+    const deepLinkPayload = encodeV1DeepLink(
+      BigInt(input.chatId),
+      input.chatType === "private" ? "p" : "g",
+      "e",
+      input.expenseId
+    );
     const deepLink = createDeepLinkedUrl(
       botInfo.username,
-      base64EncodedChatContext,
+      deepLinkPayload,
       "app"
     );
-    const keyboard = inlineKeyboard([
-      { text: "View Balances 💸", url: deepLink },
-    ]);
+    const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
 
     // Edit the message
     await teleBot.editMessageText(

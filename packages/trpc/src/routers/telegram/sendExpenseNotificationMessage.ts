@@ -7,9 +7,21 @@ import {
   mentionMarkdown,
   escapeMarkdown,
   createDeepLinkedUrl,
-  toBase64Url,
 } from "../../utils/telegram.js";
+import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { inlineKeyboard } from "telegraf/markup";
+
+// Fields that can be marked with ✏️ on an edited notification. Kept in
+// lockstep with `CHANGED_FIELDS` in sendBatchExpenseSummary.ts so the
+// ✏️ signal reads the same in singular edits and batch summaries.
+export const EXPENSE_CHANGED_FIELDS = [
+  "description",
+  "amount",
+  "payer",
+  "category",
+  "split",
+] as const;
+export type ExpenseChangedField = (typeof EXPENSE_CHANGED_FIELDS)[number];
 
 const participantSchema = z.object({
   userId: z.number(),
@@ -21,6 +33,10 @@ const participantSchema = z.object({
 const inputSchema = z.object({
   chatId: z.number(),
   chatType: z.string().default("group"),
+  // Expense UUID — required so the "View Expense" CTA can deep-link
+  // straight into the expense in the TMA via entity_type="e" on the
+  // v1 deep link payload.
+  expenseId: z.string().uuid(),
   payerId: z.number(),
   payerName: z.string().min(1, "Payer name is required"),
   creatorUserId: z.number(),
@@ -79,6 +95,10 @@ const formatAmount = (currency: string, amount: number): string =>
 /**
  * Formats the expense notification message
  * This is shared between create and edit operations
+ *
+ * When `opts.isUpdate` is true, the title reads "🧾 Expense" (not
+ * "🧾 New Expense") and fields listed in `opts.changedFields` get a
+ * trailing ✏️ so the reader can see at a glance what was edited.
  */
 export const formatExpenseMessage = (
   payerId: number,
@@ -89,7 +109,11 @@ export const formatExpenseMessage = (
   currency: string,
   expenseDate: Date,
   categoryEmoji?: string,
-  categoryTitle?: string
+  categoryTitle?: string,
+  opts?: {
+    isUpdate?: boolean;
+    changedFields?: readonly ExpenseChangedField[];
+  }
 ): string => {
   const escapedDescription = escapeMarkdown(expenseDescription, 2);
   const escapedTotal = escapeMarkdown(formatAmount(currency, totalAmount), 2);
@@ -100,6 +124,11 @@ export const formatExpenseMessage = (
   } catch {
     payerMention = escapeMarkdown(payerName, 2);
   }
+
+  const isUpdate = opts?.isUpdate ?? false;
+  const changed = new Set<ExpenseChangedField>(opts?.changedFields ?? []);
+  const mark = (field: ExpenseChangedField, body: string): string =>
+    changed.has(field) ? `${body} ✏️` : body;
 
   // Tree-style share list — `┣` for each branch, `┗` to close the
   // list. Mirrors the style already used in the group reminder +
@@ -123,19 +152,22 @@ export const formatExpenseMessage = (
 
   const categoryLine =
     categoryEmoji && categoryTitle
-      ? `> 🏷 • ${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}\n`
+      ? `> 🏷 • ${mark("category", `${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}`)}\n`
       : "";
 
   const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
+  const titleVerb = isUpdate ? "Expense" : "New Expense";
+  const titleLine = `🧾 ${titleVerb} by ${mark("payer", payerMention)}`;
+  const splitsHeader = `💸 Splits${changed.has("split") ? " ✏️" : ""}`;
 
-  return `🧾 New Expense by ${payerMention}
+  return `${titleLine}
 
-> 📝 • ${escapedDescription}
+> 📝 • ${mark("description", escapedDescription)}
 ${categoryLine}> 📅 • ${dateLabel}
 
-Total: ${escapedTotal}
+Total: ${mark("amount", escapedTotal)}
 
-💸 Splits
+${splitsHeader}
 ${participantList}`;
 };
 
@@ -182,20 +214,19 @@ export const sendExpenseNotificationMessageHandler = async (
     input.categoryTitle
   );
 
-  const chatContext = {
-    chat_id: input.chatId,
-    chat_type: input.chatType === "private" ? "p" : "g",
-  };
-  const base64EncodedChatContext = toBase64Url(JSON.stringify(chatContext));
   const botInfo = await teleBot.getMe();
+  const deepLinkPayload = encodeV1DeepLink(
+    BigInt(input.chatId),
+    input.chatType === "private" ? "p" : "g",
+    "e",
+    input.expenseId
+  );
   const deepLink = createDeepLinkedUrl(
     botInfo.username,
-    base64EncodedChatContext,
+    deepLinkPayload,
     "app"
   );
-  const keyboard = inlineKeyboard([
-    { text: "View Balances 💸", url: deepLink },
-  ]);
+  const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
 
   // Send the message directly (components are pre-escaped)
   try {
