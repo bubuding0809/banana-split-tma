@@ -10,7 +10,6 @@ import {
   Info,
   Placeholder,
   Button,
-  ButtonCell,
   Spinner,
 } from "@telegram-apps/telegram-ui";
 import { trpc } from "@/utils/trpc";
@@ -394,16 +393,12 @@ const SnapshotDetailsModal = ({
     >
       <div className="max-h-[80vh]">
         {/* Open full view CTA */}
-        <Section className="mt-0">
-          <ButtonCell
-            before={
-              <span
-                className="rounded-lg p-1.5"
-                style={{ backgroundColor: tButtonColor ?? "#5288c1" }}
-              >
-                <BarChart3 size={18} color="white" />
-              </span>
-            }
+        <div className="px-4 pt-2">
+          <Button
+            stretched
+            size="m"
+            mode="filled"
+            before={<BarChart3 size={18} />}
             onClick={() => {
               if (!snapShotDetails) return;
               if (hapticFeedback.isSupported())
@@ -418,10 +413,14 @@ const SnapshotDetailsModal = ({
                 search: { view: "cat" },
               });
             }}
+            style={{
+              backgroundColor: tButtonColor ?? "#5288c1",
+              color: "white",
+            }}
           >
             Open full view
-          </ButtonCell>
-        </Section>
+          </Button>
+        </div>
 
         {/* Header Information */}
         <Section>
