@@ -99,3 +99,58 @@ export const PRESET_LABEL: Record<RecurrencePreset, string> = {
   YEARLY: "Yearly",
   CUSTOM: "Custom",
 };
+
+// Inlined here (instead of imported from @dko/trpc) so the web bundle does
+// not pull in server-only deps like @trpc/server's node-http adapter.
+import { format } from "date-fns";
+
+export interface RecurrenceSummaryInput {
+  frequency: CanonicalFrequency;
+  interval: number;
+  weekdays: Weekday[];
+  endDate: Date | null;
+}
+
+const WEEKDAY_LABEL: Record<Weekday, string> = {
+  SUN: "Sun",
+  MON: "Mon",
+  TUE: "Tue",
+  WED: "Wed",
+  THU: "Thu",
+  FRI: "Fri",
+  SAT: "Sat",
+};
+
+const UNIT_SINGULAR: Record<CanonicalFrequency, string> = {
+  DAILY: "day",
+  WEEKLY: "week",
+  MONTHLY: "month",
+  YEARLY: "year",
+};
+
+export function formatRecurrenceSummary(input: RecurrenceSummaryInput): string {
+  const { frequency, interval, weekdays, endDate } = input;
+  let base: string;
+
+  if (interval === 1) {
+    base = {
+      DAILY: "Every day",
+      WEEKLY: weekdays.length
+        ? `Weekly on ${weekdays.map((w) => WEEKDAY_LABEL[w]).join(", ")}`
+        : "Weekly",
+      MONTHLY: "Monthly",
+      YEARLY: "Yearly",
+    }[frequency];
+  } else {
+    const unit = `${UNIT_SINGULAR[frequency]}s`;
+    base = `Every ${interval} ${unit}`;
+    if (frequency === "WEEKLY" && weekdays.length) {
+      base += ` on ${weekdays.map((w) => WEEKDAY_LABEL[w]).join(", ")}`;
+    }
+  }
+
+  if (endDate) {
+    return `${base} until ${format(endDate, "d MMM yyyy")}`;
+  }
+  return base;
+}

@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { trpc } from "@/utils/trpc";
-import { formatRecurrenceSummary } from "@dko/trpc";
+import { formatRecurrenceSummary } from "./recurrencePresets";
 
 interface Props {
   chatId: number;

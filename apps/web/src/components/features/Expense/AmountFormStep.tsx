@@ -43,8 +43,7 @@ import CategoryFormStep from "./CategoryFormStep";
 import RecurrencePickerSheet, {
   type RecurrenceValue,
 } from "./RecurrencePickerSheet";
-import { presetToTemplate } from "./recurrencePresets";
-import { formatRecurrenceSummary } from "@dko/trpc";
+import { presetToTemplate, formatRecurrenceSummary } from "./recurrencePresets";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
