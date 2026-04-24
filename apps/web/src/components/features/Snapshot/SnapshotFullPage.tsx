@@ -10,7 +10,7 @@ import { CategoryView } from "./views/CategoryView";
 import { DateView } from "./views/DateView";
 import { PayerView } from "./views/PayerView";
 
-const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots/$snapshotId");
+const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots_/$snapshotId");
 
 interface SnapshotFullPageProps {
   chatId: number;

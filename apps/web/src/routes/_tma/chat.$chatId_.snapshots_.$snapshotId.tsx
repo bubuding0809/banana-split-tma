@@ -9,7 +9,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute(
-  "/_tma/chat/$chatId_/snapshots/$snapshotId"
+  "/_tma/chat/$chatId_/snapshots_/$snapshotId"
 )({
   component: SnapshotDetailsRoute,
   validateSearch: zodValidator(searchSchema),
