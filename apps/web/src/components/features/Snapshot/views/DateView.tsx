@@ -1,4 +1,4 @@
-import { Section, Text } from "@telegram-apps/telegram-ui";
+import { Section } from "@telegram-apps/telegram-ui";
 import { format } from "date-fns";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
@@ -39,18 +39,19 @@ export function DateView({ aggregations }: DateViewProps) {
           key={group.key}
           header={
             <Section.Header large>
-              <div className="flex w-full items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
+              <div className="flex w-full items-baseline justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                  <span className="shrink-0">📅</span>
                   <span className="truncate">
-                    📅 {format(group.date, "d MMM yyyy")}
+                    {format(group.date, "d MMM yyyy")}
                   </span>
-                  <span className="shrink-0 opacity-60">
+                  <span className="shrink-0 opacity-50">
                     · {group.items.length}
                   </span>
                 </div>
-                <Text weight="2" className="shrink-0">
+                <span className="shrink-0 tabular-nums">
                   {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-                </Text>
+                </span>
               </div>
             </Section.Header>
           }

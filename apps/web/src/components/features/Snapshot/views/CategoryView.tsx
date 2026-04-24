@@ -1,4 +1,4 @@
-import { Section, Text } from "@telegram-apps/telegram-ui";
+import { Section } from "@telegram-apps/telegram-ui";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
 import { SnapshotExpenseRow } from "./SnapshotExpenseRow";
@@ -51,17 +51,17 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
           key={group.key}
           header={
             <Section.Header large>
-              <div className="flex w-full items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <span>{group.emoji}</span>
+              <div className="flex w-full items-baseline justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                  <span className="shrink-0">{group.emoji}</span>
                   <span className="truncate">{group.title}</span>
-                  <span className="shrink-0 opacity-60">
+                  <span className="shrink-0 opacity-50">
                     · {group.items.length}
                   </span>
                 </div>
-                <Text weight="2" className="shrink-0">
+                <span className="shrink-0 tabular-nums">
                   {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-                </Text>
+                </span>
               </div>
             </Section.Header>
           }

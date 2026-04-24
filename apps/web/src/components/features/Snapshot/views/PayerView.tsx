@@ -1,4 +1,4 @@
-import { Section, Text } from "@telegram-apps/telegram-ui";
+import { Section } from "@telegram-apps/telegram-ui";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
@@ -35,17 +35,19 @@ export function PayerView({ aggregations }: PayerViewProps) {
           key={group.payerId}
           header={
             <Section.Header large>
-              <div className="flex w-full items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
+              <div className="flex w-full items-baseline justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   <ChatMemberAvatar userId={group.payerId} size={20} />
-                  <span className="truncate">{group.payer.firstName}</span>
-                  <span className="shrink-0 opacity-60">
+                  <span className="self-baseline truncate">
+                    {group.payer.firstName}
+                  </span>
+                  <span className="shrink-0 self-baseline opacity-50">
                     · {group.items.length}
                   </span>
                 </div>
-                <Text weight="2" className="shrink-0">
+                <span className="shrink-0 tabular-nums">
                   {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-                </Text>
+                </span>
               </div>
             </Section.Header>
           }
