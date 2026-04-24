@@ -33,7 +33,7 @@ export function buildExpenseCron(input: BuildExpenseCronInput): string {
     throw new Error(`${frequency} frequency: dayOfMonth required`);
   }
   if (frequency === "YEARLY" && !month) {
-    throw new Error("YEARLY frequency requires month");
+    throw new Error("YEARLY frequency: month required");
   }
 
   const m = String(minute);
@@ -45,7 +45,16 @@ export function buildExpenseCron(input: BuildExpenseCronInput): string {
       return `cron(${m} ${h} ${dom} * ? *)`;
     }
     case "WEEKLY": {
-      const dow = weekdays.join(",");
+      const ORDER: Record<CronWeekday, number> = {
+        SUN: 0,
+        MON: 1,
+        TUE: 2,
+        WED: 3,
+        THU: 4,
+        FRI: 5,
+        SAT: 6,
+      };
+      const dow = [...weekdays].sort((a, b) => ORDER[a] - ORDER[b]).join(",");
       return `cron(${m} ${h} ? * ${dow} *)`;
     }
     case "MONTHLY": {
@@ -54,6 +63,10 @@ export function buildExpenseCron(input: BuildExpenseCronInput): string {
     }
     case "YEARLY": {
       return `cron(${m} ${h} ${dayOfMonth} ${month} ? *)`;
+    }
+    default: {
+      const _exhaustive: never = frequency;
+      throw new Error(`Unhandled frequency: ${_exhaustive as string}`);
     }
   }
 }

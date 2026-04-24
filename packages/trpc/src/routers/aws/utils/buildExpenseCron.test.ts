@@ -131,4 +131,17 @@ describe("buildExpenseCron", () => {
       })
     ).toThrow(/dayOfMonth required/i);
   });
+
+  it("YEARLY without month throws", () => {
+    expect(() =>
+      buildExpenseCron({
+        frequency: "YEARLY",
+        interval: 1,
+        weekdays: [],
+        hour: HOUR,
+        minute: MIN,
+        dayOfMonth: 15,
+      })
+    ).toThrow(/month required/i);
+  });
 });
