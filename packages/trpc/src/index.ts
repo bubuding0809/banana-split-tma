@@ -36,6 +36,16 @@ export type {
   CreateBroadcastOptions,
 } from "./services/broadcast.js";
 
+export { createExpenseHandler } from "./routers/expense/createExpense.js";
+export { formatRecurrenceSummary } from "./routers/aws/utils/recurrenceSummary.js";
+export type { RecurrenceSummaryInput } from "./routers/aws/utils/recurrenceSummary.js";
+export {
+  signRecurringExpensePayload,
+  verifyRecurringExpenseSignature,
+  buildRecurringExpenseScheduleName,
+  RECURRING_EXPENSE_SCHEDULE_GROUP,
+} from "./routers/aws/utils/recurringExpenseScheduler.js";
+
 export * from "./utils/deepLinkProtocol.js";
 
 export type DeliveryStatus =

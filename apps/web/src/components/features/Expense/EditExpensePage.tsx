@@ -134,6 +134,10 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       userTouchedCategory: true,
       suggestPending: false,
       customSplits: handleInitSplits(),
+      // Recurrence is not editable from the existing edit flow (Task 11 only
+      // wires the schema + default). Mirror formOpts.defaultValues so the
+      // form's StandardSchema input shape stays aligned.
+      recurrence: formOpts.defaultValues.recurrence,
     },
     onSubmit: async ({ value }) => {
       secondaryButton.setParams.ifAvailable({

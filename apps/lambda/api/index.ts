@@ -15,6 +15,7 @@ import {
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import { env } from "./env.js";
+import recurringExpenseTickRouter from "./recurring-expense-tick.js";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
@@ -141,6 +142,9 @@ router.post(
     }
   }
 );
+
+//* Internal webhooks (HMAC-authenticated). Mounted under /api/internal/*.
+router.use("/internal", recurringExpenseTickRouter);
 
 router.get("/swagger", (_req, res) => {
   res.setHeader("Content-Type", "application/json");

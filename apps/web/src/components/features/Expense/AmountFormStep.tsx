@@ -16,7 +16,13 @@ import {
   LargeTitle,
   Avatar,
 } from "@telegram-apps/telegram-ui";
-import { ArrowUp, Calendar, ChevronRight, Currency } from "lucide-react";
+import {
+  ArrowUp,
+  Calendar,
+  ChevronRight,
+  Currency,
+  Repeat as RepeatIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -34,6 +40,10 @@ import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
 import CategoryFormStep from "./CategoryFormStep";
+import RecurrencePickerSheet, {
+  type RecurrenceValue,
+} from "./RecurrencePickerSheet";
+import { presetToTemplate, formatRecurrenceSummary } from "./recurrencePresets";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -55,6 +65,7 @@ const AmountFormStep = withForm({
     }));
 
     const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
+    const [recurrenceOpen, setRecurrenceOpen] = useState(false);
 
     const { data: dChatData } = trpc.chat.getChat.useQuery({
       chatId: Number(chatId),
@@ -84,11 +95,16 @@ const AmountFormStep = withForm({
           isTouched: true,
         }));
         form.setFieldMeta("date", (prev) => ({ ...prev, isTouched: true }));
+        form.setFieldMeta("recurrence", (prev) => ({
+          ...prev,
+          isTouched: true,
+        }));
 
         if (
           form.state.fieldMeta.amount?.errors.length ||
           form.state.fieldMeta.description?.errors.length ||
-          form.state.fieldMeta.date?.errors.length
+          form.state.fieldMeta.date?.errors.length ||
+          form.state.fieldMeta.recurrence?.errors.length
         ) {
           // Focus the first field with errors
           if (form.state.fieldMeta.amount?.errors.length) {
@@ -390,6 +406,86 @@ const AmountFormStep = withForm({
                       />
                       Transaction Date
                     </Cell>
+
+                    {/* Repeat Cell */}
+                    <form.AppField name="recurrence">
+                      {(recurrenceField) => {
+                        const r = recurrenceField.state
+                          .value as RecurrenceValue;
+                        const summary =
+                          r.preset === "NONE"
+                            ? "Never"
+                            : formatRecurrenceSummary({
+                                ...presetToTemplate({
+                                  preset: r.preset,
+                                  customFrequency: r.customFrequency,
+                                  customInterval: r.customInterval,
+                                  weekdays: r.weekdays,
+                                  endDate: r.endDate
+                                    ? new Date(r.endDate + "T00:00:00")
+                                    : undefined,
+                                }),
+                                endDate: r.endDate
+                                  ? new Date(r.endDate + "T00:00:00")
+                                  : null,
+                              });
+                        return (
+                          <div className="flex flex-col">
+                            <Cell
+                              before={
+                                <RepeatIcon
+                                  size={24}
+                                  style={{ color: tSubtitleTextColor }}
+                                />
+                              }
+                              after={
+                                <Text style={{ color: tSubtitleTextColor }}>
+                                  {summary} ›
+                                </Text>
+                              }
+                              onClick={() => {
+                                hapticFeedback.impactOccurred("light");
+                                setRecurrenceOpen(true);
+                              }}
+                            >
+                              Repeat
+                            </Cell>
+                            <div className="px-2">
+                              <FieldInfo />
+                            </div>
+                            <RecurrencePickerSheet
+                              open={recurrenceOpen}
+                              onOpenChange={setRecurrenceOpen}
+                              value={
+                                r.preset === "NONE"
+                                  ? {
+                                      preset: "NONE",
+                                      customFrequency: "WEEKLY",
+                                      customInterval: 1,
+                                      weekdays: [],
+                                      endDate: undefined,
+                                    }
+                                  : (r as RecurrenceValue)
+                              }
+                              onChange={(next) => {
+                                if (next.preset === "NONE") {
+                                  // Reset weekdays/endDate when clearing recurrence
+                                  recurrenceField.handleChange({
+                                    preset: "NONE",
+                                    customFrequency: "WEEKLY",
+                                    customInterval: 1,
+                                    weekdays: [],
+                                    endDate: undefined,
+                                  } as never);
+                                } else {
+                                  recurrenceField.handleChange(next as never);
+                                }
+                              }}
+                            />
+                          </div>
+                        );
+                      }}
+                    </form.AppField>
                   </Section>
                   <div className="px-2">
                     <FieldInfo />
