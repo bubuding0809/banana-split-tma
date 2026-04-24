@@ -7,7 +7,11 @@ import {
   Title,
   IconButton,
 } from "@telegram-apps/telegram-ui";
-import { hapticFeedback } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { ChevronLeft, ChevronRight, Hash, Repeat, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -98,6 +102,12 @@ export default function RecurrencePickerSheet({
   onChange,
 }: Props) {
   const [screen, setScreen] = useState<Screen>("top");
+
+  // Read theme colors via the SDK signals (rather than CSS vars) — the
+  // signals carry built-in fallback values when the Telegram client doesn't
+  // pass the theme through, matching the pattern in AmountFormStep etc.
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
 
   // Reset to top whenever the modal reopens
   useEffect(() => {
@@ -312,10 +322,24 @@ export default function RecurrencePickerSheet({
                           onChange({ ...value, weekdays: next });
                         }}
                         className={
-                          "flex size-8 items-center justify-center rounded-full text-[13px] font-medium " +
+                          // Use SDK signals + inline style for the selected
+                          // colors. Telegram CSS vars are unreliable across
+                          // clients; the SDK signals have JS-side fallbacks
+                          // that work even when the vars aren't passed through.
+                          // Mirrors the pattern in AmountFormStep / other
+                          // theme-color uses in this codebase.
+                          "flex size-8 items-center justify-center rounded-full text-[13px] font-medium transition-colors " +
                           (selected
-                            ? "bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color)"
+                            ? "shadow-sm"
                             : "bg-(--tg-theme-secondary-bg-color)")
+                        }
+                        style={
+                          selected
+                            ? {
+                                backgroundColor: tButtonColor,
+                                color: tButtonTextColor,
+                              }
+                            : undefined
                         }
                       >
                         {d.label}
