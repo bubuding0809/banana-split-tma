@@ -298,16 +298,16 @@ export default function CategoryAggregationTicker({
           </Caption>
 
           <div className="ml-auto flex flex-row items-center gap-1.5">
-            <span
+            <Text
+              weight="2"
               className={cn(
-                "shrink-0 whitespace-nowrap text-base font-bold tabular-nums",
                 empty && "opacity-45",
                 !ratesReady && !empty && "opacity-50",
                 !empty && "text-red-500"
               )}
             >
               {formatCurrencyWithCode(baseTotal, baseCurrency)}
-            </span>
+            </Text>
 
             <ChevronUp
               size={16}
@@ -370,10 +370,7 @@ export default function CategoryAggregationTicker({
               </Modal.Close>
             }
           >
-            <Text
-              className="whitespace-nowrap text-base tabular-nums text-red-500"
-              weight="1"
-            >
+            <Text className="text-red-500" weight="2">
               {formatCurrencyWithCode(baseTotal, baseCurrency)}
             </Text>
           </Modal.Header>
@@ -483,12 +480,12 @@ function renderChipSummary(
 
   return {
     content: (
-      <span className="inline-flex items-center gap-1 text-[14px] leading-none">
+      <span className="inline-flex items-center gap-1 text-[14px]">
         {shown.map((id) => (
           <span key={id}>{emojiFor(id)}</span>
         ))}
         {remaining > 0 && (
-          <span className="ml-0.5 text-[11.5px] font-semibold opacity-70">
+          <span className="ml-0.5 text-xs font-semibold opacity-70">
             +{remaining}
           </span>
         )}
