@@ -19,7 +19,13 @@ export const handler = async (event: SchedulerEvent) => {
   const { templateId, occurrenceDate } = event;
   if (!templateId || !occurrenceDate) throw new Error("missing fields");
 
-  const signature = crypto.createHmac("sha256", SECRET).update(templateId).digest("hex");
+  // HMAC over `${templateId}|${occurrenceDate}` — including the occurrence
+  // date in the signed payload prevents a captured signature from being
+  // replayed against a different occurrenceDate for the same template.
+  const signature = crypto
+    .createHmac("sha256", SECRET)
+    .update(`${templateId}|${occurrenceDate}`)
+    .digest("hex");
 
   const res = await fetch(URL, {
     method: "POST",

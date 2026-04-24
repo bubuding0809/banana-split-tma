@@ -48,9 +48,9 @@ const PRESETS: RecurrencePreset[] = [
 const WEEKDAYS: { id: Weekday; label: string }[] = [
   { id: "SUN", label: "S" },
   { id: "MON", label: "M" },
-  { id: "TUE", label: "T" },
+  { id: "TUE", label: "Tu" },
   { id: "WED", label: "W" },
-  { id: "THU", label: "T" },
+  { id: "THU", label: "Th" },
   { id: "FRI", label: "F" },
   { id: "SAT", label: "S" },
 ];
@@ -172,6 +172,14 @@ export default function RecurrencePickerSheet({
                         preset: p,
                         weekdays: keepWeekdays,
                       });
+                      // For weekly-shaped presets without weekdays selected
+                      // yet, auto-navigate to custom so the user can pick them.
+                      if (
+                        (p === "WEEKLY" || p === "BIWEEKLY") &&
+                        keepWeekdays.length === 0
+                      ) {
+                        setScreen("custom");
+                      }
                     }
                   }}
                   after={

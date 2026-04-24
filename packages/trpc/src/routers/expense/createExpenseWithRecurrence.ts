@@ -45,8 +45,18 @@ export default protectedProcedure
     }
 
     const startDate = input.expense.date ?? new Date();
-    const dayOfMonth = startDate.getUTCDate();
-    const month = startDate.getUTCMonth() + 1;
+    // Extract day-of-month / month in the chat's timezone — using
+    // getUTCDate()/getUTCMonth() is wrong for non-UTC timezones because
+    // e.g. a Date that's midnight SGT is 16:00 UTC the previous day,
+    // so getUTCDate() would return the wrong day.
+    const tzFormat = new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "numeric",
+      timeZone: input.recurrence.timezone,
+    });
+    const parts = tzFormat.formatToParts(startDate);
+    const dayOfMonth = Number(parts.find((p) => p.type === "day")?.value);
+    const month = Number(parts.find((p) => p.type === "month")?.value);
 
     const cronExpression = buildExpenseCron({
       frequency: input.recurrence.frequency,
@@ -96,14 +106,14 @@ export default protectedProcedure
 
       // Materialise today's expense linked to the template.
       const exp = await createExpenseHandler(
-        { ...input.expense, sendNotification: input.expense.sendNotification },
+        {
+          ...input.expense,
+          sendNotification: input.expense.sendNotification,
+          recurringTemplateId: updated.id,
+        },
         tx as unknown as typeof ctx.db,
         ctx.teleBot
       );
-      await tx.expense.update({
-        where: { id: exp.id },
-        data: { recurringTemplateId: updated.id },
-      });
 
       return { template: updated, expense: exp };
     });

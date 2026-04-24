@@ -41,8 +41,14 @@ export function buildExpenseCron(input: BuildExpenseCronInput): string {
 
   switch (frequency) {
     case "DAILY": {
-      const dom = interval === 1 ? "*" : `1/${interval}`;
-      return `cron(${m} ${h} ${dom} * ? *)`;
+      if (interval === 1) {
+        return `cron(${m} ${h} * * ? *)`;
+      }
+      // cron `1/N` in the day-of-month field resets at every month boundary,
+      // so for interval > 1 we use `rate(N days)` which fires every N×24h
+      // from the schedule's StartDate (ignoring hour/minute). AWS accepts
+      // both `cron(...)` and `rate(...)` expressions.
+      return `rate(${interval} days)`;
     }
     case "WEEKLY": {
       const ORDER: Record<CronWeekday, number> = {

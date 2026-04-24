@@ -13,11 +13,19 @@ export const inputSchema = z.object({
 export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
+    // Gate access before the full read to avoid leaking template existence.
+    const tmplMeta = await ctx.db.recurringExpenseTemplate.findUnique({
+      where: { id: input.templateId },
+      select: { chatId: true },
+    });
+    if (!tmplMeta) throw new TRPCError({ code: "NOT_FOUND" });
+    await assertChatAccess(ctx.session, ctx.db, tmplMeta.chatId);
+
     const tmpl = await ctx.db.recurringExpenseTemplate.findUnique({
       where: { id: input.templateId },
     });
+    // Defense-in-depth — should never be null after the meta fetch succeeded.
     if (!tmpl) throw new TRPCError({ code: "NOT_FOUND" });
-    await assertChatAccess(ctx.session, ctx.db, tmpl.chatId);
 
     // 1. DB soft-cancel first — even if AWS delete fails afterwards, the
     //    tick endpoint will reject because status != ACTIVE.

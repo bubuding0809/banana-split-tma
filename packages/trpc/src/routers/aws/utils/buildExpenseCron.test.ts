@@ -26,7 +26,7 @@ describe("buildExpenseCron", () => {
         hour: HOUR,
         minute: MIN,
       })
-    ).toBe("cron(0 9 1/3 * ? *)");
+    ).toBe("rate(3 days)");
   });
 
   it("WEEKLY interval=1 with one weekday → fires that day at 9am", () => {

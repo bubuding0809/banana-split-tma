@@ -40,10 +40,13 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
     return res.status(401).json({ error: "missing signature or fields" });
   }
 
-  // 1. Verify HMAC.
+  // 1. Verify HMAC. The signature is computed over `${templateId}|${occurrenceDate}`,
+  //    so a captured signature for one occurrence cannot be replayed against
+  //    a different occurrenceDate for the same template.
   if (
     !verifyRecurringExpenseSignature(
       templateId,
+      occurrenceDate,
       sig,
       env.RECURRING_EXPENSE_WEBHOOK_SECRET
     )
@@ -117,14 +120,11 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
         customSplits,
         categoryId: tmpl.categoryId ?? null,
         sendNotification: true,
+        recurringTemplateId: tmpl.id,
       },
       prisma,
       new Telegram(env.TELEGRAM_BOT_TOKEN)
     );
-    await prisma.expense.update({
-      where: { id: created.id },
-      data: { recurringTemplateId: tmpl.id },
-    });
     return res.status(200).json({ expenseId: created.id });
   } catch (err) {
     if (err instanceof Error && /unique/i.test(err.message)) {

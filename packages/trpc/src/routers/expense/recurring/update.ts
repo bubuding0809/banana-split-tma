@@ -29,13 +29,23 @@ export default protectedProcedure
   .input(inputSchema)
   .output(z.any())
   .mutation(async ({ input, ctx }) => {
+    // Gate access before the full read to avoid leaking template existence.
+    const tmplMeta = await ctx.db.recurringExpenseTemplate.findUnique({
+      where: { id: input.templateId },
+      select: { chatId: true },
+    });
+    if (!tmplMeta) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
+    }
+    await assertChatAccess(ctx.session, ctx.db, tmplMeta.chatId);
+
     const tmpl = await ctx.db.recurringExpenseTemplate.findUnique({
       where: { id: input.templateId },
     });
+    // Defense-in-depth — should never be null after the meta fetch succeeded.
     if (!tmpl) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
     }
-    await assertChatAccess(ctx.session, ctx.db, tmpl.chatId);
 
     const lambdaArn = process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN;
     const eventBridgeRoleArn = process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN;
@@ -83,6 +93,18 @@ export default protectedProcedure
 
     if (scheduleChanged) {
       try {
+        // Extract day-of-month / month in the template's timezone — using
+        // getUTCDate()/getUTCMonth() is wrong for non-UTC timezones because
+        // a Date that's e.g. midnight SGT is 16:00 UTC the previous day.
+        const tzFormat = new Intl.DateTimeFormat("en-US", {
+          day: "numeric",
+          month: "numeric",
+          timeZone: updated.timezone,
+        });
+        const parts = tzFormat.formatToParts(updated.startDate);
+        const dayOfMonth = Number(parts.find((p) => p.type === "day")?.value);
+        const month = Number(parts.find((p) => p.type === "month")?.value);
+
         const cronExpression = buildExpenseCron({
           frequency: updated.frequency,
           interval: updated.interval,
@@ -91,12 +113,9 @@ export default protectedProcedure
           minute: FIRE_MIN,
           dayOfMonth:
             updated.frequency === "MONTHLY" || updated.frequency === "YEARLY"
-              ? updated.startDate.getUTCDate()
+              ? dayOfMonth
               : undefined,
-          month:
-            updated.frequency === "YEARLY"
-              ? updated.startDate.getUTCMonth() + 1
-              : undefined,
+          month: updated.frequency === "YEARLY" ? month : undefined,
         });
 
         const lambdaPayload = JSON.stringify({

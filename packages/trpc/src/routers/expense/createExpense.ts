@@ -58,6 +58,7 @@ export const inputSchema = z.object({
     .optional(),
   sendNotification: z.boolean().default(true),
   threadId: z.number().optional(),
+  recurringTemplateId: z.string().uuid().optional(),
 });
 
 export const outputSchema = z.object({
@@ -349,6 +350,7 @@ export const createExpenseHandler = async (
           currency: currency,
           splitMode: input.splitMode,
           categoryId: input.categoryId ?? null,
+          recurringTemplateId: input.recurringTemplateId ?? null,
           participants: {
             connect: input.participantIds.map((id) => ({ id })),
           },

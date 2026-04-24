@@ -67,7 +67,7 @@ describe("POST /api/internal/recurring-expense-tick", () => {
   });
 
   it("rejects 401 when occurrenceDate is too stale", async () => {
-    const sig = signRecurringExpensePayload(TEMPLATE_ID, SECRET);
+    const sig = signRecurringExpensePayload(TEMPLATE_ID, PAST_30M, SECRET);
     const res = await request(app)
       .post("/api/internal/recurring-expense-tick")
       .set("X-Recurring-Signature", sig)
@@ -77,7 +77,7 @@ describe("POST /api/internal/recurring-expense-tick", () => {
 
   it("returns 410 when template not found", async () => {
     findUniqueMock.mockResolvedValueOnce(null);
-    const sig = signRecurringExpensePayload(TEMPLATE_ID, SECRET);
+    const sig = signRecurringExpensePayload(TEMPLATE_ID, NOW, SECRET);
     const res = await request(app)
       .post("/api/internal/recurring-expense-tick")
       .set("X-Recurring-Signature", sig)
@@ -90,7 +90,7 @@ describe("POST /api/internal/recurring-expense-tick", () => {
       id: TEMPLATE_ID,
       status: "CANCELED",
     });
-    const sig = signRecurringExpensePayload(TEMPLATE_ID, SECRET);
+    const sig = signRecurringExpensePayload(TEMPLATE_ID, NOW, SECRET);
     const res = await request(app)
       .post("/api/internal/recurring-expense-tick")
       .set("X-Recurring-Signature", sig)
