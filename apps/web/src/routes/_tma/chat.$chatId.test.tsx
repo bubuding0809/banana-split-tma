@@ -96,4 +96,41 @@ describe("chat.$chatId Deep Link Routing", () => {
     expect(mockSetItem).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it("should navigate to edit-expense route when deep link entity_type is 'e' and flag is false", () => {
+    mockGetItem.mockReturnValue(null); // Not consumed yet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "e",
+      entity_id: "expense-uuid-5678",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockSetItem).toHaveBeenCalledWith(
+      "deep_link_consumed_expense-uuid-5678",
+      "true"
+    );
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: "/chat/$chatId/edit-expense/$expenseId",
+      params: { chatId: "1234", expenseId: "expense-uuid-5678" },
+      replace: true,
+    });
+  });
+
+  it("should not navigate for entity_type 'e' when deep link is already consumed", () => {
+    mockGetItem.mockReturnValue("true");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "e",
+      entity_id: "expense-uuid-5678",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });

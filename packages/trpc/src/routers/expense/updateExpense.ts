@@ -12,12 +12,88 @@ import {
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
 import { assertUsersInChat } from "../../utils/chatValidation.js";
-import { sendExpenseNotificationMessageHandler } from "../telegram/sendExpenseNotificationMessage.js";
+import {
+  sendExpenseNotificationMessageHandler,
+  ExpenseChangedField,
+} from "../telegram/sendExpenseNotificationMessage.js";
 import {
   editExpenseMessageHandler,
   sendExpenseUpdateBumpHandler,
 } from "../telegram/editExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
+
+// Diff pre- vs post-update state to decide which fields the edited
+// notification should mark with ✏️. Matches the 5-field vocabulary
+// used by sendBatchExpenseSummary so singular and batch edits render
+// the same signal.
+const computeChangedFields = (
+  existing: {
+    description: string;
+    amount: { toNumber(): number } | number;
+    payerId: bigint;
+    categoryId: string | null;
+    splitMode: SplitMode;
+    shares: { userId: bigint; amount: { toNumber(): number } | number }[];
+  },
+  input: {
+    description: string;
+    amount: number;
+    payerId: bigint;
+    categoryId?: string | null;
+    splitMode: SplitMode;
+  },
+  newSplits: { userId: bigint; amount: number }[]
+): ExpenseChangedField[] => {
+  const changed: ExpenseChangedField[] = [];
+
+  if (existing.description !== input.description) changed.push("description");
+
+  const existingAmount =
+    typeof existing.amount === "number"
+      ? existing.amount
+      : existing.amount.toNumber();
+  if (Math.abs(existingAmount - input.amount) > 0.005) changed.push("amount");
+
+  if (existing.payerId !== input.payerId) changed.push("payer");
+
+  // `input.categoryId === undefined` means the caller didn't touch
+  // category — leave the existing value, don't mark it as changed.
+  if (
+    input.categoryId !== undefined &&
+    existing.categoryId !== input.categoryId
+  ) {
+    changed.push("category");
+  }
+
+  // "split" covers splitMode, participant set, and per-participant
+  // share amounts — any one flips the single marker.
+  let splitChanged = existing.splitMode !== input.splitMode;
+  if (!splitChanged) {
+    const existingByUser = new Map(
+      existing.shares.map((s) => [
+        s.userId.toString(),
+        typeof s.amount === "number" ? s.amount : s.amount.toNumber(),
+      ])
+    );
+    const newByUser = new Map(
+      newSplits.map((s) => [s.userId.toString(), s.amount])
+    );
+    if (existingByUser.size !== newByUser.size) {
+      splitChanged = true;
+    } else {
+      for (const [uid, amt] of newByUser) {
+        const prev = existingByUser.get(uid);
+        if (prev === undefined || Math.abs(prev - amt) > 0.005) {
+          splitChanged = true;
+          break;
+        }
+      }
+    }
+  }
+  if (splitChanged) changed.push("split");
+
+  return changed;
+};
 
 export const inputSchema = z.object({
   expenseId: z.string().min(1, "Expense ID is required"),
@@ -390,11 +466,42 @@ export const updateExpenseHandler = async (
       return expense;
     });
 
+    // Compute which fields actually changed — drives the ✏️ markers
+    // in the edited notification and also powers the no-op guard.
+    const changedFields = computeChangedFields(
+      {
+        description: existingExpense.description,
+        amount: existingExpense.amount as unknown as { toNumber(): number },
+        payerId: existingExpense.payerId,
+        categoryId: existingExpense.categoryId,
+        splitMode: existingExpense.splitMode,
+        shares: existingExpense.shares as unknown as {
+          userId: bigint;
+          amount: { toNumber(): number };
+        }[],
+      },
+      {
+        description: input.description,
+        amount: input.amount,
+        payerId: input.payerId,
+        categoryId: input.categoryId,
+        splitMode: input.splitMode,
+      },
+      splits
+    );
+
     // Send notification if requested and teleBot is available.
     // Also respect the per-chat `notifyOnExpenseUpdate` preference —
     // users can disable the edit+bump for every update (singular or
     // driven by bulk-update fan-out) via Settings.
-    if (input.sendNotification && existingExpense.chat.notifyOnExpenseUpdate) {
+    // No-op guard: if nothing the user can see actually changed, skip
+    // the edit+bump — avoids Telegram's "message is not modified" error
+    // and avoids pinging participants for a net-zero update.
+    if (
+      input.sendNotification &&
+      existingExpense.chat.notifyOnExpenseUpdate &&
+      changedFields.length > 0
+    ) {
       try {
         // Fetch creator and participant details for notification
         const [payer, creator, participants] = await Promise.all([
@@ -471,6 +578,7 @@ export const updateExpenseHandler = async (
                 {
                   chatId: Number(input.chatId),
                   chatType: existingExpense.chat.type,
+                  expenseId: input.expenseId,
                   messageId: Number(existingExpense.telegramMessageId),
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
@@ -481,6 +589,7 @@ export const updateExpenseHandler = async (
                   expenseDate: input.date ?? existingExpense.date,
                   categoryEmoji,
                   categoryTitle,
+                  changedFields,
                   threadId,
                 },
                 teleBot
@@ -519,6 +628,7 @@ export const updateExpenseHandler = async (
                 {
                   chatId: Number(input.chatId),
                   chatType: existingExpense.chat.type,
+                  expenseId: input.expenseId,
                   payerId: Number(input.payerId),
                   payerName: payer.firstName,
                   creatorUserId: Number(creator.id),
@@ -544,6 +654,7 @@ export const updateExpenseHandler = async (
               {
                 chatId: Number(input.chatId),
                 chatType: existingExpense.chat.type,
+                expenseId: input.expenseId,
                 payerId: Number(input.payerId),
                 payerName: payer.firstName,
                 creatorUserId: Number(creator.id),
