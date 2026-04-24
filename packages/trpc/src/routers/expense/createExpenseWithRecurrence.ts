@@ -72,51 +72,68 @@ export default protectedProcedure
       month: input.recurrence.frequency === "YEARLY" ? month : undefined,
     });
 
-    // 1. DB transaction: create immediate Expense + RecurringExpenseTemplate.
-    const { template, expense } = await ctx.db.$transaction(async (tx) => {
-      const tmpl = await tx.recurringExpenseTemplate.create({
-        data: {
-          chatId: input.expense.chatId,
-          creatorId: input.expense.creatorId,
-          payerId: input.expense.payerId,
-          description: input.expense.description,
-          amount: input.expense.amount,
-          currency: input.expense.currency ?? "SGD",
-          splitMode: input.expense.splitMode,
-          participantIds: input.expense.participantIds,
-          customSplits: input.expense.customSplits
-            ? JSON.parse(JSON.stringify(input.expense.customSplits))
-            : null,
-          categoryId: input.expense.categoryId ?? null,
-          frequency: input.recurrence.frequency,
-          interval: input.recurrence.interval,
-          weekdays: input.recurrence.weekdays,
-          startDate,
-          endDate: input.recurrence.endDate ?? null,
-          timezone: input.recurrence.timezone,
-          awsScheduleName: "", // placeholder — set below
-        },
-      });
+    // Sequence:
+    //   1. Create the template (no awsScheduleName yet — derived from the row's id).
+    //   2. Update the template with its own deterministic awsScheduleName.
+    //   3. Materialise today's expense via createExpenseHandler (which opens
+    //      its own db.$transaction internally — that's why we DON'T wrap
+    //      the whole sequence in an outer $transaction; Prisma forbids
+    //      nested transactions on a tx client).
+    //   4. Create the AWS schedule.
+    //
+    // On failure at any step after 1, we delete the template (and any
+    // partially-created expense rows linked to it via the cascade FK).
+    const tmpl = await ctx.db.recurringExpenseTemplate.create({
+      data: {
+        chatId: input.expense.chatId,
+        creatorId: input.expense.creatorId,
+        payerId: input.expense.payerId,
+        description: input.expense.description,
+        amount: input.expense.amount,
+        currency: input.expense.currency ?? "SGD",
+        splitMode: input.expense.splitMode,
+        participantIds: input.expense.participantIds,
+        customSplits: input.expense.customSplits
+          ? JSON.parse(JSON.stringify(input.expense.customSplits))
+          : null,
+        categoryId: input.expense.categoryId ?? null,
+        frequency: input.recurrence.frequency,
+        interval: input.recurrence.interval,
+        weekdays: input.recurrence.weekdays,
+        startDate,
+        endDate: input.recurrence.endDate ?? null,
+        timezone: input.recurrence.timezone,
+        awsScheduleName: "", // placeholder — set below
+      },
+    });
 
+    let template;
+    let expense;
+    try {
       const scheduleName = buildRecurringExpenseScheduleName(tmpl.id);
-      const updated = await tx.recurringExpenseTemplate.update({
+      template = await ctx.db.recurringExpenseTemplate.update({
         where: { id: tmpl.id },
         data: { awsScheduleName: scheduleName },
       });
 
-      // Materialise today's expense linked to the template.
-      const exp = await createExpenseHandler(
+      expense = await createExpenseHandler(
         {
           ...input.expense,
           sendNotification: input.expense.sendNotification,
-          recurringTemplateId: updated.id,
+          recurringTemplateId: template.id,
         },
-        tx as unknown as typeof ctx.db,
+        ctx.db,
         ctx.teleBot
       );
-
-      return { template: updated, expense: exp };
-    });
+    } catch (preAwsError) {
+      await ctx.db.recurringExpenseTemplate
+        .delete({ where: { id: tmpl.id } })
+        .catch(() => {});
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Failed to create expense for recurring template: ${preAwsError instanceof Error ? preAwsError.message : "unknown"}`,
+      });
+    }
 
     // 2. Create the AWS schedule. On failure, roll back the template (keep the expense).
     //
