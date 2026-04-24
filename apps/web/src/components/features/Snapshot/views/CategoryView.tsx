@@ -1,4 +1,4 @@
-import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
+import { Section, Text } from "@telegram-apps/telegram-ui";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
 import { SnapshotExpenseRow } from "./SnapshotExpenseRow";
@@ -47,27 +47,25 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
       </Section>
 
       {byCategory.map((group) => (
-        <Section key={group.key}>
-          <Cell
-            before={
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
-                {group.emoji}
+        <Section
+          key={group.key}
+          header={
+            <Section.Header large>
+              <div className="flex w-full items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span>{group.emoji}</span>
+                  <span className="truncate">{group.title}</span>
+                  <span className="shrink-0 opacity-60">
+                    · {group.items.length}
+                  </span>
+                </div>
+                <Text weight="2" className="shrink-0">
+                  {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
+                </Text>
               </div>
-            }
-            subhead={
-              <Caption weight="1" level="1">
-                {group.items.length}{" "}
-                {group.items.length === 1 ? "expense" : "expenses"}
-              </Caption>
-            }
-            after={
-              <Text weight="2">
-                {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </Text>
-            }
-          >
-            <Text weight="2">{group.title}</Text>
-          </Cell>
+            </Section.Header>
+          }
+        >
           {group.items.map((item) => (
             <SnapshotExpenseRow
               key={item.id}

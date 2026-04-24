@@ -1,4 +1,4 @@
-import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
+import { Section, Text } from "@telegram-apps/telegram-ui";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
@@ -31,23 +31,25 @@ export function PayerView({ aggregations }: PayerViewProps) {
       </Section>
 
       {byPayer.map((group) => (
-        <Section key={group.payerId}>
-          <Cell
-            before={<ChatMemberAvatar userId={group.payerId} size={40} />}
-            subhead={
-              <Caption weight="1" level="1">
-                {group.items.length}{" "}
-                {group.items.length === 1 ? "expense" : "expenses"}
-              </Caption>
-            }
-            after={
-              <Text weight="2">
-                {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </Text>
-            }
-          >
-            <Text weight="2">{group.payer.firstName}</Text>
-          </Cell>
+        <Section
+          key={group.payerId}
+          header={
+            <Section.Header large>
+              <div className="flex w-full items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <ChatMemberAvatar userId={group.payerId} size={20} />
+                  <span className="truncate">{group.payer.firstName}</span>
+                  <span className="shrink-0 opacity-60">
+                    · {group.items.length}
+                  </span>
+                </div>
+                <Text weight="2" className="shrink-0">
+                  {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
+                </Text>
+              </div>
+            </Section.Header>
+          }
+        >
           {group.items.map((item) => (
             <SnapshotExpenseRow
               key={item.id}

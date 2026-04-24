@@ -1,6 +1,5 @@
-import { Caption, Cell, Section, Text } from "@telegram-apps/telegram-ui";
+import { Section, Text } from "@telegram-apps/telegram-ui";
 import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { SnapshotBarChart } from "../charts/SnapshotBarChart";
 import { SnapshotExpenseRow } from "./SnapshotExpenseRow";
@@ -36,27 +35,26 @@ export function DateView({ aggregations }: DateViewProps) {
       </Section>
 
       {listGroups.map((group) => (
-        <Section key={group.key}>
-          <Cell
-            before={
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)]">
-                <CalendarDays size={20} className="opacity-80" />
+        <Section
+          key={group.key}
+          header={
+            <Section.Header large>
+              <div className="flex w-full items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">
+                    📅 {format(group.date, "d MMM yyyy")}
+                  </span>
+                  <span className="shrink-0 opacity-60">
+                    · {group.items.length}
+                  </span>
+                </div>
+                <Text weight="2" className="shrink-0">
+                  {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
+                </Text>
               </div>
-            }
-            subhead={
-              <Caption weight="1" level="1">
-                {group.items.length}{" "}
-                {group.items.length === 1 ? "expense" : "expenses"}
-              </Caption>
-            }
-            after={
-              <Text weight="2">
-                {formatCurrencyWithCode(group.totalInBase, baseCurrency)}
-              </Text>
-            }
-          >
-            <Text weight="2">{format(group.date, "d MMM yyyy")}</Text>
-          </Cell>
+            </Section.Header>
+          }
+        >
           {group.items.map((item) => (
             <SnapshotExpenseRow
               key={item.id}
