@@ -16,7 +16,13 @@ import {
   LargeTitle,
   Avatar,
 } from "@telegram-apps/telegram-ui";
-import { ArrowUp, Calendar, ChevronRight, Currency } from "lucide-react";
+import {
+  ArrowUp,
+  Calendar,
+  ChevronRight,
+  Currency,
+  Repeat as RepeatIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -34,6 +40,10 @@ import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
 import CategoryFormStep from "./CategoryFormStep";
+import RecurrencePickerSheet, {
+  type RecurrenceValue,
+} from "./RecurrencePickerSheet";
+import { PRESET_LABEL } from "./recurrencePresets";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -55,6 +65,7 @@ const AmountFormStep = withForm({
     }));
 
     const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
+    const [recurrenceOpen, setRecurrenceOpen] = useState(false);
 
     const { data: dChatData } = trpc.chat.getChat.useQuery({
       chatId: Number(chatId),
@@ -390,6 +401,65 @@ const AmountFormStep = withForm({
                       />
                       Transaction Date
                     </Cell>
+
+                    {/* Repeat Cell */}
+                    <form.AppField name="recurrence">
+                      {(recurrenceField) => {
+                        const r = recurrenceField.state
+                          .value as RecurrenceValue;
+                        const summary =
+                          r.preset === "NONE"
+                            ? "Never"
+                            : PRESET_LABEL[r.preset];
+                        return (
+                          <>
+                            <Cell
+                              before={
+                                <RepeatIcon
+                                  size={24}
+                                  style={{ color: tSubtitleTextColor }}
+                                />
+                              }
+                              after={
+                                <Text style={{ color: tSubtitleTextColor }}>
+                                  {summary} ›
+                                </Text>
+                              }
+                              onClick={() => {
+                                hapticFeedback.impactOccurred("light");
+                                setRecurrenceOpen(true);
+                              }}
+                            >
+                              Repeat
+                            </Cell>
+                            <RecurrencePickerSheet
+                              open={recurrenceOpen}
+                              onOpenChange={setRecurrenceOpen}
+                              value={
+                                r.preset === "NONE"
+                                  ? {
+                                      preset: "NONE",
+                                      customFrequency: "WEEKLY",
+                                      customInterval: 1,
+                                      weekdays: [],
+                                      endDate: undefined,
+                                    }
+                                  : (r as RecurrenceValue)
+                              }
+                              onChange={(next) => {
+                                if (next.preset === "NONE") {
+                                  recurrenceField.handleChange({
+                                    preset: "NONE",
+                                  } as never);
+                                } else {
+                                  recurrenceField.handleChange(next as never);
+                                }
+                              }}
+                            />
+                          </>
+                        );
+                      }}
+                    </form.AppField>
                   </Section>
                   <div className="px-2">
                     <FieldInfo />

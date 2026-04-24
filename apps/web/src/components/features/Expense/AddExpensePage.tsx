@@ -25,6 +25,7 @@ import {
   OPEN_CATEGORY_PICKER_EVENT,
   markPickerForReopen,
 } from "./CategoryFormStep";
+import { presetToTemplate, type Weekday } from "./recurrencePresets";
 
 interface AddExpensePageProps {
   chatId: number;
@@ -83,6 +84,8 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
 
   // * Mutations ===================================================================================
   const createExpenseMutation = trpc.expense.createExpense.useMutation();
+  const createExpenseWithRecurrenceMutation =
+    trpc.expense.createExpenseWithRecurrence.useMutation();
 
   // Draft cache — preserves form values across in-app navigations so the
   // user can jump out to Organize picker / Create custom category and come
@@ -136,7 +139,7 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
               }))
             : undefined;
 
-        await createExpenseMutation.mutateAsync({
+        const baseInput = {
           chatId: chatId,
           creatorId: userId,
           payerId: Number(value.payee),
@@ -151,7 +154,29 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
           threadId: dChatData?.threadId
             ? Number(dChatData.threadId)
             : undefined,
-        });
+        };
+
+        const recurrence = value.recurrence;
+        if (recurrence.preset !== "NONE") {
+          const tmpl = presetToTemplate({
+            preset: recurrence.preset,
+            customFrequency: recurrence.customFrequency,
+            customInterval: recurrence.customInterval,
+            weekdays: recurrence.weekdays as Weekday[],
+            endDate: recurrence.endDate
+              ? new Date(recurrence.endDate + "T00:00:00")
+              : undefined,
+          });
+          await createExpenseWithRecurrenceMutation.mutateAsync({
+            expense: baseInput,
+            recurrence: {
+              ...tmpl,
+              timezone: dChatData?.timezone ?? "Asia/Singapore",
+            },
+          });
+        } else {
+          await createExpenseMutation.mutateAsync(baseInput);
+        }
 
         mainButton.setParams.ifAvailable({
           isLoaderVisible: false,
