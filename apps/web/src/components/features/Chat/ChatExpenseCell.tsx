@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ExpenseDetailsModal from "./ExpenseDetailsModal";
+import RecurringExpenseBadge from "@/components/features/Expense/RecurringExpenseBadge";
 import {
   formatExpenseDateShort,
   formatExpenseDateShortCreatedAt,
@@ -291,11 +292,14 @@ const ChatExpenseCell = ({
             avatarStack={
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
-                  <Caption className="w-max" weight="2">
-                    {sortBy === "createdAt"
-                      ? formatExpenseDateShortCreatedAt(expense.createdAt)
-                      : formatExpenseDateShort(expense.date)}
-                  </Caption>
+                  <div className="flex items-center gap-1.5">
+                    {expense.recurringTemplateId && <RecurringExpenseBadge />}
+                    <Caption className="w-max" weight="2">
+                      {sortBy === "createdAt"
+                        ? formatExpenseDateShortCreatedAt(expense.createdAt)
+                        : formatExpenseDateShort(expense.date)}
+                    </Caption>
+                  </div>
                   <Skeleton visible={isExpenseDetailsLoading}>
                     {(() => {
                       switch (expenseRelation) {
