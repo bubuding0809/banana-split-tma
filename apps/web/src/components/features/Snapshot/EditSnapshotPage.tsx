@@ -118,6 +118,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
 
   // Setup mainbutton handler
   useEffect(() => {
+    if (!mainButton.isMounted()) mainButton.mount();
     const offMainClick = mainButton.onClick(() => form.handleSubmit());
 
     return () => {
@@ -131,6 +132,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
 
   // Setup mainbutton params
   useEffect(() => {
+    if (!mainButton.isMounted()) mainButton.mount();
     mainButton.setParams({
       text: "Update Snapshot",
       isVisible: true,
