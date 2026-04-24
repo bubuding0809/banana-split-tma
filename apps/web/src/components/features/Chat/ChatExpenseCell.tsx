@@ -33,12 +33,14 @@ interface ChatExpenseCellProps {
   expense: inferRouterOutputs<AppRouter>["expense"]["getExpenseByChat"][number];
   sortBy?: "date" | "createdAt";
   categoryEmoji?: string;
+  categoryTitle?: string;
 }
 
 const ChatExpenseCell = ({
   expense,
   sortBy = "date",
   categoryEmoji,
+  categoryTitle,
 }: ChatExpenseCellProps) => {
   const { payerId, chatId } = expense;
 
@@ -350,6 +352,8 @@ const ChatExpenseCell = ({
         expenseDetails={expenseDetails}
         userId={userId}
         onEdit={onEditExpense}
+        categoryEmoji={categoryEmoji}
+        categoryTitle={categoryTitle}
       />
     </>
   );

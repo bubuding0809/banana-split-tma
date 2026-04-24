@@ -553,16 +553,14 @@ const VirtualTransactionItem = memo(
     chatRows: ChatCategoryRow[];
   }) => {
     if (transaction.type === "expense") {
-      const categoryEmoji = resolveCategory(
-        transaction.categoryId,
-        chatRows
-      )?.emoji;
+      const resolved = resolveCategory(transaction.categoryId, chatRows);
       return (
         <div data-transaction-id={transaction.id} data-month-key={monthKey}>
           <ChatExpenseCell
             expense={transaction}
             sortBy={sortBy}
-            categoryEmoji={categoryEmoji}
+            categoryEmoji={resolved?.emoji}
+            categoryTitle={resolved?.title}
           />
         </div>
       );
