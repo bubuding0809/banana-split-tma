@@ -28,7 +28,8 @@ export function SnapshotFullPage({
   const { status, error, aggregations } = useSnapshotAggregations(snapshotId);
 
   useEffect(() => {
-    backButton.show();
+    if (backButton.mount.isAvailable()) backButton.mount();
+    backButton.show.ifAvailable();
     const off = backButton.onClick(() => {
       if (hapticFeedback.isSupported())
         hapticFeedback.notificationOccurred("success");
@@ -42,7 +43,7 @@ export function SnapshotFullPage({
       });
     });
     return () => {
-      backButton.hide();
+      backButton.hide.ifAvailable();
       off();
     };
   }, [navigate, chatId]);
