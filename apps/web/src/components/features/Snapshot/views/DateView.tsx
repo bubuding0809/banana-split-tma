@@ -16,6 +16,7 @@ export function DateView({ aggregations }: DateViewProps) {
     key: g.key,
     label: format(g.date, "d MMM"),
     value: g.totalInBase,
+    count: g.items.length,
   }));
 
   // List order matches the share message: newest day first.

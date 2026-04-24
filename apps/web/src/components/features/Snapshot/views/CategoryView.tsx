@@ -22,6 +22,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
       key: g.key,
       label: `${g.emoji} ${g.title}`,
       value: g.totalInBase,
+      count: g.items.length,
     })),
     ...(remaining.length > 0
       ? [
@@ -29,6 +30,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
             key: "__more__",
             label: `➕ ${remaining.length} more`,
             value: remainingTotal,
+            count: remaining.reduce((sum, g) => sum + g.items.length, 0),
           },
         ]
       : []),

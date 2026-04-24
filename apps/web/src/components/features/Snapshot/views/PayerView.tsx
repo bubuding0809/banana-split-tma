@@ -16,6 +16,7 @@ export function PayerView({ aggregations }: PayerViewProps) {
     key: String(g.payerId),
     label: g.payer.firstName,
     value: g.totalInBase,
+    count: g.items.length,
   }));
 
   return (
