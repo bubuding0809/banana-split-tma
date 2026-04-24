@@ -173,7 +173,7 @@ export const sendExpenseUpdateStandaloneHandler = async (
       "Original message was deleted — tap View Expense for details.",
       2
     )}_`;
-    const message = `📝 Expense updated by ${updaterMention}\n> ${escapedDescription}\n${disclaimer}`;
+    const message = `📝 Expense updated by ${updaterMention}\n\n> ${escapedDescription}\n\n${disclaimer}`;
 
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
