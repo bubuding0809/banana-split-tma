@@ -244,7 +244,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         >
           {emoji}
         </div>
-        <div className="text-[15px] font-semibold text-[var(--tg-theme-text-color)]">
+        <div className="text-(--tg-theme-text-color) text-[15px] font-semibold">
           {title || "Category name"}
         </div>
       </div>

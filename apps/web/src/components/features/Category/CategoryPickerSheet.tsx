@@ -23,7 +23,7 @@ function tickNav() {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 px-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)] opacity-80">
+    <div className="text-(--tg-theme-subtitle-text-color) mb-2 px-0.5 text-[11px] font-semibold uppercase tracking-wider opacity-80">
       {children}
     </div>
   );
@@ -70,7 +70,7 @@ function CreateCategoryTile({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="border-[var(--tg-theme-link-color)]/40 flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-1 py-2 text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.97]"
+      className="border-(--tg-theme-link-color)/40 text-(--tg-theme-link-color) flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-1 py-2 transition-transform duration-150 ease-out active:scale-[0.97]"
     >
       <span className="flex h-10 items-center justify-center">
         <Plus size={26} strokeWidth={2.25} />
@@ -118,13 +118,13 @@ export default function CategoryPickerSheet({
 
         {categories.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <div className="text-[13px] text-[var(--tg-theme-subtitle-text-color)]">
+            <div className="text-(--tg-theme-subtitle-text-color) text-[13px]">
               All categories are hidden.
             </div>
             {onOpenOrganize && (
               <button
                 type="button"
-                className="text-[13px] font-medium text-[var(--tg-theme-link-color)]"
+                className="text-(--tg-theme-link-color) text-[13px] font-medium"
                 onClick={() => {
                   tickNav();
                   onOpenOrganize();
@@ -180,7 +180,7 @@ export default function CategoryPickerSheet({
               backgroundColor:
                 "color-mix(in srgb, var(--tg-theme-link-color) 14%, transparent)",
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium text-[var(--tg-theme-link-color)] transition-transform duration-150 ease-out active:scale-[0.98]"
+            className="text-(--tg-theme-link-color) flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-medium transition-transform duration-150 ease-out active:scale-[0.98]"
           >
             <Sliders size={15} strokeWidth={2.25} />
             Reorder or hide categories

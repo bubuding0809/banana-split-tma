@@ -60,7 +60,7 @@ export default function CategoriesSection({
           Component="label"
           before={
             <span
-              className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
+              className="text-(--tg-theme-link-color) flex size-10 items-center justify-center rounded-full"
               style={{
                 backgroundColor:
                   "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
@@ -90,7 +90,7 @@ export default function CategoriesSection({
           Component="label"
           before={
             <span
-              className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--tg-theme-link-color)]"
+              className="text-(--tg-theme-link-color) flex size-10 items-center justify-center rounded-full"
               style={{
                 backgroundColor:
                   "color-mix(in srgb, var(--tg-theme-link-color) 15%, transparent)",
@@ -124,7 +124,7 @@ export default function CategoriesSection({
             ))}
           </div>
           {overflowLine ? (
-            <div className="pt-2 text-center text-[11px] text-[var(--tg-theme-subtitle-text-color)]">
+            <div className="text-(--tg-theme-subtitle-text-color) pt-2 text-center text-[11px]">
               {overflowLine}
             </div>
           ) : null}

@@ -168,7 +168,7 @@ const SnapshotPage = ({ chatId }: SnapshotPageProps) => {
             key={index}
             before={
               <Skeleton visible>
-                <div className="h-8 w-8 rounded-lg bg-gray-200" />
+                <div className="size-8 rounded-lg bg-gray-200" />
               </Skeleton>
             }
             after={

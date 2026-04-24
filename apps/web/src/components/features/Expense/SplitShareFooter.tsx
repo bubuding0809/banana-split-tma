@@ -33,7 +33,7 @@ const SplitShareFooter = withForm({
     const { data: chatMembers } = trpc.chat.getMembers.useQuery({ chatId });
     return (
       <footer
-        className="fixed bottom-0 left-0 right-0 z-10"
+        className="fixed inset-x-0 bottom-0 z-10"
         style={{
           backgroundColor: tSectionBgColor,
         }}
@@ -199,7 +199,7 @@ const SplitConfigShares = ({
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "flex h-5 w-5 items-center justify-center rounded border-2",
+                "flex size-5 items-center justify-center rounded border-2",
                 hasShares ? "border-blue-400 bg-blue-400" : "border-gray-400"
               )}
             >

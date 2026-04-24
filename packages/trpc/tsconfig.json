@@ -1,7 +1,8 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "outDir": "dist" /* Specify an output folder for all emitted files. */,
+    "rootDir": "./src",
+    "outDir": "dist" /* Specify an output folder for all emitted files. */
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

@@ -60,7 +60,7 @@ export default function MonthPickerPopover({
       {/* Arrow tail, pointing down at the month pill */}
       <div
         aria-hidden
-        className="absolute -bottom-1.5 left-5 h-3 w-3 rotate-45 rounded-sm bg-[rgba(20,20,25,0.96)]"
+        className="absolute -bottom-1.5 left-5 size-3 rotate-45 rounded-sm bg-[rgba(20,20,25,0.96)]"
       />
     </div>
   );

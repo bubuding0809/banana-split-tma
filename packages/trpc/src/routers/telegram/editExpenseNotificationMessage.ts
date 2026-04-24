@@ -50,6 +50,9 @@ interface SendExpenseUpdateStandaloneInput {
   chatType: string;
   // Expense UUID — target of the "View Expense" CTA on the bubble.
   expenseId: string;
+  // Post-update description. Included in the bubble text so readers can
+  // tell *which* expense was updated without tapping through.
+  expenseDescription: string;
   updaterUserId: number;
   updaterName: string;
   threadId?: number;
@@ -159,7 +162,18 @@ export const sendExpenseUpdateStandaloneHandler = async (
     );
     const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
 
-    const message = `📝 Expense updated by ${updaterMention}`;
+    // Description rendered as a MarkdownV2 blockquote so it visually
+    // sits under the header as a quoted expense identifier, matching
+    // the "> 📝 • …" style used by the full notification. A trailing
+    // italic disclaimer tells readers why they're seeing a bump
+    // instead of the original bubble (it was deleted or was never
+    // posted) so they know to tap the button for the actual state.
+    const escapedDescription = escapeMarkdown(input.expenseDescription, 2);
+    const disclaimer = `_${escapeMarkdown(
+      "Original message was deleted — tap View Expense for details.",
+      2
+    )}_`;
+    const message = `📝 Expense updated by ${updaterMention}\n\n> ${escapedDescription}\n\n${disclaimer}`;
 
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",

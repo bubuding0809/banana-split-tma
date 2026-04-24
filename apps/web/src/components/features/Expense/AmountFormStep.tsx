@@ -386,7 +386,7 @@ const AmountFormStep = withForm({
                           hapticFeedback.impactOccurred("light");
                         }}
                         onBlur={dateField.handleBlur}
-                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                        className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                       />
                       Transaction Date
                     </Cell>

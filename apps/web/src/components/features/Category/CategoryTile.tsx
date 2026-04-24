@@ -52,8 +52,8 @@ export default function CategoryTile({
       }}
       className={clsx(
         "relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2",
-        "text-[var(--tg-theme-text-color)]",
-        selected && "ring-2 ring-[var(--tg-theme-button-color)]",
+        "text-(--tg-theme-text-color)",
+        selected && "ring-(--tg-theme-button-color) ring-2",
         dim && "opacity-50",
         // Grab cursor only when the tile is wired as sortable (Organize
         // page). Non-sortable pickers keep the default pointer.
@@ -67,7 +67,7 @@ export default function CategoryTile({
       {showCustomDot && (
         <span
           aria-hidden
-          className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--tg-theme-button-color)]"
+          className="bg-(--tg-theme-button-color) absolute left-1.5 top-1.5 size-1.5 rounded-full"
         />
       )}
 
@@ -86,8 +86,8 @@ export default function CategoryTile({
             "absolute -right-1.5 -top-1.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-black/25 shadow-[0_1px_3px_rgba(0,0,0,0.5)]",
             "transition-transform duration-100 ease-out active:scale-[0.9]",
             hideToggle === "visible"
-              ? "bg-[#3a3d42] text-[var(--tg-theme-text-color)]"
-              : "bg-[var(--tg-theme-button-color)] text-white"
+              ? "text-(--tg-theme-text-color) bg-[#3a3d42]"
+              : "bg-(--tg-theme-button-color) text-white"
           )}
         >
           {hideToggle === "visible" ? <Eye size={12} /> : <EyeOff size={12} />}

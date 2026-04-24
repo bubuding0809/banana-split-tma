@@ -19,6 +19,7 @@ describe("sendExpenseUpdateStandaloneHandler", () => {
         chatId: 1001,
         chatType: "group",
         expenseId: "123e4567-e89b-12d3-a456-426614174000",
+        expenseDescription: "Brunch at Lola's",
         updaterUserId: 7,
         updaterName: "Xueting",
       },
@@ -33,6 +34,10 @@ describe("sendExpenseUpdateStandaloneHandler", () => {
     expect(chatId).toBe(1001);
     expect(text).toContain("Expense updated by");
     expect(text).toContain("Xueting");
+    // Description is inline so readers can identify the expense without
+    // tapping View Expense. Note the apostrophe gets MarkdownV2-escaped
+    // if needed — here the description has no special chars.
+    expect(text).toContain("Brunch at Lola");
 
     const button = (
       extra as {
@@ -53,6 +58,7 @@ describe("sendExpenseUpdateStandaloneHandler", () => {
         chatId: 1001,
         chatType: "group",
         expenseId: "123e4567-e89b-12d3-a456-426614174000",
+        expenseDescription: "Brunch at Lola's",
         updaterUserId: 7,
         updaterName: "Xueting",
       },
@@ -72,6 +78,7 @@ describe("sendExpenseUpdateStandaloneHandler", () => {
         chatId: 42,
         chatType: "private",
         expenseId: "123e4567-e89b-12d3-a456-426614174000",
+        expenseDescription: "Cab",
         updaterUserId: 7,
         updaterName: "Xueting",
       },

@@ -211,7 +211,7 @@ const EditReminderScheduleModal: React.FC<EditReminderScheduleModalProps> = ({
                             hapticFeedback.impactOccurred("light");
                           }}
                           onBlur={field.handleBlur}
-                          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                          className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                           disabled={isLoading}
                         >
                           {COMMON_TIMEZONES.map((tz) => (
@@ -253,7 +253,7 @@ const EditReminderScheduleModal: React.FC<EditReminderScheduleModalProps> = ({
                             hapticFeedback.impactOccurred("light");
                           }}
                           onBlur={field.handleBlur}
-                          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                          className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                           disabled={isLoading}
                         >
                           {DAYS_OF_WEEK.map((day) => (
@@ -294,7 +294,7 @@ const EditReminderScheduleModal: React.FC<EditReminderScheduleModalProps> = ({
                             hapticFeedback.impactOccurred("light");
                           }}
                           onBlur={field.handleBlur}
-                          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                          className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                           disabled={isLoading}
                         />
                         <Navigation>
