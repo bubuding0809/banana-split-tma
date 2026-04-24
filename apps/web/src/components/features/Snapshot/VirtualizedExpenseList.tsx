@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useMemo, memo, useState } from "react";
 import { Updater } from "@tanstack/react-form";
 import { RouterOutputs } from "@dko/trpc";
+import { resolveCategory } from "@repo/categories";
 import {
   Cell,
   Caption,
@@ -36,12 +37,14 @@ import { compareDatesDesc } from "@/utils/date";
 // Removed routeApi since we no longer use selectedCurrency from route
 
 interface VirtualizedExpenseListProps {
+  chatId: number;
   expenses: RouterOutputs["expense"]["getExpenseByChat"];
   selectedExpenseIds: string[];
   onExpenseToggle: (updater: Updater<string[]>) => void;
 }
 
 const VirtualizedExpenseList = ({
+  chatId,
   expenses,
   selectedExpenseIds,
   onExpenseToggle,
@@ -54,6 +57,27 @@ const VirtualizedExpenseList = ({
 
   // Jump to date modal state
   const [jumpToDateModalOpen, setJumpToDateModalOpen] = useState(false);
+
+  const { data: categoriesData } = trpc.category.listByChat.useQuery({
+    chatId,
+  });
+
+  const categoryEmojiByExpenseId = useMemo(() => {
+    const chatRows =
+      categoriesData?.items
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          emoji: c.emoji,
+          title: c.title,
+        })) ?? [];
+    const map = new Map<string, string>();
+    for (const expense of expenses) {
+      const resolved = resolveCategory(expense.categoryId, chatRows);
+      if (resolved?.emoji) map.set(expense.id, resolved.emoji);
+    }
+    return map;
+  }, [categoriesData, expenses]);
 
   // Sort expenses by date descending for consistent display
   const sortedExpenses = useMemo(
@@ -268,6 +292,7 @@ const VirtualizedExpenseList = ({
                     userId={userId}
                     onExpenseToggle={onExpenseToggle}
                     isSelected={selectedExpenseIds.includes(expense.id)}
+                    categoryEmoji={categoryEmojiByExpenseId.get(expense.id)}
                   />
                 </div>
               </div>
@@ -331,11 +356,13 @@ const ExpenseCell = memo(
     userId,
     onExpenseToggle,
     isSelected,
+    categoryEmoji,
   }: {
     expense: RouterOutputs["expense"]["getExpenseByChat"][number];
     userId: number;
     onExpenseToggle: (updater: Updater<string[]>) => void;
     isSelected: boolean;
+    categoryEmoji?: string;
   }) => {
     // Remove selectedCurrency - use expense.currency instead
     const tButtonColor = useSignal(themeParams.buttonColor);
@@ -394,17 +421,22 @@ const ExpenseCell = memo(
         className={cn(isSelected && "bg-blue-50 dark:bg-blue-950")}
         Component="label"
         before={
-          <Checkbox
-            value={expense.id}
-            checked={isSelected}
-            onChange={(e) =>
-              onExpenseToggle((prev) =>
-                e.target.checked
-                  ? [...prev, e.target.value]
-                  : prev.filter((id) => id !== e.target.value)
-              )
-            }
-          />
+          <div className="flex items-center gap-2">
+            <Checkbox
+              value={expense.id}
+              checked={isSelected}
+              onChange={(e) =>
+                onExpenseToggle((prev) =>
+                  e.target.checked
+                    ? [...prev, e.target.value]
+                    : prev.filter((id) => id !== e.target.value)
+                )
+              }
+            />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
+              {categoryEmoji ?? "❓"}
+            </div>
+          </div>
         }
         subhead={
           <Caption

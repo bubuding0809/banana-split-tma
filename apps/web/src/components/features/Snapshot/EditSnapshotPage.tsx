@@ -309,6 +309,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
           <form.Field name="expenseIds">
             {(field) => (
               <VirtualizedExpenseList
+                chatId={chatId}
                 expenses={expenses}
                 selectedExpenseIds={field.state.value}
                 onExpenseToggle={field.handleChange}
