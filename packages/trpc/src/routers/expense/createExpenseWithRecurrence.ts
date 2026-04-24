@@ -1,16 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { CreateScheduleCommand } from "@aws-sdk/client-scheduler";
 import { protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import {
   inputSchema as createExpenseInputSchema,
   createExpenseHandler,
 } from "./createExpense.js";
-import { getSchedulerClient } from "../aws/utils/schedulerClient.js";
+import { createRecurringScheduleHandler } from "../aws/createRecurringSchedule.js";
 import {
   buildRecurringExpenseScheduleName,
-  buildRecurringExpenseHttpTarget,
   RECURRING_EXPENSE_SCHEDULE_GROUP,
 } from "../aws/utils/recurringExpenseScheduler.js";
 import { buildExpenseCron } from "../aws/utils/buildExpenseCron.js";
@@ -39,12 +37,10 @@ export default protectedProcedure
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.expense.chatId);
 
-    const webhookUrl = process.env.RECURRING_EXPENSE_WEBHOOK_URL;
-    const webhookSecret = process.env.RECURRING_EXPENSE_WEBHOOK_SECRET;
-    if (!webhookUrl || !webhookSecret) {
+    if (!process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "RECURRING_EXPENSE_WEBHOOK_URL/_SECRET not configured",
+        message: "AWS_RECURRING_EXPENSE_LAMBDA_ARN not configured",
       });
     }
 
@@ -113,39 +109,26 @@ export default protectedProcedure
     });
 
     // 2. Create the AWS schedule. On failure, roll back the template (keep the expense).
+    //
+    // Mirrors the GroupReminderLambda pattern: EventBridge Scheduler invokes
+    // an external RecurringExpenseLambda (in the bananasplit-tgbot AWS repo)
+    // which forwards an HMAC-signed POST to our Vercel webhook.
     try {
-      const scheduler = getSchedulerClient();
-      // NOTE: `buildRecurringExpenseHttpTarget` returns a Universal HTTP
-      // invoke target. The SDK type `Target` (models_0.d.ts in
-      // @aws-sdk/client-scheduler@3.1021.0) does NOT declare an
-      // `HttpParameters` field — the helper extends `Target` with a custom
-      // intersection so headers/query/path params survive at runtime. The
-      // webhook URL itself is supposed to live in `Target.Arn` (per AWS
-      // docs for universal HTTP invoke), but the helper currently sets
-      // `Arn: "arn:aws:scheduler:::http-invoke"` and ignores `webhookUrl`.
-      // This is a pre-existing bug from Task 3/4 that needs fixing in the
-      // helper before this mutation will actually fire requests at the
-      // webhook. Tracking via DONE_WITH_CONCERNS.
-      const httpTarget = buildRecurringExpenseHttpTarget({
-        templateId: template.id,
-        webhookUrl,
-        secret: webhookSecret,
+      await createRecurringScheduleHandler({
+        scheduleName: template.awsScheduleName,
+        scheduleExpression: cronExpression,
+        lambdaArn: process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN!,
+        payload: {
+          templateId: template.id,
+          occurrenceDate: "<aws.scheduler.scheduled-time>",
+        },
+        description: `Recurring expense ${template.id} for chat ${template.chatId}`,
+        timezone: input.recurrence.timezone,
+        startDate,
+        endDate: input.recurrence.endDate ?? undefined,
+        enabled: true,
+        scheduleGroup: RECURRING_EXPENSE_SCHEDULE_GROUP,
       });
-
-      await scheduler.send(
-        new CreateScheduleCommand({
-          Name: template.awsScheduleName,
-          GroupName: RECURRING_EXPENSE_SCHEDULE_GROUP,
-          ScheduleExpression: cronExpression,
-          ScheduleExpressionTimezone: input.recurrence.timezone,
-          State: "ENABLED",
-          Target: httpTarget,
-          FlexibleTimeWindow: { Mode: "OFF" },
-          StartDate: startDate,
-          EndDate: input.recurrence.endDate ?? undefined,
-          Description: `Recurring expense ${template.id} for chat ${template.chatId}`,
-        })
-      );
     } catch (awsError) {
       await ctx.db.recurringExpenseTemplate
         .delete({ where: { id: template.id } })

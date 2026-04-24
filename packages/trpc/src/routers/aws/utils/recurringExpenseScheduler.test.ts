@@ -3,7 +3,6 @@ import {
   buildRecurringExpenseScheduleName,
   signRecurringExpensePayload,
   verifyRecurringExpenseSignature,
-  buildRecurringExpenseHttpTarget,
 } from "./recurringExpenseScheduler.js";
 
 describe("buildRecurringExpenseScheduleName", () => {
@@ -41,30 +40,5 @@ describe("signRecurringExpensePayload / verifyRecurringExpenseSignature", () => 
     expect(
       verifyRecurringExpenseSignature("template-123", "short", SECRET)
     ).toBe(false);
-  });
-});
-
-describe("buildRecurringExpenseHttpTarget", () => {
-  it("produces a Universal HTTP target with payload + signature header", () => {
-    process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN =
-      "arn:aws:iam::000000000000:role/test";
-    const target = buildRecurringExpenseHttpTarget({
-      templateId: "tmpl-1",
-      webhookUrl: "https://example.com/api/internal/recurring-expense-tick",
-      secret: "s".repeat(64),
-    });
-
-    expect(target.Arn).toBe("arn:aws:scheduler:::http-invoke");
-    expect(target.HttpParameters?.HeaderParameters?.["Content-Type"]).toBe(
-      "application/json"
-    );
-    expect(
-      target.HttpParameters?.HeaderParameters?.["X-Recurring-Signature"]
-    ).toMatch(/^[a-f0-9]{64}$/);
-
-    const body = JSON.parse(target.Input ?? "{}");
-    expect(body.templateId).toBe("tmpl-1");
-    expect(body.scheduleName).toBe("recurring-expense-tmpl-1");
-    expect(body.occurrenceDate).toBe("<aws.scheduler.scheduled-time>");
   });
 });

@@ -20,7 +20,7 @@ Subscriptions (Netflix, Spotify, gym), bills (rent, phone, internet), and standi
 |---|---|
 | Scope of feature | General-purpose recurring expenses (subscriptions, bills, standing arrangements) |
 | Per-occurrence mutability | Edit-the-template-only — template is the source of truth, edits affect future occurrences, past occurrences stay as-was |
-| Compute target on schedule fire | EventBridge Scheduler → HTTPS universal target → POST to `/api/internal/recurring-expense-tick` on `apps/lambda` (Vercel function) |
+| Compute target on schedule fire | EventBridge Scheduler → external **RecurringExpenseLambda** (in `bananasplit-tgbot` AWS repo, mirrors GroupReminderLambda pattern) → HMAC-signed POST to `/api/internal/recurring-expense-tick` on `apps/lambda` |
 | Auth between AWS and Vercel | HMAC-SHA256 with shared secret `RECURRING_EXPENSE_WEBHOOK_SECRET` |
 | End condition | Optional **End Date** only. Open-ended by default (user cancels manually) |
 | Frequency scope | Apple Reminders presets + Custom interval. Specifically: Daily, Weekly, Biweekly, Monthly, Every 3 Months, Every 6 Months, Yearly, Custom (every N days/weeks/months) with weekday picker for Weekly. **Skip** Hourly and positional-weekday rules ("first Monday of every month") |
@@ -46,6 +46,10 @@ Subscriptions (Netflix, Spotify, gym), bills (rent, phone, internet), and standi
 - Editable past occurrences re-syncing back to the template.
 
 ## Architecture
+
+## Why a separate Lambda?
+
+AWS EventBridge Scheduler does not support direct HTTPS endpoints (universal targets only invoke AWS APIs — Lambda, SQS, SNS, etc.). The cleanest path is the existing GroupReminderLambda pattern — a tiny external Lambda that forwards to our Vercel webhook with the HMAC signature. The Lambda lives in the same `bananasplit-tgbot` AWS repo that already houses `GroupReminderLambda`, mirrors its structure, and adds no new infra concepts to the team.
 
 ### Data model — Prisma additions
 
@@ -134,28 +138,27 @@ All under the existing `expense` router (`packages/trpc/src/routers/expense/`):
 
 New utility + router files mirroring the existing `groupReminderUtils.ts` / `createGroupReminderSchedule.ts` shape:
 
-- `packages/trpc/src/routers/aws/utils/recurringExpenseScheduler.ts` — name normaliser (`recurring-expense-{templateId}`), HMAC payload builder, target builder pointing at `RECURRING_EXPENSE_WEBHOOK_URL`.
+- `packages/trpc/src/routers/aws/utils/recurringExpenseScheduler.ts` — name normaliser (`recurring-expense-{templateId}`), HMAC sign/verify helpers (used by Task 10's webhook verifier; the Lambda computes the same HMAC at fire time), schedule-group constant.
 - `packages/trpc/src/routers/aws/utils/scheduleParser.ts` — extend with `buildExpenseCron({ frequency, interval, weekdays, hour: 9, minute: 0 })` returning the AWS cron expression. Skip the human-DSL path for this code; we go directly from structured fields to cron.
-- New private mutations on the AWS router used internally by `expense.createWithRecurrence` / `update` / `cancel` (callers within the monorepo only — not exposed to the TMA directly).
+- `expense.createWithRecurrence` / `update` / `cancel` delegate to the existing `createRecurringScheduleHandler` / equivalent helpers, mirroring how `createGroupReminderSchedule.ts` does it. The schedule's `Target.Arn` is the new `RecurringExpenseLambda` ARN (`AWS_RECURRING_EXPENSE_LAMBDA_ARN`); `Target.Input` is the JSON `{ templateId, occurrenceDate: "<aws.scheduler.scheduled-time>" }`.
 
 Changes vs. existing reminder pattern:
 
 - **Use `UpdateScheduleCommand` instead of delete-then-recreate.** The current `updateGroupReminderSchedule` deletes then recreates, which leaves a window where the schedule does not exist. Recurring expenses should not have that window.
 - **EventBridge schedule group** = `recurring-expenses` (vs. the reminders' `default`). Aids IAM scoping and listing.
-- **Universal HTTPS target** instead of Lambda target. Schedule's `Target.Arn` is `arn:aws:scheduler:::http-invoke`, with `Target.HttpParameters` carrying the URL + headers. EventBridge SigV4-signs the request only when targeting AWS APIs; for our public Vercel URL we wear our own HMAC.
+- **Lambda target** (the new external `RecurringExpenseLambda`) — same target type as `GroupReminderLambda`. The Lambda forwards each fire to our Vercel webhook with an HMAC signature, since EventBridge Scheduler cannot post directly to arbitrary HTTPS endpoints.
 
 ### EventBridge → Vercel data flow
 
 ```
 EventBridge Scheduler (cron)
    ↓
-POST https://<lambda-app-vercel-url>/api/internal/recurring-expense-tick
+EventBridge Scheduler → RecurringExpenseLambda (external, ~30 lines) → POST to lambda-vercel-url with HMAC
    Headers: Content-Type: application/json
             X-Recurring-Signature: <hex>
    Body: {
      "templateId": "<uuid>",
-     "occurrenceDate": "<ISO 8601>",   // = AWS scheduled-time substitution
-     "scheduleName": "recurring-expense-<uuid>"
+     "occurrenceDate": "<ISO 8601>"   // = AWS scheduled-time substitution
    }
    ↓
 apps/lambda endpoint:
@@ -179,15 +182,16 @@ The HMAC signature is computed once at schedule-create time and embedded as a st
   2. **Freshness check** on the endpoint — reject if `|now - occurrenceDate| > 15 minutes`. Blocks an attacker (who somehow captured a valid signature) from materialising arbitrary back/forward-dated occurrences.
   3. The endpoint also rejects if `occurrenceDate > template.endDate`.
 
-- (Rejected) Send the template ID alone and sign each request with a per-fire HMAC — would require a Lambda in front of EventBridge to compute the signature, defeating the purpose of going direct.
+- (Rejected) Send the template ID alone and sign each request with a per-fire HMAC — would require AWS to recompute the signature per fire, which it cannot do natively. (We *do* run a Lambda in front of EventBridge per the architecture pivot, but it signs over `templateId` only — no per-fire body — so the HMAC stays static and verifiable.)
 
 ### New env vars
 
 | Var | Where | Purpose |
 |---|---|---|
-| `RECURRING_EXPENSE_WEBHOOK_URL` | tRPC env (writes schedules) | The Vercel URL of the tick endpoint, embedded in EventBridge target config |
-| `RECURRING_EXPENSE_WEBHOOK_SECRET` | tRPC env + apps/lambda env | Shared 32-byte hex secret for HMAC |
-| (existing) `AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN` | reused | EventBridge service role; needs `scheduler:*` plus permission to invoke universal HTTP targets (no extra IAM for HTTP — the role is just used for scheduler self-management) |
+| `AWS_RECURRING_EXPENSE_LAMBDA_ARN` | tRPC env (writes schedules) | ARN of the external `RecurringExpenseLambda`; passed as the schedule's `Target.Arn` by `createWithRecurrence` / `update` |
+| `RECURRING_EXPENSE_WEBHOOK_SECRET` | apps/lambda env (verifies tick) + RecurringExpenseLambda env (signs tick) | Shared 32-byte hex secret for HMAC. Set in BOTH the Lambda's config and Vercel — must match |
+| `RECURRING_EXPENSE_WEBHOOK_URL` | RecurringExpenseLambda env only | Fully-qualified Vercel URL of the tick endpoint. Lives on the Lambda side, NOT in this monorepo |
+| (existing) `AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN` | reused | EventBridge service role; needs `scheduler:*` plus `lambda:InvokeFunction` on the new RecurringExpenseLambda ARN |
 
 The EventBridge IAM role used by group reminders does not need any change — universal HTTP targets do not require additional IAM.
 
@@ -381,9 +385,10 @@ Each `Expense` rendered in the activity list (existing list in `apps/web/src/com
 
 ### Infra
 
-- AWS EventBridge Scheduler — create new schedule group `recurring-expenses` (one-time, prod). The existing scheduler IAM role already has the broad `scheduler:*` it needs.
-- Vercel env: `RECURRING_EXPENSE_WEBHOOK_SECRET` (32-byte hex), `RECURRING_EXPENSE_WEBHOOK_URL` set to the deployed `apps/lambda` URL + `/api/internal/recurring-expense-tick`.
-- No new AWS Lambda is created; no cross-repo coordination needed.
+- AWS EventBridge Scheduler — create new schedule group `recurring-expenses` (one-time, prod). The existing scheduler IAM role needs `lambda:InvokeFunction` added for the new RecurringExpenseLambda ARN.
+- External `bananasplit-tgbot` AWS repo — deploy the new `RecurringExpenseLambda` (see [`2026-04-24-recurring-expenses-lambda.md`](./2026-04-24-recurring-expenses-lambda.md)). Its env vars (`RECURRING_EXPENSE_WEBHOOK_URL`, `RECURRING_EXPENSE_WEBHOOK_SECRET`) live there, NOT in this monorepo.
+- Vercel env (apps/lambda): `RECURRING_EXPENSE_WEBHOOK_SECRET` (32-byte hex, same value as in the Lambda).
+- Vercel env (tRPC layer): `AWS_RECURRING_EXPENSE_LAMBDA_ARN` from the Lambda deployment output.
 
 ## Verification plan (UAT)
 

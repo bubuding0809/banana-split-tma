@@ -466,7 +466,9 @@ git commit -m "✨ feat(trpc): add formatRecurrenceSummary helper"
 
 ---
 
-### Task 4: `recurringExpenseScheduler` (name builder + HMAC + HTTP target)
+### Task 4: `recurringExpenseScheduler` (name builder + HMAC helpers)
+
+> ⚠️ **Architecture pivot (2026-04-24):** EventBridge Scheduler doesn't support direct HTTPS targets. The HTTP target builder previously planned here is **gone**. The scheduler util now exposes only: name builder, HMAC sign/verify, and the schedule-group constant. The actual Lambda target is constructed by delegating to the existing `createRecurringScheduleHandler` in Task 5.
 
 **Files:**
 - Create: `packages/trpc/src/routers/aws/utils/recurringExpenseScheduler.ts`
@@ -481,7 +483,6 @@ import {
   buildRecurringExpenseScheduleName,
   signRecurringExpensePayload,
   verifyRecurringExpenseSignature,
-  buildRecurringExpenseHttpTarget,
 } from "./recurringExpenseScheduler.js";
 
 describe("buildRecurringExpenseScheduleName", () => {
@@ -514,25 +515,6 @@ describe("signRecurringExpensePayload / verifyRecurringExpenseSignature", () => 
       .toBe(false);
   });
 });
-
-describe("buildRecurringExpenseHttpTarget", () => {
-  it("produces a Universal HTTP target with payload + signature header", () => {
-    const target = buildRecurringExpenseHttpTarget({
-      templateId: "tmpl-1",
-      webhookUrl: "https://example.com/api/internal/recurring-expense-tick",
-      secret: "s".repeat(64),
-    });
-
-    expect(target.Arn).toBe("arn:aws:scheduler:::http-invoke");
-    expect(target.HttpParameters?.HeaderParameters?.["Content-Type"]).toBe("application/json");
-    expect(target.HttpParameters?.HeaderParameters?.["X-Recurring-Signature"]).toMatch(/^[a-f0-9]{64}$/);
-
-    const body = JSON.parse(target.Input ?? "{}");
-    expect(body.templateId).toBe("tmpl-1");
-    expect(body.scheduleName).toBe("recurring-expense-tmpl-1");
-    expect(body.occurrenceDate).toBe("<aws.scheduler.scheduled-time>");
-  });
-});
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -546,15 +528,16 @@ Create `packages/trpc/src/routers/aws/utils/recurringExpenseScheduler.ts`:
 
 ```ts
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { Target } from "@aws-sdk/client-scheduler";
 
 export function buildRecurringExpenseScheduleName(templateId: string): string {
   return `recurring-expense-${templateId}`;
 }
 
 /**
- * HMAC-SHA256 over just the templateId. Computed once at schedule-create
- * time and embedded as a static header in the EventBridge HTTP target.
+ * HMAC-SHA256 over just the templateId. Computed by the external
+ * RecurringExpenseLambda for each fire and verified by the Vercel
+ * webhook endpoint. Kept here so Task 10's webhook can verify what
+ * the Lambda will sign.
  *
  * Replay protection lives elsewhere:
  *   - Unique index on (recurringTemplateId, date) blocks duplicate writes.
@@ -572,56 +555,22 @@ export function verifyRecurringExpenseSignature(
 ): boolean {
   const expected = signRecurringExpensePayload(templateId, secret);
   if (expected.length !== providedSignature.length) return false;
-  return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(providedSignature, "hex"));
-}
-
-export interface BuildHttpTargetInput {
-  templateId: string;
-  webhookUrl: string;
-  secret: string;
-}
-
-export function buildRecurringExpenseHttpTarget(input: BuildHttpTargetInput): Target {
-  const { templateId, webhookUrl, secret } = input;
-  const signature = signRecurringExpensePayload(templateId, secret);
-  const scheduleName = buildRecurringExpenseScheduleName(templateId);
-
-  // EventBridge substitutes <aws.scheduler.scheduled-time> at fire time.
-  const body = JSON.stringify({
-    templateId,
-    scheduleName,
-    occurrenceDate: "<aws.scheduler.scheduled-time>",
-  });
-
-  return {
-    Arn: "arn:aws:scheduler:::http-invoke",
-    RoleArn: process.env.AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN!,
-    HttpParameters: {
-      HeaderParameters: {
-        "Content-Type": "application/json",
-        "X-Recurring-Signature": signature,
-      },
-    },
-    Input: body,
-    // Universal HTTP target also requires the URL via DestinationConfig
-    // when used through Schedule.Target.HttpParameters.
-    // The actual Url goes on the schedule via Target.Arn for HTTP endpoints —
-    // EventBridge's universal-target API expects the URL embedded in the
-    // ARN params via destination configuration. See AWS docs for the exact
-    // shape. For our usage we stash the URL on the schedule's
-    // DestinationConfig in createSchedule (next task).
-  } as Target;
+  try {
+    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(providedSignature, "hex"));
+  } catch {
+    return false;
+  }
 }
 
 export const RECURRING_EXPENSE_SCHEDULE_GROUP = "recurring-expenses";
 ```
 
-> ⚠️ **Note for the implementer:** AWS EventBridge Scheduler's universal HTTP target API has been changing. As of writing, the HTTP target uses `Target.Arn = "arn:aws:scheduler:::http-invoke"` and the URL is passed via the `Url` field on `Target.HttpParameters` (not via DestinationConfig). Verify the exact field name against `@aws-sdk/client-scheduler` v3.873+ types **before** writing the createSchedule call in the next task. If the SDK rejects the field, consult [AWS Scheduler Universal Target docs](https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-targets-universal.html). The shape may need a small adjustment in the next task — but the helpers here remain correct.
+> **Note:** The previous `buildRecurringExpenseHttpTarget` helper and `RecurringExpenseHttpTarget` type are **gone** post-pivot. The schedule's Lambda target is constructed by `createRecurringScheduleHandler` in Task 5.
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd packages/trpc && pnpm vitest run src/routers/aws/utils/recurringExpenseScheduler.test.ts`
-Expected: PASS — 6 tests green.
+Expected: PASS — 5 tests green.
 
 - [ ] **Step 5: Commit**
 
@@ -641,6 +590,8 @@ git commit -m "✨ feat(trpc): add recurringExpenseScheduler helpers"
 - Create: `packages/trpc/src/routers/expense/createExpenseWithRecurrence.ts`
 - Modify: `packages/trpc/src/routers/expense/index.ts`
 
+> ⚠️ **Architecture pivot (2026-04-24):** Instead of building a Universal HTTP Target inline, this mutation now delegates to the existing `createRecurringScheduleHandler` (mirror of `createGroupReminderSchedule.ts`) with the new external `RecurringExpenseLambda` ARN. Env var guard is `AWS_RECURRING_EXPENSE_LAMBDA_ARN`.
+
 - [ ] **Step 1: Implement the mutation**
 
 Create `packages/trpc/src/routers/expense/createExpenseWithRecurrence.ts`:
@@ -648,16 +599,15 @@ Create `packages/trpc/src/routers/expense/createExpenseWithRecurrence.ts`:
 ```ts
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { CreateScheduleCommand } from "@aws-sdk/client-scheduler";
 import { protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
-import { SplitMode } from "@dko/database";
-import { inputSchema as createExpenseInputSchema } from "./createExpense.js";
-import { createExpenseHandler } from "./createExpense.js";
-import { getSchedulerClient } from "../aws/utils/schedulerClient.js";
+import {
+  inputSchema as createExpenseInputSchema,
+  createExpenseHandler,
+} from "./createExpense.js";
+import { createRecurringScheduleHandler } from "../aws/createRecurringSchedule.js";
 import {
   buildRecurringExpenseScheduleName,
-  buildRecurringExpenseHttpTarget,
   RECURRING_EXPENSE_SCHEDULE_GROUP,
 } from "../aws/utils/recurringExpenseScheduler.js";
 import { buildExpenseCron } from "../aws/utils/buildExpenseCron.js";
@@ -687,12 +637,10 @@ export default protectedProcedure
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.expense.chatId);
 
-    const webhookUrl = process.env.RECURRING_EXPENSE_WEBHOOK_URL;
-    const webhookSecret = process.env.RECURRING_EXPENSE_WEBHOOK_SECRET;
-    if (!webhookUrl || !webhookSecret) {
+    if (!process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "RECURRING_EXPENSE_WEBHOOK_URL/_SECRET not configured",
+        message: "AWS_RECURRING_EXPENSE_LAMBDA_ARN not configured",
       });
     }
 
@@ -709,7 +657,11 @@ export default protectedProcedure
       weekdays: input.recurrence.weekdays,
       hour: FIRE_HOUR,
       minute: FIRE_MIN,
-      dayOfMonth,
+      dayOfMonth:
+        input.recurrence.frequency === "MONTHLY" ||
+        input.recurrence.frequency === "YEARLY"
+          ? dayOfMonth
+          : undefined,
       month: input.recurrence.frequency === "YEARLY" ? month : undefined,
     });
 
@@ -758,43 +710,30 @@ export default protectedProcedure
       return { template: updated, expense: exp };
     });
 
-    // 2. Create the AWS schedule. On failure, roll back the DB writes.
+    // 2. Create the AWS schedule via the existing createRecurringScheduleHandler
+    //    (same pattern as createGroupReminderSchedule.ts). On failure, roll back
+    //    the template (keep the immediate Expense — user added it manually in spirit).
+    //
+    //    The schedule's Lambda target is the external RecurringExpenseLambda
+    //    in the bananasplit-tgbot AWS repo; it forwards each fire to
+    //    /api/internal/recurring-expense-tick with the HMAC signature.
     try {
-      const scheduler = getSchedulerClient();
-      const httpTarget = buildRecurringExpenseHttpTarget({
-        templateId: template.id,
-        webhookUrl,
-        secret: webhookSecret,
-      });
-      // ⚠️ See note in recurringExpenseScheduler.ts — verify the exact
-      // field name on @aws-sdk/client-scheduler v3.873+ for the URL.
-      // Most likely (Target.HttpParameters.Url):
-      const targetWithUrl = {
-        ...httpTarget,
-        HttpParameters: {
-          ...(httpTarget.HttpParameters ?? {}),
-          // @ts-expect-error - AWS SDK type may name this differently per version
-          Url: webhookUrl,
+      await createRecurringScheduleHandler({
+        scheduleName: template.awsScheduleName,
+        scheduleExpression: cronExpression,
+        lambdaArn: process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN!,
+        payload: {
+          templateId: template.id,
+          occurrenceDate: "<aws.scheduler.scheduled-time>",
         },
-      };
-
-      await scheduler.send(
-        new CreateScheduleCommand({
-          Name: template.awsScheduleName,
-          GroupName: RECURRING_EXPENSE_SCHEDULE_GROUP,
-          ScheduleExpression: cronExpression,
-          ScheduleExpressionTimezone: input.recurrence.timezone,
-          State: "ENABLED",
-          Target: targetWithUrl,
-          FlexibleTimeWindow: { Mode: "OFF" },
-          StartDate: startDate,
-          EndDate: input.recurrence.endDate ?? undefined,
-          Description: `Recurring expense ${template.id} for chat ${template.chatId}`,
-        }),
-      );
+        description: `Recurring expense ${template.id} for chat ${template.chatId}`,
+        timezone: input.recurrence.timezone,
+        startDate,
+        endDate: input.recurrence.endDate ?? undefined,
+        enabled: true,
+        scheduleGroup: RECURRING_EXPENSE_SCHEDULE_GROUP,
+      });
     } catch (awsError) {
-      // Roll back: detach + delete template; keep the immediate Expense
-      // (the user did add it manually in spirit).
       await ctx.db.recurringExpenseTemplate.delete({ where: { id: template.id } }).catch(() => {});
       console.error("AWS schedule create failed; rolled back template", awsError);
       throw new TRPCError({
@@ -806,6 +745,10 @@ export default protectedProcedure
     return { templateId: template.id, expenseId: expense.id };
   });
 ```
+
+Notes:
+- `createRecurringScheduleHandler`'s `scheduleExpression` input goes through `parseScheduleExpression` which accepts our `cron(...)` string as-is.
+- The `RECURRING_EXPENSE_WEBHOOK_*` env vars are still needed by Task 10 (the Vercel webhook endpoint verifies HMAC with `RECURRING_EXPENSE_WEBHOOK_SECRET`), but the URL no longer needs to be in this mutation — it lives only on the external Lambda.
 
 - [ ] **Step 2: Wire into the expense router**
 
@@ -2289,22 +2232,36 @@ git commit -m "✨ feat(web): show recurring badge on activity list rows"
 
 ## Phase 8 — Infra & env
 
-### Task 17: env + AWS schedule group
+### Task 17: env + AWS schedule group + external Lambda deployment
+
+> ⚠️ **Architecture pivot (2026-04-24):** Env vars split. `RECURRING_EXPENSE_WEBHOOK_URL` no longer lives in tRPC env — it's only on the external Lambda. `AWS_RECURRING_EXPENSE_LAMBDA_ARN` is new (tRPC env, used by `createWithRecurrence` / `update`). `RECURRING_EXPENSE_WEBHOOK_SECRET` stays in `apps/lambda` env (for HMAC verification by the tick endpoint) and also goes on the external Lambda (for HMAC signing).
 
 **Files:**
 - Modify: `apps/lambda/env/.env.production.example`
 
-- [ ] **Step 1: Update env example**
+- [ ] **Step 1: Deploy the external `RecurringExpenseLambda`**
+
+In the external `bananasplit-tgbot` AWS repo, add the new Lambda following [`docs/superpowers/specs/2026-04-24-recurring-expenses-lambda.md`](../specs/2026-04-24-recurring-expenses-lambda.md). Set its env:
+
+- `RECURRING_EXPENSE_WEBHOOK_URL` = `https://<your-lambda-app>.vercel.app/api/internal/recurring-expense-tick`
+- `RECURRING_EXPENSE_WEBHOOK_SECRET` = output of `openssl rand -hex 32` (save this — also needed in Vercel below)
+
+Capture the Lambda's deployed ARN (e.g. `arn:aws:lambda:ap-southeast-1:<account>:function:RecurringExpenseLambda`).
+
+Also: add `lambda:InvokeFunction` for this ARN to the existing `AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN` policy.
+
+- [ ] **Step 2: Update env example in the monorepo**
 
 Edit `apps/lambda/env/.env.production.example`. Append to the bottom:
 
 ```
-# Recurring expenses webhook (HMAC-signed POST from EventBridge Scheduler)
-RECURRING_EXPENSE_WEBHOOK_SECRET=<32+ byte hex secret, generate with `openssl rand -hex 32`>
-RECURRING_EXPENSE_WEBHOOK_URL=https://<your-vercel-deployment>.vercel.app/api/internal/recurring-expense-tick
+# Recurring expenses webhook (HMAC verification of POSTs from RecurringExpenseLambda)
+RECURRING_EXPENSE_WEBHOOK_SECRET=<32+ byte hex secret, must match the value set on RecurringExpenseLambda>
 ```
 
-- [ ] **Step 2: Manual AWS step — create the schedule group (do this once in prod)**
+(Note: `RECURRING_EXPENSE_WEBHOOK_URL` is intentionally **not** in monorepo env — it lives on the external Lambda.)
+
+- [ ] **Step 3: Manual AWS step — create the schedule group (do this once in prod)**
 
 Run from a shell with AWS creds for the prod account:
 
@@ -2316,19 +2273,24 @@ aws scheduler create-schedule-group \
 
 Expected: `{"ScheduleGroupArn":"arn:aws:scheduler:ap-southeast-1:<account>:schedule-group/recurring-expenses"}`. Idempotent — safe to re-run; if it already exists you'll get a `ConflictException` which is fine.
 
-- [ ] **Step 3: Manual Vercel step — set the env vars**
+- [ ] **Step 4: Manual Vercel step — set the env vars**
 
-Run (or do via the Vercel dashboard):
+For the tRPC layer (the project that runs `createExpenseWithRecurrence` / `update`):
+
+```bash
+vercel env add AWS_RECURRING_EXPENSE_LAMBDA_ARN production
+# Paste the ARN captured in Step 1.
+```
+
+For `apps/lambda` (the project hosting the tick webhook):
 
 ```bash
 cd apps/lambda
 vercel env add RECURRING_EXPENSE_WEBHOOK_SECRET production
-vercel env add RECURRING_EXPENSE_WEBHOOK_URL production
+# Paste the SAME secret you set on the Lambda in Step 1.
 ```
 
-For the secret, paste the output of `openssl rand -hex 32` when prompted. For the URL, use `https://<your-lambda-app>.vercel.app/api/internal/recurring-expense-tick`.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add apps/lambda/env/.env.production.example
