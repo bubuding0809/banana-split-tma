@@ -58,6 +58,7 @@ export default function CategoryAggregationTicker({
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tSectionBackgroundColor = useSignal(themeParams.sectionBackgroundColor);
   const tSectionHeaderTextColor = useSignal(themeParams.sectionHeaderTextColor);
+  const isDarkMode = useSignal(themeParams.isDark);
 
   // * Queries ============================================================
   const { data: expensesData } = trpc.expense.getAllExpensesByChat.useQuery(
@@ -217,28 +218,40 @@ export default function CategoryAggregationTicker({
           tabIndex={anyModalOpen ? -1 : 0}
           className={cn(
             "pointer-events-auto relative flex cursor-pointer select-none items-center gap-3 overflow-hidden rounded-full",
-            "w-[min(90vw,440px)] px-5 py-3 text-left text-white",
-            "transition-transform duration-150 active:scale-[0.98]"
+            "w-[min(90vw,440px)] px-5 py-3 text-left",
+            "transition-transform duration-150 active:scale-[0.98]",
+            isDarkMode ? "text-white" : "text-neutral-900"
           )}
           style={{
-            // Dark translucent base — low alpha so the backdrop shows
+            // Translucent glass base — low alpha so the backdrop shows
             // through and the blur+saturate has something to work on.
-            // A subtle top-to-bottom white gradient simulates light
-            // hitting the top of the glass.
-            backgroundImage:
-              "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 100%)",
-            backgroundColor: "rgba(20,20,25,0.55)",
+            // Dark mode: dark base with a subtle top white gradient.
+            // Light mode: white base with a soft top highlight.
+            backgroundImage: isDarkMode
+              ? "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 100%)"
+              : "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.65) 100%)",
+            backgroundColor: isDarkMode
+              ? "rgba(20,20,25,0.55)"
+              : "rgba(255,255,255,0.65)",
             backdropFilter: "blur(24px) saturate(180%)",
             WebkitBackdropFilter: "blur(24px) saturate(180%)",
             // Layered shadows give the glass its lift: an inset top
             // highlight (specular edge), an inset hairline border,
-            // plus two drop shadows (close + ambient).
-            boxShadow: [
-              "inset 0 1px 0 rgba(255,255,255,0.22)",
-              "inset 0 0 0 1px rgba(255,255,255,0.08)",
-              "0 1px 2px rgba(0,0,0,0.25)",
-              "0 12px 32px rgba(0,0,0,0.35)",
-            ].join(", "),
+            // plus two drop shadows (close + ambient). Light mode uses
+            // softer shadows since the pill sits on a white surface.
+            boxShadow: isDarkMode
+              ? [
+                  "inset 0 1px 0 rgba(255,255,255,0.22)",
+                  "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                  "0 1px 2px rgba(0,0,0,0.25)",
+                  "0 12px 32px rgba(0,0,0,0.35)",
+                ].join(", ")
+              : [
+                  "inset 0 1px 0 rgba(255,255,255,0.9)",
+                  "inset 0 0 0 1px rgba(0,0,0,0.06)",
+                  "0 1px 2px rgba(0,0,0,0.06)",
+                  "0 12px 28px rgba(0,0,0,0.12)",
+                ].join(", "),
           }}
         >
           {/* Shimmer overlay — a diagonal light streak sweeps across
@@ -252,9 +265,11 @@ export default function CategoryAggregationTicker({
               // Wider, softer gradient + lower peak opacity for a more
               // mellow sweep. Combined with the slower keyframe timing
               // and the shorter 3.5s cycle this reads as an ambient
-              // glide rather than a flashy highlight.
-              background:
-                "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)",
+              // glide rather than a flashy highlight. In light mode the
+              // streak is barely-there to avoid washing out the pill.
+              background: isDarkMode
+                ? "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%)"
+                : "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)",
               animation: "ticker-shimmer 3.5s ease-in-out 1s infinite",
               transform: "translateX(-120%)",
             }}
@@ -264,7 +279,13 @@ export default function CategoryAggregationTicker({
             {monthDisplay}
           </span>
 
-          <span className="h-5 w-px shrink-0 bg-white/25" aria-hidden />
+          <span
+            className={cn(
+              "h-5 w-px shrink-0",
+              isDarkMode ? "bg-white/25" : "bg-black/15"
+            )}
+            aria-hidden
+          />
 
           <Caption
             weight="1"
