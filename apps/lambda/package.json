@@ -29,10 +29,13 @@
     "@types/express": "^5.0.1",
     "@types/multer": "^2.1.0",
     "@types/node": "^20.11.17",
+    "@types/supertest": "^7.2.0",
     "eslint": "^9.21.0",
+    "supertest": "^7.2.2",
     "trpc-ui": "^1.0.15",
     "tsx": "^4.7.1",
     "typescript": "5.8.2",
-    "vercel": "^32.4.1"
+    "vercel": "^32.4.1",
+    "vitest": "^4.1.5"
   }
 }

@@ -27,6 +27,13 @@ export const env = createEnv({
     // boot so the miss is visible instead of silent.
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
     AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
+    // Shared secret used to verify the HMAC signature on
+    // /api/internal/recurring-expense-tick webhook calls from the
+    // RecurringExpenseLambda. Must match the Lambda's env var of the
+    // same name. 32+ bytes of entropy.
+    RECURRING_EXPENSE_WEBHOOK_SECRET: z
+      .string()
+      .min(32, "RECURRING_EXPENSE_WEBHOOK_SECRET must be at least 32 chars"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
