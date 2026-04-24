@@ -164,7 +164,8 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
   }, []);
 
   useEffect(() => {
-    backButton.show();
+    if (backButton.mount.isAvailable()) backButton.mount();
+    backButton.show.ifAvailable();
     const offBackClick = backButton.onClick(() => {
       hapticFeedback.impactOccurred("light");
       navigate({
@@ -174,7 +175,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
     });
 
     return () => {
-      backButton.hide();
+      backButton.hide.ifAvailable();
       offBackClick();
     };
   }, [chatId, navigate]);
