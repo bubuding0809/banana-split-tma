@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({ component: Index });
 
 export function Index() {
   return (
-    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-900">
+    <div className="bg-linear-to-br flex h-screen items-center justify-center from-emerald-500 to-emerald-900">
       <Title weight="2">🍌 Banana Splitz</Title>
     </div>
   );

@@ -350,7 +350,7 @@ const SplitExactConfig = withForm({
                 </form.AppField>
 
                 {navigationEnabled && (
-                  <footer className="fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-2 px-4 pb-2">
+                  <footer className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-4 pb-2">
                     <form.Subscribe
                       selector={(state) => ({
                         participants: state.values.participants,
@@ -538,7 +538,7 @@ const SplitExactConfig = withForm({
                           </div>
                           {participants.includes(member.id.toString()) && (
                             <div
-                              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2"
+                              className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border-2"
                               style={{
                                 backgroundColor: tButtonColor,
                                 borderColor: tSecondaryBackgroundColor,

@@ -127,7 +127,7 @@ const CategoryFormStep = withForm({
                 resolved ? (
                   <span className="text-xl leading-none">{resolved.emoji}</span>
                 ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)] text-[var(--tg-theme-link-color)]">
+                  <span className="text-(--tg-theme-link-color) flex size-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--tg-theme-link-color)_12%,transparent)]">
                     <Plus size={16} />
                   </span>
                 )
@@ -156,7 +156,7 @@ const CategoryFormStep = withForm({
                         form.setFieldValue("autoPicked", false);
                         form.setFieldValue("categoryId", null);
                       }}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--tg-theme-subtitle-text-color)]"
+                      className="text-(--tg-theme-subtitle-text-color) flex size-6 items-center justify-center rounded-full"
                       style={{
                         backgroundColor: "rgba(127, 127, 127, 0.25)",
                       }}

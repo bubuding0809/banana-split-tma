@@ -20,7 +20,7 @@ export default function SparkleBadge({
   if (pending) {
     return (
       <span
-        className={`${baseClass} h-5 w-5 justify-center`}
+        className={`${baseClass} size-5 justify-center`}
         style={style}
         aria-label="Suggesting a category"
       >

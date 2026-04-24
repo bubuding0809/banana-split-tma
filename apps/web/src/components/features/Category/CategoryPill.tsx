@@ -25,14 +25,14 @@ export default function CategoryPill({
       className={clsx(
         "inline-flex h-7 select-none items-center gap-1 rounded-full px-2.5 text-xs font-medium",
         active
-          ? "bg-[var(--tg-theme-button-color)] text-[var(--tg-theme-button-text-color)]"
+          ? "bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color)"
           : dashed
-            ? "border border-dashed border-[var(--tg-theme-hint-color)] text-[var(--tg-theme-hint-color)]"
-            : "bg-[var(--tg-theme-section-bg-color)] text-[var(--tg-theme-text-color)]"
+            ? "border-(--tg-theme-hint-color) text-(--tg-theme-hint-color) border border-dashed"
+            : "bg-(--tg-theme-section-bg-color) text-(--tg-theme-text-color)"
       )}
     >
       {emoji ? <span className="leading-none">{emoji}</span> : null}
-      <span className="max-w-[8rem] truncate">{label}</span>
+      <span className="max-w-32 truncate">{label}</span>
       {onClear ? (
         <span
           role="button"

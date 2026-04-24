@@ -176,7 +176,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
               key={i}
               before={
                 <Skeleton visible>
-                  <div className="h-6 w-6 rounded bg-gray-200" />
+                  <div className="size-6 rounded bg-gray-200" />
                 </Skeleton>
               }
               after={
@@ -251,7 +251,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
                 key={i}
                 before={
                   <Skeleton visible>
-                    <div className="h-6 w-6 rounded bg-gray-200" />
+                    <div className="size-6 rounded bg-gray-200" />
                   </Skeleton>
                 }
                 subhead={

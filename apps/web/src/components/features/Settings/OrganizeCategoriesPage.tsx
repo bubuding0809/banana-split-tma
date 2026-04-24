@@ -87,7 +87,7 @@ function DroppableZone({
 
 function IdleEmptyLabel({ text }: { text: string }) {
   return (
-    <div className="col-span-4 px-3 py-7 text-center text-[11px] italic text-[var(--tg-theme-subtitle-text-color)] opacity-70">
+    <div className="text-(--tg-theme-subtitle-text-color) col-span-4 px-3 py-7 text-center text-[11px] italic opacity-70">
       {text}
     </div>
   );
@@ -488,7 +488,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   return (
     <main className="flex flex-col gap-4 px-3 pb-24 pt-2">
       {visible.length === 0 && (
-        <p className="rounded-lg border border-[rgba(232,148,60,0.3)] bg-[rgba(232,148,60,0.08)] px-3 py-2 text-[12px] leading-snug text-[var(--tg-theme-text-color)]">
+        <p className="text-(--tg-theme-text-color) rounded-lg border border-[rgba(232,148,60,0.3)] bg-[rgba(232,148,60,0.08)] px-3 py-2 text-[12px] leading-snug">
           All tiles are hidden — the picker will be empty.
         </p>
       )}
@@ -501,7 +501,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         onDragCancel={() => setActiveId(null)}
       >
         <section>
-          <div className="mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)]">
+          <div className="text-(--tg-theme-subtitle-text-color) mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider">
             <span>Visible</span>
             <span>
               {visible.length} / {items.length}
@@ -517,7 +517,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_VISIBLE_ID}
               isTargetZone={activeItem?.hidden === true}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#22c55e]/15 bg-[#22c55e]/[0.04] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+              className="bg-[#22c55e]/4 grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#22c55e]/15 p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
               targetClassName="border-[#22c55e]/70"
               overClassName="scale-[1.02] border-[#22c55e] bg-[#22c55e]/10 shadow-[0_0_0_3px_rgba(34,197,94,0.25)]"
             >
@@ -543,12 +543,12 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             items so they read as "floating" on a single divider — one
             element that's both separator and cheat sheet. No container
             or border, still reads as guidance not a tappable pill. */}
-        <div className="flex items-center gap-3 py-1 text-[13px] italic text-[var(--tg-theme-hint-color)]">
+        <div className="text-(--tg-theme-hint-color) flex items-center gap-3 py-1 text-[13px] italic">
           <span
             aria-hidden
             className="h-px flex-1 bg-[rgba(255,255,255,0.08)]"
           />
-          <span className="flex flex-shrink-0 items-center gap-1.5">
+          <span className="flex shrink-0 items-center gap-1.5">
             <Move size={14} strokeWidth={2.25} style={{ color: "#22c55e" }} />
             Drag to move
           </span>
@@ -556,7 +556,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             aria-hidden
             className="h-px flex-1 bg-[rgba(255,255,255,0.08)]"
           />
-          <span className="flex flex-shrink-0 items-center gap-1.5">
+          <span className="flex shrink-0 items-center gap-1.5">
             <Eye size={14} strokeWidth={2.25} style={{ color: "#f59e0b" }} />
             Tap eye to hide / show
           </span>
@@ -567,7 +567,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
         </div>
 
         <section>
-          <div className="mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tg-theme-subtitle-text-color)]">
+          <div className="text-(--tg-theme-subtitle-text-color) mb-2 flex items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-wider">
             <span>Hidden</span>
             <span>{hidden.length} hidden</span>
           </div>
@@ -581,7 +581,7 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
             <DroppableZone
               id={ZONE_HIDDEN_ID}
               isTargetZone={activeItem?.hidden === false}
-              className="grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#f59e0b]/15 bg-[#f59e0b]/[0.04] p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+              className="bg-[#f59e0b]/4 grid min-h-[92px] grid-cols-4 gap-2 rounded-xl border-2 border-dashed border-[#f59e0b]/15 p-1 transition-[border-color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
               targetClassName="border-[#f59e0b]/70"
               overClassName="scale-[1.02] border-[#f59e0b] bg-[#f59e0b]/10 shadow-[0_0_0_3px_rgba(245,158,11,0.25)]"
             >

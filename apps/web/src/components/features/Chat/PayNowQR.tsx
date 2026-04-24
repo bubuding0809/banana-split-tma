@@ -109,7 +109,7 @@ const PayNowQR = ({ phoneNumber, amount, merchantName }: PayNowQRProps) => {
           size="s"
           mode="gray"
           onClick={handleSave}
-          before={<Download className="h-4 w-4" />}
+          before={<Download className="size-4" />}
         >
           Save QR Code
         </Button>

@@ -1,23 +1,22 @@
 @import "tailwindcss";
 
-
 .mobile-body {
-   overflow: hidden;
-   height: 100vh;
+  overflow: hidden;
+  height: 100vh;
 }
 
 .mobile-wrap {
-   position: absolute;
-   left: 0;
-   top: 0;
-   right: 0;
-   bottom: 0;
-   overflow-x: hidden;
-   overflow-y: auto;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .mobile-content {
-   height: calc(100% + 1px);
+  height: calc(100% + 1px);
 }
 
 @layer utilities {
@@ -31,38 +30,63 @@
   .animate-badge-pop {
     animation: badge-pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   .animate-badge-shake {
     animation: badge-shake 0.25s cubic-bezier(0.42, 0, 0.58, 1);
   }
 }
 
 @keyframes badge-pop {
-  0% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-4px) scale(1.2); }
-  75% { transform: translateY(-2px) scale(1.2); }
-  100% { transform: translateY(0) scale(1); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.2);
+  }
+  75% {
+    transform: translateY(-2px) scale(1.2);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes badge-shake {
-  0% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-2px) scale(0.8); }
-  75% { transform: translateY(4px) scale(0.8); }
-  100% { transform: translateY(0) scale(1); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(0.8);
+  }
+  75% {
+    transform: translateY(4px) scale(0.8);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Diagonal shimmer sweep for the aggregation ticker's collapsed pill.
    Slower sweep (~2s) with a shorter idle (~1.5s) between cycles —
    reads as a gentler glide rather than a snappy flash. */
 @keyframes ticker-shimmer {
-  0%   { transform: translateX(-120%); }
-  57%  { transform: translateX(120%); }
-  100% { transform: translateX(120%); }
+  0% {
+    transform: translateX(-120%);
+  }
+  57% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   @keyframes ticker-shimmer {
-    0%, 100% { transform: translateX(-120%); }
+    0%,
+    100% {
+      transform: translateX(-120%);
+    }
   }
 }
 

@@ -166,7 +166,7 @@ export default function CategoryFilterStrip({
               onClick={() => toggle(c.id)}
               aria-pressed={selected}
               aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-              className="duration-280 relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+              className="duration-280 relative flex size-9 shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
               style={
                 selected
                   ? {
@@ -224,7 +224,7 @@ export default function CategoryFilterStrip({
           aria-label={`Clear ${selectedIds.length} category filter${
             selectedIds.length === 1 ? "" : "s"
           }`}
-          className="duration-280 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-[transform] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+          className="duration-280 flex size-9 shrink-0 items-center justify-center rounded-[10px] transition-[transform] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
           style={{ color: "var(--tg-theme-link-color)" }}
         >
           <X size={18} strokeWidth={2.5} />
