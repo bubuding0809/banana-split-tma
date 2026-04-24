@@ -80,10 +80,12 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
       onChange: snapshotFormSchema,
     },
     onSubmit: async ({ value }) => {
-      mainButton.setParams({
-        isLoaderVisible: true,
-        isEnabled: false,
-      });
+      if (mainButton.setParams.isAvailable()) {
+        mainButton.setParams({
+          isLoaderVisible: true,
+          isEnabled: false,
+        });
+      }
 
       try {
         await updateSnapshotMutation.mutateAsync({
@@ -97,10 +99,12 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
         console.error(error);
         alert("Something went wrong updating snapshot");
       } finally {
-        mainButton.setParams({
-          isLoaderVisible: false,
-          isEnabled: true,
-        });
+        if (mainButton.setParams.isAvailable()) {
+          mainButton.setParams({
+            isLoaderVisible: false,
+            isEnabled: true,
+          });
+        }
       }
     },
   });
@@ -118,32 +122,44 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
 
   // Setup mainbutton handler
   useEffect(() => {
-    if (!mainButton.isMounted()) mainButton.mount();
-    const offMainClick = mainButton.onClick(() => form.handleSubmit());
+    if (mainButton.mount.isAvailable() && !mainButton.isMounted()) {
+      mainButton.mount();
+    }
+    const offMainClick = mainButton.onClick.isAvailable()
+      ? mainButton.onClick(() => form.handleSubmit())
+      : () => {};
 
     return () => {
-      mainButton.setParams({
-        isVisible: false,
-        isEnabled: false,
-      });
+      if (mainButton.setParams.isAvailable()) {
+        mainButton.setParams({
+          isVisible: false,
+          isEnabled: false,
+        });
+      }
       offMainClick();
     };
   }, [form]);
 
   // Setup mainbutton params
   useEffect(() => {
-    if (!mainButton.isMounted()) mainButton.mount();
-    mainButton.setParams({
-      text: "Update Snapshot",
-      isVisible: true,
-      isEnabled: true,
-    });
+    if (mainButton.mount.isAvailable() && !mainButton.isMounted()) {
+      mainButton.mount();
+    }
+    if (mainButton.setParams.isAvailable()) {
+      mainButton.setParams({
+        text: "Update Snapshot",
+        isVisible: true,
+        isEnabled: true,
+      });
+    }
 
     return () => {
-      mainButton.setParams({
-        isVisible: false,
-        isEnabled: false,
-      });
+      if (mainButton.setParams.isAvailable()) {
+        mainButton.setParams({
+          isVisible: false,
+          isEnabled: false,
+        });
+      }
     };
   }, []);
 
