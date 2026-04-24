@@ -43,7 +43,8 @@ import CategoryFormStep from "./CategoryFormStep";
 import RecurrencePickerSheet, {
   type RecurrenceValue,
 } from "./RecurrencePickerSheet";
-import { PRESET_LABEL } from "./recurrencePresets";
+import { presetToTemplate } from "./recurrencePresets";
+import { formatRecurrenceSummary } from "@dko/trpc";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -95,11 +96,16 @@ const AmountFormStep = withForm({
           isTouched: true,
         }));
         form.setFieldMeta("date", (prev) => ({ ...prev, isTouched: true }));
+        form.setFieldMeta("recurrence", (prev) => ({
+          ...prev,
+          isTouched: true,
+        }));
 
         if (
           form.state.fieldMeta.amount?.errors.length ||
           form.state.fieldMeta.description?.errors.length ||
-          form.state.fieldMeta.date?.errors.length
+          form.state.fieldMeta.date?.errors.length ||
+          form.state.fieldMeta.recurrence?.errors.length
         ) {
           // Focus the first field with errors
           if (form.state.fieldMeta.amount?.errors.length) {
@@ -410,9 +416,22 @@ const AmountFormStep = withForm({
                         const summary =
                           r.preset === "NONE"
                             ? "Never"
-                            : PRESET_LABEL[r.preset];
+                            : formatRecurrenceSummary({
+                                ...presetToTemplate({
+                                  preset: r.preset,
+                                  customFrequency: r.customFrequency,
+                                  customInterval: r.customInterval,
+                                  weekdays: r.weekdays,
+                                  endDate: r.endDate
+                                    ? new Date(r.endDate + "T00:00:00")
+                                    : undefined,
+                                }),
+                                endDate: r.endDate
+                                  ? new Date(r.endDate + "T00:00:00")
+                                  : null,
+                              });
                         return (
-                          <>
+                          <div className="flex flex-col">
                             <Cell
                               before={
                                 <RepeatIcon
@@ -432,6 +451,9 @@ const AmountFormStep = withForm({
                             >
                               Repeat
                             </Cell>
+                            <div className="px-2">
+                              <FieldInfo />
+                            </div>
                             <RecurrencePickerSheet
                               open={recurrenceOpen}
                               onOpenChange={setRecurrenceOpen}
@@ -448,15 +470,20 @@ const AmountFormStep = withForm({
                               }
                               onChange={(next) => {
                                 if (next.preset === "NONE") {
+                                  // Reset weekdays/endDate when clearing recurrence
                                   recurrenceField.handleChange({
                                     preset: "NONE",
+                                    customFrequency: "WEEKLY",
+                                    customInterval: 1,
+                                    weekdays: [],
+                                    endDate: undefined,
                                   } as never);
                                 } else {
                                   recurrenceField.handleChange(next as never);
                                 }
                               }}
                             />
-                          </>
+                          </div>
                         );
                       }}
                     </form.AppField>

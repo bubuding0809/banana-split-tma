@@ -414,21 +414,19 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
 
       {!isPrivateChat && <RecurringRemindersSection chatId={chatId} />}
 
-      <Section header="Recurring expenses">
+      <Section header="Recurring Expenses">
         <Cell
           before={<RepeatIcon size={20} />}
           after={<Navigation>Manage</Navigation>}
           onClick={() => {
-            try {
-              hapticFeedback.impactOccurred("light");
-            } catch {}
+            hapticFeedback.impactOccurred("light");
             globalNavigate({
               to: "/chat/$chatId/recurring-expenses",
               params: { chatId: String(chatId) },
             });
           }}
         >
-          Manage recurring expenses
+          Recurring expenses
         </Cell>
       </Section>
 

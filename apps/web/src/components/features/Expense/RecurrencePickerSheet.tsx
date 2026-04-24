@@ -1,12 +1,14 @@
 import {
   Cell,
   Modal,
+  Navigation,
   Section,
+  Text,
   Title,
   IconButton,
 } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Hash, Repeat, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   PRESET_LABEL,
@@ -14,6 +16,23 @@ import {
   type Weekday,
   type CanonicalFrequency,
 } from "./recurrencePresets";
+
+const FREQ_LABEL: Record<CanonicalFrequency, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  YEARLY: "Yearly",
+};
+
+const WEEKDAY_FULL: Record<Weekday, string> = {
+  SUN: "Sunday",
+  MON: "Monday",
+  TUE: "Tuesday",
+  WED: "Wednesday",
+  THU: "Thursday",
+  FRI: "Friday",
+  SAT: "Saturday",
+};
 
 const PRESETS: RecurrencePreset[] = [
   "NONE",
@@ -101,16 +120,21 @@ export default function RecurrencePickerSheet({
             {headerTitle}
           </Title>
         ) : (
-          <button
-            type="button"
-            onClick={() => {
-              tickNav();
-              setScreen("top");
-            }}
-            className="text-(--tg-theme-link-color) flex items-center gap-1"
-          >
-            <ChevronLeft size={18} /> Back
-          </button>
+          <div className="flex items-center gap-2">
+            <IconButton
+              size="s"
+              mode="gray"
+              onClick={() => {
+                tickNav();
+                setScreen("top");
+              }}
+            >
+              <ChevronLeft size={20} />
+            </IconButton>
+            <Title weight="2" level="3">
+              {headerTitle}
+            </Title>
+          </div>
         )
       }
       after={
@@ -196,28 +220,32 @@ export default function RecurrencePickerSheet({
             <Section>
               <Cell
                 Component="label"
+                htmlFor="recurrence-frequency-select"
+                before={<Repeat size={20} />}
                 after={
                   <div className="relative">
                     <select
+                      id="recurrence-frequency-select"
                       value={value.customFrequency}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        tickSelection();
                         onChange({
                           ...value,
                           preset: "CUSTOM",
                           customFrequency: e.target.value as CanonicalFrequency,
-                        })
-                      }
+                        });
+                      }}
                       className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                     >
                       {CUSTOM_FREQS.map((f) => (
                         <option key={f} value={f}>
-                          {f}
+                          {FREQ_LABEL[f]}
                         </option>
                       ))}
                     </select>
-                    <span className="text-(--tg-theme-subtitle-text-color)">
-                      {value.customFrequency} ›
-                    </span>
+                    <Navigation>
+                      <Text>{FREQ_LABEL[value.customFrequency]}</Text>
+                    </Navigation>
                   </div>
                 }
               >
@@ -225,17 +253,21 @@ export default function RecurrencePickerSheet({
               </Cell>
               <Cell
                 Component="label"
+                htmlFor="recurrence-interval-select"
+                before={<Hash size={20} />}
                 after={
                   <div className="relative">
                     <select
+                      id="recurrence-interval-select"
                       value={value.customInterval}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        tickSelection();
                         onChange({
                           ...value,
                           preset: "CUSTOM",
                           customInterval: Number(e.target.value),
-                        })
-                      }
+                        });
+                      }}
                       className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                     >
                       {INTERVALS.map((n) => (
@@ -244,9 +276,9 @@ export default function RecurrencePickerSheet({
                         </option>
                       ))}
                     </select>
-                    <span className="text-(--tg-theme-subtitle-text-color)">
-                      {value.customInterval} ›
-                    </span>
+                    <Navigation>
+                      <Text>{value.customInterval}</Text>
+                    </Navigation>
                   </div>
                 }
               >
@@ -262,6 +294,8 @@ export default function RecurrencePickerSheet({
                       <button
                         key={d.id}
                         type="button"
+                        aria-pressed={selected}
+                        aria-label={WEEKDAY_FULL[d.id]}
                         onClick={() => {
                           tickSelection();
                           const next = selected
@@ -272,7 +306,7 @@ export default function RecurrencePickerSheet({
                         className={
                           "flex size-8 items-center justify-center rounded-full text-[13px] font-medium " +
                           (selected
-                            ? "bg-(--tg-theme-link-color) text-white"
+                            ? "bg-(--tg-theme-button-color) text-(--tg-theme-button-text-color)"
                             : "bg-(--tg-theme-secondary-bg-color)")
                         }
                       >
