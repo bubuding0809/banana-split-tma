@@ -51,7 +51,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
           key={group.key}
           header={
             <Section.Header large>
-              <div className="flex w-full items-baseline justify-between gap-3">
+              <div className="flex w-full items-baseline justify-between gap-3 px-3">
                 <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
                   <span className="shrink-0">{group.emoji}</span>
                   <span className="truncate">{group.title}</span>

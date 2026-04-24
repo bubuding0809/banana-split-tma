@@ -35,7 +35,7 @@ export function PayerView({ aggregations }: PayerViewProps) {
           key={group.payerId}
           header={
             <Section.Header large>
-              <div className="flex w-full items-baseline justify-between gap-3">
+              <div className="flex w-full items-baseline justify-between gap-3 px-3">
                 <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   <ChatMemberAvatar userId={group.payerId} size={20} />
                   <span className="self-baseline truncate">
