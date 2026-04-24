@@ -22,7 +22,7 @@ export function DateView({ aggregations }: DateViewProps) {
   const listGroups = [...byDate].reverse();
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Section header="By date">
         <div className="px-4 py-3">
           <SnapshotBarChart
@@ -65,6 +65,6 @@ export function DateView({ aggregations }: DateViewProps) {
           ))}
         </Section>
       ))}
-    </>
+    </div>
   );
 }

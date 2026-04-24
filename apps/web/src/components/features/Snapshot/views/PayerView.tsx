@@ -19,7 +19,7 @@ export function PayerView({ aggregations }: PayerViewProps) {
   }));
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Section header="By payer">
         <div className="px-4 py-3">
           <SnapshotBarChart
@@ -61,6 +61,6 @@ export function PayerView({ aggregations }: PayerViewProps) {
           ))}
         </Section>
       ))}
-    </>
+    </div>
   );
 }

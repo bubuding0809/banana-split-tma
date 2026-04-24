@@ -35,7 +35,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
   ];
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Section header="By category">
         <div className="px-4 py-3">
           <SnapshotBarChart
@@ -75,6 +75,6 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
           ))}
         </Section>
       ))}
-    </>
+    </div>
   );
 }
