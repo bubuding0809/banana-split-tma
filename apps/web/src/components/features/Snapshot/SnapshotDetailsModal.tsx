@@ -21,10 +21,16 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import { X, TrendingDown, RefreshCcw, Pencil, Send } from "lucide-react";
+import {
+  X,
+  TrendingDown,
+  RefreshCcw,
+  Pencil,
+  Send,
+  BarChart3,
+} from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { resolveCategory } from "@repo/categories";
 import { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
@@ -32,6 +38,7 @@ import { cn } from "@/utils/cn";
 import { useNavigate } from "@tanstack/react-router";
 import { compareDatesDesc } from "@/utils/date";
 import { compareTransactions } from "@/utils/transactionHelpers";
+import { useSnapshotAggregations } from "./hooks/useSnapshotAggregations";
 
 interface SnapshotDetailsModalProps {
   snapshotId: string;
@@ -74,20 +81,20 @@ const SnapshotDetailsModal = ({
 
   // * Queries =====================================================================================
   const {
-    data: snapShotDetails,
-    status: snapShotDetailsStatus,
-    error,
-  } = trpc.snapshot.getDetails.useQuery(
-    {
-      snapshotId,
-    },
-    {
-      enabled: open,
-    }
-  );
+    status: aggStatus,
+    error: aggError,
+    aggregations,
+  } = useSnapshotAggregations(snapshotId, { enabled: open });
+
+  const snapShotDetails = aggregations?.details ?? null;
+  const baseCurrency = aggregations?.baseCurrency ?? "SGD";
+  const userShareTotal = aggregations?.userShareInBase ?? null;
 
   useEffect(() => {
-    if (error?.data?.code === "NOT_FOUND") {
+    if (
+      (aggError as { data?: { code?: string } } | undefined)?.data?.code ===
+      "NOT_FOUND"
+    ) {
       if (popup.isSupported()) {
         popup.open({
           title: "Snapshot Not Found",
@@ -97,50 +104,7 @@ const SnapshotDetailsModal = ({
       }
       onOpenChange(false);
     }
-  }, [error, onOpenChange]);
-
-  const { data: chatData } = trpc.chat.getChat.useQuery(
-    {
-      chatId: snapShotDetails?.chatId ?? 0,
-    },
-    {
-      enabled: open && !!snapShotDetails?.chatId,
-    }
-  );
-  const baseCurrency = chatData?.baseCurrency ?? "SGD";
-
-  const { data: categoriesData } = trpc.category.listByChat.useQuery(
-    {
-      chatId: snapShotDetails?.chatId ?? 0,
-    },
-    {
-      enabled: open && !!snapShotDetails?.chatId,
-    }
-  );
-
-  // Extract unique currencies that differ from base currency for conversion
-  const uniqueForeignCurrencies = useMemo(() => {
-    if (!snapShotDetails || !baseCurrency) return [];
-    const currencies = new Set(
-      snapShotDetails.expenses.map((expense) => expense.currency)
-    );
-    // Only currencies that differ from base currency need conversion
-    return Array.from(currencies).filter(
-      (currency) => currency !== baseCurrency
-    );
-  }, [snapShotDetails, baseCurrency]);
-
-  // Query conversion rates for all foreign currencies using bulk endpoint
-  const { data: multipleRatesData, status: multipleRatesStatus } =
-    trpc.currency.getMultipleRates.useQuery(
-      {
-        baseCurrency: baseCurrency ?? "SGD",
-        targetCurrencies: uniqueForeignCurrencies,
-      },
-      {
-        enabled: open && !!baseCurrency && uniqueForeignCurrencies.length > 0,
-      }
-    );
+  }, [aggError, onOpenChange]);
 
   // * Mutations ===================================================================================
   const deleteSnapshotMutation = trpc.snapshot.delete.useMutation({
@@ -284,51 +248,6 @@ const SnapshotDetailsModal = ({
     onOpenChange(open);
   };
 
-  // Calculate total damage for the main user (net sum of user's share amounts)
-  // with proper currency conversion to base currency
-  const userShareTotal = useMemo(() => {
-    if (!snapShotDetails || !baseCurrency) return 0;
-
-    // Check if conversion rates are loaded (for foreign currencies)
-    if (
-      uniqueForeignCurrencies.length > 0 &&
-      multipleRatesStatus !== "success"
-    ) {
-      return null; // Return null to indicate loading state
-    }
-
-    // Use the rates from the bulk query
-    const rateMap = multipleRatesData?.rates || {};
-
-    return snapShotDetails.expenses.reduce((accExpense, currExpense) => {
-      return (
-        accExpense +
-        currExpense.shares.reduce((accShare, currShare) => {
-          if (currShare.userId !== userId) return accShare;
-
-          const shareAmount = currShare.amount ?? 0;
-          const expenseCurrency = currExpense.currency;
-
-          // Convert to base currency if needed
-          if (expenseCurrency === baseCurrency) {
-            return accShare + shareAmount;
-          } else {
-            const rateInfo = rateMap[expenseCurrency];
-            if (!rateInfo) return accShare; // Skip if rate not available
-            return accShare + shareAmount / rateInfo.rate; // Convert to base currency
-          }
-        }, 0)
-      );
-    }, 0);
-  }, [
-    snapShotDetails,
-    userId,
-    baseCurrency,
-    uniqueForeignCurrencies.length,
-    multipleRatesStatus,
-    multipleRatesData?.rates,
-  ]);
-
   const displayExpenses = useMemo(() => {
     if (!snapShotDetails?.expenses) return [];
 
@@ -340,21 +259,12 @@ const SnapshotDetailsModal = ({
   }, [snapShotDetails?.expenses, userId]);
 
   const categoryEmojiByExpenseId = useMemo(() => {
-    const chatRows =
-      categoriesData?.items
-        .filter((c) => c.kind === "custom")
-        .map((c) => ({
-          id: c.id.replace(/^chat:/, ""),
-          emoji: c.emoji,
-          title: c.title,
-        })) ?? [];
     const map = new Map<string, string>();
-    for (const expense of snapShotDetails?.expenses ?? []) {
-      const resolved = resolveCategory(expense.categoryId, chatRows);
-      if (resolved?.emoji) map.set(expense.id, resolved.emoji);
+    for (const g of aggregations?.byCategory ?? []) {
+      for (const item of g.items) map.set(item.id, g.emoji);
     }
     return map;
-  }, [categoriesData, snapShotDetails?.expenses]);
+  }, [aggregations]);
 
   // Setup virtualizer for expense list
   const virtualizer = useVirtualizer({
@@ -375,7 +285,7 @@ const SnapshotDetailsModal = ({
     getItemKey: (index) => displayExpenses[index]?.id ?? index,
   });
 
-  if (snapShotDetailsStatus === "pending") {
+  if (aggStatus === "pending") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
         <div className="h-[70vh]">
@@ -391,7 +301,7 @@ const SnapshotDetailsModal = ({
     );
   }
 
-  if (snapShotDetailsStatus === "error") {
+  if (aggStatus === "error") {
     return (
       <Modal open={open} onOpenChange={handleOpenChange}>
         <div className="h-[70vh]">
@@ -422,6 +332,8 @@ const SnapshotDetailsModal = ({
       </Modal>
     );
   }
+
+  if (!snapShotDetails) return null;
 
   return (
     <Modal
@@ -480,6 +392,34 @@ const SnapshotDetailsModal = ({
       }
     >
       <div className="max-h-[80vh]">
+        {/* Open full view CTA */}
+        <Section className="mt-0">
+          <Cell
+            before={
+              <span className="bg-(--tg-theme-button-color,#5288c1) rounded-lg p-1.5">
+                <BarChart3 size={18} color="white" />
+              </span>
+            }
+            onClick={() => {
+              if (!snapShotDetails) return;
+              if (hapticFeedback.isSupported())
+                hapticFeedback.impactOccurred("light");
+              onOpenChange(false);
+              navigate({
+                to: "/chat/$chatId/snapshots/$snapshotId",
+                params: {
+                  chatId: String(snapShotDetails.chatId),
+                  snapshotId,
+                },
+                search: { view: "cat" },
+              });
+            }}
+            description="Category, date, payer breakdowns with charts"
+          >
+            <Text weight="2">Open full view</Text>
+          </Cell>
+        </Section>
+
         {/* Header Information */}
         <Section>
           <Cell
