@@ -10,6 +10,12 @@ import {
 const inputSchema = z.object({
   snapshotId: z.string().uuid(),
   view: z.enum(SNAPSHOT_VIEWS),
+  // Optional tapper id for callers (like the bot) that authenticate
+  // via superadmin API key and therefore don't have a populated
+  // `ctx.session.user`. When present, we authorize against this id —
+  // the bot forwards `ctx.callbackQuery.from.id` so we still verify
+  // that whoever tapped is a chat member.
+  userId: z.number().int().optional(),
 });
 
 // Output mirrors the shape of a Telegram InlineKeyboardMarkup so the
@@ -33,7 +39,8 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    if (!ctx.session.user) {
+    const effectiveUserId = input.userId ?? ctx.session.user?.id;
+    if (effectiveUserId === undefined || effectiveUserId === null) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "User not authenticated",
@@ -43,7 +50,7 @@ export default protectedProcedure
       ctx.db,
       ctx.teleBot,
       input.snapshotId,
-      BigInt(ctx.session.user.id)
+      BigInt(effectiveUserId)
     );
     return buildSnapshotMessage(snapshotCtx, input.view);
   });
