@@ -5,6 +5,7 @@ import getSnapshotDetails from "./getSnapshotDetails.js";
 import deleteSnapshot from "./deleteSnapshot.js";
 import updateSnapshot from "./updateSnapshot.js";
 import shareSnapshotMessage from "./shareSnapshotMessage.js";
+import renderSnapshotView from "./renderSnapshotView.js";
 
 export const snapshotRouter = createTRPCRouter({
   create: createSnapshot,
@@ -13,4 +14,5 @@ export const snapshotRouter = createTRPCRouter({
   delete: deleteSnapshot,
   update: updateSnapshot,
   shareSnapshotMessage,
+  renderSnapshotView,
 });

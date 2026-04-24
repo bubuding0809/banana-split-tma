@@ -9,6 +9,7 @@ import { expensesFeature } from "./features/expenses.js";
 import { statsFeature } from "./features/stats.js";
 import { agentFeature } from "./features/agent.js";
 import { botEventsFeature } from "./features/bot_events.js";
+import { snapshotViewFeature } from "./features/snapshotView.js";
 
 export const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
 
@@ -25,6 +26,7 @@ bot.use(groupFeature);
 bot.use(userFeature);
 bot.use(expensesFeature);
 bot.use(statsFeature);
+bot.use(snapshotViewFeature);
 bot.use(botEventsFeature);
 
 // Basic catch-all error handler
