@@ -166,7 +166,7 @@ export default function CategoryFilterStrip({
               onClick={() => toggle(c.id)}
               aria-pressed={selected}
               aria-label={`${selected ? "Clear" : "Filter by"} ${c.title}`}
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] duration-[280ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
+              className="duration-280 relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[18px] leading-none transition-[transform,box-shadow,background-color] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94]"
               style={
                 selected
                   ? {
