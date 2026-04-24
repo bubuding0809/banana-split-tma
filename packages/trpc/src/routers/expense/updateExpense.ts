@@ -12,13 +12,11 @@ import {
 } from "../../utils/financial.js";
 import { validateCurrency } from "../../utils/currencyApi.js";
 import { assertUsersInChat } from "../../utils/chatValidation.js";
-import {
-  sendExpenseNotificationMessageHandler,
-  ExpenseChangedField,
-} from "../telegram/sendExpenseNotificationMessage.js";
+import { ExpenseChangedField } from "../telegram/sendExpenseNotificationMessage.js";
 import {
   editExpenseMessageHandler,
   sendExpenseUpdateBumpHandler,
+  sendExpenseUpdateStandaloneHandler,
 } from "../telegram/editExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
 
@@ -619,60 +617,68 @@ export const updateExpenseHandler = async (
                 });
               }
             } catch (editError) {
-              // If editing fails, fall back to sending a new message
+              // The original notification is gone — most commonly the
+              // user deleted it from the chat. Re-posting the full
+              // "🧾 New Expense" bubble would be noisy and confusing.
+              // Instead, drop a minimal "📝 Expense updated" message with
+              // a "View Expense" button and null out telegramMessageId
+              // so future edits skip the failing edit-attempt and just
+              // post another standalone bump.
               console.error(
-                "Failed to edit expense message, sending new notification instead:",
+                "Failed to edit expense message, falling back to standalone update:",
                 editError
               );
-              await sendExpenseNotificationMessageHandler(
+              const standaloneId = await sendExpenseUpdateStandaloneHandler(
                 {
                   chatId: Number(input.chatId),
                   chatType: existingExpense.chat.type,
                   expenseId: input.expenseId,
-                  payerId: Number(input.payerId),
-                  payerName: payer.firstName,
-                  creatorUserId: Number(creator.id),
-                  creatorName: creator.firstName,
-                  creatorUsername: creator.username || undefined,
-                  expenseDescription: `Updated: ${input.description}`,
-                  totalAmount: input.amount,
-                  participants: participantsWithAmounts,
-                  currency: currency,
-                  expenseDate: input.date ?? existingExpense.date,
-                  categoryEmoji,
-                  categoryTitle,
+                  updaterUserId: Number(input.creatorId),
+                  updaterName: creator.firstName,
                   threadId,
-                  force: false,
                 },
-                db,
                 teleBot
               );
+              await db.expense.update({
+                where: { id: input.expenseId },
+                data: {
+                  telegramMessageId: null,
+                  ...(standaloneId
+                    ? {
+                        telegramUpdateBumpMessageIds: {
+                          push: BigInt(standaloneId),
+                        },
+                      }
+                    : {}),
+                },
+              });
             }
           } else {
-            // No original message ID, send a new notification
-            await sendExpenseNotificationMessageHandler(
+            // No original message ID was ever stored (e.g. expense was
+            // created while notifyOnExpense was off, or a previous
+            // fallback nulled it). Post the same minimal standalone bump
+            // so participants still see an update signal.
+            const standaloneId = await sendExpenseUpdateStandaloneHandler(
               {
                 chatId: Number(input.chatId),
                 chatType: existingExpense.chat.type,
                 expenseId: input.expenseId,
-                payerId: Number(input.payerId),
-                payerName: payer.firstName,
-                creatorUserId: Number(creator.id),
-                creatorName: creator.firstName,
-                creatorUsername: creator.username || undefined,
-                expenseDescription: `Updated: ${input.description}`,
-                totalAmount: input.amount,
-                participants: participantsWithAmounts,
-                currency: currency,
-                expenseDate: input.date ?? existingExpense.date,
-                categoryEmoji,
-                categoryTitle,
+                updaterUserId: Number(input.creatorId),
+                updaterName: creator.firstName,
                 threadId,
-                force: false,
               },
-              db,
               teleBot
             );
+            if (standaloneId) {
+              await db.expense.update({
+                where: { id: input.expenseId },
+                data: {
+                  telegramUpdateBumpMessageIds: {
+                    push: BigInt(standaloneId),
+                  },
+                },
+              });
+            }
           }
         }
       } catch (notificationError) {
