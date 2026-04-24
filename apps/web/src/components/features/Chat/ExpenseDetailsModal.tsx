@@ -103,6 +103,8 @@ interface ExpenseDetailsModalProps {
     | undefined;
   userId: number;
   onEdit: () => void;
+  categoryEmoji?: string;
+  categoryTitle?: string;
 }
 
 const ExpenseDetailsModal = ({
@@ -114,6 +116,8 @@ const ExpenseDetailsModal = ({
   expenseDetails,
   userId,
   onEdit,
+  categoryEmoji,
+  categoryTitle,
 }: ExpenseDetailsModalProps) => {
   //* hooks ========================================================================================
   const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
@@ -250,6 +254,12 @@ const ExpenseDetailsModal = ({
             style={{
               backgroundColor: tSectionBgColor,
             }}
+            before={
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-lg leading-none">
+                {categoryEmoji ?? "❓"}
+              </div>
+            }
+            subtitle={<Caption>{categoryTitle ?? "Uncategorized"}</Caption>}
           >
             <Text className="text-wrap">{expense.description}</Text>
           </Cell>
