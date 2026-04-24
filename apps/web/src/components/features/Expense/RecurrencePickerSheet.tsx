@@ -255,7 +255,7 @@ export default function RecurrencePickerSheet({
             </Section>
             {isWeekly && (
               <Section header="On these days">
-                <div className="flex justify-between gap-1.5 px-3 py-3">
+                <div className="flex justify-between gap-1.5 p-3">
                   {WEEKDAYS.map((d) => {
                     const selected = value.weekdays.includes(d.id);
                     return (
