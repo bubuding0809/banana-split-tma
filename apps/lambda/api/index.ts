@@ -144,7 +144,13 @@ router.post(
 );
 
 //* Internal webhooks (HMAC-authenticated). Mounted under /api/internal/*.
-router.use("/internal", recurringExpenseTickRouter);
+// JSON body parser is scoped to /internal/* so it doesn't interfere with
+// tRPC / openapi (which manage their own body handling) or multer (multipart).
+router.use(
+  "/internal",
+  express.json({ limit: "1mb" }),
+  recurringExpenseTickRouter
+);
 
 router.get("/swagger", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
