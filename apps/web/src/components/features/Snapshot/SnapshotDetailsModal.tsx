@@ -24,6 +24,7 @@ import {
 import { X, TrendingDown, RefreshCcw, Pencil, Send } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
+import { resolveCategory } from "@repo/categories";
 import { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
@@ -107,6 +108,15 @@ const SnapshotDetailsModal = ({
     }
   );
   const baseCurrency = chatData?.baseCurrency ?? "SGD";
+
+  const { data: categoriesData } = trpc.category.listByChat.useQuery(
+    {
+      chatId: snapShotDetails?.chatId ?? 0,
+    },
+    {
+      enabled: open && !!snapShotDetails?.chatId,
+    }
+  );
 
   // Extract unique currencies that differ from base currency for conversion
   const uniqueForeignCurrencies = useMemo(() => {
@@ -329,6 +339,23 @@ const SnapshotDetailsModal = ({
       );
   }, [snapShotDetails?.expenses, userId]);
 
+  const categoryEmojiByExpenseId = useMemo(() => {
+    const chatRows =
+      categoriesData?.items
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          emoji: c.emoji,
+          title: c.title,
+        })) ?? [];
+    const map = new Map<string, string>();
+    for (const expense of snapShotDetails?.expenses ?? []) {
+      const resolved = resolveCategory(expense.categoryId, chatRows);
+      if (resolved?.emoji) map.set(expense.id, resolved.emoji);
+    }
+    return map;
+  }, [categoriesData, snapShotDetails?.expenses]);
+
   // Setup virtualizer for expense list
   const virtualizer = useVirtualizer({
     count: displayExpenses.length,
@@ -540,7 +567,11 @@ const SnapshotDetailsModal = ({
                       transform: `translateY(${virtualItem.start}px)`,
                     }}
                   >
-                    <SnapshotExpenseCell expense={expense} userId={userId} />
+                    <SnapshotExpenseCell
+                      expense={expense}
+                      userId={userId}
+                      categoryEmoji={categoryEmojiByExpenseId.get(expense.id)}
+                    />
                   </div>
                 );
               })}
@@ -561,6 +592,7 @@ type SnapshotExpense = {
   description: string;
   amount: number;
   currency: string;
+  categoryId: string | null;
   date: Date;
   createdAt: Date;
   payer: {
@@ -575,7 +607,15 @@ type SnapshotExpense = {
 
 // Memoized expense cell component for virtualization
 const SnapshotExpenseCell = memo(
-  ({ expense, userId }: { expense: SnapshotExpense; userId: number }) => {
+  ({
+    expense,
+    userId,
+    categoryEmoji,
+  }: {
+    expense: SnapshotExpense;
+    userId: number;
+    categoryEmoji?: string;
+  }) => {
     return (
       <Cell
         className={cn(
@@ -583,7 +623,11 @@ const SnapshotExpenseCell = memo(
             (s: { userId: number }) => s.userId === userId
           ) && "bg-neutral-100 dark:bg-neutral-700"
         )}
-        before={<ChatMemberAvatar userId={expense.payerId} size={48} />}
+        before={
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
+            {categoryEmoji ?? "❓"}
+          </div>
+        }
         subhead={
           <Caption weight="1" level="1">
             {expense.payer.firstName} spent
