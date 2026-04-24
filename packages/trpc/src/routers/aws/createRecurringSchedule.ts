@@ -175,6 +175,13 @@ export const createRecurringScheduleHandler = async (
     const lambdaTarget = createLambdaTarget(lambdaArn, payload);
     // Note: RoleArn will be set in the Target configuration below
 
+    // AWS EventBridge Scheduler defaults to 185 retries over 24h when
+    // RetryPolicy is omitted. Resolve undefined to our conservative defaults.
+    const resolvedRetryPolicy = retryPolicy ?? {
+      MaximumRetryAttempts: 3,
+      MaximumEventAgeInSeconds: 60 * 60 * 24,
+    };
+
     // Prepare schedule configuration
     const scheduleInput: CreateScheduleInput = {
       Name: scheduleName,
@@ -187,7 +194,7 @@ export const createRecurringScheduleHandler = async (
         Arn: lambdaTarget.Arn,
         RoleArn: AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN,
         Input: lambdaTarget.Input,
-        RetryPolicy: retryPolicy,
+        RetryPolicy: resolvedRetryPolicy,
       },
       FlexibleTimeWindow: {
         Mode: "OFF", // Exact time execution
