@@ -55,9 +55,11 @@ function ChatIdRoute() {
       });
     }
 
-    // Expense deep link — lands on the edit-expense page for the
-    // specific expense. Used by the "View Expense" CTA on create + edit
-    // notifications posted by the bot.
+    // Expense deep link — lands on the chat's main page with the
+    // specific expense's details modal auto-opened. `ChatExpenseCell`
+    // watches `selectedExpense` in the URL search params and opens the
+    // modal when it matches the cell's id. Used by the "View Expense"
+    // CTA on create + edit notifications posted by the bot.
     if (
       startParams?.entity_type === "e" &&
       startParams?.entity_id &&
@@ -66,11 +68,9 @@ function ChatIdRoute() {
       sessionStorage.setItem(deepLinkConsumedKey, "true");
 
       navigate({
-        to: "/chat/$chatId/edit-expense/$expenseId",
-        params: {
-          chatId: chatId.toString(),
-          expenseId: startParams.entity_id,
-        },
+        to: "/chat/$chatId",
+        params: { chatId: chatId.toString() },
+        search: { selectedExpense: startParams.entity_id },
         replace: true,
       });
     }
