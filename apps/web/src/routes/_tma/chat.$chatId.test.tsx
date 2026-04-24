@@ -115,7 +115,10 @@ describe("chat.$chatId Deep Link Routing", () => {
     expect(mockNavigate).toHaveBeenCalledWith({
       to: "/chat/$chatId",
       params: { chatId: "1234" },
-      search: { selectedExpense: "expense-uuid-5678" },
+      search: {
+        selectedTab: "transaction",
+        selectedExpense: "expense-uuid-5678",
+      },
       replace: true,
     });
   });
