@@ -69,6 +69,7 @@ type CategoryGroup = {
     description: string;
     date: Date;
     amountInBase: Prisma.Decimal;
+    payerId: bigint;
   }>;
 };
 
@@ -155,6 +156,50 @@ export const shareSnapshotMessageHandler = async (
 
   const chatCategoryRows = snapshot.chat.chatCategories;
 
+  // 3b. Fetch *live* user info from Telegram for every user we'll
+  // reference in the message (creator, payers, share participants).
+  // We don't want to render stale display names — users can change
+  // their Telegram first_name / username anytime without our DB
+  // knowing. Each lookup falls back silently to the DB-cached record
+  // if Telegram returns an error (e.g. user left the chat).
+  const userIdsToRefresh = new Set<bigint>();
+  userIdsToRefresh.add(snapshot.creatorId);
+  for (const e of snapshot.expenses) {
+    userIdsToRefresh.add(e.payerId);
+    for (const s of e.shares) userIdsToRefresh.add(s.userId);
+  }
+  const liveUserMap = new Map<
+    bigint,
+    { firstName: string; username?: string }
+  >();
+  await Promise.all(
+    Array.from(userIdsToRefresh).map(async (uid) => {
+      try {
+        const member = await teleBot.getChatMember(
+          Number(snapshot.chatId),
+          Number(uid)
+        );
+        liveUserMap.set(uid, {
+          firstName: member.user.first_name,
+          username: member.user.username || undefined,
+        });
+      } catch {
+        // user left chat / API error — fall back to DB record in caller
+      }
+    })
+  );
+  const resolveUserInfo = (
+    uid: bigint,
+    fallbackName: string,
+    fallbackUsername: string | null | undefined
+  ) => {
+    const live = liveUserMap.get(uid);
+    return {
+      name: live?.firstName ?? fallbackName,
+      username: live?.username ?? fallbackUsername ?? undefined,
+    };
+  };
+
   snapshot.expenses.forEach((expense) => {
     // Determine conversion rate
     let rate = 1;
@@ -166,18 +211,23 @@ export const shareSnapshotMessageHandler = async (
     const amountInBaseCurrency = toDecimal(expense.amount).dividedBy(rate);
     totalSpent = totalSpent.plus(amountInBaseCurrency);
 
-    // Member tracking (payer)
-    memberMap.set(expense.payerId, {
-      name: expense.payer.firstName,
-      username: expense.payer.username || undefined,
-    });
+    // Member tracking (payer). Prefer live Telegram info; DB record is
+    // fallback if the live fetch failed.
+    memberMap.set(
+      expense.payerId,
+      resolveUserInfo(
+        expense.payerId,
+        expense.payer.firstName,
+        expense.payer.username
+      )
+    );
 
     // Accumulate per-user shares in base currency
     expense.shares.forEach((share) => {
-      memberMap.set(share.userId, {
-        name: share.user.firstName,
-        username: share.user.username || undefined,
-      });
+      memberMap.set(
+        share.userId,
+        resolveUserInfo(share.userId, share.user.firstName, share.user.username)
+      );
 
       const shareAmount = share.amount ? toDecimal(share.amount) : toDecimal(0);
       const shareInBase = shareAmount.dividedBy(rate);
@@ -197,6 +247,7 @@ export const shareSnapshotMessageHandler = async (
         description: expense.description,
         date: expense.date,
         amountInBase: amountInBaseCurrency,
+        payerId: expense.payerId,
       });
     } else {
       categoryMap.set(key, {
@@ -209,6 +260,7 @@ export const shareSnapshotMessageHandler = async (
             description: expense.description,
             date: expense.date,
             amountInBase: amountInBaseCurrency,
+            payerId: expense.payerId,
           },
         ],
       });
@@ -216,13 +268,14 @@ export const shareSnapshotMessageHandler = async (
   });
 
   // 4. Format Telegram Message
-  const creatorMention = snapshot.creator.username
-    ? `@${escapeMarkdown(snapshot.creator.username, 2)}`
-    : mentionMarkdown(
-        Number(snapshot.creatorId),
-        snapshot.creator.firstName,
-        2
-      );
+  const creatorInfo = resolveUserInfo(
+    snapshot.creatorId,
+    snapshot.creator.firstName,
+    snapshot.creator.username
+  );
+  const creatorMention = creatorInfo.username
+    ? `@${escapeMarkdown(creatorInfo.username, 2)}`
+    : mentionMarkdown(Number(snapshot.creatorId), creatorInfo.name, 2);
 
   const formattedTotal = formatCurrencyWithCode(
     totalSpent.toNumber(),
@@ -335,14 +388,25 @@ export const shareSnapshotMessageHandler = async (
       const prefix = isLast ? "┗" : "┣";
       const desc = escapeMarkdown(item.description, 2);
       const dateStr = escapeMarkdown(formatShortDate(item.date), 2);
+      // Bare amount — currency already shown in the category total, no
+      // need to repeat "SGD" on every line.
       const amt = escapeMarkdown(
-        formatCurrencyWithCode(
-          item.amountInBase.toNumber(),
-          currencyCode
-        ).replace(/ /g, " "),
+        item.amountInBase.toNumber().toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }),
         2
       );
-      breakdownLines.push(`>${prefix} ${desc} · ${dateStr} · ${amt}`);
+      const payer = memberMap.get(item.payerId);
+      const payerLabel = payer?.username
+        ? `@${escapeMarkdown(payer.username, 2)}`
+        : payer
+          ? mentionMarkdown(Number(item.payerId), payer.name, 2)
+          : escapeMarkdown("unknown", 2);
+      // Field order: description · cost · date · payer
+      breakdownLines.push(
+        `>${prefix} ${desc} · ${amt} · ${dateStr} · ${payerLabel}`
+      );
     });
 
     if (overflowInGroup > 0) {
@@ -355,6 +419,10 @@ export const shareSnapshotMessageHandler = async (
   }
 
   if (breakdownLines.length > 0) {
+    messageLines.push("");
+    // Section header sits *outside* the blockquote so it reads as a
+    // title, then a blank line, then the muted quoted breakdown.
+    messageLines.push(`📋 *Expenses by category*`);
     messageLines.push("");
     messageLines.push(...breakdownLines);
   }
