@@ -164,9 +164,16 @@ export const sendExpenseUpdateStandaloneHandler = async (
 
     // Description rendered as a MarkdownV2 blockquote so it visually
     // sits under the header as a quoted expense identifier, matching
-    // the "> 📝 • …" style used by the full notification.
+    // the "> 📝 • …" style used by the full notification. A trailing
+    // italic disclaimer tells readers why they're seeing a bump
+    // instead of the original bubble (it was deleted or was never
+    // posted) so they know to tap the button for the actual state.
     const escapedDescription = escapeMarkdown(input.expenseDescription, 2);
-    const message = `📝 Expense updated by ${updaterMention}\n> ${escapedDescription}`;
+    const disclaimer = `_${escapeMarkdown(
+      "Original message was deleted — tap View Expense for details.",
+      2
+    )}_`;
+    const message = `📝 Expense updated by ${updaterMention}\n> ${escapedDescription}\n${disclaimer}`;
 
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
