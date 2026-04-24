@@ -25,6 +25,11 @@ snapshotViewFeature.on("callback_query:data", async (ctx, next) => {
     const { text, replyMarkup } = await ctx.trpc.snapshot.renderSnapshotView({
       snapshotId,
       view,
+      // Forward the tapper's id — the bot's tRPC caller authenticates
+      // via superadmin API key, so `ctx.session.user` is null. Passing
+      // `userId` lets the procedure authorize the tapper against the
+      // chat without relying on session auth.
+      userId: ctx.callbackQuery.from.id,
     });
 
     await ctx.editMessageText(text, {
