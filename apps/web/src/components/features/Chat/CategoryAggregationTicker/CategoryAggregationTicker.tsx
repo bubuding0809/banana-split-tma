@@ -275,7 +275,7 @@ export default function CategoryAggregationTicker({
             }}
           />
 
-          <span className="text-nowrap text-[13px] font-semibold opacity-85">
+          <span className="text-nowrap text-sm font-semibold opacity-85">
             {monthDisplay}
           </span>
 
