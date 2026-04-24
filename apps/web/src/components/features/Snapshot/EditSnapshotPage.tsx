@@ -168,9 +168,13 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
     backButton.show.ifAvailable();
     const offBackClick = backButton.onClick(() => {
       hapticFeedback.impactOccurred("light");
+      // Preserve snapshotId in the URL so the list page re-opens the
+      // modal the user was editing from, rather than dumping them into
+      // a fresh list view.
       navigate({
         to: "/chat/$chatId/snapshots",
         params: { chatId: chatId.toString() },
+        search: { snapshotId },
       });
     });
 
@@ -178,7 +182,7 @@ const EditSnapshotPage = ({ chatId, snapshotId }: EditSnapshotPageProps) => {
       backButton.hide.ifAvailable();
       offBackClick();
     };
-  }, [chatId, navigate]);
+  }, [chatId, snapshotId, navigate]);
 
   // Show loading state while fetching snapshot data
   if (snapshotStatus === "pending") {

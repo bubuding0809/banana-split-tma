@@ -33,13 +33,13 @@ export function SnapshotFullPage({
     const off = backButton.onClick(() => {
       if (hapticFeedback.isSupported())
         hapticFeedback.notificationOccurred("success");
+      // Preserve snapshotId in the URL so the list page re-opens the
+      // modal the user was looking at, instead of dumping them into a
+      // fresh list view.
       navigate({
         to: "/chat/$chatId/snapshots",
         params: { chatId: String(chatId) },
-        search: (prev: Record<string, unknown>) => ({
-          ...prev,
-          snapshotId: undefined,
-        }),
+        search: { snapshotId },
       });
     });
     return () => {
