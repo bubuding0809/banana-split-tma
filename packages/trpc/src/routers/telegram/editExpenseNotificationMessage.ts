@@ -43,6 +43,18 @@ interface SendExpenseUpdateBumpInput {
   threadId?: number;
 }
 
+interface SendExpenseUpdateStandaloneInput {
+  chatId: number;
+  // chatType drives the deep-link protocol's `g` vs `p` segment so the
+  // TMA start_param lands the user in the right chat context.
+  chatType: string;
+  // Expense UUID — target of the "View Expense" CTA on the bubble.
+  expenseId: string;
+  updaterUserId: number;
+  updaterName: string;
+  threadId?: number;
+}
+
 /**
  * Edits an existing Telegram expense notification message with updated details
  */
@@ -102,6 +114,65 @@ export const editExpenseMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to edit expense notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+  }
+};
+
+/**
+ * Sends a standalone "expense updated" message with a "View Expense"
+ * inline button. Used when the original full notification has been
+ * removed from the chat (user deleted it, retention, etc.) or was never
+ * posted — we don't re-post the full notification, we just surface the
+ * change minimally and let the user tap through to the TMA for the
+ * current state.
+ */
+export const sendExpenseUpdateStandaloneHandler = async (
+  input: SendExpenseUpdateStandaloneInput,
+  teleBot: Telegram
+): Promise<number> => {
+  try {
+    let updaterMention: string;
+    try {
+      updaterMention = mentionMarkdown(
+        input.updaterUserId,
+        input.updaterName,
+        2
+      );
+    } catch {
+      updaterMention = escapeMarkdown(input.updaterName, 2);
+    }
+
+    // Standalone bumps have no reply parent to carry the context, so the
+    // inline button is the user's only way to see the actual expense.
+    // Normal (reply) bumps skip the button — their parent already has one.
+    const botInfo = await teleBot.getMe();
+    const deepLinkPayload = encodeV1DeepLink(
+      BigInt(input.chatId),
+      input.chatType === "private" ? "p" : "g",
+      "e",
+      input.expenseId
+    );
+    const deepLink = createDeepLinkedUrl(
+      botInfo.username,
+      deepLinkPayload,
+      "app"
+    );
+    const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
+
+    const message = `📝 Expense updated by ${updaterMention}`;
+
+    const sentMessage = await teleBot.sendMessage(input.chatId, message, {
+      parse_mode: "MarkdownV2",
+      message_thread_id: input.threadId,
+      ...keyboard,
+    });
+
+    return sentMessage.message_id;
+  } catch (error) {
+    console.error("Error sending standalone expense update message:", error);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Failed to send standalone update: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
   }
 };
