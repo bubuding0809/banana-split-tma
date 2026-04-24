@@ -6,7 +6,6 @@ import {
 } from "@telegram-apps/sdk-react";
 import {
   Avatar,
-  Badge,
   Caption,
   Cell,
   Info,
@@ -22,7 +21,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import SettlementDetailsModal from "./SettlementDetailsModal";
 import { cn } from "@/utils/cn";
 import { CSS_CLASSES } from "@/constants/ui";
-import { ArrowRight, DollarSign, Link } from "lucide-react";
+import { ArrowRight, DollarSign } from "lucide-react";
 
 interface ChatSettlementCellProps {
   settlement: inferRouterOutputs<AppRouter>["settlement"]["getSettlementByChat"][number];
@@ -160,11 +159,6 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
             >
               {displayInfo.primaryText}
             </Caption>
-            {settlementRelation !== "unrelated" && (
-              <Badge type="number">
-                <Link size={10} />
-              </Badge>
-            )}
           </Skeleton>
         }
         description={
