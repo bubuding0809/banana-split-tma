@@ -31,6 +31,7 @@ import { formatExpenseDate } from "@utils/date";
 import {
   formatRecurrenceSummary,
   nextOccurrenceAfter,
+  PRESET_LABEL,
   type CanonicalFrequency,
   type Weekday,
 } from "./recurrencePresets";
@@ -134,6 +135,15 @@ export default function RecurringExpenseDetailsModal({
     weekdays: template.weekdays,
     endDate: null,
   });
+  // Short label for the Repeat row's after-slot. WEEKLY with picked
+  // weekdays and CUSTOM (interval > 1) need the full summary too —
+  // rendered as a separate multiline cell below so the long string
+  // doesn't wrap inside the after slot.
+  const repeatShortLabel =
+    template.interval === 1 ? PRESET_LABEL[template.frequency] : "Custom";
+  const showRepeatSummaryRow =
+    repeatSummary !== repeatShortLabel &&
+    (template.frequency === "WEEKLY" || template.interval > 1);
 
   return (
     <Modal
@@ -269,19 +279,29 @@ export default function RecurringExpenseDetailsModal({
           </Cell>
         </Section>
 
-        {/* Schedule — same shape used in the augmented ExpenseDetailsModal */}
+        {/* Schedule — same shape used in the augmented ExpenseDetailsModal.
+            Two-cell pattern (short label + multiline summary) matches the
+            form so long summaries like "Weekly on Sat, Tue, Sun, Mon, Wed"
+            don't wrap inside the Repeat cell's after slot. */}
         <Section className="px-3" header="Schedule">
           <Cell
             before={
               <RepeatIcon size={20} style={{ color: tSubtitleTextColor }} />
             }
             after={
-              <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+              <Text style={{ color: tSubtitleTextColor }}>
+                {repeatShortLabel}
+              </Text>
             }
             style={{ backgroundColor: tSectionBgColor }}
           >
             <Text weight="2">Repeat</Text>
           </Cell>
+          {showRepeatSummaryRow && (
+            <Cell multiline style={{ backgroundColor: tSectionBgColor }}>
+              <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+            </Cell>
+          )}
           <Cell
             before={
               <CalendarIcon size={20} style={{ color: tSubtitleTextColor }} />

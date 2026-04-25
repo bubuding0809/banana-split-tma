@@ -31,6 +31,7 @@ import {
 import { trpc } from "@utils/trpc";
 import {
   formatRecurrenceSummary,
+  PRESET_LABEL,
   type CanonicalFrequency,
   type Weekday,
 } from "@/components/features/Expense/recurrencePresets";
@@ -74,6 +75,14 @@ const RecurringScheduleSection = ({
     weekdays: t.weekdays,
     endDate: null,
   });
+  // Two-cell pattern matching the recurring detail modal + form: short
+  // label on the Repeat row, long descriptive summary as a multiline cell
+  // below when applicable. Avoids ugly wrapping in the after-slot.
+  const repeatShortLabel =
+    t.interval === 1 ? PRESET_LABEL[t.frequency] : "Custom";
+  const showRepeatSummaryRow =
+    repeatSummary !== repeatShortLabel &&
+    (t.frequency === "WEEKLY" || t.interval > 1);
   const endDate = t.endDate
     ? t.endDate instanceof Date
       ? t.endDate
@@ -85,12 +94,17 @@ const RecurringScheduleSection = ({
       <Cell
         before={<RepeatIcon size={20} style={{ color: tSubtitleTextColor }} />}
         after={
-          <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+          <Text style={{ color: tSubtitleTextColor }}>{repeatShortLabel}</Text>
         }
         style={{ backgroundColor: tSectionBgColor }}
       >
         <Text weight="2">Repeat</Text>
       </Cell>
+      {showRepeatSummaryRow && (
+        <Cell multiline style={{ backgroundColor: tSectionBgColor }}>
+          <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+        </Cell>
+      )}
       <Cell
         before={
           <CalendarIcon size={20} style={{ color: tSubtitleTextColor }} />
