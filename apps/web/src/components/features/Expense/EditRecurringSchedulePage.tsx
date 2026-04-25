@@ -11,10 +11,12 @@ import {
   hapticFeedback,
   initData,
   mainButton,
+  popup,
+  secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { resolveCategory } from "@repo/categories";
 import { format } from "date-fns";
@@ -105,6 +107,76 @@ export default function EditRecurringSchedulePage({
       trpcUtils.expense.recurring.get.invalidate({ templateId });
     },
   });
+
+  const cancelMutation = trpc.expense.recurring.cancel.useMutation({
+    onSuccess: () => {
+      trpcUtils.expense.recurring.list.invalidate({ chatId });
+    },
+  });
+  const tDestructive = useSignal(themeParams.destructiveTextColor);
+  const offSecondaryClickRef = useRef<VoidFunction | undefined>(undefined);
+
+  // secondaryButton (Delete) wiring
+  useEffect(() => {
+    if (!template) return;
+    secondaryButton.setParams.ifAvailable({
+      text: "Delete",
+      isVisible: true,
+      isEnabled: true,
+      textColor: tDestructive,
+    });
+
+    offSecondaryClickRef.current?.();
+    offSecondaryClickRef.current = secondaryButton.onClick(async () => {
+      const action = await popup.open.ifAvailable({
+        title: "Delete recurring expense?",
+        message: "Future occurrences won't fire. Past expenses are kept.",
+        buttons: [
+          { type: "destructive", text: "Delete", id: "delete-template" },
+          { type: "cancel" },
+        ],
+      });
+      if (action !== "delete-template") return;
+
+      secondaryButton.setParams({
+        isLoaderVisible: true,
+        isEnabled: false,
+      });
+      try {
+        await cancelMutation.mutateAsync({ templateId });
+        hapticFeedback.notificationOccurred("success");
+        globalNavigate({
+          to: "/chat/$chatId/recurring-expenses",
+          params: { chatId: String(chatId) },
+        });
+      } catch (error) {
+        console.error("Failed to cancel recurring template:", error);
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Couldn't delete this recurring expense. Try again."
+        );
+      } finally {
+        secondaryButton.setParams({
+          isLoaderVisible: false,
+          isEnabled: true,
+        });
+      }
+    });
+
+    return () => {
+      offSecondaryClickRef.current?.();
+      offSecondaryClickRef.current = undefined;
+      secondaryButton.setParams.ifAvailable({ isVisible: false });
+    };
+  }, [
+    template,
+    templateId,
+    cancelMutation,
+    chatId,
+    globalNavigate,
+    tDestructive,
+  ]);
 
   // mainButton (Save) wiring
   useEffect(() => {
