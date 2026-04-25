@@ -98,6 +98,54 @@ describe("POST /api/internal/recurring-expense-tick", () => {
     expect(res.status).toBe(410);
   });
 
+  it("returns 200 with skipped:duplicate when createExpenseHandler throws a unique-constraint error", async () => {
+    // Verifies the dedupe path works end-to-end: when AWS Scheduler retries
+    // a fire (or when a manual same-day expense already exists for this
+    // template+date), the (recurringTemplateId, date) unique index trips and
+    // Prisma throws P2002. createExpenseHandler now preserves the underlying
+    // message, so the webhook's `/unique/i` check matches and we return a
+    // 200 instead of a 500 that AWS would treat as a retryable failure.
+    findUniqueMock.mockResolvedValueOnce({
+      id: TEMPLATE_ID,
+      chatId: 1n,
+      creatorId: 1n,
+      payerId: 1n,
+      description: "Rent",
+      amount: { toString: () => "100" },
+      currency: "SGD",
+      splitMode: "EQUAL",
+      participantIds: [1n],
+      customSplits: null,
+      categoryId: null,
+      frequency: "WEEKLY",
+      interval: 1,
+      weekdays: ["SAT"],
+      startDate: new Date("2026-04-24T16:00:00Z"),
+      endDate: null,
+      timezone: "Asia/Singapore",
+      status: "ACTIVE",
+    });
+    createExpenseHandlerMock.mockRejectedValueOnce(
+      new Error(
+        "Unique constraint failed on the fields: (`recurringTemplateId`,`date`)"
+      )
+    );
+
+    const occurrenceDate = NOW;
+    const sig = signRecurringExpensePayload(
+      TEMPLATE_ID,
+      occurrenceDate,
+      SECRET
+    );
+    const res = await request(app)
+      .post("/api/internal/recurring-expense-tick")
+      .set("X-Recurring-Signature", sig)
+      .send({ templateId: TEMPLATE_ID, occurrenceDate });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ skipped: "duplicate" });
+  });
+
   it("materialises Expense.date as template-tz midnight, not UTC midnight", async () => {
     // Freeze "now" inside the freshness window for the chosen occurrence.
     // 2026-04-25T08:33:00Z = 2026-04-25 16:33 SGT, so SGT-midnight of the

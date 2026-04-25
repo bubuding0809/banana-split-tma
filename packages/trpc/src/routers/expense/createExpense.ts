@@ -491,9 +491,15 @@ export const createExpenseHandler = async (
       throw error;
     }
 
+    // Preserve the underlying error message so callers can branch on it.
+    // The recurring-expense webhook in particular checks `/unique/i` to
+    // turn Prisma P2002 into a `{skipped:"duplicate"}` 200 response —
+    // that path needs the original Prisma message to survive this catch.
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create expense",
+      message:
+        error instanceof Error ? error.message : "Failed to create expense",
+      cause: error,
     });
   }
 };
