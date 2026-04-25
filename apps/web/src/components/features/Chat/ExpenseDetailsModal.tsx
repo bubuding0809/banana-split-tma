@@ -22,7 +22,18 @@ import {
 import { formatExpenseDate } from "@utils/date";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { X, Pencil } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Repeat as RepeatIcon,
+  X,
+  Pencil,
+} from "lucide-react";
+import { trpc } from "@utils/trpc";
+import {
+  formatRecurrenceSummary,
+  type CanonicalFrequency,
+  type Weekday,
+} from "@/components/features/Expense/recurrencePresets";
 import ShareParticipant from "./ShareParticipant";
 
 const splitModeMap = {
@@ -31,6 +42,71 @@ const splitModeMap = {
   EXACT: "Split exactly",
   SHARES: "Split by shares",
 } as const;
+
+interface RecurringScheduleSectionProps {
+  templateId: string;
+  tSectionBgColor: string | undefined;
+  tSubtitleTextColor: string | undefined;
+}
+
+const RecurringScheduleSection = ({
+  templateId,
+  tSectionBgColor,
+  tSubtitleTextColor,
+}: RecurringScheduleSectionProps) => {
+  const { data: template } = trpc.expense.recurring.get.useQuery(
+    { templateId },
+    { enabled: Boolean(templateId) }
+  );
+
+  if (!template) return null;
+
+  const t = template as {
+    frequency: CanonicalFrequency;
+    interval: number;
+    weekdays: Weekday[];
+    endDate: Date | string | null;
+  };
+
+  const repeatSummary = formatRecurrenceSummary({
+    frequency: t.frequency,
+    interval: t.interval,
+    weekdays: t.weekdays,
+    endDate: null,
+  });
+  const endDate = t.endDate
+    ? t.endDate instanceof Date
+      ? t.endDate
+      : new Date(t.endDate)
+    : null;
+
+  return (
+    <Section className="px-3" header="Schedule">
+      <Cell
+        before={<RepeatIcon size={20} style={{ color: tSubtitleTextColor }} />}
+        after={
+          <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+        }
+        style={{ backgroundColor: tSectionBgColor }}
+      >
+        <Text weight="2">Repeat</Text>
+      </Cell>
+      <Cell
+        before={
+          <CalendarIcon size={20} style={{ color: tSubtitleTextColor }} />
+        }
+        after={
+          <Text style={{ color: tSubtitleTextColor }}>
+            {endDate ? formatExpenseDate(endDate) : "Never"}
+          </Text>
+        }
+        style={{ backgroundColor: tSectionBgColor }}
+      >
+        <Text weight="2">End Date</Text>
+      </Cell>
+    </Section>
+  );
+};
 
 interface ExpenseDetailsModalProps {
   open: boolean;
@@ -278,6 +354,18 @@ const ExpenseDetailsModal = ({
             <Text weight="2">Split Method</Text>
           </Cell>
         </Section>
+
+        {/* Schedule (only when this expense was created by a recurring
+            template). Same shape as the Schedule section in
+            RecurringExpenseDetailsModal so users see one design across
+            both places. */}
+        {expense.recurringTemplateId && (
+          <RecurringScheduleSection
+            templateId={expense.recurringTemplateId}
+            tSectionBgColor={tSectionBgColor}
+            tSubtitleTextColor={tSubtitleTextColor}
+          />
+        )}
       </div>
     </Modal>
   );
