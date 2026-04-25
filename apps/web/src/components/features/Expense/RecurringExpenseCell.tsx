@@ -37,16 +37,6 @@ interface Props {
   onClick?: () => void;
 }
 
-const FREQ_TO_PRESET: Record<
-  CanonicalFrequency,
-  "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
-> = {
-  DAILY: "DAILY",
-  WEEKLY: "WEEKLY",
-  MONTHLY: "MONTHLY",
-  YEARLY: "YEARLY",
-};
-
 export default function RecurringExpenseCell({
   template,
   categoryEmoji,
@@ -91,7 +81,7 @@ export default function RecurringExpenseCell({
   // intervals which read more naturally as "Every N <unit>".
   const freqLabel =
     template.interval === 1
-      ? PRESET_LABEL[FREQ_TO_PRESET[template.frequency]]
+      ? PRESET_LABEL[template.frequency]
       : `Every ${template.interval} ${template.frequency.toLowerCase()}s`;
 
   const flagEmoji =
@@ -135,13 +125,7 @@ export default function RecurringExpenseCell({
           avatarStack={
             <Info type="text">
               <div className="flex flex-col items-end gap-1.5">
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                  style={{
-                    backgroundColor: "rgba(74,158,255,0.18)",
-                    color: tButtonColor,
-                  }}
-                >
+                <span className="text-(--tg-theme-link-color) rounded-full bg-[color-mix(in_srgb,var(--tg-theme-link-color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold">
                   ↻ {freqLabel}
                 </span>
                 <Caption className="w-max" weight="2">
