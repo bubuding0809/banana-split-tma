@@ -93,16 +93,22 @@ export default function RepeatAndEndDateSection({
         Repeat
       </Cell>
       {summary && (
-        <Cell onClick={openSheet} multiline>
-          {/* Wrap in a full-width div so text-right actually right-aligns
-              inside the Cell body (which otherwise lays children out left). */}
-          <div
-            className="w-full text-right text-sm"
-            style={{ color: tSubtitleTextColor }}
-          >
-            {summary}
-          </div>
-        </Cell>
+        // Render summary in Cell's `after` slot rather than the body, because
+        // Cell wraps children in a <span> (display:inline), which means
+        // wrappers like `w-full text-right` never actually fill width or
+        // right-align. The after slot is a sibling flex child that telegram-ui
+        // already positions to the right.
+        <Cell
+          onClick={openSheet}
+          after={
+            <Text
+              className="text-sm"
+              style={{ color: tSubtitleTextColor, whiteSpace: "normal" }}
+            >
+              {summary}
+            </Text>
+          }
+        />
       )}
       {r.preset !== "NONE" && (
         <Cell

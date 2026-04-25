@@ -289,14 +289,23 @@ export default function RecurringExpenseDetailsModal({
             <Text weight="2">Repeat</Text>
           </Cell>
           {showRepeatSummaryRow && (
-            <Cell multiline style={{ backgroundColor: tSectionBgColor }}>
-              <div
-                className="w-full text-right text-sm"
-                style={{ color: tSubtitleTextColor }}
-              >
-                {repeatSummary}
-              </div>
-            </Cell>
+            // After slot — Cell wraps body children in a <span> so a
+            // `w-full text-right` div there can't actually fill width or
+            // right-align. The after slot is positioned by telegram-ui itself.
+            <Cell
+              after={
+                <Text
+                  className="text-sm"
+                  style={{
+                    color: tSubtitleTextColor,
+                    whiteSpace: "normal",
+                  }}
+                >
+                  {repeatSummary}
+                </Text>
+              }
+              style={{ backgroundColor: tSectionBgColor }}
+            />
           )}
           <Cell
             before={
