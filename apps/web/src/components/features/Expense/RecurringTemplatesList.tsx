@@ -8,7 +8,7 @@ import {
   useSignal,
   initData,
 } from "@telegram-apps/sdk-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
@@ -95,58 +95,61 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     [categoriesData]
   );
 
-  const handleModalOpenChange = (templateId: string | null) => {
-    setSelectedTemplateId(templateId);
+  const handleModalOpenChange = useCallback(
+    (templateId: string | null) => {
+      setSelectedTemplateId(templateId);
 
-    if (templateId) {
-      secondaryButton.setParams.ifAvailable({
-        text: "Delete",
-        isVisible: true,
-        isEnabled: true,
-        textColor: tDestructive,
-      });
-
-      offSecondaryClickRef.current?.();
-      offSecondaryClickRef.current = secondaryButton.onClick(async () => {
-        const action = await popup.open.ifAvailable({
-          title: "Delete recurring expense?",
-          message: "Future occurrences won't fire. Past expenses are kept.",
-          buttons: [
-            { type: "destructive", text: "Delete", id: "delete-template" },
-            { type: "cancel" },
-          ],
-        });
-        if (action !== "delete-template") return;
-
+      if (templateId) {
         secondaryButton.setParams.ifAvailable({
-          isLoaderVisible: true,
-          isEnabled: false,
+          text: "Delete",
+          isVisible: true,
+          isEnabled: true,
+          textColor: tDestructive,
         });
-        try {
-          await cancelMutation.mutateAsync({ templateId });
-          hapticFeedback.notificationOccurred("success");
-          handleModalOpenChange(null);
-        } catch (error) {
-          console.error("Failed to cancel recurring template:", error);
-          hapticFeedback.notificationOccurred("error");
-          alert("Couldn't delete this recurring expense. Try again later.");
-        } finally {
-          secondaryButton.setParams.ifAvailable({
-            isLoaderVisible: false,
-            isEnabled: true,
+
+        offSecondaryClickRef.current?.();
+        offSecondaryClickRef.current = secondaryButton.onClick(async () => {
+          const action = await popup.open.ifAvailable({
+            title: "Delete recurring expense?",
+            message: "Future occurrences won't fire. Past expenses are kept.",
+            buttons: [
+              { type: "destructive", text: "Delete", id: "delete-template" },
+              { type: "cancel" },
+            ],
           });
-        }
-      });
-    } else {
-      secondaryButton.setParams.ifAvailable({
-        isVisible: false,
-        isEnabled: false,
-        textColor: tButtonColor,
-      });
-      offSecondaryClickRef.current?.();
-      offSecondaryClickRef.current = undefined;
-    }
-  };
+          if (action !== "delete-template") return;
+
+          secondaryButton.setParams.ifAvailable({
+            isLoaderVisible: true,
+            isEnabled: false,
+          });
+          try {
+            await cancelMutation.mutateAsync({ templateId });
+            hapticFeedback.notificationOccurred("success");
+            handleModalOpenChange(null);
+          } catch (error) {
+            console.error("Failed to cancel recurring template:", error);
+            hapticFeedback.notificationOccurred("error");
+            alert("Couldn't delete this recurring expense. Try again later.");
+          } finally {
+            secondaryButton.setParams.ifAvailable({
+              isLoaderVisible: false,
+              isEnabled: true,
+            });
+          }
+        });
+      } else {
+        secondaryButton.setParams.ifAvailable({
+          isVisible: false,
+          isEnabled: false,
+          textColor: tButtonColor,
+        });
+        offSecondaryClickRef.current?.();
+        offSecondaryClickRef.current = undefined;
+      }
+    },
+    [tDestructive, tButtonColor, cancelMutation]
+  );
 
   if (status === "pending") {
     return (
@@ -226,7 +229,9 @@ export default function RecurringTemplatesList({ chatId }: Props) {
                     Number(selectedTemplate.amount) /
                     Math.max(selectedTemplate.participantIds.length, 1),
                 }))
-              : []
+              : // PERCENTAGE / EXACT / SHARES — custom split amounts not computed
+                // client-side for v1; modal omits the Split amounts section.
+                []
           }
           userId={userId}
           categoryEmoji={selectedResolved?.emoji}
