@@ -16,12 +16,11 @@ import {
   Snackbar,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { BookOpen, ChevronRight, Copy, Key, Plus, X } from "lucide-react";
+import { ChevronRight, Copy, Key, Plus, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import CodeBlock from "./CodeBlock";
 import IconSquare from "./IconSquare";
 import TokenNameSheet from "./TokenNameSheet";
-import SetupGuideModal from "./SetupGuideModal";
 
 interface DeveloperSubPageProps {
   chatId: number;
@@ -52,7 +51,6 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<ListedToken | null>(null);
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
-  const [setupGuideOpen, setSetupGuideOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     text: string;
     description?: string;
@@ -223,18 +221,6 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
         ))}
       </Section>
 
-      <Section>
-        <Cell
-          before={<BookOpen size={20} />}
-          onClick={() => {
-            hapticFeedback.impactOccurred("light");
-            setSetupGuideOpen(true);
-          }}
-        >
-          MCP setup guide for agents
-        </Cell>
-      </Section>
-
       <TokenNameSheet
         mode="create"
         open={createOpen}
@@ -257,15 +243,8 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
           rawKey={newRawKey}
           onClose={() => setNewRawKey(null)}
           onCopy={copy}
-          onOpenSetupGuide={() => setSetupGuideOpen(true)}
         />
       )}
-
-      <SetupGuideModal
-        open={setupGuideOpen}
-        onOpenChange={setSetupGuideOpen}
-        onCopy={(label) => showSnackbar(label, "Paste it where you need it.")}
-      />
 
       {snackbar && (
         <Snackbar
@@ -284,15 +263,9 @@ interface NewTokenModalProps {
   rawKey: string;
   onClose: () => void;
   onCopy: (text: string, label: string) => void;
-  onOpenSetupGuide: () => void;
 }
 
-function NewTokenModal({
-  rawKey,
-  onClose,
-  onCopy,
-  onOpenSetupGuide,
-}: NewTokenModalProps) {
+function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const agentPrompt = getAgentPrompt(rawKey);
 
@@ -351,12 +324,6 @@ function NewTokenModal({
             onClick={() => onCopy(agentPrompt, "Agent setup prompt copied")}
           >
             Copy agent setup prompt
-          </ButtonCell>
-          <ButtonCell
-            before={<BookOpen size={20} />}
-            onClick={onOpenSetupGuide}
-          >
-            View MCP setup guide
           </ButtonCell>
         </Section>
 

@@ -8,7 +8,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Sliders } from "lucide-react";
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
@@ -37,6 +37,20 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
 
   return (
     <main className="px-3 pb-8">
+      <Section footer="Drag to rearrange the picker; tap to hide tiles you don't use.">
+        <Link
+          to="/chat/$chatId/settings/categories/organize"
+          params={{ chatId: String(chatId) }}
+        >
+          <Cell
+            before={<Sliders size={20} />}
+            after={<ChevronRight size={16} />}
+          >
+            Reorder &amp; hide tiles
+          </Cell>
+        </Link>
+      </Section>
+
       <Section header="CUSTOM">
         {/* "Create custom category" sits at the top of the section — mirrors
             SnapshotPage's "Add Snapshots" ButtonCell placement. The

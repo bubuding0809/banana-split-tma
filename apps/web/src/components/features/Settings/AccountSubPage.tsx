@@ -136,10 +136,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
         >
           Phone
         </Cell>
-      </Section>
-
-      {userData?.phoneNumber && (
-        <Section>
+        {userData?.phoneNumber && (
           <ButtonCell
             before={<X size={20} style={{ color: tDestructiveTextColor }} />}
             onClick={onRemovePhone}
@@ -149,8 +146,8 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
               {busy ? "Removing…" : "Remove phone number"}
             </span>
           </ButtonCell>
-        </Section>
-      )}
+        )}
+      </Section>
 
       {!isSupported && !userData?.phoneNumber && (
         <Section>

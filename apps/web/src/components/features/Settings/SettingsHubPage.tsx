@@ -61,6 +61,12 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   const isPrivateChat = userId === chatId;
 
   const { data: chat } = trpc.chat.getChat.useQuery({ chatId });
+  // Telegram-side chat data carries the live group photo URL (refreshed
+  // through the bot API). Our DB-stored `chat.photo` is a fallback gif.
+  const { data: tChatData } = trpc.telegram.getChat.useQuery(
+    { chatId },
+    { enabled: !isPrivateChat }
+  );
   const { data: members } = trpc.chat.listMembers.useQuery(
     { chatId },
     { enabled: !isPrivateChat }
@@ -130,7 +136,11 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   return (
     <main className="px-3 pb-8">
       <ChatHeader
-        avatarUrl={chat?.photo}
+        avatarUrl={
+          isPrivateChat
+            ? tUserData?.photoUrl
+            : (tChatData?.photoUrl?.href ?? chat?.photo)
+        }
         title={chat?.title ?? "..."}
         subtitle={
           isPrivateChat
