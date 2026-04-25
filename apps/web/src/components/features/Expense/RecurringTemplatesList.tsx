@@ -99,7 +99,7 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     setSelectedTemplateId(templateId);
 
     if (templateId) {
-      secondaryButton.setParams({
+      secondaryButton.setParams.ifAvailable({
         text: "Delete",
         isVisible: true,
         isEnabled: true,
@@ -118,25 +118,27 @@ export default function RecurringTemplatesList({ chatId }: Props) {
         });
         if (action !== "delete-template") return;
 
-        secondaryButton.setParams({
+        secondaryButton.setParams.ifAvailable({
           isLoaderVisible: true,
           isEnabled: false,
         });
         try {
           await cancelMutation.mutateAsync({ templateId });
+          hapticFeedback.notificationOccurred("success");
           handleModalOpenChange(null);
         } catch (error) {
           console.error("Failed to cancel recurring template:", error);
+          hapticFeedback.notificationOccurred("error");
           alert("Couldn't delete this recurring expense. Try again later.");
         } finally {
-          secondaryButton.setParams({
+          secondaryButton.setParams.ifAvailable({
             isLoaderVisible: false,
             isEnabled: true,
           });
         }
       });
     } else {
-      secondaryButton.setParams({
+      secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
         textColor: tButtonColor,
