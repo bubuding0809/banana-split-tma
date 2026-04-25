@@ -413,52 +413,51 @@ export default function EditRecurringSchedulePage({
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8 pt-3">
-      {/* Section headers match AmountFormStep — label + Subheadline so
-          the spacing/weight matches the rest of the expense forms. */}
-      <label className="-top-7 flex w-full justify-between px-2">
-        <Subheadline weight="2">Editing</Subheadline>
-      </label>
-
-      {/* Read-only summary Cell — same shape as the row the user just tapped */}
-      <Section>
-        <Cell
-          before={
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
-              {cat?.emoji ?? "❓"}
-            </div>
-          }
-          subhead={
-            <Caption
-              weight="1"
-              level="1"
-              style={{ color: isPayerYou ? tButtonColor : undefined }}
-            >
-              {isPayerYou ? "You" : `User ${payerIdNum}`} spends
-            </Caption>
-          }
-          description={
-            <>
-              on{" "}
-              <Caption weight="2" level="1">
-                {t.description}
+      {/* Each label + Section pair lives in its own gap-2 wrapper so the
+          spacing matches AmountFormStep (8px between label and Section,
+          16px between groups via the parent gap-4). */}
+      <div className="flex flex-col gap-2">
+        <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
+          <Subheadline weight="2">Editing</Subheadline>
+        </label>
+        <Section>
+          <Cell
+            before={
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] text-xl leading-none">
+                {cat?.emoji ?? "❓"}
+              </div>
+            }
+            subhead={
+              <Caption
+                weight="1"
+                level="1"
+                style={{ color: isPayerYou ? tButtonColor : undefined }}
+              >
+                {isPayerYou ? "You" : `User ${payerIdNum}`} spends
               </Caption>
-            </>
-          }
-          after={<Text>{splitModeMap[t.splitMode]}</Text>}
-        >
-          <span className="flex items-center gap-1">
-            {flagEmoji} {formatCurrencyWithCode(Number(t.amount), t.currency)}
-          </span>
-        </Cell>
-      </Section>
+            }
+            description={
+              <>
+                on{" "}
+                <Caption weight="2" level="1">
+                  {t.description}
+                </Caption>
+              </>
+            }
+            after={<Text>{splitModeMap[t.splitMode]}</Text>}
+          >
+            <span className="flex items-center gap-1">
+              {flagEmoji} {formatCurrencyWithCode(Number(t.amount), t.currency)}
+            </span>
+          </Cell>
+        </Section>
+      </div>
 
       {recurrence && (
-        <>
-          <label className="-top-7 flex w-full justify-between px-2">
+        <div className="flex flex-col gap-2">
+          <label className="-top-7 flex w-full justify-between px-2 transition-all duration-500 ease-in-out">
             <Subheadline weight="2">Schedule</Subheadline>
           </label>
-          {/* Wrap in Section so the inner Cells get the rounded grey
-              background and read like the read-only summary above. */}
           <Section>
             <RepeatAndEndDateSection
               value={recurrence}
@@ -476,7 +475,7 @@ export default function EditRecurringSchedulePage({
               {validationError}
             </Caption>
           )}
-        </>
+        </div>
       )}
     </main>
   );
