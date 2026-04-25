@@ -17,7 +17,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { resolveCategory } from "@repo/categories";
 import { format } from "date-fns";
 
@@ -48,6 +48,7 @@ export default function EditRecurringSchedulePage({
   templateId,
 }: Props) {
   const globalNavigate = useNavigate();
+  const router = useRouter();
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tUserData = useSignal(initData.user);
   const userId = tUserData?.id ?? 0;
@@ -362,13 +363,14 @@ export default function EditRecurringSchedulePage({
   useEffect(() => {
     const offClick = backButton.onClick(() => {
       hapticFeedback.notificationOccurred("success");
-      globalNavigate({
-        to: "/chat/$chatId/recurring-expenses",
-        params: { chatId: String(chatId) },
-      });
+      // Use the router history so the back destination tracks the
+      // user's actual entry path: list page → list page; chat-page
+      // expense modal → chat page (with the expense modal restored
+      // because the selectedExpense URL param was preserved).
+      router.history.back();
     });
     return () => offClick();
-  }, [chatId, globalNavigate]);
+  }, [router]);
 
   if (status === "pending") {
     return (

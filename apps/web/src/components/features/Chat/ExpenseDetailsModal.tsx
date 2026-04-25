@@ -49,7 +49,6 @@ const splitModeMap = {
 interface RecurringScheduleSectionProps {
   templateId: string;
   chatId: number;
-  onClose: () => void;
   tSectionBgColor: string | undefined;
   tButtonColor: string | undefined;
   tSubtitleTextColor: string | undefined;
@@ -58,7 +57,6 @@ interface RecurringScheduleSectionProps {
 const RecurringScheduleSection = ({
   templateId,
   chatId,
-  onClose,
   tSectionBgColor,
   tButtonColor,
   tSubtitleTextColor,
@@ -174,7 +172,9 @@ const RecurringScheduleSection = ({
         after={<Navigation />}
         onClick={() => {
           hapticFeedback.impactOccurred("light");
-          onClose();
+          // Don't close the modal — leaving selectedExpense in the URL
+          // means router.history.back() from the edit page restores the
+          // modal automatically.
           navigate({
             to: "/chat/$chatId/edit-recurring/$templateId",
             params: { chatId: String(chatId), templateId },
@@ -445,7 +445,6 @@ const ExpenseDetailsModal = ({
           <RecurringScheduleSection
             templateId={expense.recurringTemplateId}
             chatId={expense.chatId}
-            onClose={() => onOpenChange(false)}
             tSectionBgColor={tSectionBgColor}
             tButtonColor={tButtonColor}
             tSubtitleTextColor={tSubtitleTextColor}
