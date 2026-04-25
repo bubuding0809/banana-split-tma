@@ -62,7 +62,9 @@ const UserAccessTokensSection = () => {
   });
 
   const handleGenerate = useCallback(() => {
-    generateMutation.mutate();
+    // TODO(Task 17/18): replace with user-supplied name via TokenNameSheet
+    const name = `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`;
+    generateMutation.mutate({ name });
   }, [generateMutation]);
 
   const handleCopy = useCallback(() => {
