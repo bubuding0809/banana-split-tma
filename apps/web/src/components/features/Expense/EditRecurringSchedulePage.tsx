@@ -10,15 +10,19 @@ import {
   backButton,
   hapticFeedback,
   initData,
+  mainButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
+import { resolveCategory } from "@repo/categories";
+import { format } from "date-fns";
 
 import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
+import RepeatAndEndDateSection from "./RepeatAndEndDateSection";
+import type { RecurrenceValue } from "./RecurrencePickerSheet";
 
 interface Props {
   chatId: number;
@@ -60,6 +64,152 @@ export default function EditRecurringSchedulePage({
     [categories]
   );
 
+  // Local schedule state mirrors the form's RecurrenceValue shape so we
+  // can reuse the same picker/validation logic from add-expense.
+  // Seed from `template` once it's loaded.
+  const [recurrence, setRecurrence] = useState<RecurrenceValue | null>(null);
+
+  useEffect(() => {
+    if (!template || recurrence !== null) return;
+    const t = template as {
+      frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+      interval: number;
+      weekdays: ("SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT")[];
+      endDate: Date | string | null;
+    };
+    setRecurrence({
+      preset:
+        t.interval === 1 &&
+        (t.frequency === "DAILY" ||
+          t.frequency === "WEEKLY" ||
+          t.frequency === "MONTHLY" ||
+          t.frequency === "YEARLY")
+          ? t.frequency
+          : "CUSTOM",
+      customFrequency: t.frequency,
+      customInterval: t.interval,
+      weekdays: t.weekdays,
+      endDate: t.endDate
+        ? format(
+            t.endDate instanceof Date ? t.endDate : new Date(t.endDate),
+            "yyyy-MM-dd"
+          )
+        : undefined,
+    });
+  }, [template, recurrence]);
+
+  const trpcUtils = trpc.useUtils();
+  const updateMutation = trpc.expense.recurring.update.useMutation({
+    onSuccess: () => {
+      trpcUtils.expense.recurring.list.invalidate({ chatId });
+      trpcUtils.expense.recurring.get.invalidate({ templateId });
+    },
+  });
+
+  // mainButton (Save) wiring
+  useEffect(() => {
+    if (!template || !recurrence) return;
+    mainButton.setParams.ifAvailable({
+      text: "Save",
+      isVisible: true,
+      isEnabled: true,
+    });
+    const offClick = mainButton.onClick.ifAvailable(async () => {
+      // Only send fields that actually changed.
+      const t = template as {
+        frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+        interval: number;
+        weekdays: ("SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT")[];
+        endDate: Date | string | null;
+      };
+
+      const dirtyFields: {
+        templateId: string;
+        frequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+        interval?: number;
+        weekdays?: RecurrenceValue["weekdays"];
+        endDate?: Date | null;
+      } = { templateId };
+
+      const newFrequency =
+        recurrence.preset === "CUSTOM"
+          ? recurrence.customFrequency
+          : recurrence.preset === "NONE"
+            ? null
+            : recurrence.preset;
+      const newInterval =
+        recurrence.preset === "CUSTOM" ? recurrence.customInterval : 1;
+      const newWeekdays = recurrence.weekdays;
+      const newEndDate = recurrence.endDate
+        ? new Date(recurrence.endDate + "T00:00:00")
+        : null;
+
+      if (newFrequency && newFrequency !== t.frequency) {
+        dirtyFields.frequency = newFrequency;
+      }
+      if (newInterval !== t.interval) {
+        dirtyFields.interval = newInterval;
+      }
+      if (JSON.stringify(newWeekdays) !== JSON.stringify(t.weekdays ?? [])) {
+        dirtyFields.weekdays = newWeekdays;
+      }
+      const oldEndIso = t.endDate
+        ? format(
+            t.endDate instanceof Date ? t.endDate : new Date(t.endDate),
+            "yyyy-MM-dd"
+          )
+        : null;
+      const newEndIso = recurrence.endDate ?? null;
+      if (oldEndIso !== newEndIso) {
+        dirtyFields.endDate = newEndDate;
+      }
+
+      // Nothing changed — bail with a small haptic.
+      if (Object.keys(dirtyFields).length === 1) {
+        hapticFeedback.notificationOccurred("warning");
+        return;
+      }
+
+      mainButton.setParams.ifAvailable({
+        isLoaderVisible: true,
+        isEnabled: false,
+      });
+      try {
+        await updateMutation.mutateAsync(dirtyFields);
+        hapticFeedback.notificationOccurred("success");
+        globalNavigate({
+          to: "/chat/$chatId/recurring-expenses",
+          params: { chatId: String(chatId) },
+        });
+      } catch (error) {
+        console.error("Failed to update recurring template:", error);
+        hapticFeedback.notificationOccurred("error");
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Couldn't save changes. Try again."
+        );
+      } finally {
+        mainButton.setParams.ifAvailable({
+          isLoaderVisible: false,
+          isEnabled: true,
+        });
+      }
+    });
+
+    return () => {
+      offClick?.();
+      mainButton.setParams.ifAvailable({ isVisible: false });
+    };
+  }, [
+    template,
+    recurrence,
+    templateId,
+    updateMutation,
+    chatId,
+    globalNavigate,
+  ]);
+
   // BackButton wiring — same pattern as RecurringTemplatesList
   useEffect(() => {
     backButton.show.ifAvailable();
@@ -93,7 +243,7 @@ export default function EditRecurringSchedulePage({
     return (
       <main className="px-3 pb-8 pt-3">
         <div className="text-(--tg-theme-subtitle-text-color) p-6 text-center">
-          <Text>Couldn't load this recurring expense.</Text>
+          <Text>Couldn&apos;t load this recurring expense.</Text>
         </div>
       </main>
     );
@@ -108,6 +258,7 @@ export default function EditRecurringSchedulePage({
     currency: string;
     splitMode: keyof typeof splitModeMap;
     categoryId: string | null;
+    startDate: Date | string;
   };
 
   const cat = t.categoryId ? resolveCategory(t.categoryId, chatRows) : null;
@@ -154,17 +305,21 @@ export default function EditRecurringSchedulePage({
         </Cell>
       </Section>
 
-      {/* Schedule section — wired in Task 8 */}
-      <div className="px-2">
-        <Subheadline weight="2">Schedule</Subheadline>
-      </div>
-      <Section>
-        <Cell>
-          <Text style={{ color: tButtonColor }}>
-            (Schedule editor — Task 8)
-          </Text>
-        </Cell>
-      </Section>
+      {recurrence && (
+        <>
+          <div className="px-2">
+            <Subheadline weight="2">Schedule</Subheadline>
+          </div>
+          <RepeatAndEndDateSection
+            value={recurrence}
+            onChange={setRecurrence}
+            defaultWeekdayFromDate={format(
+              t.startDate instanceof Date ? t.startDate : new Date(t.startDate),
+              "yyyy-MM-dd"
+            )}
+          />
+        </>
+      )}
     </main>
   );
 }
