@@ -119,7 +119,7 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
       <div className="shadow-xs">
         <ConvertCurrenciesCell chatId={chatId} />
       </div>
-      <div className="mt-2 flex flex-col gap-2 px-4">
+      <div className="mt-4 flex flex-col gap-2 px-4">
         <Section
           header={
             <Title weight="2" className="px-1 py-2" level="3">
