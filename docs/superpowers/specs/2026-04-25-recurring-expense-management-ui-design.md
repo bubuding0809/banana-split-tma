@@ -120,12 +120,21 @@ Focused, single-section page. No multi-step navigation.
 ### 4. `ExpenseDetailsModal` (existing, augmented)
 
 When the viewed expense has a non-null `recurringTemplateId`, append a
-new "↻ Recurring schedule" Section between "How was this expense split?"
-and the bottom of the modal. **Read-only**, single row.
+new **Schedule** Section between "How was this expense split?" and the
+bottom of the modal. **Read-only**.
 
-**Section content:**
-- One row: `↻` icon + "Repeats" + subtitle "<Frequency> · Next <date>" +
-  trailing "until <endDate>" (or "forever" when no endDate).
+**Section content** — identical shape to the Schedule section in
+`RecurringExpenseDetailsModal` (Surface 2), so users see the same two
+rows in both places:
+
+- Row 1: `↻` icon + "Repeat" + trailing "<Frequency summary>" (e.g.
+  "Monthly", "Weekly on Mon, Wed", "Every 2 weeks on Tue").
+- Row 2: `📅` icon + "End Date" + trailing "<endDate>" (or "Never" when
+  no endDate).
+
+No "Next: <date>" sub-line, no "View template" link — keep the section
+visually identical to the recurring detail modal so there's no
+divergence to maintain.
 
 The pencil at the top of the modal continues to mean "edit this single
 occurrence" — its scope is unchanged. Users who want to manage the
