@@ -183,7 +183,7 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
               </Info>
             }
           >
-            Convert currencies
+            <div className="py-1.25">Convert currencies</div>
           </Cell>
         }
       >
