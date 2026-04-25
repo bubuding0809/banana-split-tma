@@ -21,8 +21,6 @@ import {
   Repeat as RepeatIcon,
   X,
 } from "lucide-react";
-import { format } from "date-fns";
-
 import { trpc } from "@utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import ShareParticipant from "../Chat/ShareParticipant";
@@ -30,7 +28,6 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDate } from "@utils/date";
 import {
   formatRecurrenceSummary,
-  nextOccurrenceAfter,
   PRESET_LABEL,
   type CanonicalFrequency,
   type Weekday,
@@ -123,12 +120,6 @@ export default function RecurringExpenseDetailsModal({
       : new Date(template.endDate)
     : null;
 
-  const nextFire = nextOccurrenceAfter(startDate, {
-    frequency: template.frequency,
-    interval: template.interval,
-    weekdays: template.weekdays,
-  });
-
   const repeatSummary = formatRecurrenceSummary({
     frequency: template.frequency,
     interval: template.interval,
@@ -189,7 +180,7 @@ export default function RecurringExpenseDetailsModal({
         >
           <Badge type="number" mode="secondary" className="text-blue-400">
             <Caption weight="2" className="text-blue-400">
-              ↻ {repeatSummary} · Next {format(nextFire, "d MMM")}
+              ↻ {repeatShortLabel}
             </Caption>
           </Badge>
         </Modal.Header>
