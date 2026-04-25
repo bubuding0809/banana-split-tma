@@ -301,7 +301,7 @@
     <div>
       <ul>
         <li>Focused single-section page — no multi-step nav</li>
-        <li>Read-only summary line at top: <code>desc · amount · category · payer · splitMode</code> for context</li>
+        <li>Read-only context Cell at top: same <code>ChatExpenseCell</code> shape as the row the user just tapped — non-interactive, just orients them</li>
         <li>One <strong>Schedule</strong> section: Repeat Cell + End Date Cell</li>
         <li>Both Cells lifted from <code>AmountFormStep</code> into a new shared <code>RepeatAndEndDateSection</code> component</li>
         <li><code>mainButton</code> = <strong style="color: var(--accent);">Save</strong> → <code>recurring.update</code> with dirty fields</li>
@@ -314,7 +314,16 @@
         <div><span class="ttl">Edit recurring</span></div>
         <div class="icns"><div class="icn-btn" style="color: var(--muted);">✕</div></div>
       </div>
-      <p style="color: var(--muted); font-size: 11px; padding: 0 4px 8px; margin: 0;">Cleaner bill · SGD 200 · 🏠 Home · You · Equal split</p>
+      <div class="section">
+        <div class="row">
+          <div class="ic" style="width: 36px; height: 36px; font-size: 18px;">🏠</div>
+          <div class="body">
+            <div class="bot" style="color: var(--accent); font-weight: 600;">YOU SPEND</div>
+            <div class="top">🇸🇬 SGD 200.00</div>
+            <div class="bot">on Cleaner bill · Equal split</div>
+          </div>
+        </div>
+      </div>
       <div class="section-label">Schedule</div>
       <div class="section">
         <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Repeat</div></div><div class="trail tap">Monthly</div></div>

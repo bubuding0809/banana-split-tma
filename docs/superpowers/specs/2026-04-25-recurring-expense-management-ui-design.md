@@ -97,7 +97,13 @@ Focused, single-section page. No multi-step navigation.
 **Header:** "Edit recurring" + close button.
 
 **Body:**
-- One-line read-only summary at top: `<description> · <amount> · <category> · <payer> · <split mode>` — lets the user verify they're editing the right thing without re-opening the modal.
+- **Read-only summary Cell at top** — same shape as the row the user just
+  tapped on the recurring list page (a `ChatExpenseCell`-style Cell with
+  category emoji avatar, "You spend" subhead, "🇸🇬 SGD X.XX" main, "on
+  <description>" description, split-mode shown as caption beneath). Cell
+  is non-interactive (no `onClick`). Lets the user verify they're editing
+  the right thing without re-opening the modal — and reuses the exact
+  visual language they're already familiar with from the list.
 - One Section "Schedule" with two cells:
   - **Repeat** — opens `RecurrencePickerSheet` (existing component). Calls schedule update on commit.
   - **End Date** — same native-date-overlay pattern as the End Date Cell
