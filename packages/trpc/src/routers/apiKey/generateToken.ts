@@ -5,6 +5,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 
 const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
+  name: z.string().trim().min(1, "Name is required").max(40, "Name too long"),
 });
 
 const outputSchema = z.object({
@@ -24,9 +25,15 @@ export const generateTokenHandler = async (
     });
   }
 
+  // Schema validates min(1) after trim, but the handler can also be called
+  // directly from tests/internal code that bypasses zod — guard explicitly.
+  const trimmedName = input.name.trim();
+  if (!trimmedName) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Name is required" });
+  }
+
   const bigUserId = BigInt(userId);
 
-  // Verify chat membership via implicit many-to-many
   const chat = await db.chat.findFirst({
     where: {
       id: input.chatId,
@@ -41,20 +48,16 @@ export const generateTokenHandler = async (
     });
   }
 
-  // Generate new key: bsk_ + 48 random bytes as base64url
   const randomBytes = crypto.randomBytes(48);
   const rawKey = `bsk_${randomBytes.toString("base64url")}`;
   const keyPrefix = rawKey.slice(0, 8);
-
-  // Hash the key for storage
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
-  // Store in database
   await db.chatApiKey.create({
     data: {
       keyHash,
       keyPrefix,
-      name: `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`,
+      name: trimmedName,
       chatId: input.chatId,
       createdById: bigUserId,
     },

@@ -78,7 +78,9 @@ const AccessTokensSection = ({ chatId }: AccessTokensSectionProps) => {
   });
 
   const handleGenerate = useCallback(() => {
-    generateMutation.mutate({ chatId });
+    // TODO(Task 17/18): replace with user-supplied name via TokenNameSheet
+    const name = `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`;
+    generateMutation.mutate({ chatId, name });
   }, [chatId, generateMutation]);
 
   const handleCopy = useCallback(() => {
