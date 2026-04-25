@@ -24,15 +24,7 @@ export const formOpts = formOptions({
     recurrence: { preset: "NONE" } as
       | { preset: "NONE" }
       | {
-          preset:
-            | "DAILY"
-            | "WEEKLY"
-            | "BIWEEKLY"
-            | "MONTHLY"
-            | "EVERY_3_MONTHS"
-            | "EVERY_6_MONTHS"
-            | "YEARLY"
-            | "CUSTOM";
+          preset: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
           customFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
           customInterval: number;
           weekdays: ("SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT")[];
