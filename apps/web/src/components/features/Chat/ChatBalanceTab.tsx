@@ -11,6 +11,7 @@ import {
 import { useMemo } from "react";
 
 import ChatBalanceCell from "./ChatBalanceCell";
+import ConvertCurrenciesCell from "./ConvertCurrenciesCell";
 import { trpc } from "@/utils/trpc";
 interface ChatBalanceTabProps {
   chatId: number;
@@ -115,6 +116,9 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
 
   return (
     <section className="pb-8 pt-2">
+      <div className="px-4 pb-2">
+        <ConvertCurrenciesCell chatId={chatId} userId={userId} />
+      </div>
       <div className="flex flex-col gap-2 px-4">
         <Section
           header={
