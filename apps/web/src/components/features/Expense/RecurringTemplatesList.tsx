@@ -17,9 +17,7 @@ import { trpc } from "@/utils/trpc";
 import RecurringExpenseCell, {
   type RecurringTemplateForCell,
 } from "./RecurringExpenseCell";
-import RecurringExpenseDetailsModal, {
-  type RecurringTemplateForModal,
-} from "./RecurringExpenseDetailsModal";
+import RecurringExpenseDetailsModal from "./RecurringExpenseDetailsModal";
 
 interface Props {
   chatId: number;
@@ -189,6 +187,10 @@ export default function RecurringTemplatesList({ chatId }: Props) {
   const selectedTemplate =
     templates.find((t) => t.id === selectedTemplateId) ?? null;
 
+  const selectedResolved = selectedTemplate?.categoryId
+    ? resolveCategory(selectedTemplate.categoryId, chatRows)
+    : null;
+
   return (
     <main className="px-3 pb-8">
       <Section header="Recurring expenses">
@@ -213,7 +215,7 @@ export default function RecurringTemplatesList({ chatId }: Props) {
           onOpenChange={(open) => {
             if (!open) handleModalOpenChange(null);
           }}
-          template={selectedTemplate as unknown as RecurringTemplateForModal}
+          template={selectedTemplate}
           shares={
             selectedTemplate.splitMode === "EQUAL"
               ? selectedTemplate.participantIds.map((pid: number) => ({
@@ -225,19 +227,12 @@ export default function RecurringTemplatesList({ chatId }: Props) {
               : []
           }
           userId={userId}
-          categoryEmoji={
-            selectedTemplate.categoryId
-              ? resolveCategory(selectedTemplate.categoryId, chatRows)?.emoji
-              : undefined
-          }
-          categoryTitle={
-            selectedTemplate.categoryId
-              ? resolveCategory(selectedTemplate.categoryId, chatRows)?.title
-              : undefined
-          }
+          categoryEmoji={selectedResolved?.emoji}
+          categoryTitle={selectedResolved?.title}
           onEdit={() => {
             handleModalOpenChange(null);
-            // Route /chat/$chatId/edit-recurring/$templateId added in Task 7
+            // TODO(task 7): drop this cast once /chat/$chatId/edit-recurring/$templateId
+            // route exists; restore the typed globalNavigate({ to, params }) form.
             (globalNavigate as (opts: unknown) => void)({
               to: "/chat/$chatId/edit-recurring/$templateId",
               params: {
