@@ -21,10 +21,10 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
-import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { X, Pencil } from "lucide-react";
+import ShareParticipant from "./ShareParticipant";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -32,63 +32,6 @@ const splitModeMap = {
   EXACT: "Split exactly",
   SHARES: "Split by shares",
 } as const;
-
-interface ShareParticipantProps {
-  chatId: number;
-  userId: number;
-  amount: number;
-  isCurrentUser: boolean;
-  currency: string;
-}
-
-const ShareParticipant = ({
-  chatId,
-  userId,
-  amount,
-  isCurrentUser,
-  currency,
-}: ShareParticipantProps) => {
-  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-  const tButtonColor = useSignal(themeParams.buttonColor);
-
-  const { data: member, isLoading } = trpc.telegram.getChatMember.useQuery({
-    chatId,
-    userId,
-  });
-
-  const memberName = isCurrentUser
-    ? "You"
-    : member
-      ? `${member.user.first_name}${member.user.last_name ? ` ${member.user.last_name}` : ""}`
-      : `User ${userId}`;
-
-  return (
-    <Cell
-      before={<ChatMemberAvatar userId={userId} size={28} />}
-      after={
-        <Info type="text">
-          <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
-            {formatCurrencyWithCode(amount, currency)}
-          </Text>
-        </Info>
-      }
-      style={{
-        backgroundColor: tSectionBgColor,
-      }}
-    >
-      <Skeleton visible={isLoading && !isCurrentUser}>
-        <Text
-          weight={isCurrentUser ? "1" : "3"}
-          style={{
-            color: isCurrentUser ? tButtonColor : "inherit",
-          }}
-        >
-          {memberName}
-        </Text>
-      </Skeleton>
-    </Cell>
-  );
-};
 
 interface ExpenseDetailsModalProps {
   open: boolean;
