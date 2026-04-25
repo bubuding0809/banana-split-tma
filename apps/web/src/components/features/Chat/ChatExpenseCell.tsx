@@ -293,7 +293,9 @@ const ChatExpenseCell = ({
               <Info type="text">
                 <div className="flex flex-col items-end gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    {expense.recurringTemplateId && <RecurringExpenseBadge />}
+                    {expense.recurringTemplate?.status === "ACTIVE" && (
+                      <RecurringExpenseBadge />
+                    )}
                     <Caption className="w-max" weight="2">
                       {sortBy === "createdAt"
                         ? formatExpenseDateShortCreatedAt(expense.createdAt)
