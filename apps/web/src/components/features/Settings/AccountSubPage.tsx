@@ -12,6 +12,7 @@ import {
   backButton,
   hapticFeedback,
   initData,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Phone, X } from "lucide-react";
@@ -26,6 +27,7 @@ interface AccountSubPageProps {
 export default function AccountSubPage({ chatId }: AccountSubPageProps) {
   const navigate = useNavigate();
   const tUser = useSignal(initData.user);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const userId = tUser?.id ?? 0;
   const { requestContactInfo, isSupported } = useRequestContact();
   const [busy, setBusy] = useState(false);
@@ -104,7 +106,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
         />
         <div className="mt-2 text-base font-semibold">{fullName || "You"}</div>
         {tUser?.username && (
-          <div className="text-(--tg-theme-subtitle-text-color) text-sm">
+          <div className="text-sm" style={{ color: tSubtitleTextColor }}>
             @{tUser.username}
           </div>
         )}

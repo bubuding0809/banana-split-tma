@@ -4,9 +4,9 @@ import {
   backButton,
   hapticFeedback,
   initData,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { themeParams } from "@telegram-apps/sdk-react";
 import {
   ButtonCell,
   Cell,
@@ -43,6 +43,7 @@ const getAgentPrompt = (
 export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const navigate = useNavigate();
   const tUser = useSignal(initData.user);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const isPrivate = (tUser?.id ?? 0) === chatId;
   const trpcUtils = trpc.useUtils();
 
@@ -204,7 +205,7 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
             className="block w-full px-3 py-2 text-left"
           >
             <div className="text-sm font-medium">{t.name}</div>
-            <div className="text-(--tg-theme-subtitle-text-color) text-xs">
+            <div className="text-xs" style={{ color: tSubtitleTextColor }}>
               Created {new Date(t.createdAt).toLocaleDateString()} ·{" "}
               {t.keyPrefix}…
             </div>
@@ -358,11 +359,20 @@ function NewTokenModal({
 }
 
 function CodeBlock({ children, wrap }: { children: string; wrap?: boolean }) {
+  const tSecondaryBackgroundColor = useSignal(
+    themeParams.secondaryBackgroundColor
+  );
+  const tSectionSeparatorColor = useSignal(themeParams.sectionSeparatorColor);
   return (
     <pre
-      className={`bg-(--tg-theme-secondary-bg-color) border-(--tg-theme-section-separator-color) overflow-x-auto border-y px-4 py-3 font-mono text-xs ${
+      className={`overflow-x-auto px-4 py-3 font-mono text-xs ${
         wrap ? "whitespace-pre-wrap break-all" : ""
       }`}
+      style={{
+        background: tSecondaryBackgroundColor,
+        borderTop: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
+        borderBottom: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
+      }}
     >
       {children}
     </pre>

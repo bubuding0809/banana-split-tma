@@ -1,3 +1,4 @@
+import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { Avatar } from "@telegram-apps/telegram-ui";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
@@ -28,6 +29,9 @@ export default function ChatHeader({
   memberCount = 0,
   onMembersClick,
 }: ChatHeaderProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tBackgroundColor = useSignal(themeParams.backgroundColor);
+
   const previewMembers = members.slice(
     0,
     MAX_PREVIEW - (memberCount > MAX_PREVIEW ? 1 : 0)
@@ -42,7 +46,7 @@ export default function ChatHeader({
         acronym={title.slice(0, 2).toUpperCase()}
       />
       <div className="mt-2 text-base font-semibold">{title}</div>
-      <div className="text-(--tg-theme-subtitle-text-color) text-sm">
+      <div className="text-sm" style={{ color: tSubtitleTextColor }}>
         {subtitle}
       </div>
 
@@ -59,7 +63,7 @@ export default function ChatHeader({
               className="rounded-full"
               style={{
                 marginLeft: i === 0 ? 0 : -8,
-                border: "2px solid var(--tg-theme-bg-color)",
+                border: `2px solid ${tBackgroundColor ?? "transparent"}`,
               }}
             >
               <ChatMemberAvatar userId={Number(m.id)} size={28} />
@@ -70,7 +74,7 @@ export default function ChatHeader({
               className="flex size-7 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700"
               style={{
                 marginLeft: -8,
-                border: "2px solid var(--tg-theme-bg-color)",
+                border: `2px solid ${tBackgroundColor ?? "transparent"}`,
               }}
             >
               +{overflow}

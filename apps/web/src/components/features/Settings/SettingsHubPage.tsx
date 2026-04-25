@@ -4,6 +4,7 @@ import {
   backButton,
   hapticFeedback,
   initData,
+  themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { Cell, Section } from "@telegram-apps/telegram-ui";
@@ -233,6 +234,7 @@ interface RowLinkProps {
 }
 
 function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   return (
     <Cell
       onClick={onClick}
@@ -240,14 +242,11 @@ function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
       after={
         <div className="flex items-center gap-1">
           {value && (
-            <span className="text-(--tg-theme-subtitle-text-color) text-sm">
+            <span className="text-sm" style={{ color: tSubtitleTextColor }}>
               {value}
             </span>
           )}
-          <ChevronRight
-            size={18}
-            className="text-(--tg-theme-subtitle-text-color)"
-          />
+          <ChevronRight size={18} style={{ color: tSubtitleTextColor }} />
         </div>
       }
     >

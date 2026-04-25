@@ -155,11 +155,20 @@ interface CodeBlockProps {
 }
 
 function CodeBlock({ children, wrap }: CodeBlockProps) {
+  const tSecondaryBackgroundColor = useSignal(
+    themeParams.secondaryBackgroundColor
+  );
+  const tSectionSeparatorColor = useSignal(themeParams.sectionSeparatorColor);
   return (
     <pre
-      className={`bg-(--tg-theme-secondary-bg-color) border-(--tg-theme-section-separator-color) overflow-x-auto border-y px-4 py-3 font-mono text-xs ${
+      className={`overflow-x-auto px-4 py-3 font-mono text-xs ${
         wrap ? "whitespace-pre-wrap" : ""
       }`}
+      style={{
+        background: tSecondaryBackgroundColor,
+        borderTop: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
+        borderBottom: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
+      }}
     >
       {children}
     </pre>

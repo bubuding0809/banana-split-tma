@@ -1,3 +1,4 @@
+import { themeParams, useSignal } from "@telegram-apps/sdk-react";
 import { Button, Modal, Text, Title } from "@telegram-apps/telegram-ui";
 
 interface AddMemberSheetProps {
@@ -12,11 +13,13 @@ export default function AddMemberSheet({
   open,
   onOpenChange,
 }: AddMemberSheetProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <div className="px-4 py-3">
         <Title level="2">Add a member</Title>
-        <Text className="text-(--tg-theme-subtitle-text-color) mt-2 block">
+        <Text className="mt-2 block" style={{ color: tSubtitleTextColor }}>
           Soon you'll be able to share a contact with the bot in your private
           chat to add them here. We'll let you know once it's ready.
         </Text>
