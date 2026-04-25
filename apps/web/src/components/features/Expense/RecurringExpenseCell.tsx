@@ -49,16 +49,22 @@ export default function RecurringExpenseCell({
 
   const userId = tUserData?.id ?? 0;
 
+  // Coerce template ids to Number — Prisma keeps Telegram IDs as bigint, but
+  // tRPC's queryKey hash and the input schemas expect plain numbers; bigint
+  // crashes with "JSON.stringify cannot serialize BigInt".
+  const chatIdNum = Number(template.chatId);
+  const payerIdNum = Number(template.payerId);
+
   const { data: member, isLoading: isMemberLoading } =
     trpc.telegram.getChatMember.useQuery({
-      chatId: template.chatId,
-      userId: template.payerId,
+      chatId: chatIdNum,
+      userId: payerIdNum,
     });
 
   const { data: supportedCurrencies } =
     trpc.currency.getSupportedCurrencies.useQuery({});
 
-  const isPayerYou = template.payerId === userId;
+  const isPayerYou = payerIdNum === userId;
   const memberFullName = isPayerYou
     ? "You"
     : `${member?.user.first_name ?? ""}${
