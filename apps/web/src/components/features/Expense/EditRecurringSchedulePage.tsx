@@ -131,6 +131,8 @@ export default function EditRecurringSchedulePage({
         endDate?: Date | null;
       } = { templateId };
 
+      let hasChanges = false;
+
       const newFrequency =
         recurrence.preset === "CUSTOM"
           ? recurrence.customFrequency
@@ -146,12 +148,17 @@ export default function EditRecurringSchedulePage({
 
       if (newFrequency && newFrequency !== t.frequency) {
         dirtyFields.frequency = newFrequency;
+        hasChanges = true;
       }
       if (newInterval !== t.interval) {
         dirtyFields.interval = newInterval;
+        hasChanges = true;
       }
-      if (JSON.stringify(newWeekdays) !== JSON.stringify(t.weekdays ?? [])) {
+      const sortedNew = [...newWeekdays].sort();
+      const sortedOld = [...(t.weekdays ?? [])].sort();
+      if (JSON.stringify(sortedNew) !== JSON.stringify(sortedOld)) {
         dirtyFields.weekdays = newWeekdays;
+        hasChanges = true;
       }
       const oldEndIso = t.endDate
         ? format(
@@ -162,10 +169,11 @@ export default function EditRecurringSchedulePage({
       const newEndIso = recurrence.endDate ?? null;
       if (oldEndIso !== newEndIso) {
         dirtyFields.endDate = newEndDate;
+        hasChanges = true;
       }
 
       // Nothing changed — bail with a small haptic.
-      if (Object.keys(dirtyFields).length === 1) {
+      if (!hasChanges) {
         hapticFeedback.notificationOccurred("warning");
         return;
       }
