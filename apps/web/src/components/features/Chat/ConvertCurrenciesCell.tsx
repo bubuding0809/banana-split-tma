@@ -42,15 +42,13 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
   );
   const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
 
-  if (!userId) return null;
-
   // * Queries ==================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
   const { data: currencieswithBalance, status: currenciesWithBalanceStatus } =
-    trpc.currency.getCurrenciesWithBalance.useQuery({
-      userId,
-      chatId,
-    });
+    trpc.currency.getCurrenciesWithBalance.useQuery(
+      { userId, chatId },
+      { enabled: !!userId }
+    );
 
   // * Mutations ================================================================================
   const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
@@ -125,6 +123,7 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
     dChatData?.baseCurrency,
   ]);
 
+  if (!userId) return null;
   if (foreignCurrencies.length === 0) return null;
 
   return (
