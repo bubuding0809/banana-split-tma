@@ -12,6 +12,7 @@ import {
   RECURRING_EXPENSE_SCHEDULE_GROUP,
 } from "../aws/utils/recurringExpenseScheduler.js";
 import { buildExpenseCron } from "../aws/utils/buildExpenseCron.js";
+import { computeAwsScheduleStartDate } from "../aws/utils/computeAwsScheduleStartDate.js";
 
 const FREQUENCY = z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
 const WEEKDAY = z.enum(["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]);
@@ -141,6 +142,17 @@ export default protectedProcedure
     // an external RecurringExpenseLambda (in the bananasplit-tgbot AWS repo)
     // which forwards an HMAC-signed POST to our Vercel webhook.
     try {
+      // AWS Scheduler rejects any StartDate older than 5 minutes. The
+      // template.startDate above is the user-supplied transaction date
+      // (often "today" — already minutes/hours stale, or backfilled days
+      // ago). We need a fresh, future-safe StartDate that also lands AFTER
+      // the original transaction's day boundary so the cron's first fire
+      // doesn't duplicate the manually-created original expense.
+      const awsStartDate = computeAwsScheduleStartDate({
+        transactionDate: startDate,
+        now: new Date(),
+        timezone: input.recurrence.timezone,
+      });
       await createRecurringScheduleHandler({
         scheduleName: template.awsScheduleName,
         scheduleExpression: cronExpression,
@@ -151,7 +163,7 @@ export default protectedProcedure
         },
         description: `Recurring expense ${template.id} for chat ${template.chatId}`,
         timezone: input.recurrence.timezone,
-        startDate,
+        startDate: awsStartDate,
         endDate: input.recurrence.endDate ?? undefined,
         enabled: true,
         scheduleGroup: RECURRING_EXPENSE_SCHEDULE_GROUP,
