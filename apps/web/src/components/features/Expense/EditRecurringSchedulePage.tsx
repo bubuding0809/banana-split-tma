@@ -455,14 +455,20 @@ export default function EditRecurringSchedulePage({
           <div className="px-2">
             <Subheadline weight="2">Schedule</Subheadline>
           </div>
-          <RepeatAndEndDateSection
-            value={recurrence}
-            onChange={setRecurrence}
-            defaultWeekdayFromDate={format(
-              t.startDate instanceof Date ? t.startDate : new Date(t.startDate),
-              "yyyy-MM-dd"
-            )}
-          />
+          {/* Wrap in Section so the inner Cells get the rounded grey
+              background and read like the read-only summary above. */}
+          <Section>
+            <RepeatAndEndDateSection
+              value={recurrence}
+              onChange={setRecurrence}
+              defaultWeekdayFromDate={format(
+                t.startDate instanceof Date
+                  ? t.startDate
+                  : new Date(t.startDate),
+                "yyyy-MM-dd"
+              )}
+            />
+          </Section>
           {validationError && (
             <Caption className="px-2 text-sm text-red-500">
               {validationError}
