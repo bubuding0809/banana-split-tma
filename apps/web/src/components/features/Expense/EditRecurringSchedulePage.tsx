@@ -138,7 +138,7 @@ export default function EditRecurringSchedulePage({
       });
       if (action !== "delete-template") return;
 
-      secondaryButton.setParams({
+      secondaryButton.setParams.ifAvailable({
         isLoaderVisible: true,
         isEnabled: false,
       });
@@ -151,13 +151,14 @@ export default function EditRecurringSchedulePage({
         });
       } catch (error) {
         console.error("Failed to cancel recurring template:", error);
+        hapticFeedback.notificationOccurred("error");
         alert(
           error instanceof Error
             ? error.message
             : "Couldn't delete this recurring expense. Try again."
         );
       } finally {
-        secondaryButton.setParams({
+        secondaryButton.setParams.ifAvailable({
           isLoaderVisible: false,
           isEnabled: true,
         });
