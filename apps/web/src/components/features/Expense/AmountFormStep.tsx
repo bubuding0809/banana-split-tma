@@ -47,12 +47,20 @@ const AmountFormStep = withForm({
   props: {
     step: 0,
     isLastStep: false,
+    isEditMode: false,
     navigate: (() => {}) as unknown as UseNavigateResult<
       "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
     >,
     chatId: 0,
   },
-  render: function Render({ form, isLastStep, step, navigate, chatId }) {
+  render: function Render({
+    form,
+    isLastStep,
+    step,
+    isEditMode,
+    navigate,
+    chatId,
+  }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tUserData = useSignal(initData.user);
     const { expenseCurrency } = useStore(form.store, (state) => ({
@@ -403,26 +411,35 @@ const AmountFormStep = withForm({
 
                     {/* Repeat + End Date — extracted to RepeatAndEndDateSection
                         so the new EditRecurringSchedulePage can reuse the same
-                        UI without duplicating the cell wiring. */}
-                    <form.AppField name="recurrence">
-                      {(recurrenceField) => (
-                        <RepeatAndEndDateSection
-                          value={recurrenceField.state.value as RecurrenceValue}
-                          onChange={(next) =>
-                            recurrenceField.handleChange(next as never)
-                          }
-                          defaultWeekdayFromDate={
-                            form.getFieldValue("date") || undefined
-                          }
-                          onTouched={() =>
-                            form.setFieldMeta("recurrence", (prev) => ({
-                              ...prev,
-                              isTouched: true,
-                            }))
-                          }
-                        />
-                      )}
-                    </form.AppField>
+                        UI without duplicating the cell wiring. Hidden in edit
+                        mode: the existing edit flow does not persist
+                        recurrence changes (the submit handler never reads
+                        value.recurrence and the backend updateExpense doesn't
+                        accept it), so showing the cells would be a silent
+                        no-op. */}
+                    {!isEditMode && (
+                      <form.AppField name="recurrence">
+                        {(recurrenceField) => (
+                          <RepeatAndEndDateSection
+                            value={
+                              recurrenceField.state.value as RecurrenceValue
+                            }
+                            onChange={(next) =>
+                              recurrenceField.handleChange(next as never)
+                            }
+                            defaultWeekdayFromDate={
+                              form.getFieldValue("date") || undefined
+                            }
+                            onTouched={() =>
+                              form.setFieldMeta("recurrence", (prev) => ({
+                                ...prev,
+                                isTouched: true,
+                              }))
+                            }
+                          />
+                        )}
+                      </form.AppField>
+                    )}
                   </Section>
                   <div className="px-2">
                     <FieldInfo />
@@ -432,13 +449,15 @@ const AmountFormStep = withForm({
                       must be on or after …" message reads as a sibling of
                       other field errors instead of squeezing into the
                       Section card. */}
-                  <form.AppField name="recurrence">
-                    {() => (
-                      <div className="px-2">
-                        <FieldInfo />
-                      </div>
-                    )}
-                  </form.AppField>
+                  {!isEditMode && (
+                    <form.AppField name="recurrence">
+                      {() => (
+                        <div className="px-2">
+                          <FieldInfo />
+                        </div>
+                      )}
+                    </form.AppField>
+                  )}
                 </div>
               )}
             </form.AppField>
