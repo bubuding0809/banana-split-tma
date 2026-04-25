@@ -94,13 +94,18 @@ export default function RecurringExpenseDetailsModal({
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
+  // Coerce to Number — Prisma keeps Telegram IDs as bigint, which crashes
+  // tRPC's queryKey hashing ("JSON.stringify cannot serialize BigInt").
+  const chatIdNum = Number(template.chatId);
+  const payerIdNum = Number(template.payerId);
+
   const { data: member, isLoading: isMemberLoading } =
     trpc.telegram.getChatMember.useQuery({
-      chatId: template.chatId,
-      userId: template.payerId,
+      chatId: chatIdNum,
+      userId: payerIdNum,
     });
 
-  const isPayerYou = template.payerId === userId;
+  const isPayerYou = payerIdNum === userId;
   const memberFullName = isPayerYou
     ? "You"
     : `${member?.user.first_name ?? ""}${
@@ -199,7 +204,7 @@ export default function RecurringExpenseDetailsModal({
         {/* Who paid for this? */}
         <Section header="Who paid for this?" className="px-3">
           <Cell
-            before={<ChatMemberAvatar userId={template.payerId} size={48} />}
+            before={<ChatMemberAvatar userId={payerIdNum} size={48} />}
             subtitle={
               <Skeleton visible={isMemberLoading}>
                 <Caption>Started {formatExpenseDate(startDate)}</Caption>
@@ -240,7 +245,7 @@ export default function RecurringExpenseDetailsModal({
               .map((share) => (
                 <ShareParticipant
                   key={share.userId}
-                  chatId={template.chatId}
+                  chatId={chatIdNum}
                   userId={share.userId}
                   amount={share.amount}
                   currency={template.currency}

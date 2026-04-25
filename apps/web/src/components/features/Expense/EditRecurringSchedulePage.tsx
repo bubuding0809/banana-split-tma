@@ -358,7 +358,11 @@ export default function EditRecurringSchedulePage({
   const cat = t.categoryId ? resolveCategory(t.categoryId, chatRows) : null;
   const flagEmoji =
     supportedCurrencies?.find((c) => c.code === t.currency)?.flagEmoji ?? "💱";
-  const isPayerYou = t.payerId === userId;
+  // payerId arrives as bigint from Prisma — coerce so the strict-equality
+  // check against the (number) `userId` works and any downstream usage that
+  // would JSON.stringify it doesn't crash.
+  const payerIdNum = Number(t.payerId);
+  const isPayerYou = payerIdNum === userId;
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8 pt-3">
@@ -380,7 +384,7 @@ export default function EditRecurringSchedulePage({
               level="1"
               style={{ color: isPayerYou ? tButtonColor : undefined }}
             >
-              {isPayerYou ? "You" : `User ${t.payerId}`} spends
+              {isPayerYou ? "You" : `User ${payerIdNum}`} spends
             </Caption>
           }
           description={
