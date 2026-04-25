@@ -134,9 +134,11 @@ const EditExpensePage = ({ chatId, expenseId }: EditExpensePageProps) => {
       userTouchedCategory: true,
       suggestPending: false,
       customSplits: handleInitSplits(),
-      // Recurrence is not editable from the existing edit flow (Task 11 only
-      // wires the schema + default). Mirror formOpts.defaultValues so the
-      // form's StandardSchema input shape stays aligned.
+      // Recurrence is not editable from the existing edit flow — the cells
+      // are hidden in AmountFormStep when isEditMode is true, the submit
+      // handler doesn't read value.recurrence, and the backend updateExpense
+      // doesn't accept it. Mirror formOpts.defaultValues so the form's
+      // StandardSchema input shape stays aligned.
       recurrence: formOpts.defaultValues.recurrence,
     },
     onSubmit: async ({ value }) => {
