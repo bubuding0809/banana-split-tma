@@ -21,6 +21,34 @@ import { trpc } from "@/utils/trpc";
 import ChatHeader from "./ChatHeader";
 import IconSquare, { type IconColor } from "./IconSquare";
 
+type SubKey =
+  | "members"
+  | "currency"
+  | "categories"
+  | "notifications"
+  | "reminders"
+  | "account"
+  | "developer";
+
+const SUB_PATHS: Record<
+  SubKey,
+  | "/chat/$chatId/settings/members"
+  | "/chat/$chatId/settings/currency"
+  | "/chat/$chatId/settings/categories"
+  | "/chat/$chatId/settings/notifications"
+  | "/chat/$chatId/settings/reminders"
+  | "/chat/$chatId/settings/account"
+  | "/chat/$chatId/settings/developer"
+> = {
+  members: "/chat/$chatId/settings/members",
+  currency: "/chat/$chatId/settings/currency",
+  categories: "/chat/$chatId/settings/categories",
+  notifications: "/chat/$chatId/settings/notifications",
+  reminders: "/chat/$chatId/settings/reminders",
+  account: "/chat/$chatId/settings/account",
+  developer: "/chat/$chatId/settings/developer",
+};
+
 interface SettingsHubPageProps {
   chatId: number;
 }
@@ -76,15 +104,12 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   }, [navigate, isPrivateChat]);
 
   const goto = useCallback(
-    (sub: string) => {
+    (sub: SubKey) => {
       hapticFeedback.impactOccurred("light");
-      // Cast the args, not the function — sub-routes don't exist in
-      // routeTree yet (Task 21 cleans this up). Narrowing the cast keeps
-      // the rest of the navigate signature type-checked.
       navigate({
-        to: `/chat/$chatId/settings/${sub}`,
+        to: SUB_PATHS[sub],
         params: { chatId: String(chatId) },
-      } as any);
+      });
     },
     [chatId, navigate]
   );

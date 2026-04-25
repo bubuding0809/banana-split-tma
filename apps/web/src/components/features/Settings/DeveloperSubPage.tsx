@@ -216,7 +216,7 @@ function RawKeyModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-      <div className="bg-(--tg-theme-bg-color) w-full rounded-t-2xl px-4 py-4">
+      <div className="bg-(--tg-theme-bg-color) w-full rounded-t-2xl p-4">
         <div className="text-center text-base font-semibold">New token</div>
         <Text className="text-(--tg-theme-subtitle-text-color) mt-2 block">
           Copy this key now — you won't see it again.
