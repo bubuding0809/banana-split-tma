@@ -1,6 +1,14 @@
 import { Section, Skeleton, Text } from "@telegram-apps/telegram-ui";
-import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  backButton,
+  hapticFeedback,
+  popup,
+  secondaryButton,
+  themeParams,
+  useSignal,
+  initData,
+} from "@telegram-apps/sdk-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
@@ -9,12 +17,19 @@ import { trpc } from "@/utils/trpc";
 import RecurringExpenseCell, {
   type RecurringTemplateForCell,
 } from "./RecurringExpenseCell";
+import RecurringExpenseDetailsModal, {
+  type RecurringTemplateForModal,
+} from "./RecurringExpenseDetailsModal";
 
 interface Props {
   chatId: number;
 }
 
 type RecurringTemplate = RecurringTemplateForCell & {
+  splitMode: "EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES";
+  participantIds: number[];
+  customSplits: unknown;
+  timezone: string;
   status: "ACTIVE" | "CANCELED" | "ENDED";
 };
 
@@ -28,6 +43,20 @@ export default function RecurringTemplatesList({ chatId }: Props) {
   const { data: categoriesData } = trpc.category.listByChat.useQuery({
     chatId,
   });
+
+  const tDestructive = useSignal(themeParams.destructiveTextColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
+
+  const trpcUtils = trpc.useUtils();
+  const cancelMutation = trpc.expense.recurring.cancel.useMutation({
+    onSuccess: () => {
+      trpcUtils.expense.recurring.list.invalidate({ chatId });
+    },
+  });
+
+  const offSecondaryClickRef = useRef<VoidFunction | undefined>(undefined);
 
   // Show / hide Telegram BackButton for the page
   useEffect(() => {
@@ -49,6 +78,13 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     return () => offClick();
   }, [chatId, globalNavigate]);
 
+  // Cleanup secondary button click handler on unmount
+  useEffect(() => {
+    return () => {
+      offSecondaryClickRef.current?.();
+    };
+  }, []);
+
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
       (categoriesData?.items ?? [])
@@ -60,6 +96,57 @@ export default function RecurringTemplatesList({ chatId }: Props) {
         })),
     [categoriesData]
   );
+
+  const handleModalOpenChange = (templateId: string | null) => {
+    setSelectedTemplateId(templateId);
+
+    if (templateId) {
+      secondaryButton.setParams({
+        text: "Delete",
+        isVisible: true,
+        isEnabled: true,
+        textColor: tDestructive,
+      });
+
+      offSecondaryClickRef.current?.();
+      offSecondaryClickRef.current = secondaryButton.onClick(async () => {
+        const action = await popup.open.ifAvailable({
+          title: "Delete recurring expense?",
+          message: "Future occurrences won't fire. Past expenses are kept.",
+          buttons: [
+            { type: "destructive", text: "Delete", id: "delete-template" },
+            { type: "cancel" },
+          ],
+        });
+        if (action !== "delete-template") return;
+
+        secondaryButton.setParams({
+          isLoaderVisible: true,
+          isEnabled: false,
+        });
+        try {
+          await cancelMutation.mutateAsync({ templateId });
+          handleModalOpenChange(null);
+        } catch (error) {
+          console.error("Failed to cancel recurring template:", error);
+          alert("Couldn't delete this recurring expense. Try again later.");
+        } finally {
+          secondaryButton.setParams({
+            isLoaderVisible: false,
+            isEnabled: true,
+          });
+        }
+      });
+    } else {
+      secondaryButton.setParams({
+        isVisible: false,
+        isEnabled: false,
+        textColor: tButtonColor,
+      });
+      offSecondaryClickRef.current?.();
+      offSecondaryClickRef.current = undefined;
+    }
+  };
 
   if (status === "pending") {
     return (
@@ -114,17 +201,52 @@ export default function RecurringTemplatesList({ chatId }: Props) {
               key={t.id}
               template={t}
               categoryEmoji={resolved?.emoji}
-              onClick={() => setSelectedTemplateId(t.id)}
+              onClick={() => handleModalOpenChange(t.id)}
             />
           );
         })}
       </Section>
 
-      {/* Placeholder — replaced by RecurringExpenseDetailsModal in Task 5 */}
       {selectedTemplate && (
-        <div data-testid="modal-placeholder" hidden>
-          {selectedTemplate.id}
-        </div>
+        <RecurringExpenseDetailsModal
+          open
+          onOpenChange={(open) => {
+            if (!open) handleModalOpenChange(null);
+          }}
+          template={selectedTemplate as unknown as RecurringTemplateForModal}
+          shares={
+            selectedTemplate.splitMode === "EQUAL"
+              ? selectedTemplate.participantIds.map((pid: number) => ({
+                  userId: pid,
+                  amount:
+                    Number(selectedTemplate.amount) /
+                    Math.max(selectedTemplate.participantIds.length, 1),
+                }))
+              : []
+          }
+          userId={userId}
+          categoryEmoji={
+            selectedTemplate.categoryId
+              ? resolveCategory(selectedTemplate.categoryId, chatRows)?.emoji
+              : undefined
+          }
+          categoryTitle={
+            selectedTemplate.categoryId
+              ? resolveCategory(selectedTemplate.categoryId, chatRows)?.title
+              : undefined
+          }
+          onEdit={() => {
+            handleModalOpenChange(null);
+            // Route /chat/$chatId/edit-recurring/$templateId added in Task 7
+            (globalNavigate as (opts: unknown) => void)({
+              to: "/chat/$chatId/edit-recurring/$templateId",
+              params: {
+                chatId: String(chatId),
+                templateId: selectedTemplate.id,
+              },
+            });
+          }}
+        />
       )}
     </main>
   );
