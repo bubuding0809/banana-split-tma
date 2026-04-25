@@ -12,7 +12,14 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { ChevronLeft, ChevronRight, Hash, Repeat, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Hash,
+  Repeat,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   PRESET_LABEL,
@@ -21,12 +28,23 @@ import {
   type CanonicalFrequency,
 } from "./recurrencePresets";
 
-const FREQ_LABEL: Record<CanonicalFrequency, string> = {
-  DAILY: "Daily",
-  WEEKLY: "Weekly",
-  MONTHLY: "Monthly",
-  YEARLY: "Yearly",
+// Noun forms used in the Custom screen so the cells read as
+// "Repeat every / 2 / weeks" or "Repeat every / 1 / week" depending on
+// the interval. Frequency cell flips its display value based on interval.
+const FREQ_UNIT_SINGULAR: Record<CanonicalFrequency, string> = {
+  DAILY: "day",
+  WEEKLY: "week",
+  MONTHLY: "month",
+  YEARLY: "year",
 };
+const FREQ_UNIT_PLURAL: Record<CanonicalFrequency, string> = {
+  DAILY: "days",
+  WEEKLY: "weeks",
+  MONTHLY: "months",
+  YEARLY: "years",
+};
+const freqUnit = (f: CanonicalFrequency, interval: number): string =>
+  interval === 1 ? FREQ_UNIT_SINGULAR[f] : FREQ_UNIT_PLURAL[f];
 
 const WEEKDAY_FULL: Record<Weekday, string> = {
   SUN: "Sunday",
@@ -42,10 +60,7 @@ const PRESETS: RecurrencePreset[] = [
   "NONE",
   "DAILY",
   "WEEKLY",
-  "BIWEEKLY",
   "MONTHLY",
-  "EVERY_3_MONTHS",
-  "EVERY_6_MONTHS",
   "YEARLY",
 ];
 
@@ -80,9 +95,25 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   value: RecurrenceValue;
   onChange: (next: RecurrenceValue) => void;
+  /**
+   * The expense's transaction date as YYYY-MM-DD. Used to pre-fill the
+   * weekday when the user taps Weekly / Biweekly from the preset list,
+   * matching Apple Reminders' behaviour ("every Monday" if today is Monday).
+   */
+  defaultWeekdayFromDate?: string;
 }
 
-type Screen = "top" | "custom" | "endDate";
+type Screen = "top" | "weekly" | "custom";
+
+const WEEKDAY_INDEX: Weekday[] = [
+  "SUN",
+  "MON",
+  "TUE",
+  "WED",
+  "THU",
+  "FRI",
+  "SAT",
+];
 
 const tickSelection = () => {
   try {
@@ -95,19 +126,33 @@ const tickNav = () => {
   } catch {}
 };
 
+function weekdayOf(dateStr: string | undefined): Weekday | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return WEEKDAY_INDEX[d.getDay()];
+}
+
 export default function RecurrencePickerSheet({
   open,
   onOpenChange,
   value,
   onChange,
+  defaultWeekdayFromDate,
 }: Props) {
   const [screen, setScreen] = useState<Screen>("top");
+  // Pending weekday selection while the user is in the Weekly sub-screen.
+  // Only committed to the form on the header check tap — gives Apple
+  // Reminders' "edit then confirm" feel and prevents flicker on the parent
+  // Repeat Cell while the user is still toggling days.
+  const [pendingWeekdays, setPendingWeekdays] = useState<Weekday[]>([]);
 
   // Read theme colors via the SDK signals (rather than CSS vars) — the
   // signals carry built-in fallback values when the Telegram client doesn't
   // pass the theme through, matching the pattern in AmountFormStep etc.
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+  const tLinkColor = useSignal(themeParams.linkColor);
 
   // Reset to top whenever the modal reopens
   useEffect(() => {
@@ -116,11 +161,34 @@ export default function RecurrencePickerSheet({
 
   const isWeekly =
     value.preset === "WEEKLY" ||
-    value.preset === "BIWEEKLY" ||
     (value.preset === "CUSTOM" && value.customFrequency === "WEEKLY");
 
   const headerTitle =
-    screen === "top" ? "Repeat" : screen === "custom" ? "Custom" : "End Date";
+    screen === "top" ? "Repeat" : screen === "weekly" ? "Weekly" : "Custom";
+
+  const commitWeekly = () => {
+    if (pendingWeekdays.length === 0) return;
+    tickSelection();
+    onChange({
+      ...value,
+      preset: "WEEKLY",
+      weekdays: pendingWeekdays,
+    });
+    onOpenChange(false);
+  };
+
+  // Custom commits live as the user toggles dropdowns/chips, so the header
+  // Check just closes the modal — but block when CUSTOM+WEEKLY has no
+  // weekdays selected (matches the form schema's superRefine).
+  const customWeeklyEmpty =
+    value.preset === "CUSTOM" &&
+    value.customFrequency === "WEEKLY" &&
+    value.weekdays.length === 0;
+  const commitCustom = () => {
+    if (customWeeklyEmpty) return;
+    tickSelection();
+    onOpenChange(false);
+  };
 
   const header = (
     <Modal.Header
@@ -148,11 +216,33 @@ export default function RecurrencePickerSheet({
         )
       }
       after={
-        <Modal.Close>
-          <IconButton size="s" mode="gray">
-            <X size={20} />
+        screen === "weekly" ? (
+          <IconButton
+            size="s"
+            mode="gray"
+            disabled={pendingWeekdays.length === 0}
+            onClick={commitWeekly}
+            aria-label="Confirm weekday selection"
+          >
+            <Check size={20} style={{ color: tLinkColor }} />
           </IconButton>
-        </Modal.Close>
+        ) : screen === "custom" ? (
+          <IconButton
+            size="s"
+            mode="gray"
+            disabled={customWeeklyEmpty}
+            onClick={commitCustom}
+            aria-label="Confirm custom recurrence"
+          >
+            <Check size={20} style={{ color: tLinkColor }} />
+          </IconButton>
+        ) : (
+          <Modal.Close>
+            <IconButton size="s" mode="gray">
+              <X size={20} />
+            </IconButton>
+          </Modal.Close>
+        )
       }
     />
   );
@@ -171,29 +261,48 @@ export default function RecurrencePickerSheet({
                     if (p === "NONE") {
                       onChange({ ...value, preset: "NONE" });
                       onOpenChange(false);
-                    } else {
-                      // Preserve weekdays only when switching between weekly-shaped presets
-                      const keepWeekdays =
-                        p === "WEEKLY" || p === "BIWEEKLY"
-                          ? value.weekdays
-                          : [];
-                      onChange({
-                        ...value,
-                        preset: p,
-                        weekdays: keepWeekdays,
-                      });
-                      // For weekly-shaped presets without weekdays selected
-                      // yet, auto-navigate to custom so the user can pick them.
-                      if (
-                        (p === "WEEKLY" || p === "BIWEEKLY") &&
-                        keepWeekdays.length === 0
-                      ) {
-                        setScreen("custom");
-                      }
+                      return;
                     }
+                    if (p === "WEEKLY") {
+                      // Weekly requires at least one weekday — open the
+                      // sub-picker pre-filled with the current selection
+                      // (or the transaction date's weekday) and only
+                      // commit when the user taps the header check.
+                      const wd = weekdayOf(defaultWeekdayFromDate);
+                      const initial =
+                        value.preset === "WEEKLY" && value.weekdays.length > 0
+                          ? value.weekdays
+                          : wd
+                            ? [wd]
+                            : [];
+                      setPendingWeekdays(initial);
+                      setScreen("weekly");
+                      return;
+                    }
+                    // DAILY / MONTHLY / YEARLY — self-evident, no sub-screen.
+                    // Commit and close immediately (Apple Reminders style).
+                    onChange({
+                      ...value,
+                      preset: p,
+                      weekdays: [],
+                    });
+                    onOpenChange(false);
                   }}
                   after={
-                    value.preset === p ? (
+                    p === "WEEKLY" ? (
+                      // Weekly opens a sub-picker, so it always shows a
+                      // nav chevron — and stacks a check beside it when it
+                      // is the active selection (so users can still tell
+                      // which preset is committed).
+                      <div className="flex items-center gap-1">
+                        {value.preset === "WEEKLY" && (
+                          <span className="text-(--tg-theme-link-color)">
+                            ✓
+                          </span>
+                        )}
+                        <ChevronRight size={16} />
+                      </div>
+                    ) : value.preset === p ? (
                       <span className="text-(--tg-theme-link-color)">✓</span>
                     ) : null
                   }
@@ -204,6 +313,27 @@ export default function RecurrencePickerSheet({
               <Cell
                 onClick={() => {
                   tickNav();
+                  // First entry into Custom: commit preset=CUSTOM with
+                  // sensible defaults so the parent Repeat Cell shows the
+                  // live summary immediately. Defaults match Apple
+                  // Reminders: every 1 week, on the transaction date's
+                  // weekday. From there the user can bump interval, swap
+                  // unit, or add more weekdays.
+                  if (value.preset !== "CUSTOM") {
+                    const wd = weekdayOf(defaultWeekdayFromDate);
+                    onChange({
+                      ...value,
+                      preset: "CUSTOM",
+                      customFrequency: value.customFrequency || "WEEKLY",
+                      customInterval: value.customInterval || 1,
+                      weekdays:
+                        value.weekdays.length > 0
+                          ? value.weekdays
+                          : wd
+                            ? [wd]
+                            : [],
+                    });
+                  }
                   setScreen("custom");
                 }}
                 after={<ChevronRight size={16} />}
@@ -213,62 +343,47 @@ export default function RecurrencePickerSheet({
                 </span>
               </Cell>
             </Section>
-            {value.preset !== "NONE" && (
-              <Section>
+          </>
+        )}
+
+        {screen === "weekly" && (
+          <Section header="Repeat on">
+            {WEEKDAY_INDEX.map((wd) => {
+              const selected = pendingWeekdays.includes(wd);
+              return (
                 <Cell
+                  key={wd}
                   onClick={() => {
-                    tickNav();
-                    setScreen("endDate");
+                    tickSelection();
+                    setPendingWeekdays((prev) =>
+                      prev.includes(wd)
+                        ? prev.filter((x) => x !== wd)
+                        : [...prev, wd]
+                    );
                   }}
                   after={
-                    <span className="text-(--tg-theme-subtitle-text-color)">
-                      {value.endDate ?? "Never"} ›
-                    </span>
+                    selected ? (
+                      <Check size={20} style={{ color: tLinkColor }} />
+                    ) : null
                   }
                 >
-                  End Date
+                  {WEEKDAY_FULL[wd]}
                 </Cell>
-              </Section>
-            )}
-          </>
+              );
+            })}
+          </Section>
         )}
 
         {screen === "custom" && (
           <>
-            <Section>
-              <Cell
-                Component="label"
-                htmlFor="recurrence-frequency-select"
-                before={<Repeat size={20} />}
-                after={
-                  <div className="relative">
-                    <select
-                      id="recurrence-frequency-select"
-                      value={value.customFrequency}
-                      onChange={(e) => {
-                        tickSelection();
-                        onChange({
-                          ...value,
-                          preset: "CUSTOM",
-                          customFrequency: e.target.value as CanonicalFrequency,
-                        });
-                      }}
-                      className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
-                    >
-                      {CUSTOM_FREQS.map((f) => (
-                        <option key={f} value={f}>
-                          {FREQ_LABEL[f]}
-                        </option>
-                      ))}
-                    </select>
-                    <Navigation>
-                      <Text>{FREQ_LABEL[value.customFrequency]}</Text>
-                    </Navigation>
-                  </div>
-                }
-              >
-                Frequency
-              </Cell>
+            {/* "Repeat every" section header carries the verb so the two
+                cells beneath read top-down as the full phrase, e.g.
+                "Repeat every / 2 / weeks". No standalone preview row is
+                needed because the parent Repeat Cell on the amount step
+                already renders the human-readable summary as a subtitle
+                row underneath itself.
+            */}
+            <Section header="Repeat every">
               <Cell
                 Component="label"
                 htmlFor="recurrence-interval-select"
@@ -300,7 +415,42 @@ export default function RecurrencePickerSheet({
                   </div>
                 }
               >
-                Every
+                Interval
+              </Cell>
+              <Cell
+                Component="label"
+                htmlFor="recurrence-frequency-select"
+                before={<Repeat size={20} />}
+                after={
+                  <div className="relative">
+                    <select
+                      id="recurrence-frequency-select"
+                      value={value.customFrequency}
+                      onChange={(e) => {
+                        tickSelection();
+                        onChange({
+                          ...value,
+                          preset: "CUSTOM",
+                          customFrequency: e.target.value as CanonicalFrequency,
+                        });
+                      }}
+                      className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
+                    >
+                      {CUSTOM_FREQS.map((f) => (
+                        <option key={f} value={f}>
+                          {FREQ_UNIT_PLURAL[f]}
+                        </option>
+                      ))}
+                    </select>
+                    <Navigation>
+                      <Text>
+                        {freqUnit(value.customFrequency, value.customInterval)}
+                      </Text>
+                    </Navigation>
+                  </div>
+                }
+              >
+                Frequency
               </Cell>
             </Section>
             {isWeekly && (
@@ -350,38 +500,6 @@ export default function RecurrencePickerSheet({
               </Section>
             )}
           </>
-        )}
-
-        {screen === "endDate" && (
-          <Section>
-            <Cell
-              onClick={() => {
-                tickSelection();
-                onChange({ ...value, endDate: undefined });
-              }}
-              after={
-                value.endDate ? null : (
-                  <span className="text-(--tg-theme-link-color)">✓</span>
-                )
-              }
-            >
-              No end date
-            </Cell>
-            <Cell className="relative">
-              <input
-                type="date"
-                value={value.endDate ?? ""}
-                onChange={(e) =>
-                  onChange({ ...value, endDate: e.target.value || undefined })
-                }
-                className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
-              />
-              Pick a date
-              <span className="text-(--tg-theme-subtitle-text-color) ml-auto">
-                {value.endDate ?? "—"}
-              </span>
-            </Cell>
-          </Section>
         )}
       </div>
     </Modal>

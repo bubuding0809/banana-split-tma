@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { presetToTemplate } from "./recurrencePresets";
+import { format } from "date-fns";
+import { nextOccurrenceAfter, presetToTemplate } from "./recurrencePresets";
+
+// Local-day formatter — using toISOString() would shift by the host TZ
+// offset (we run CI in UTC and dev in SGT) and break otherwise-correct
+// assertions.
+const day = (d: Date) => format(d, "yyyy-MM-dd");
 
 describe("presetToTemplate", () => {
   it("DAILY", () => {
@@ -34,12 +40,12 @@ describe("presetToTemplate", () => {
       endDate: undefined,
     });
   });
-  it("BIWEEKLY → WEEKLY interval=2", () => {
+  it("CUSTOM weekly interval=2 (biweekly via Custom)", () => {
     expect(
       presetToTemplate({
-        preset: "BIWEEKLY",
+        preset: "CUSTOM",
         customFrequency: "WEEKLY",
-        customInterval: 1,
+        customInterval: 2,
         weekdays: ["MON"],
         endDate: undefined,
       })
@@ -50,34 +56,18 @@ describe("presetToTemplate", () => {
       endDate: undefined,
     });
   });
-  it("EVERY_3_MONTHS → MONTHLY interval=3", () => {
+  it("CUSTOM monthly interval=3 (every 3 months via Custom)", () => {
     expect(
       presetToTemplate({
-        preset: "EVERY_3_MONTHS",
-        customFrequency: "WEEKLY",
-        customInterval: 1,
+        preset: "CUSTOM",
+        customFrequency: "MONTHLY",
+        customInterval: 3,
         weekdays: [],
         endDate: undefined,
       })
     ).toEqual({
       frequency: "MONTHLY",
       interval: 3,
-      weekdays: [],
-      endDate: undefined,
-    });
-  });
-  it("EVERY_6_MONTHS → MONTHLY interval=6", () => {
-    expect(
-      presetToTemplate({
-        preset: "EVERY_6_MONTHS",
-        customFrequency: "WEEKLY",
-        customInterval: 1,
-        weekdays: [],
-        endDate: undefined,
-      })
-    ).toEqual({
-      frequency: "MONTHLY",
-      interval: 6,
       weekdays: [],
       endDate: undefined,
     });
@@ -125,5 +115,84 @@ describe("presetToTemplate", () => {
         endDate: d,
       })
     ).toMatchObject({ endDate: d });
+  });
+});
+
+describe("nextOccurrenceAfter", () => {
+  // 2026-04-25 is a Saturday — used as the start date in most cases.
+  const sat = new Date("2026-04-25T00:00:00");
+
+  it("DAILY interval=1 → next day", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "DAILY",
+      interval: 1,
+      weekdays: [],
+    });
+    expect(day(r)).toBe("2026-04-26");
+  });
+
+  it("DAILY interval=3 → +3 days", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "DAILY",
+      interval: 3,
+      weekdays: [],
+    });
+    expect(day(r)).toBe("2026-04-28");
+  });
+
+  it("WEEKLY interval=1 on MON → next Monday", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "WEEKLY",
+      interval: 1,
+      weekdays: ["MON"],
+    });
+    expect(day(r)).toBe("2026-04-27");
+  });
+
+  it("WEEKLY interval=1 on multiple days → earliest match after start", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "WEEKLY",
+      interval: 1,
+      weekdays: ["MON", "WED", "FRI"],
+    });
+    expect(day(r)).toBe("2026-04-27");
+  });
+
+  it("WEEKLY interval=2 on MON → skips one Monday, lands on the next valid week", () => {
+    // Sat 2026-04-25 is week W. Mon 2026-04-27 is in week W+1 (week diff=1),
+    // not divisible by 2, so we skip to Mon 2026-05-04 in week W+2.
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "WEEKLY",
+      interval: 2,
+      weekdays: ["MON"],
+    });
+    expect(day(r)).toBe("2026-05-04");
+  });
+
+  it("MONTHLY interval=1 → same date next month", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "MONTHLY",
+      interval: 1,
+      weekdays: [],
+    });
+    expect(day(r)).toBe("2026-05-25");
+  });
+
+  it("MONTHLY interval=3 → +3 months", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "MONTHLY",
+      interval: 3,
+      weekdays: [],
+    });
+    expect(day(r)).toBe("2026-07-25");
+  });
+
+  it("YEARLY interval=1 → same date next year", () => {
+    const r = nextOccurrenceAfter(sat, {
+      frequency: "YEARLY",
+      interval: 1,
+      weekdays: [],
+    });
+    expect(day(r)).toBe("2027-04-25");
   });
 });
