@@ -88,6 +88,7 @@ async function setupTestData() {
   const result = await superadmin.apiKey.generate.mutate({
     chatId: CHAT_A,
     createdById: USER_1,
+    name: "e2e-comprehensive",
   });
   ok(`Generated scoped API key for Chat ${CHAT_A}`);
 
