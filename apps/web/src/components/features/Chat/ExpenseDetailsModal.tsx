@@ -102,7 +102,12 @@ const RecurringScheduleSection = ({
       </Cell>
       {showRepeatSummaryRow && (
         <Cell multiline style={{ backgroundColor: tSectionBgColor }}>
-          <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+          <div
+            className="w-full text-right text-sm"
+            style={{ color: tSubtitleTextColor }}
+          >
+            {repeatSummary}
+          </div>
         </Cell>
       )}
       <Cell

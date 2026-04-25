@@ -94,12 +94,14 @@ export default function RepeatAndEndDateSection({
       </Cell>
       {summary && (
         <Cell onClick={openSheet} multiline>
-          <Text
-            className="block text-right"
+          {/* Wrap in a full-width div so text-right actually right-aligns
+              inside the Cell body (which otherwise lays children out left). */}
+          <div
+            className="w-full text-right text-sm"
             style={{ color: tSubtitleTextColor }}
           >
             {summary}
-          </Text>
+          </div>
         </Cell>
       )}
       {r.preset !== "NONE" && (
