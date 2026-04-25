@@ -404,7 +404,9 @@ None blocking. Items to revisit during implementation:
 
 - Whether the hub's member-avatar stack should pin "you" first
   vs show the four most recent.
-- Whether the Categories sub-page is worth keeping, given it
-  just trampolines into existing routes. Default to the
-  trampoline so the hub previews stay clean and consistent;
-  revisit if it feels redundant during UAT.
+- ~~Whether the Categories sub-page is worth keeping, given it
+  just trampolines into existing routes.~~ **Resolved during
+  implementation:** the hub navigates straight to the existing
+  `/settings/categories` index (`ManageCategoriesPage`). No
+  trampoline page added — drops a redundant level of indirection
+  and keeps the existing categories CRUD flow unchanged.
