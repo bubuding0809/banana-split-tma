@@ -1,0 +1,227 @@
+import { useCallback, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  backButton,
+  hapticFeedback,
+  initData,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import { Cell, Section } from "@telegram-apps/telegram-ui";
+import {
+  Bell,
+  ChevronRight,
+  Clock,
+  DollarSign,
+  Key,
+  Tag,
+  User as UserIcon,
+  Users,
+} from "lucide-react";
+import { trpc } from "@/utils/trpc";
+import ChatHeader from "./ChatHeader";
+import IconSquare, { type IconColor } from "./IconSquare";
+
+interface SettingsHubPageProps {
+  chatId: number;
+}
+
+export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
+  const navigate = useNavigate();
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
+  const isPrivateChat = userId === chatId;
+
+  const { data: chat } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: members } = trpc.chat.listMembers.useQuery(
+    { chatId },
+    { enabled: !isPrivateChat }
+  );
+  const { data: schedule } = trpc.aws.getChatSchedule.useQuery(
+    { chatId },
+    { enabled: !isPrivateChat }
+  );
+  // Both hooks must be called unconditionally (Rules of Hooks).
+  // We pick the right result based on isPrivateChat at render time.
+  const { data: userTokens } = trpc.apiKey.listUserTokens.useQuery();
+  const { data: chatTokens } = trpc.apiKey.listTokens.useQuery(
+    { chatId },
+    { enabled: !isPrivateChat }
+  );
+  const tokens = isPrivateChat ? userTokens : chatTokens;
+  const { data: userData } = trpc.user.getUser.useQuery(
+    { userId },
+    { enabled: userId !== 0 }
+  );
+
+  // Back button → chat.
+  useEffect(() => {
+    backButton.show();
+    return () => {
+      backButton.hide();
+    };
+  }, []);
+  useEffect(() => {
+    const off = backButton.onClick(() => {
+      hapticFeedback.notificationOccurred("success");
+      if (isPrivateChat) {
+        navigate({ to: "/chat", search: (prev) => ({ ...prev, title: "" }) });
+      } else {
+        navigate({ to: "..", search: (prev) => ({ ...prev, title: "" }) });
+      }
+    });
+    return () => off();
+  }, [navigate, isPrivateChat]);
+
+  const goto = useCallback(
+    (sub: string) => {
+      hapticFeedback.impactOccurred("light");
+      // `as any` because sub-routes don't exist in routeTree yet (Task 21 cleans this up).
+      (navigate as any)({
+        to: `/chat/$chatId/settings/${sub}`,
+        params: { chatId: String(chatId) },
+      });
+    },
+    [chatId, navigate]
+  );
+
+  const notificationsOnCount = [
+    chat?.notifyOnExpense,
+    chat?.notifyOnExpenseUpdate,
+    chat?.notifyOnSettlement,
+  ].filter(Boolean).length;
+
+  const reminderPreview = schedule?.enabled
+    ? `${schedule.dayOfWeek?.slice(0, 3) ?? ""} ${schedule.time ?? ""}`.trim()
+    : "Off";
+
+  const categoryPreview = "Manage tiles"; // No count query yet — keep static; categories sub-page shows full breakdown.
+
+  return (
+    <main className="px-3 pb-8">
+      <ChatHeader
+        avatarUrl={chat?.photo}
+        title={chat?.title ?? "..."}
+        subtitle={
+          isPrivateChat
+            ? "Personal chat"
+            : `Group · ${members?.length ?? 0} members`
+        }
+        members={isPrivateChat ? [] : (members ?? [])}
+        memberCount={members?.length ?? 0}
+        onMembersClick={() => goto("members")}
+      />
+
+      {!isPrivateChat && (
+        <Section header="Group">
+          <RowLink
+            color="teal"
+            icon={<Users size={16} />}
+            label="Members"
+            value={String(members?.length ?? "")}
+            onClick={() => goto("members")}
+          />
+          <RowLink
+            color="blue"
+            icon={<DollarSign size={16} />}
+            label="Currency"
+            value={chat?.baseCurrency}
+            onClick={() => goto("currency")}
+          />
+          <RowLink
+            color="green"
+            icon={<Tag size={16} />}
+            label="Categories"
+            value={categoryPreview}
+            onClick={() => goto("categories")}
+          />
+        </Section>
+      )}
+
+      {!isPrivateChat && (
+        <Section header="Notifications">
+          <RowLink
+            color="orange"
+            icon={<Bell size={16} />}
+            label="Event alerts"
+            value={`${notificationsOnCount} on`}
+            onClick={() => goto("notifications")}
+          />
+          <RowLink
+            color="purple"
+            icon={<Clock size={16} />}
+            label="Recurring reminder"
+            value={reminderPreview}
+            onClick={() => goto("reminders")}
+          />
+        </Section>
+      )}
+
+      <Section header="Personal">
+        {isPrivateChat && (
+          <>
+            <RowLink
+              color="blue"
+              icon={<DollarSign size={16} />}
+              label="Currency"
+              value={chat?.baseCurrency}
+              onClick={() => goto("currency")}
+            />
+            <RowLink
+              color="green"
+              icon={<Tag size={16} />}
+              label="Categories"
+              value={categoryPreview}
+              onClick={() => goto("categories")}
+            />
+          </>
+        )}
+        <RowLink
+          color="gray"
+          icon={<UserIcon size={16} />}
+          label="Account"
+          value={userData?.phoneNumber ? "Phone added" : "No phone"}
+          onClick={() => goto("account")}
+        />
+        <RowLink
+          color="red"
+          icon={<Key size={16} />}
+          label="Developer"
+          value={tokens?.length ? `${tokens.length} active` : undefined}
+          onClick={() => goto("developer")}
+        />
+      </Section>
+    </main>
+  );
+}
+
+interface RowLinkProps {
+  color: IconColor;
+  icon: React.ReactNode;
+  label: string;
+  value?: string;
+  onClick: () => void;
+}
+
+function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
+  return (
+    <Cell
+      onClick={onClick}
+      before={<IconSquare color={color}>{icon}</IconSquare>}
+      after={
+        <div className="flex items-center gap-1">
+          {value && (
+            <span className="text-(--tg-theme-subtitle-text-color) text-sm">
+              {value}
+            </span>
+          )}
+          <ChevronRight
+            size={18}
+            className="text-(--tg-theme-subtitle-text-color)"
+          />
+        </div>
+      }
+    >
+      {label}
+    </Cell>
+  );
+}
