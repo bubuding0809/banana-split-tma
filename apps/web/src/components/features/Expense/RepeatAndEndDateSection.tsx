@@ -15,6 +15,7 @@ import {
   formatRecurrenceSummary,
   presetToTemplate,
   PRESET_LABEL,
+  WEEKDAY_LABEL,
 } from "./recurrencePresets";
 
 export interface RepeatAndEndDateSectionProps {
@@ -48,23 +49,32 @@ export default function RepeatAndEndDateSection({
   const r = value;
   const shortLabel = r.preset === "NONE" ? "Never" : PRESET_LABEL[r.preset];
 
-  // Only show the secondary summary row when it adds info beyond the
-  // right-aligned label. WEEKLY shows the picked days, CUSTOM shows the
-  // full phrase. DAILY/MONTHLY/YEARLY are self-evident from the label.
-  // End date lives in its own dedicated cell, so summary passes
-  // endDate: null to avoid duplicating it.
-  const showSummary = r.preset === "WEEKLY" || r.preset === "CUSTOM";
-  const summary = showSummary
-    ? formatRecurrenceSummary({
+  // Secondary summary text — only renders when it adds info beyond the
+  // Repeat row's right-aligned label.
+  // - WEEKLY (interval=1): just the day list ("Sat, Tue, Sun, Mon, Wed").
+  //   The "Weekly" word is already on the Repeat row, so don't repeat it.
+  // - CUSTOM: full phrase ("Every 2 weeks on Tue") since the Repeat row
+  //   only says "Custom" in this case.
+  // - Everything else: no summary row.
+  const summary = (() => {
+    if (r.preset === "WEEKLY") {
+      return r.weekdays.length
+        ? r.weekdays.map((w) => WEEKDAY_LABEL[w]).join(", ")
+        : null;
+    }
+    if (r.preset === "CUSTOM") {
+      return formatRecurrenceSummary({
         ...presetToTemplate({
-          preset: r.preset as Exclude<RecurrenceValue["preset"], "NONE">,
+          preset: "CUSTOM",
           customFrequency: r.customFrequency,
           customInterval: r.customInterval,
           weekdays: r.weekdays,
         }),
         endDate: null,
-      })
-    : null;
+      });
+    }
+    return null;
+  })();
 
   const openSheet = () => {
     hapticFeedback.impactOccurred("light");
@@ -84,7 +94,12 @@ export default function RepeatAndEndDateSection({
       </Cell>
       {summary && (
         <Cell onClick={openSheet} multiline>
-          <Text style={{ color: tSubtitleTextColor }}>{summary}</Text>
+          <Text
+            className="block text-right"
+            style={{ color: tSubtitleTextColor }}
+          >
+            {summary}
+          </Text>
         </Cell>
       )}
       {r.preset !== "NONE" && (
