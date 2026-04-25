@@ -68,6 +68,10 @@ export const generateApiKeyHandler = async (
     data: {
       keyHash,
       keyPrefix,
+      // TODO(settings-redesign Task 22): decide whether this superadmin
+      // procedure stays (then accept an optional `name` input) or is
+      // removed in favor of generateToken. Until then the placeholder
+      // mirrors the migration's date-based fallback.
       name: `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`,
       chatId: input.chatId,
       createdById: input.createdById,

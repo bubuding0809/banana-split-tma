@@ -2749,6 +2749,70 @@ If nothing changed, skip the commit.
 
 ---
 
+### Task 22: Decide fate of `apiKey.generate` (legacy superadmin procedure)
+
+**Why this task exists:** Task 1's schema tightening forced a one-line placeholder name into `packages/trpc/src/routers/apiKey/generate.ts`. The procedure is still wired up (`apiKey/index.ts`) and exercised by `apps/mcp/tests/e2e-basic.ts` and `apps/mcp/tests/e2e-comprehensive.ts`. Tasks 2–3 of this plan only update `generateToken` / `generateUserToken`. Without a decision, the placeholder ossifies into permanent dead-name state.
+
+**Files:**
+- `packages/trpc/src/routers/apiKey/generate.ts` (decide: delete or accept optional `name`)
+- `packages/trpc/src/routers/apiKey/index.ts` (drop import + router entry if deleting)
+- `apps/mcp/tests/e2e-basic.ts` (update if deleting/renaming)
+- `apps/mcp/tests/e2e-comprehensive.ts` (update if deleting/renaming)
+
+- [ ] **Step 1: Audit usage**
+
+Run:
+```bash
+grep -rn "apiKey\.generate\b\|apiKeyRouter\.generate\b\|generateApiKeyHandler" \
+  apps packages \
+  --include='*.ts' --include='*.tsx' \
+  | grep -v node_modules | grep -v '/dist/' | grep -v '\.cache' | grep -v '\.worktrees'
+```
+
+Confirm whether anything outside the e2e tests still calls `apiKey.generate`. If only the e2e tests use it, the procedure is essentially a test-only superadmin convenience and can be removed.
+
+- [ ] **Step 2: Pick a path**
+
+**Path A — keep, accept optional name:**
+- Add `name: z.string().trim().min(1).max(40).optional()` to `inputSchema`.
+- Replace the placeholder line with: `name: input.name?.trim() || \`Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}\``.
+- Update e2e tests to pass `name: "e2e <test name>"` for clarity in the DB.
+
+**Path B — delete:**
+- `git rm packages/trpc/src/routers/apiKey/generate.ts`
+- Remove `import generate from "./generate.js";` and the `generate,` entry from `apiKey/index.ts`.
+- Update e2e tests to use `apiKey.generateToken` (which is also superadmin-callable via `protectedProcedure`).
+
+- [ ] **Step 3: Implement chosen path**
+
+If Path A: edit handler + tests.
+If Path B: remove file + router wiring + update tests.
+
+- [ ] **Step 4: Verify**
+
+Run:
+```bash
+pnpm --filter @dko/trpc check-types
+pnpm --filter @dko/trpc test
+pnpm --filter banana-split-mcp-server test  # or the e2e-test command for the MCP server
+```
+
+All clean.
+
+- [ ] **Step 5: Commit**
+
+Path A:
+```bash
+git commit -m "feat(trpc): apiKey.generate accepts optional name"
+```
+
+Path B:
+```bash
+git commit -m "chore(trpc): remove legacy apiKey.generate; e2e tests use generateToken"
+```
+
+---
+
 ## After all tasks pass
 
 - Run the manual UAT checklist from the design spec ("Manual (per memory: AskUserQuestion walkthrough)" section).
