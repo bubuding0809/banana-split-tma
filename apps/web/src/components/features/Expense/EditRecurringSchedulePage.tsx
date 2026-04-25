@@ -413,9 +413,11 @@ export default function EditRecurringSchedulePage({
 
   return (
     <main className="flex flex-col gap-4 px-3 pb-8 pt-3">
-      <div className="px-2">
+      {/* Section headers match AmountFormStep — label + Subheadline so
+          the spacing/weight matches the rest of the expense forms. */}
+      <label className="-top-7 flex w-full justify-between px-2">
         <Subheadline weight="2">Editing</Subheadline>
-      </div>
+      </label>
 
       {/* Read-only summary Cell — same shape as the row the user just tapped */}
       <Section>
@@ -452,9 +454,9 @@ export default function EditRecurringSchedulePage({
 
       {recurrence && (
         <>
-          <div className="px-2">
+          <label className="-top-7 flex w-full justify-between px-2">
             <Subheadline weight="2">Schedule</Subheadline>
-          </div>
+          </label>
           {/* Wrap in Section so the inner Cells get the rounded grey
               background and read like the read-only summary above. */}
           <Section>

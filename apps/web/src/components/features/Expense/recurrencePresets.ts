@@ -146,7 +146,7 @@ export interface RecurrenceSummaryInput {
   endDate: Date | null;
 }
 
-const WEEKDAY_LABEL: Record<Weekday, string> = {
+export const WEEKDAY_LABEL: Record<Weekday, string> = {
   SUN: "Sun",
   MON: "Mon",
   TUE: "Tue",
