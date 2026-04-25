@@ -231,9 +231,7 @@ export default function RecurringTemplatesList({ chatId }: Props) {
           categoryTitle={selectedResolved?.title}
           onEdit={() => {
             handleModalOpenChange(null);
-            // TODO(task 7): drop this cast once /chat/$chatId/edit-recurring/$templateId
-            // route exists; restore the typed globalNavigate({ to, params }) form.
-            (globalNavigate as (opts: unknown) => void)({
+            globalNavigate({
               to: "/chat/$chatId/edit-recurring/$templateId",
               params: {
                 chatId: String(chatId),
