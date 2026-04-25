@@ -12,7 +12,6 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 
-import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import {
@@ -21,10 +20,21 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { formatExpenseDate } from "@utils/date";
-import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import { X, Pencil } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Repeat as RepeatIcon,
+  X,
+  Pencil,
+} from "lucide-react";
+import { trpc } from "@utils/trpc";
+import {
+  formatRecurrenceSummary,
+  type CanonicalFrequency,
+  type Weekday,
+} from "@/components/features/Expense/recurrencePresets";
+import ShareParticipant from "./ShareParticipant";
 
 const splitModeMap = {
   EQUAL: "Split equally",
@@ -33,60 +43,68 @@ const splitModeMap = {
   SHARES: "Split by shares",
 } as const;
 
-interface ShareParticipantProps {
-  chatId: number;
-  userId: number;
-  amount: number;
-  isCurrentUser: boolean;
-  currency: string;
+interface RecurringScheduleSectionProps {
+  templateId: string;
+  tSectionBgColor: string | undefined;
+  tSubtitleTextColor: string | undefined;
 }
 
-const ShareParticipant = ({
-  chatId,
-  userId,
-  amount,
-  isCurrentUser,
-  currency,
-}: ShareParticipantProps) => {
-  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
-  const tButtonColor = useSignal(themeParams.buttonColor);
+const RecurringScheduleSection = ({
+  templateId,
+  tSectionBgColor,
+  tSubtitleTextColor,
+}: RecurringScheduleSectionProps) => {
+  const { data: template } = trpc.expense.recurring.get.useQuery(
+    { templateId },
+    { enabled: Boolean(templateId) }
+  );
 
-  const { data: member, isLoading } = trpc.telegram.getChatMember.useQuery({
-    chatId,
-    userId,
+  if (!template) return null;
+
+  const t = template as {
+    frequency: CanonicalFrequency;
+    interval: number;
+    weekdays: Weekday[];
+    endDate: Date | string | null;
+  };
+
+  const repeatSummary = formatRecurrenceSummary({
+    frequency: t.frequency,
+    interval: t.interval,
+    weekdays: t.weekdays,
+    endDate: null,
   });
-
-  const memberName = isCurrentUser
-    ? "You"
-    : member
-      ? `${member.user.first_name}${member.user.last_name ? ` ${member.user.last_name}` : ""}`
-      : `User ${userId}`;
+  const endDate = t.endDate
+    ? t.endDate instanceof Date
+      ? t.endDate
+      : new Date(t.endDate)
+    : null;
 
   return (
-    <Cell
-      before={<ChatMemberAvatar userId={userId} size={28} />}
-      after={
-        <Info type="text">
-          <Text weight="2" className={cn(isCurrentUser && "text-red-500")}>
-            {formatCurrencyWithCode(amount, currency)}
+    <Section className="px-3" header="Schedule">
+      <Cell
+        before={<RepeatIcon size={20} style={{ color: tSubtitleTextColor }} />}
+        after={
+          <Text style={{ color: tSubtitleTextColor }}>{repeatSummary}</Text>
+        }
+        style={{ backgroundColor: tSectionBgColor }}
+      >
+        <Text weight="2">Repeat</Text>
+      </Cell>
+      <Cell
+        before={
+          <CalendarIcon size={20} style={{ color: tSubtitleTextColor }} />
+        }
+        after={
+          <Text style={{ color: tSubtitleTextColor }}>
+            {endDate ? formatExpenseDate(endDate) : "Never"}
           </Text>
-        </Info>
-      }
-      style={{
-        backgroundColor: tSectionBgColor,
-      }}
-    >
-      <Skeleton visible={isLoading && !isCurrentUser}>
-        <Text
-          weight={isCurrentUser ? "1" : "3"}
-          style={{
-            color: isCurrentUser ? tButtonColor : "inherit",
-          }}
-        >
-          {memberName}
-        </Text>
-      </Skeleton>
-    </Cell>
+        }
+        style={{ backgroundColor: tSectionBgColor }}
+      >
+        <Text weight="2">End Date</Text>
+      </Cell>
+    </Section>
   );
 };
 
@@ -336,6 +354,18 @@ const ExpenseDetailsModal = ({
             <Text weight="2">Split Method</Text>
           </Cell>
         </Section>
+
+        {/* Schedule (only when this expense was created by a recurring
+            template). Same shape as the Schedule section in
+            RecurringExpenseDetailsModal so users see one design across
+            both places. */}
+        {expense.recurringTemplateId && (
+          <RecurringScheduleSection
+            templateId={expense.recurringTemplateId}
+            tSectionBgColor={tSectionBgColor}
+            tSubtitleTextColor={tSubtitleTextColor}
+          />
+        )}
       </div>
     </Modal>
   );
