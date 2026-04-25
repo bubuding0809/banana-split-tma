@@ -226,8 +226,11 @@ export default function RecurringTemplatesList({ chatId }: Props) {
           template={selectedTemplate}
           shares={
             selectedTemplate.splitMode === "EQUAL"
-              ? selectedTemplate.participantIds.map((pid: number) => ({
-                  userId: pid,
+              ? // participantIds arrives as bigint[] from Prisma; coerce so
+                // the downstream <ShareParticipant> getChatMember query
+                // doesn't crash on JSON.stringify.
+                selectedTemplate.participantIds.map((pid) => ({
+                  userId: Number(pid),
                   amount:
                     Number(selectedTemplate.amount) /
                     Math.max(selectedTemplate.participantIds.length, 1),

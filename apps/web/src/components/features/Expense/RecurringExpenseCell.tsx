@@ -45,7 +45,6 @@ export default function RecurringExpenseCell({
 }: Props) {
   const tUserData = useSignal(initData.user);
   const tButtonColor = useSignal(themeParams.buttonColor);
-  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   const userId = tUserData?.id ?? 0;
 
@@ -120,12 +119,12 @@ export default function RecurringExpenseCell({
         </Skeleton>
       }
       description={
-        <Caption weight="1" level="1" style={{ color: tSubtitleTextColor }}>
+        <>
           on{" "}
           <Caption weight="2" level="1">
             {template.description}
           </Caption>
-        </Caption>
+        </>
       }
       after={
         <Info
