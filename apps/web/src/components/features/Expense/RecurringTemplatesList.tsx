@@ -9,7 +9,7 @@ import {
   initData,
 } from "@telegram-apps/sdk-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 
 import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
 
@@ -33,6 +33,7 @@ type RecurringTemplate = RecurringTemplateForCell & {
 
 export default function RecurringTemplatesList({ chatId }: Props) {
   const globalNavigate = useNavigate();
+  const router = useRouter();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null
   );
@@ -67,17 +68,17 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     };
   }, []);
 
-  // Wire BackButton click to navigate back to chat settings
+  // Wire BackButton click to use router history so the back
+  // destination tracks the actual entry path (Transactions tab cell
+  // → chat page; Settings → settings page; deep link → fallback to
+  // chat page).
   useEffect(() => {
     const offClick = backButton.onClick(() => {
       hapticFeedback.notificationOccurred("success");
-      globalNavigate({
-        to: "/chat/$chatId/settings",
-        params: { chatId: String(chatId) },
-      });
+      router.history.back();
     });
     return () => offClick();
-  }, [chatId, globalNavigate]);
+  }, [router]);
 
   // Cleanup secondary button click handler on unmount
   useEffect(() => {
