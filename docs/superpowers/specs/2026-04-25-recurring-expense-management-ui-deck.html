@@ -344,9 +344,9 @@
   <div class="grid cols-mockup">
     <div>
       <ul>
-        <li>When the viewed expense has a non-null <code>recurringTemplateId</code>, append a <strong>read-only</strong> section between "How split?" and the bottom</li>
-        <li>Renders frequency / next fire / endDate from <code>recurring.get({ templateId })</code></li>
-        <li>Triggers tRPC query <strong>only when needed</strong> — non-recurring expenses pay no extra cost</li>
+        <li>When the viewed expense has a non-null <code>recurringTemplateId</code>, append a <strong>read-only</strong> Schedule section between "How split?" and the bottom</li>
+        <li><strong>Same shape as the Schedule section in RecurringExpenseDetailsModal</strong> — identical two-row layout (Repeat + End Date) so the section reads consistently across both modals</li>
+        <li>Triggers <code>recurring.get({ templateId })</code> <strong>only when needed</strong> — non-recurring expenses pay no extra cost</li>
         <li>Pencil at the modal top continues to mean <strong>"edit this single occurrence"</strong> — scope unchanged</li>
         <li>To manage the schedule, users navigate via Settings → Recurring expenses. We deliberately don't deeplink from here — would muddle per-occurrence vs. template-level scope</li>
       </ul>
@@ -369,13 +369,10 @@
         <div class="row"><div class="avatar">RQ</div><div class="body"><div class="top">You</div></div><div class="trail"><strong style="color: var(--danger);">SGD 100</strong></div></div>
         <div class="row"><div class="avatar alex">A</div><div class="body"><div class="top">Alex</div></div><div class="trail"><strong>SGD 100</strong></div></div>
       </div>
-      <div class="section-label">↻ Recurring schedule <span class="new-pill">NEW</span></div>
+      <div class="section-label">Schedule <span class="new-pill">NEW</span></div>
       <div class="section" style="box-shadow: 0 0 0 1.5px var(--accent);">
-        <div class="row">
-          <div class="ic">↻</div>
-          <div class="body"><div class="top">Repeats</div><div class="bot">Monthly · Next 25 Jun</div></div>
-          <div class="trail">until 31 Oct 2026</div>
-        </div>
+        <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Repeat</div></div><div class="trail">Monthly</div></div>
+        <div class="row"><div class="ic">📅</div><div class="body"><div class="top">End Date</div></div><div class="trail">31 Oct 2026</div></div>
       </div>
     </div>
   </div>
