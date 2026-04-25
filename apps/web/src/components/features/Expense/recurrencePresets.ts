@@ -163,6 +163,35 @@ export const UNIT_SINGULAR: Record<CanonicalFrequency, string> = {
   YEARLY: "year",
 };
 
+/**
+ * Split summary used by the two-cell pattern (body + after) so the row
+ * reads as "Every | <weekdays>" or "Every N weeks | <weekdays>" with the
+ * left side anchored to the body slot and the right side to the after
+ * slot. Returns `null` when there's nothing worth showing on a second
+ * row (e.g. plain "Daily" / "Monthly" — the Repeat row already says it).
+ */
+export function splitRecurrenceSummary(input: {
+  frequency: CanonicalFrequency;
+  interval: number;
+  weekdays: Weekday[];
+}): { left: string; right: string } | null {
+  const { frequency, interval, weekdays } = input;
+  const days = weekdays.map((w) => WEEKDAY_LABEL[w]).join(", ");
+
+  if (interval === 1) {
+    if (frequency === "WEEKLY" && weekdays.length) {
+      return { left: "Every", right: days };
+    }
+    return null;
+  }
+
+  const unit = `${UNIT_SINGULAR[frequency]}s`;
+  if (frequency === "WEEKLY" && weekdays.length) {
+    return { left: `Every ${interval} ${unit}`, right: days };
+  }
+  return { left: "Every", right: `${interval} ${unit}` };
+}
+
 export function formatRecurrenceSummary(input: RecurrenceSummaryInput): string {
   const { frequency, interval, weekdays, endDate } = input;
   let base: string;
