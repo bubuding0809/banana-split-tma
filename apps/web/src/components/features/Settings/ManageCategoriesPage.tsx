@@ -55,7 +55,7 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
 
   return (
     <main className="px-3 pb-8">
-      <Section>
+      <Section header="PICKER PREVIEW">
         <Link
           to="/chat/$chatId/settings/categories/organize"
           params={{ chatId: String(chatId) }}
@@ -67,10 +67,7 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             Reorder &amp; hide tiles
           </Cell>
         </Link>
-      </Section>
-
-      {previewTiles.length > 0 && (
-        <Section header="PICKER PREVIEW">
+        {previewTiles.length > 0 && (
           <div className="px-3 pb-3 pt-2">
             <div className="grid grid-cols-4 gap-2">
               {previewTiles.map((c) => (
@@ -91,8 +88,8 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
               </div>
             ) : null}
           </div>
-        </Section>
-      )}
+        )}
+      </Section>
 
       <Section header="CUSTOM">
         {/* "Create custom category" sits at the top of the section — mirrors
