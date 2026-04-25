@@ -1,4 +1,11 @@
-import { Divider, IconButton, Modal, Title } from "@telegram-apps/telegram-ui";
+import {
+  Cell,
+  Divider,
+  IconButton,
+  Modal,
+  Navigation,
+  Title,
+} from "@telegram-apps/telegram-ui";
 import VirtualizedCombinedTransactionSegment from "./VirtualizedCombinedTransactionSegment";
 import DateSelector from "./DateSelector";
 import TransactionFiltersCell from "./TransactionFiltersCell";
@@ -9,7 +16,7 @@ import {
   useSignal,
 } from "@telegram-apps/sdk-react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { X } from "lucide-react";
+import { Repeat as RepeatIcon, X } from "lucide-react";
 import {
   useState,
   useRef,
@@ -147,6 +154,13 @@ const ChatTransactionTab = forwardRef<
     chatId,
   });
 
+  const { data: recurringTemplates, status: recurringTemplatesStatus } =
+    trpc.expense.recurring.list.useQuery({ chatId });
+
+  const recurringCount = recurringTemplates?.length ?? 0;
+  const showRecurringCell =
+    recurringTemplatesStatus === "success" && recurringCount > 0;
+
   const chatRows = useMemo<ChatCategoryRow[]>(
     () =>
       (categoriesData?.items ?? [])
@@ -245,6 +259,28 @@ const ChatTransactionTab = forwardRef<
           onOpenModal={() => setFiltersOpen(true)}
         />
         <Divider />
+        {showRecurringCell && (
+          <>
+            <Cell
+              before={
+                <span className="rounded-lg bg-violet-400 p-1.5 dark:bg-violet-700">
+                  <RepeatIcon size={20} color="white" />
+                </span>
+              }
+              after={<Navigation>{recurringCount}</Navigation>}
+              onClick={() => {
+                hapticFeedback.impactOccurred("light");
+                navigate({
+                  to: "/chat/$chatId/recurring-expenses",
+                  params: { chatId: String(chatId) },
+                });
+              }}
+            >
+              Recurring expenses
+            </Cell>
+            <Divider />
+          </>
+        )}
       </div>
 
       {/* Enhanced filters modal */}
