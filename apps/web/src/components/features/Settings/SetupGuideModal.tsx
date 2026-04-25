@@ -1,6 +1,16 @@
-import { hapticFeedback } from "@telegram-apps/sdk-react";
-import { Button, Modal, Text, Title } from "@telegram-apps/telegram-ui";
-import { Copy } from "lucide-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import {
+  ButtonCell,
+  IconButton,
+  Modal,
+  Section,
+  Title,
+} from "@telegram-apps/telegram-ui";
+import { Copy, X } from "lucide-react";
 import { useCallback } from "react";
 
 interface SetupGuideModalProps {
@@ -47,6 +57,8 @@ export default function SetupGuideModal({
   onOpenChange,
   onCopy,
 }: SetupGuideModalProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+
   const copy = useCallback(
     (text: string, label: string) => {
       navigator.clipboard.writeText(text);
@@ -57,105 +69,99 @@ export default function SetupGuideModal({
   );
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange}>
-      <div className="flex h-[80vh] flex-col gap-6 overflow-y-auto px-4 pb-8 pt-4">
-        <Title level="2" weight="2">
-          MCP Setup Guide
-        </Title>
-        <Text className="text-(--tg-theme-subtitle-text-color) text-sm">
-          Copy the configuration below into your AI agent&apos;s settings.
-          Replace{" "}
-          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-            &lt;YOUR_API_TOKEN&gt;
-          </code>{" "}
-          with a token generated above.
-        </Text>
-
-        <GuideSection
-          title="OpenClaw"
-          hint="Paste into your"
-          hintCode="opencode.json"
-          hintTail="file."
-          code={OPENCLAW_CONFIG}
-          onCopy={() => copy(OPENCLAW_CONFIG, "OpenClaw config copied")}
-        />
-
-        <GuideSection
-          title="Claude Desktop"
-          hint="Paste into your"
-          hintCode="claude_desktop_config.json"
-          hintTail="file."
-          code={CLAUDE_DESKTOP_CONFIG}
-          onCopy={() =>
-            copy(CLAUDE_DESKTOP_CONFIG, "Claude Desktop config copied")
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      header={
+        <Modal.Header
+          before={
+            <Title weight="2" level="3">
+              MCP Setup Guide
+            </Title>
+          }
+          after={
+            <Modal.Close>
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={() => hapticFeedback.impactOccurred("light")}
+              >
+                <X
+                  size={20}
+                  strokeWidth={3}
+                  style={{ color: tSubtitleTextColor }}
+                />
+              </IconButton>
+            </Modal.Close>
           }
         />
+      }
+    >
+      <div className="max-h-[75vh] overflow-y-auto pb-8">
+        <Section
+          className="px-3"
+          header="OpenClaw"
+          footer="Paste into your opencode.json file. Replace <YOUR_API_TOKEN> with a token generated above."
+        >
+          <CodeBlock>{OPENCLAW_CONFIG}</CodeBlock>
+          <ButtonCell
+            before={<Copy size={20} />}
+            onClick={() => copy(OPENCLAW_CONFIG, "OpenClaw config copied")}
+          >
+            Copy config
+          </ButtonCell>
+        </Section>
 
-        <GuideSection
-          title="Agent Instructions"
-          hint="Paste these into your agent's system prompt or workspace context."
-          code={AGENT_INSTRUCTIONS}
-          onCopy={() => copy(AGENT_INSTRUCTIONS, "Agent instructions copied")}
-          wrap
-        />
+        <Section
+          className="px-3"
+          header="Claude Desktop"
+          footer="Paste into your claude_desktop_config.json file. Replace <YOUR_API_TOKEN> with a token generated above."
+        >
+          <CodeBlock>{CLAUDE_DESKTOP_CONFIG}</CodeBlock>
+          <ButtonCell
+            before={<Copy size={20} />}
+            onClick={() =>
+              copy(CLAUDE_DESKTOP_CONFIG, "Claude Desktop config copied")
+            }
+          >
+            Copy config
+          </ButtonCell>
+        </Section>
+
+        <Section
+          className="px-3"
+          header="Agent instructions"
+          footer="Paste into your agent's system prompt or workspace context."
+        >
+          <CodeBlock wrap>{AGENT_INSTRUCTIONS}</CodeBlock>
+          <ButtonCell
+            before={<Copy size={20} />}
+            onClick={() =>
+              copy(AGENT_INSTRUCTIONS, "Agent instructions copied")
+            }
+          >
+            Copy instructions
+          </ButtonCell>
+        </Section>
       </div>
     </Modal>
   );
 }
 
-interface GuideSectionProps {
-  title: string;
-  hint: string;
-  hintCode?: string;
-  hintTail?: string;
-  code: string;
-  onCopy: () => void;
-  /** Wrap long lines (e.g., for prose-heavy agent instructions). */
+interface CodeBlockProps {
+  children: string;
+  /** Wrap long lines for prose-heavy content. */
   wrap?: boolean;
 }
 
-function GuideSection({
-  title,
-  hint,
-  hintCode,
-  hintTail,
-  code,
-  onCopy,
-  wrap,
-}: GuideSectionProps) {
+function CodeBlock({ children, wrap }: CodeBlockProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <Title level="3" weight="2">
-        {title}
-      </Title>
-      <Text className="text-(--tg-theme-subtitle-text-color) text-sm">
-        {hint}
-        {hintCode ? (
-          <>
-            {" "}
-            <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-              {hintCode}
-            </code>{" "}
-            {hintTail}
-          </>
-        ) : null}
-      </Text>
-      <pre
-        className={`overflow-x-auto rounded-lg border bg-gray-50 p-4 font-mono text-xs dark:bg-gray-800 ${
-          wrap ? "whitespace-pre-wrap" : ""
-        }`}
-      >
-        {code}
-      </pre>
-      <Button
-        size="m"
-        stretched
-        mode="filled"
-        onClick={onCopy}
-        before={<Copy size={18} />}
-      >
-        Copy
-      </Button>
-    </div>
+    <pre
+      className={`bg-(--tg-theme-secondary-bg-color) border-(--tg-theme-section-separator-color) overflow-x-auto border-y px-4 py-3 font-mono text-xs ${
+        wrap ? "whitespace-pre-wrap" : ""
+      }`}
+    >
+      {children}
+    </pre>
   );
 }

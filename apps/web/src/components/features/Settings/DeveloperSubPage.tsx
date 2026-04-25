@@ -6,17 +6,17 @@ import {
   initData,
   useSignal,
 } from "@telegram-apps/sdk-react";
+import { themeParams } from "@telegram-apps/sdk-react";
 import {
-  Button,
   ButtonCell,
   Cell,
+  IconButton,
   Modal,
   Section,
   Snackbar,
-  Text,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { BookOpen, Copy, Plus } from "lucide-react";
+import { BookOpen, Copy, Plus, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import TokenNameSheet from "./TokenNameSheet";
 import SetupGuideModal from "./SetupGuideModal";
@@ -282,66 +282,89 @@ function NewTokenModal({
   onCopy,
   onOpenSetupGuide,
 }: NewTokenModalProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const agentPrompt = getAgentPrompt(rawKey);
 
   return (
-    <Modal open onOpenChange={(open) => !open && onClose()}>
-      <div className="flex max-h-[80vh] flex-col gap-4 overflow-y-auto px-4 pb-6 pt-4">
-        <Title level="2" weight="2">
-          New token
-        </Title>
-        <Text className="text-(--tg-theme-subtitle-text-color) text-sm">
-          Copy this key now — you won&apos;t see it again.
-        </Text>
-
-        <pre className="overflow-x-auto rounded-lg border bg-gray-50 p-3 font-mono text-xs dark:bg-gray-800">
-          {rawKey}
-        </pre>
-        <Button
-          size="m"
-          stretched
-          mode="filled"
-          before={<Copy size={18} />}
-          onClick={() => onCopy(rawKey, "Token copied")}
+    <Modal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      header={
+        <Modal.Header
+          before={
+            <Title weight="2" level="3">
+              New token
+            </Title>
+          }
+          after={
+            <Modal.Close>
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={() => hapticFeedback.impactOccurred("light")}
+              >
+                <X
+                  size={20}
+                  strokeWidth={3}
+                  style={{ color: tSubtitleTextColor }}
+                />
+              </IconButton>
+            </Modal.Close>
+          }
+        />
+      }
+    >
+      <div className="max-h-[75vh] overflow-y-auto pb-8">
+        <Section
+          className="px-3"
+          header="Your token"
+          footer="Copy this key now — you won't see it again."
         >
-          Copy token
-        </Button>
+          <CodeBlock wrap>{rawKey}</CodeBlock>
+          <ButtonCell
+            before={<Copy size={20} />}
+            onClick={() => onCopy(rawKey, "Token copied")}
+          >
+            Copy token
+          </ButtonCell>
+        </Section>
 
-        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-gray-100 p-3 dark:border-gray-800">
-          <Title level="3" weight="2">
-            Set up an agent
-          </Title>
-          <Text className="text-(--tg-theme-subtitle-text-color) text-xs">
-            Paste this prompt into Claude, ChatGPT, or any coding agent — it
-            installs the CLI and verifies the connection automatically.
-          </Text>
-          <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-gray-50 p-3 font-mono text-xs dark:bg-gray-800">
-            {agentPrompt}
-          </pre>
-          <Button
-            size="m"
-            stretched
-            mode="filled"
-            before={<Copy size={18} />}
+        <Section
+          className="px-3"
+          header="Set up an agent"
+          footer="Paste this prompt into Claude, ChatGPT, or any coding agent — it installs the CLI and verifies the connection automatically."
+        >
+          <CodeBlock wrap>{agentPrompt}</CodeBlock>
+          <ButtonCell
+            before={<Copy size={20} />}
             onClick={() => onCopy(agentPrompt, "Agent setup prompt copied")}
           >
             Copy agent setup prompt
-          </Button>
-          <Button
-            size="m"
-            stretched
-            mode="outline"
-            before={<BookOpen size={18} />}
+          </ButtonCell>
+          <ButtonCell
+            before={<BookOpen size={20} />}
             onClick={onOpenSetupGuide}
           >
             View MCP setup guide
-          </Button>
-        </div>
+          </ButtonCell>
+        </Section>
 
-        <Button size="m" stretched mode="plain" onClick={onClose}>
-          Done
-        </Button>
+        <Section className="px-3">
+          <Cell onClick={onClose}>Done</Cell>
+        </Section>
       </div>
     </Modal>
+  );
+}
+
+function CodeBlock({ children, wrap }: { children: string; wrap?: boolean }) {
+  return (
+    <pre
+      className={`bg-(--tg-theme-secondary-bg-color) border-(--tg-theme-section-separator-color) overflow-x-auto border-y px-4 py-3 font-mono text-xs ${
+        wrap ? "whitespace-pre-wrap break-all" : ""
+      }`}
+    >
+      {children}
+    </pre>
   );
 }

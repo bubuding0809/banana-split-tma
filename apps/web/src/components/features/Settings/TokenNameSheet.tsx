@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Modal, Text, Title } from "@telegram-apps/telegram-ui";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import {
+  Button,
+  IconButton,
+  Input,
+  Modal,
+  Section,
+  Title,
+} from "@telegram-apps/telegram-ui";
+import { X } from "lucide-react";
 
 export interface TokenNameSheetProps {
   open: boolean;
@@ -22,6 +35,9 @@ export default function TokenNameSheet({
   onRevoke,
   busy,
 }: TokenNameSheetProps) {
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
+
   const [name, setName] = useState(initialName);
 
   // Reset the field whenever the sheet (re)opens with a different prefill.
@@ -39,28 +55,51 @@ export default function TokenNameSheet({
   };
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange}>
-      <div className="px-4 py-3">
-        <Title level="2">
-          {mode === "create" ? "New API token" : "Edit token"}
-        </Title>
-        <Text className="text-(--tg-theme-subtitle-text-color) mt-2 block">
-          Give it a name so you can tell it apart from your other tokens.
-        </Text>
-        <Input
-          header="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value.slice(0, MAX_LEN))}
-          placeholder="e.g., CLI on Macbook"
-          className="mt-3"
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      header={
+        <Modal.Header
+          before={
+            <Title weight="2" level="3">
+              {mode === "create" ? "New API token" : "Edit token"}
+            </Title>
+          }
+          after={
+            <Modal.Close>
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={() => hapticFeedback.impactOccurred("light")}
+              >
+                <X
+                  size={20}
+                  strokeWidth={3}
+                  style={{ color: tSubtitleTextColor }}
+                />
+              </IconButton>
+            </Modal.Close>
+          }
         />
-        <div className="text-(--tg-theme-subtitle-text-color) mt-2 text-right text-xs">
-          {trimmed.length}/{MAX_LEN}
-        </div>
+      }
+    >
+      <div className="pb-6">
+        <Section
+          className="px-3"
+          header="Token name"
+          footer={`Give it a name so you can tell it apart from your other tokens. ${trimmed.length}/${MAX_LEN}`}
+        >
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, MAX_LEN))}
+            placeholder="e.g., CLI on Macbook"
+          />
+        </Section>
 
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2 px-3 pt-2">
           <Button
             stretched
+            size="l"
             mode="filled"
             disabled={!canSubmit}
             onClick={submit}
@@ -68,13 +107,20 @@ export default function TokenNameSheet({
             {mode === "create" ? "Create" : "Save"}
           </Button>
           {mode === "edit" && onRevoke && (
-            <Button stretched mode="plain" onClick={onRevoke} disabled={busy}>
-              <span className="text-red-500">Revoke token</span>
+            <Button
+              stretched
+              size="l"
+              mode="plain"
+              onClick={onRevoke}
+              disabled={busy}
+            >
+              <span style={{ color: tDestructiveTextColor }}>Revoke token</span>
             </Button>
           )}
           <Button
             stretched
-            mode="outline"
+            size="l"
+            mode="plain"
             onClick={() => onOpenChange(false)}
             disabled={busy}
           >
