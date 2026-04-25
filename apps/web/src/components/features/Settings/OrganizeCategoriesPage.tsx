@@ -488,8 +488,8 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   return (
     <main className="flex flex-col gap-4 px-3 pb-24 pt-2">
       <p className="text-(--tg-theme-subtitle-text-color) px-1 text-[12px] leading-snug">
-        Drag to rearrange the picker; tap a tile's eye to hide it from the
-        picker. Hidden tiles can be restored anytime.
+        Speed up expense entry — put frequently-used categories up front and
+        hide the ones you never tap.
       </p>
 
       {visible.length === 0 && (
