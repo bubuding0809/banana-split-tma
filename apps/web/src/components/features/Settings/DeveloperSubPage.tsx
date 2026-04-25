@@ -12,11 +12,12 @@ import {
   Cell,
   IconButton,
   Modal,
+  Navigation,
   Section,
   Snackbar,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { ChevronRight, Copy, Key, Plus, X } from "lucide-react";
+import { Copy, Key, Plus, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import CodeBlock from "./CodeBlock";
 import IconSquare from "./IconSquare";
@@ -44,7 +45,6 @@ const getAgentPrompt = (
 export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const navigate = useNavigate();
   const tUser = useSignal(initData.user);
-  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const isPrivate = (tUser?.id ?? 0) === chatId;
   const trpcUtils = trpc.useUtils();
 
@@ -212,9 +212,7 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
               </IconSquare>
             }
             subtitle={`Created ${new Date(t.createdAt).toLocaleDateString()} · ${t.keyPrefix}…`}
-            after={
-              <ChevronRight size={18} style={{ color: tSubtitleTextColor }} />
-            }
+            after={<Navigation />}
           >
             {t.name}
           </Cell>

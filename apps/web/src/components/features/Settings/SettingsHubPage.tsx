@@ -7,10 +7,9 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Cell, Section } from "@telegram-apps/telegram-ui";
+import { Cell, Navigation, Section, Text } from "@telegram-apps/telegram-ui";
 import {
   Bell,
-  ChevronRight,
   Clock,
   DollarSign,
   Key,
@@ -250,14 +249,9 @@ function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
       onClick={onClick}
       before={<IconSquare color={color}>{icon}</IconSquare>}
       after={
-        <div className="flex items-center gap-1">
-          {value && (
-            <span className="text-sm" style={{ color: tSubtitleTextColor }}>
-              {value}
-            </span>
-          )}
-          <ChevronRight size={18} style={{ color: tSubtitleTextColor }} />
-        </div>
+        <Navigation>
+          {value && <Text style={{ color: tSubtitleTextColor }}>{value}</Text>}
+        </Navigation>
       }
     >
       {label}
