@@ -12,6 +12,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
+  initData,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -28,17 +29,20 @@ import { trpc } from "@/utils/trpc";
 
 interface Props {
   chatId: number;
-  userId: number;
 }
 
-export default function ConvertCurrenciesCell({ chatId, userId }: Props) {
+export default function ConvertCurrenciesCell({ chatId }: Props) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
   const trpcUtils = trpc.useUtils();
 
   const [convertFromCurrency, setConvertFromCurrency] = useState<string | null>(
     null
   );
   const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
+
+  if (!userId) return null;
 
   // * Queries ==================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
