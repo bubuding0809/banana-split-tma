@@ -9,6 +9,7 @@ import renameToken from "./renameToken.js";
 import generateUserToken from "./generateUserToken.js";
 import listUserTokens from "./listUserTokens.js";
 import revokeUserToken from "./revokeUserToken.js";
+import renameUserToken from "./renameUserToken.js";
 
 export const apiKeyRouter = createTRPCRouter({
   generate,
@@ -21,4 +22,5 @@ export const apiKeyRouter = createTRPCRouter({
   generateUserToken,
   listUserTokens,
   revokeUserToken,
+  renameUserToken,
 });
