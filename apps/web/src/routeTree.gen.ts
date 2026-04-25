@@ -24,6 +24,7 @@ import { Route as TmaChatChatIdSettingsIndexRouteImport } from './routes/_tma/ch
 import { Route as TmaChatChatIdSnapshotsSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.snapshots_.$snapshotId'
 import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
 import { Route as TmaChatChatIdEditSnapshotSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.edit-snapshot.$snapshotId'
+import { Route as TmaChatChatIdEditRecurringTemplateIdRouteImport } from './routes/_tma/chat.$chatId_.edit-recurring.$templateId'
 import { Route as TmaChatChatIdEditExpenseExpenseIdRouteImport } from './routes/_tma/chat.$chatId_.edit-expense.$expenseId'
 import { Route as TmaChatChatIdSettingsCategoriesIndexRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.index'
 import { Route as TmaChatChatIdSettingsCategoriesOrganizeRouteImport } from './routes/_tma/chat.$chatId_.settings.categories.organize'
@@ -110,6 +111,12 @@ const TmaChatChatIdEditSnapshotSnapshotIdRoute =
     path: '/$chatId/edit-snapshot/$snapshotId',
     getParentRoute: () => TmaChatRoute,
   } as any)
+const TmaChatChatIdEditRecurringTemplateIdRoute =
+  TmaChatChatIdEditRecurringTemplateIdRouteImport.update({
+    id: '/$chatId_/edit-recurring/$templateId',
+    path: '/$chatId/edit-recurring/$templateId',
+    getParentRoute: () => TmaChatRoute,
+  } as any)
 const TmaChatChatIdEditExpenseExpenseIdRoute =
   TmaChatChatIdEditExpenseExpenseIdRouteImport.update({
     id: '/$chatId_/edit-expense/$expenseId',
@@ -153,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
+  '/chat/$chatId/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/chat/$chatId/snapshots/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
@@ -172,6 +180,7 @@ export interface FileRoutesByTo {
   '/chat/$chatId/recurring-expenses': typeof TmaChatChatIdRecurringExpensesRoute
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
+  '/chat/$chatId/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/chat/$chatId/snapshots/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsIndexRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_tma/chat/$chatId_/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/_tma/chat/$chatId_/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/_tma/chat/$chatId_/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
+  '/_tma/chat/$chatId_/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/_tma/chat/$chatId_/snapshots_/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/settings'
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
+    | '/chat/$chatId/edit-recurring/$templateId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
     | '/chat/$chatId/settings/categories'
     | '/chat/$chatId/snapshots/$snapshotId'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/recurring-expenses'
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
+    | '/chat/$chatId/edit-recurring/$templateId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
     | '/chat/$chatId/snapshots/$snapshotId'
     | '/chat/$chatId/settings'
@@ -257,6 +269,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/settings'
     | '/_tma/chat/$chatId_/snapshots'
     | '/_tma/chat/$chatId_/edit-expense/$expenseId'
+    | '/_tma/chat/$chatId_/edit-recurring/$templateId'
     | '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
     | '/_tma/chat/$chatId_/settings/categories'
     | '/_tma/chat/$chatId_/snapshots_/$snapshotId'
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdEditSnapshotSnapshotIdRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/edit-recurring/$templateId': {
+      id: '/_tma/chat/$chatId_/edit-recurring/$templateId'
+      path: '/$chatId/edit-recurring/$templateId'
+      fullPath: '/chat/$chatId/edit-recurring/$templateId'
+      preLoaderRoute: typeof TmaChatChatIdEditRecurringTemplateIdRouteImport
+      parentRoute: typeof TmaChatRoute
+    }
     '/_tma/chat/$chatId_/edit-expense/$expenseId': {
       id: '/_tma/chat/$chatId_/edit-expense/$expenseId'
       path: '/$chatId/edit-expense/$expenseId'
@@ -466,6 +486,7 @@ interface TmaChatRouteChildren {
   TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRouteWithChildren
   TmaChatChatIdSnapshotsRoute: typeof TmaChatChatIdSnapshotsRoute
   TmaChatChatIdEditExpenseExpenseIdRoute: typeof TmaChatChatIdEditExpenseExpenseIdRoute
+  TmaChatChatIdEditRecurringTemplateIdRoute: typeof TmaChatChatIdEditRecurringTemplateIdRoute
   TmaChatChatIdEditSnapshotSnapshotIdRoute: typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   TmaChatChatIdSnapshotsSnapshotIdRoute: typeof TmaChatChatIdSnapshotsSnapshotIdRoute
 }
@@ -480,6 +501,8 @@ const TmaChatRouteChildren: TmaChatRouteChildren = {
   TmaChatChatIdSnapshotsRoute: TmaChatChatIdSnapshotsRoute,
   TmaChatChatIdEditExpenseExpenseIdRoute:
     TmaChatChatIdEditExpenseExpenseIdRoute,
+  TmaChatChatIdEditRecurringTemplateIdRoute:
+    TmaChatChatIdEditRecurringTemplateIdRoute,
   TmaChatChatIdEditSnapshotSnapshotIdRoute:
     TmaChatChatIdEditSnapshotSnapshotIdRoute,
   TmaChatChatIdSnapshotsSnapshotIdRoute: TmaChatChatIdSnapshotsSnapshotIdRoute,

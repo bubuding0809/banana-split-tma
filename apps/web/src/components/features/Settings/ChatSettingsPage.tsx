@@ -1,5 +1,5 @@
 import { trpc } from "@/utils/trpc";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import {
   backButton,
   hapticFeedback,
@@ -16,13 +16,7 @@ import {
   Switch,
   Text,
 } from "@telegram-apps/telegram-ui";
-import {
-  Bell,
-  ChevronsUpDown,
-  Phone,
-  Repeat as RepeatIcon,
-  X,
-} from "lucide-react";
+import { Bell, ChevronsUpDown, Phone, X } from "lucide-react";
 import { useEffect, useCallback, useState } from "react";
 import { useRequestContact } from "@/hooks";
 import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
@@ -41,7 +35,6 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
   // * Hooks =======================================================================================
   const { prevTab } = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const globalNavigate = useNavigate();
   const trpcUtils = trpc.useUtils();
   const tUserData = useSignal(initData.user);
   const { requestContactInfo, isSupported } = useRequestContact();
@@ -413,22 +406,6 @@ const ChatSettingsPage = ({ chatId }: ChatSettingsPageProps) => {
       )}
 
       {!isPrivateChat && <RecurringRemindersSection chatId={chatId} />}
-
-      <Section header="Recurring Expenses">
-        <Cell
-          before={<RepeatIcon size={20} />}
-          after={<Navigation>Manage</Navigation>}
-          onClick={() => {
-            hapticFeedback.impactOccurred("light");
-            globalNavigate({
-              to: "/chat/$chatId/recurring-expenses",
-              params: { chatId: String(chatId) },
-            });
-          }}
-        >
-          Recurring expenses
-        </Cell>
-      </Section>
 
       {isPrivateChat ? (
         <UserAccessTokensSection />

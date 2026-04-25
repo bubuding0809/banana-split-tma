@@ -1,40 +1,69 @@
-import { Cell, Section, Skeleton, Text } from "@telegram-apps/telegram-ui";
-import { Repeat as RepeatIcon } from "lucide-react";
-import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
-import { useEffect } from "react";
+import { Section, Skeleton, Text } from "@telegram-apps/telegram-ui";
+import {
+  backButton,
+  hapticFeedback,
+  popup,
+  secondaryButton,
+  themeParams,
+  useSignal,
+  initData,
+} from "@telegram-apps/sdk-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
+import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
+
 import { trpc } from "@/utils/trpc";
-import { formatRecurrenceSummary } from "./recurrencePresets";
+import RecurringExpenseCell, {
+  type RecurringTemplateForCell,
+} from "./RecurringExpenseCell";
+import RecurringExpenseDetailsModal from "./RecurringExpenseDetailsModal";
 
 interface Props {
   chatId: number;
 }
 
-type Weekday = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
-type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
-
-interface RecurringTemplate {
-  id: string;
-  description: string;
-  amount: string | number;
-  currency: string;
-  frequency: Frequency;
-  interval: number;
-  weekdays: Weekday[];
-  endDate: Date | string | null;
+type RecurringTemplate = RecurringTemplateForCell & {
+  splitMode: "EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES";
+  participantIds: number[];
+  customSplits: unknown;
+  timezone: string;
   status: "ACTIVE" | "CANCELED" | "ENDED";
-}
+};
 
 export default function RecurringTemplatesList({ chatId }: Props) {
   const globalNavigate = useNavigate();
-  const { data, status } = trpc.expense.recurring.list.useQuery({ chatId });
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null
+  );
 
-  // Show / hide Telegram BackButton for the page
+  const { data, status } = trpc.expense.recurring.list.useQuery({ chatId });
+  const { data: categoriesData } = trpc.category.listByChat.useQuery({
+    chatId,
+  });
+
+  const tDestructive = useSignal(themeParams.destructiveTextColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tUserData = useSignal(initData.user);
+  const userId = tUserData?.id ?? 0;
+
+  const trpcUtils = trpc.useUtils();
+  const cancelMutation = trpc.expense.recurring.cancel.useMutation({
+    onSuccess: () => {
+      trpcUtils.expense.recurring.list.invalidate({ chatId });
+    },
+  });
+
+  const offSecondaryClickRef = useRef<VoidFunction | undefined>(undefined);
+
+  // Show / hide Telegram BackButton for the page. Mount defensively first
+  // — newer SDKs throw "component is not mounted" if hide() runs before
+  // mount(). See SnapshotFullPage / EditSnapshotPage for the same pattern.
   useEffect(() => {
+    if (backButton.mount.isAvailable()) backButton.mount();
     backButton.show.ifAvailable();
     return () => {
-      backButton.hide();
+      backButton.hide.ifAvailable();
     };
   }, []);
 
@@ -50,24 +79,91 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     return () => offClick();
   }, [chatId, globalNavigate]);
 
+  // Cleanup secondary button click handler on unmount
+  useEffect(() => {
+    return () => {
+      offSecondaryClickRef.current?.();
+    };
+  }, []);
+
+  const chatRows = useMemo<ChatCategoryRow[]>(
+    () =>
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          emoji: c.emoji,
+          title: c.title,
+        })),
+    [categoriesData]
+  );
+
+  const handleModalOpenChange = useCallback(
+    (templateId: string | null) => {
+      setSelectedTemplateId(templateId);
+
+      if (templateId) {
+        secondaryButton.setParams.ifAvailable({
+          text: "Delete",
+          isVisible: true,
+          isEnabled: true,
+          textColor: tDestructive,
+        });
+
+        offSecondaryClickRef.current?.();
+        offSecondaryClickRef.current = secondaryButton.onClick(async () => {
+          const action = await popup.open.ifAvailable({
+            title: "Delete recurring expense?",
+            message: "Future occurrences won't fire. Past expenses are kept.",
+            buttons: [
+              { type: "destructive", text: "Delete", id: "delete-template" },
+              { type: "cancel" },
+            ],
+          });
+          if (action !== "delete-template") return;
+
+          secondaryButton.setParams.ifAvailable({
+            isLoaderVisible: true,
+            isEnabled: false,
+          });
+          try {
+            await cancelMutation.mutateAsync({ templateId });
+            hapticFeedback.notificationOccurred("success");
+            handleModalOpenChange(null);
+          } catch (error) {
+            console.error("Failed to cancel recurring template:", error);
+            hapticFeedback.notificationOccurred("error");
+            alert("Couldn't delete this recurring expense. Try again later.");
+          } finally {
+            secondaryButton.setParams.ifAvailable({
+              isLoaderVisible: false,
+              isEnabled: true,
+            });
+          }
+        });
+      } else {
+        secondaryButton.setParams.ifAvailable({
+          isVisible: false,
+          isEnabled: false,
+          textColor: tButtonColor,
+        });
+        offSecondaryClickRef.current?.();
+        offSecondaryClickRef.current = undefined;
+      }
+    },
+    [tDestructive, tButtonColor, cancelMutation]
+  );
+
   if (status === "pending") {
     return (
       <main className="px-3 pb-8">
         <Section header="Recurring expenses">
           {Array.from({ length: 3 }).map((_, idx) => (
-            <Cell
-              key={idx}
-              before={<RepeatIcon size={20} />}
-              subtitle={
-                <Skeleton visible>
-                  <span>Loading subtitle placeholder</span>
-                </Skeleton>
-              }
-            >
+            <div key={idx} className="px-4 py-3">
               <Skeleton visible>
-                <span>Loading template name placeholder</span>
+                <span>Loading template placeholder</span>
               </Skeleton>
-            </Cell>
+            </div>
           ))}
         </Section>
       </main>
@@ -96,32 +192,68 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     );
   }
 
+  const selectedTemplate =
+    templates.find((t) => t.id === selectedTemplateId) ?? null;
+
+  const selectedResolved = selectedTemplate?.categoryId
+    ? resolveCategory(selectedTemplate.categoryId, chatRows)
+    : null;
+
   return (
     <main className="px-3 pb-8">
       <Section header="Recurring expenses">
         {templates.map((t) => {
-          const subtitle = formatRecurrenceSummary({
-            frequency: t.frequency,
-            interval: t.interval,
-            weekdays: t.weekdays,
-            endDate: t.endDate ? new Date(t.endDate) : null,
-          });
+          const resolved = t.categoryId
+            ? resolveCategory(t.categoryId, chatRows)
+            : null;
           return (
-            <Cell
+            <RecurringExpenseCell
               key={t.id}
-              before={<RepeatIcon size={20} />}
-              subtitle={subtitle}
-              after={
-                <Text>
-                  {Number(t.amount).toFixed(2)} {t.currency}
-                </Text>
-              }
-            >
-              {t.description}
-            </Cell>
+              template={t}
+              categoryEmoji={resolved?.emoji}
+              onClick={() => handleModalOpenChange(t.id)}
+            />
           );
         })}
       </Section>
+
+      {selectedTemplate && (
+        <RecurringExpenseDetailsModal
+          open
+          onOpenChange={(open) => {
+            if (!open) handleModalOpenChange(null);
+          }}
+          template={selectedTemplate}
+          shares={
+            selectedTemplate.splitMode === "EQUAL"
+              ? // participantIds arrives as bigint[] from Prisma; coerce so
+                // the downstream <ShareParticipant> getChatMember query
+                // doesn't crash on JSON.stringify.
+                selectedTemplate.participantIds.map((pid) => ({
+                  userId: Number(pid),
+                  amount:
+                    Number(selectedTemplate.amount) /
+                    Math.max(selectedTemplate.participantIds.length, 1),
+                }))
+              : // PERCENTAGE / EXACT / SHARES — custom split amounts not computed
+                // client-side for v1; modal omits the Split amounts section.
+                []
+          }
+          userId={userId}
+          categoryEmoji={selectedResolved?.emoji}
+          categoryTitle={selectedResolved?.title}
+          onEdit={() => {
+            handleModalOpenChange(null);
+            globalNavigate({
+              to: "/chat/$chatId/edit-recurring/$templateId",
+              params: {
+                chatId: String(chatId),
+                templateId: selectedTemplate.id,
+              },
+            });
+          }}
+        />
+      )}
     </main>
   );
 }

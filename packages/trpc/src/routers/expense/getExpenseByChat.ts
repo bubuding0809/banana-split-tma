@@ -22,6 +22,7 @@ export const getExpenseByChatHandler = async (
     },
     include: {
       shares: true,
+      recurringTemplate: { select: { status: true } },
     },
   });
   return expenses.map((expense) => {

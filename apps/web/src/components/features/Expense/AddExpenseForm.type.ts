@@ -92,7 +92,9 @@ export const expenseFormSchema = expenseFormBaseSchema
     if (!val.recurrence.endDate) return;
     if (!val.date) return;
     const start = new Date(val.date + "T00:00:00");
-    const end = new Date(val.recurrence.endDate + "T00:00:00");
+    // T23:59:59 — the user's picked end-date includes that day's fire
+    // (AWS Scheduler treats EndDate as an exclusive upper bound).
+    const end = new Date(val.recurrence.endDate + "T23:59:59");
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
     const template = presetToTemplate({
       preset: val.recurrence.preset,

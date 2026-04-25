@@ -16,15 +16,7 @@ import {
   LargeTitle,
   Avatar,
 } from "@telegram-apps/telegram-ui";
-import {
-  ArrowUp,
-  Calendar,
-  CalendarOff,
-  ChevronRight,
-  Currency,
-  Repeat as RepeatIcon,
-  X,
-} from "lucide-react";
+import { ArrowUp, Calendar, ChevronRight, Currency } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@utils/cn";
 import { z } from "zod";
@@ -45,14 +37,8 @@ import { trpc } from "@/utils/trpc";
 import { useStore } from "@tanstack/react-form";
 import { UseNavigateResult } from "@tanstack/react-router";
 import CategoryFormStep from "./CategoryFormStep";
-import RecurrencePickerSheet, {
-  type RecurrenceValue,
-} from "./RecurrencePickerSheet";
-import {
-  presetToTemplate,
-  formatRecurrenceSummary,
-  PRESET_LABEL,
-} from "./recurrencePresets";
+import RepeatAndEndDateSection from "./RepeatAndEndDateSection";
+import type { RecurrenceValue } from "./RecurrencePickerSheet";
 
 // Note: routeApi will be passed as prop since this component is used in both add and edit flows
 
@@ -61,12 +47,20 @@ const AmountFormStep = withForm({
   props: {
     step: 0,
     isLastStep: false,
+    isEditMode: false,
     navigate: (() => {}) as unknown as UseNavigateResult<
       "/chat/$chatId/add-expense" | "/chat/$chatId/edit-expense/$expenseId"
     >,
     chatId: 0,
   },
-  render: function Render({ form, isLastStep, step, navigate, chatId }) {
+  render: function Render({
+    form,
+    isLastStep,
+    step,
+    isEditMode,
+    navigate,
+    chatId,
+  }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tUserData = useSignal(initData.user);
     const { expenseCurrency } = useStore(form.store, (state) => ({
@@ -74,7 +68,6 @@ const AmountFormStep = withForm({
     }));
 
     const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
-    const [recurrenceOpen, setRecurrenceOpen] = useState(false);
 
     const { data: dChatData } = trpc.chat.getChat.useQuery({
       chatId: Number(chatId),
@@ -416,203 +409,37 @@ const AmountFormStep = withForm({
                       Transaction Date
                     </Cell>
 
-                    {/* Repeat Cell — Apple Reminders pattern:
-                        Row 1: title + short label ("Repeat | Weekly ›")
-                        Row 2: separate full-width Cell with the human-readable
-                        summary, only when active. Two cells avoid the title
-                        getting squeezed by long summaries like
-                        "Weekly on Sun, Wed, Thu, Fri, Sat, Tue".
-                    */}
-                    <form.AppField name="recurrence">
-                      {(recurrenceField) => {
-                        const r = recurrenceField.state
-                          .value as RecurrenceValue;
-                        const shortLabel =
-                          r.preset === "NONE"
-                            ? "Never"
-                            : PRESET_LABEL[r.preset];
-                        // Only show the secondary summary row when it adds
-                        // info beyond the right-aligned label. WEEKLY shows
-                        // the picked days, CUSTOM shows the full phrase.
-                        // DAILY / MONTHLY / YEARLY are self-evident from
-                        // "Daily ›" etc. End date now lives in its own
-                        // dedicated cell below, so the summary intentionally
-                        // passes endDate: null to avoid duplicating it.
-                        const showSummary =
-                          r.preset === "WEEKLY" || r.preset === "CUSTOM";
-                        const summary = showSummary
-                          ? formatRecurrenceSummary({
-                              ...presetToTemplate({
-                                preset: r.preset as Exclude<
-                                  RecurrenceValue["preset"],
-                                  "NONE"
-                                >,
-                                customFrequency: r.customFrequency,
-                                customInterval: r.customInterval,
-                                weekdays: r.weekdays,
-                              }),
-                              endDate: null,
-                            })
-                          : null;
-                        const openSheet = () => {
-                          hapticFeedback.impactOccurred("light");
-                          setRecurrenceOpen(true);
-                        };
-                        return (
-                          <div className="flex flex-col">
-                            <Cell
-                              before={
-                                <RepeatIcon
-                                  size={24}
-                                  style={{ color: tSubtitleTextColor }}
-                                />
-                              }
-                              after={
-                                <Text style={{ color: tSubtitleTextColor }}>
-                                  {shortLabel} ›
-                                </Text>
-                              }
-                              onClick={openSheet}
-                            >
-                              Repeat
-                            </Cell>
-                            {summary && (
-                              <Cell onClick={openSheet} multiline>
-                                <Text style={{ color: tSubtitleTextColor }}>
-                                  {summary}
-                                </Text>
-                              </Cell>
-                            )}
-                            {/* End Date — only relevant when a recurrence
-                                is configured. Mirrors the Transaction Date
-                                cell (native date overlay), with a Category-
-                                style clear X when set. */}
-                            {r.preset !== "NONE" && (
-                              <Cell
-                                before={
-                                  <CalendarOff
-                                    size={24}
-                                    style={{ color: tSubtitleTextColor }}
-                                  />
-                                }
-                                after={
-                                  r.endDate ? (
-                                    <div className="flex items-center gap-2">
-                                      <Text
-                                        style={{ color: tSubtitleTextColor }}
-                                      >
-                                        {formatExpenseDate(
-                                          new Date(r.endDate + "T00:00:00")
-                                        )}
-                                      </Text>
-                                      <span
-                                        role="button"
-                                        aria-label="Clear end date"
-                                        onPointerDown={(e) => {
-                                          // PointerDown stops the native
-                                          // date picker before it has a
-                                          // chance to open — onClick on the
-                                          // input fires too late on iOS
-                                          // Telegram, so the calendar pops
-                                          // even when we stopPropagation.
-                                          e.stopPropagation();
-                                        }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          e.preventDefault();
-                                          try {
-                                            hapticFeedback.selectionChanged();
-                                          } catch {
-                                            /* non-TMA */
-                                          }
-                                          recurrenceField.handleChange({
-                                            ...r,
-                                            endDate: undefined,
-                                          } as never);
-                                          form.setFieldMeta(
-                                            "recurrence",
-                                            (prev) => ({
-                                              ...prev,
-                                              isTouched: true,
-                                            })
-                                          );
-                                        }}
-                                        // Sits above the absolute date input
-                                        // (z-10) so taps land on the pill
-                                        // instead of the hidden file picker.
-                                        className="text-(--tg-theme-subtitle-text-color) relative z-20 flex size-6 items-center justify-center rounded-full"
-                                        style={{
-                                          backgroundColor:
-                                            "rgba(127, 127, 127, 0.25)",
-                                        }}
-                                      >
-                                        <X size={14} />
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <Text style={{ color: tSubtitleTextColor }}>
-                                      Never
-                                    </Text>
-                                  )
-                                }
-                                className="relative"
-                              >
-                                <input
-                                  type="date"
-                                  value={r.endDate ?? ""}
-                                  min={form.getFieldValue("date") || undefined}
-                                  onChange={(e) => {
-                                    hapticFeedback.impactOccurred("light");
-                                    recurrenceField.handleChange({
-                                      ...r,
-                                      endDate: e.target.value || undefined,
-                                    } as never);
-                                    form.setFieldMeta("recurrence", (prev) => ({
-                                      ...prev,
-                                      isTouched: true,
-                                    }));
-                                  }}
-                                  className="absolute inset-0 z-10 size-full cursor-pointer opacity-0"
-                                />
-                                End Date
-                              </Cell>
-                            )}
-                            <RecurrencePickerSheet
-                              open={recurrenceOpen}
-                              onOpenChange={setRecurrenceOpen}
-                              defaultWeekdayFromDate={
-                                form.getFieldValue("date") || undefined
-                              }
-                              value={
-                                r.preset === "NONE"
-                                  ? {
-                                      preset: "NONE",
-                                      customFrequency: "WEEKLY",
-                                      customInterval: 1,
-                                      weekdays: [],
-                                      endDate: undefined,
-                                    }
-                                  : (r as RecurrenceValue)
-                              }
-                              onChange={(next) => {
-                                if (next.preset === "NONE") {
-                                  // Reset weekdays/endDate when clearing recurrence
-                                  recurrenceField.handleChange({
-                                    preset: "NONE",
-                                    customFrequency: "WEEKLY",
-                                    customInterval: 1,
-                                    weekdays: [],
-                                    endDate: undefined,
-                                  } as never);
-                                } else {
-                                  recurrenceField.handleChange(next as never);
-                                }
-                              }}
-                            />
-                          </div>
-                        );
-                      }}
-                    </form.AppField>
+                    {/* Repeat + End Date — extracted to RepeatAndEndDateSection
+                        so the new EditRecurringSchedulePage can reuse the same
+                        UI without duplicating the cell wiring. Hidden in edit
+                        mode: the existing edit flow does not persist
+                        recurrence changes (the submit handler never reads
+                        value.recurrence and the backend updateExpense doesn't
+                        accept it), so showing the cells would be a silent
+                        no-op. */}
+                    {!isEditMode && (
+                      <form.AppField name="recurrence">
+                        {(recurrenceField) => (
+                          <RepeatAndEndDateSection
+                            value={
+                              recurrenceField.state.value as RecurrenceValue
+                            }
+                            onChange={(next) =>
+                              recurrenceField.handleChange(next as never)
+                            }
+                            defaultWeekdayFromDate={
+                              form.getFieldValue("date") || undefined
+                            }
+                            onTouched={() =>
+                              form.setFieldMeta("recurrence", (prev) => ({
+                                ...prev,
+                                isTouched: true,
+                              }))
+                            }
+                          />
+                        )}
+                      </form.AppField>
+                    )}
                   </Section>
                   <div className="px-2">
                     <FieldInfo />
@@ -622,13 +449,15 @@ const AmountFormStep = withForm({
                       must be on or after …" message reads as a sibling of
                       other field errors instead of squeezing into the
                       Section card. */}
-                  <form.AppField name="recurrence">
-                    {() => (
-                      <div className="px-2">
-                        <FieldInfo />
-                      </div>
-                    )}
-                  </form.AppField>
+                  {!isEditMode && (
+                    <form.AppField name="recurrence">
+                      {() => (
+                        <div className="px-2">
+                          <FieldInfo />
+                        </div>
+                      )}
+                    </form.AppField>
+                  )}
                 </div>
               )}
             </form.AppField>

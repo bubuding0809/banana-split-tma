@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Recurring Expense Management — UX Refinements · Design Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --text: #fff;
+    --muted: #98989f;
+    --dim: #666;
+    --accent: #4a9eff;
+    --accent-bg: rgba(74,158,255,.18);
+    --violet: #a78bfa;
+    --violet-bg: rgba(167,139,250,.18);
+    --teal: #2dd4bf;
+    --teal-bg: rgba(45,212,191,.18);
+    --danger: #ff453a;
+    --danger-bg: rgba(255,69,58,.18);
+    --success: #34c759;
+    --success-bg: rgba(52,199,89,.18);
+    --warn: #ff9500;
+    --warn-bg: rgba(255,149,0,.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; height: 100%; overflow: hidden; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 56px 72px 80px;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .eyebrow { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 14px; }
+  h1 { font-size: 56px; font-weight: 800; margin: 0 0 12px; line-height: 1.05; letter-spacing: -1px; }
+  h2 { font-size: 36px; font-weight: 700; margin: 0 0 22px; letter-spacing: -.5px; line-height: 1.15; }
+  h3 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+  .subhead { color: var(--muted); font-size: 17px; max-width: 780px; line-height: 1.55; }
+  p { font-size: 16px; line-height: 1.6; color: #d1d1d6; max-width: 780px; }
+  ul { font-size: 15px; line-height: 1.7; color: #d1d1d6; padding-left: 22px; max-width: 780px; }
+  ul li::marker { color: var(--accent); }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 13px; background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 4px; }
+
+  .meta-row { display: flex; gap: 12px; margin-top: 24px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .meta-row .pill { background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+
+  .grid { display: grid; gap: 18px; margin-top: 16px; }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid.cols-mockup { grid-template-columns: 1fr 1.1fr; align-items: start; }
+  .grid.cols-mockup-3 { grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+
+  .card { background: var(--surface); border-radius: 14px; padding: 18px 20px; border: 1px solid rgba(255,255,255,.04); }
+  .card h3 { font-size: 16px; margin-bottom: 6px; color: var(--accent); }
+  .card.ok h3 { color: var(--success); }
+  .card.warn h3 { color: var(--warn); }
+  .card.danger h3 { color: var(--danger); }
+  .card p { font-size: 13.5px; line-height: 1.55; margin: 0; color: #d1d1d6; }
+  .card ul { font-size: 13.5px; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.accent { background: var(--accent-bg); color: var(--accent); }
+  .pill.violet { background: var(--violet-bg); color: var(--violet); }
+  .pill.teal { background: var(--teal-bg); color: var(--teal); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .pill.muted { background: rgba(127,127,127,.2); color: var(--muted); }
+  .pill.success { background: var(--success-bg); color: var(--success); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+
+  /* Mock device frame */
+  .frame { background: #000; padding: 14px; border-radius: 14px; max-width: 320px; border: 1px solid rgba(255,255,255,.08); }
+  .frame.compact { max-width: 280px; padding: 10px; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 12px; }
+  .header .ttl { font-size: 15px; font-weight: 700; }
+  .icns { display: flex; gap: 8px; }
+  .icn-btn { width: 24px; height: 24px; border-radius: 8px; background: rgba(127,127,127,.18); display: grid; place-items: center; color: var(--accent); font-size: 12px; }
+
+  .tabs { display: flex; background: var(--surface); border-radius: 10px 10px 0 0; }
+  .tabs > div { flex: 1; text-align: center; padding: 8px 0; color: var(--muted); font-size: 12px; font-weight: 500; }
+  .tabs .active { color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: 700; }
+
+  .toolbar { display: flex; align-items: center; padding: 6px 8px; gap: 5px; background: var(--surface); border-bottom: 0.5px solid rgba(255,255,255,.06); }
+  .tool { background: var(--surface-2); padding: 3px 7px; border-radius: 999px; font-size: 10px; }
+  .tool .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 3px; vertical-align: middle; }
+  .tool .green { background: #10b981; }
+  .tool .blue { background: #3b82f6; }
+  .tool .violet { background: #8b5cf6; }
+  .tool-icon { color: var(--text); font-size: 12px; padding: 0 3px; }
+
+  .section-label { font-size: 10px; color: var(--muted); padding: 0 4px 6px 4px; margin-top: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .section { background: var(--surface); border-radius: 10px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 0.5px solid rgba(255,255,255,.06); font-size: 12px; }
+  .row:last-child { border-bottom: 0; }
+  .row .ic { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,.06); display: grid; place-items: center; font-size: 13px; flex-shrink: 0; color: #fff; }
+  .row .ic.violet-tile { background: #5b21b6; }
+  .row .ic.teal-tile { background: #1d6e62; }
+  .row .body { flex: 1; min-width: 0; }
+  .row .body .top { font-size: 12px; font-weight: 500; }
+  .row .body .bot { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .row .trail { color: var(--muted); font-size: 11px; flex-shrink: 0; text-align: right; }
+  .row .trail.tap::after { content: " ›"; }
+  .row .trail strong { color: #fff; }
+  .row .trail .num { color: var(--muted); }
+  .row .trail .chev { color: var(--dim); margin-left: 4px; }
+  .row.added { outline: 2px solid var(--success); outline-offset: -2px; }
+  .row.replaced { outline: 2px solid var(--danger); outline-offset: -2px; opacity: 0.7; }
+  .row.moved { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .row.muted-row { opacity: 0.55; }
+  .badge-rec { background: var(--accent-bg); color: var(--accent); padding: 1px 7px; border-radius: 999px; font-size: 9px; font-weight: 600; }
+  .caption { padding: 8px 14px; color: var(--muted); font-size: 11px; font-style: italic; }
+  .caption .glyph { margin-right: 4px; }
+
+  .strike { text-decoration: line-through; color: var(--dim); }
+
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,.95), transparent);
+    pointer-events: none;
+  }
+  .nav-btn { background: var(--surface-2); border: none; color: var(--text); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; pointer-events: auto; transition: background .15s; }
+  .nav-btn:hover { background: rgba(74,158,255,.3); }
+  .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+  .counter { color: var(--muted); font-size: 13px; pointer-events: auto; font-variant-numeric: tabular-nums; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .25s ease; z-index: 100; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td code { font-size: 12px; }
+  td .pill { font-size: 10px; }
+
+  .scope-list { font-size: 14px; line-height: 1.8; color: #d1d1d6; }
+  .scope-list .y { color: var(--success); margin-right: 6px; font-weight: 700; }
+  .scope-list .n { color: var(--danger); margin-right: 6px; font-weight: 700; }
+
+  .frame-label { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  .threads { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .thread { background: var(--surface); border-radius: 12px; padding: 16px 20px; border-left: 3px solid var(--accent); }
+  .thread.t2 { border-left-color: var(--teal); }
+  .thread.t3 { border-left-color: var(--warn); }
+  .thread.t4 { border-left-color: var(--violet); }
+  .thread.t5 { border-left-color: var(--danger); }
+  .thread h3 { font-size: 16px; margin-bottom: 4px; }
+  .thread p { font-size: 13.5px; line-height: 1.5; margin: 0; color: #d1d1d6; }
+  .thread .num { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1: Title -->
+<section class="slide active">
+  <div class="eyebrow">Design spec · 2026-04-25</div>
+  <h1>Recurring Expense<br>Management — UX Refinements</h1>
+  <p class="subhead">Five small UX gaps in the recurring-expense feature shipped via PR #236 → #249. Each is small on its own; bundled they form a coherent "make recurring management actually findable and consistent" pass — most fixes are frontend-only, with one read-side Prisma <code>include</code> on the backend.</p>
+  <div class="meta-row">
+    <span class="pill warn">Status: Awaiting user review</span>
+    <span class="pill muted">Author: bubu (with Claude Opus 4.7)</span>
+    <span class="pill muted">Threads: 5</span>
+    <span class="pill muted">New routes: 0</span>
+    <span class="pill muted">New mutations: 0</span>
+  </div>
+</section>
+
+<!-- 2: The 5 threads -->
+<section class="slide">
+  <div class="eyebrow">In one screen</div>
+  <h2>Five small fixes, one bundled spec</h2>
+  <div class="threads">
+    <div class="thread">
+      <div class="num">Thread 1</div>
+      <h3>Surface the entry point</h3>
+      <p>Move "Recurring expenses · Manage" from buried in Settings to the top of the Transactions tab — where users already think about recurring transactions.</p>
+    </div>
+    <div class="thread t2">
+      <div class="num">Thread 2</div>
+      <h3>Relocate Convert currencies</h3>
+      <p>The freed-up slot wasn't lost — Convert currencies moves to the top of the Balances tab, its more natural home. FX is a balance concern, not a list concern.</p>
+    </div>
+    <div class="thread t3">
+      <div class="num">Thread 3</div>
+      <h3>Status-aware schedule rendering</h3>
+      <p>Past expenses still show a canceled or ended template's schedule details, implying the schedule is live. Gate both the modal Schedule section and the <code>↻</code> badge on <code>ACTIVE</code>.</p>
+    </div>
+    <div class="thread t4">
+      <div class="num">Thread 4</div>
+      <h3>Manage shortcut from expense modal</h3>
+      <p>From a recurring expense's modal, no path to edit the schedule. Add a one-tap "Manage schedule" affordance in the Schedule section.</p>
+    </div>
+    <div class="thread t5">
+      <div class="num">Thread 5</div>
+      <h3>Kill the silent no-op</h3>
+      <p>The Repeat / End Date cells in the edit-expense form look editable but their values are never sent. Hide them in edit mode — recurrence stays a create-only concern.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Thread 1 — entry swap -->
+<section class="slide">
+  <div class="eyebrow">Thread 1 · Transactions tab</div>
+  <h2>Replace Convert currencies with Recurring expenses</h2>
+  <div class="grid cols-mockup-3">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="frame compact">
+        <div class="tabs"><div>Balances</div><div class="active">⇄ Transactions</div></div>
+        <div class="toolbar">
+          <span class="tool-icon">⚙︎</span>
+          <span class="tool"><span class="dot green"></span>Pay</span>
+          <span class="tool"><span class="dot blue"></span>Rel</span>
+        </div>
+        <div class="row replaced">
+          <div class="ic teal-tile">⇄</div>
+          <div class="body"><div class="top">Convert currencies</div></div>
+          <div class="trail">🇨🇳🇦🇪 ⇅</div>
+        </div>
+        <div class="row"><div class="ic">🍜</div><div class="body"><div class="top">Dinner at Maxi's</div></div><div class="trail">$58.00</div></div>
+        <div class="row"><div class="ic">🚖</div><div class="body"><div class="top">Grab home</div></div><div class="trail">$22.40</div></div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">After</span></div>
+      <div class="frame compact">
+        <div class="tabs"><div>Balances</div><div class="active">⇄ Transactions</div></div>
+        <div class="toolbar">
+          <span class="tool-icon">⚙︎</span>
+          <span class="tool"><span class="dot green"></span>Pay</span>
+          <span class="tool"><span class="dot blue"></span>Rel</span>
+        </div>
+        <div class="row added">
+          <div class="ic violet-tile">↻</div>
+          <div class="body"><div class="top">Recurring expenses</div></div>
+          <div class="trail tap"><span class="num">3</span></div>
+        </div>
+        <div class="row"><div class="ic">🍜</div><div class="body"><div class="top">Dinner at Maxi's</div></div><div class="trail">$58.00</div></div>
+        <div class="row"><div class="ic">🚖</div><div class="body"><div class="top">Grab home</div></div><div class="trail">$22.40</div></div>
+      </div>
+    </div>
+    <div>
+      <ul style="margin-top: 0;">
+        <li>Cell shape: <code>[↻ violet tile]</code> + title + count + chevron</li>
+        <li>Tile: <code>bg-violet-400 dark:bg-violet-700</code> — distinct from teal (Convert) and link-blue (cell badges)</li>
+        <li>Icon: <code>Repeat</code> from lucide — same one used in the existing Settings entry</li>
+        <li>Trailing: <code>&lt;Navigation&gt;{count}&lt;/Navigation&gt;</code></li>
+        <li><strong>Hide when count is 0 or query is pending</strong> — no skeleton, no flash, no layout shift</li>
+        <li>Visible regardless of transaction filters</li>
+        <li>Click → existing route <code>/chat/$chatId/recurring-expenses</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4: Thread 2 — Convert currencies → Balances -->
+<section class="slide">
+  <div class="eyebrow">Thread 2 · Balances tab</div>
+  <h2>Convert currencies finds a better home</h2>
+  <div class="grid cols-mockup-3">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="frame compact">
+        <div class="tabs"><div class="active">Balances</div><div>Transactions</div></div>
+        <div class="section-label">🚨 Debts</div>
+        <div class="section">
+          <div class="row"><div class="ic">RQ</div><div class="body"><div class="top">Mei</div><div class="bot">You owe</div></div><div class="trail"><strong style="color:var(--danger)">SGD 245.50</strong></div></div>
+          <div class="row"><div class="ic">T</div><div class="body"><div class="top">ting</div><div class="bot">You owe</div></div><div class="trail"><strong style="color:var(--danger)">CN¥ 480.00</strong></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill accent">After</span></div>
+      <div class="frame compact">
+        <div class="tabs"><div class="active">Balances</div><div>Transactions</div></div>
+        <div class="row moved" style="margin-top: 8px;">
+          <div class="ic teal-tile">⇄</div>
+          <div class="body"><div class="top">Convert currencies</div></div>
+          <div class="trail">🇨🇳🇦🇪 ⇅</div>
+        </div>
+        <div class="section-label">🚨 Debts</div>
+        <div class="section">
+          <div class="row"><div class="ic">RQ</div><div class="body"><div class="top">Mei</div></div><div class="trail"><strong style="color:var(--danger)">SGD 245.50</strong></div></div>
+          <div class="row"><div class="ic">T</div><div class="body"><div class="top">ting</div></div><div class="trail"><strong style="color:var(--danger)">CN¥ 480.00</strong></div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <ul style="margin-top: 0;">
+        <li>Same trigger Cell, same Modal, same conversion logic — only the host tab changes</li>
+        <li>Visibility rule unchanged: renders when <code>foreignCurrencies.length &gt; 0</code></li>
+        <li><strong>Component extraction</strong>: lift the ~90 LoC inline block from <code>ChatTransactionTab</code> into a self-contained <code>ConvertCurrenciesCell</code> — owns its own queries, mutation, and modal state</li>
+        <li>Pure refactor + relocation; no behavior change</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5: Thread 3 — Status-aware Schedule (table) -->
+<section class="slide">
+  <div class="eyebrow">Thread 3 · Status-aware rendering</div>
+  <h2>The bug: canceled schedules keep claiming they're live</h2>
+  <p class="subhead">A canceled template still has a row in the DB (soft-delete sets <code>status = "CANCELED"</code>). The expense modal queries <code>recurring.get</code>, which doesn't filter by status — so the Schedule section keeps rendering as if the schedule is live. Same root cause for the <code>↻</code> badge on cell rows.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Modal Schedule section</th>
+        <th>Cell <code>↻</code> badge</th>
+        <th>Manage shortcut</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pill success">ACTIVE</span></td>
+        <td>Full section: Repeat + End Date</td>
+        <td>Visible (link-blue, "Active recurring schedule")</td>
+        <td>Yes (Thread 4)</td>
+      </tr>
+      <tr>
+        <td><span class="pill warn">ENDED</span></td>
+        <td>Muted Caption: <code>↻ From a recurring schedule that ended on …</code></td>
+        <td>Hidden</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td><span class="pill danger">CANCELED</span></td>
+        <td>Hidden — modal looks like a one-off expense</td>
+        <td>Hidden</td>
+        <td>No</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top: 24px; color: var(--muted); font-size: 13px;">Asymmetry rationale: ENDED is a natural lifecycle outcome — a one-line breadcrumb is useful for understanding past spending. CANCELED is a deliberate user action — persisting its details on every materialized expense forever is noise.</p>
+</section>
+
+<!-- 6: Thread 3 — Modal mockups for each state -->
+<section class="slide">
+  <div class="eyebrow">Thread 3 · ExpenseDetailsModal in three states</div>
+  <h2>What the user actually sees</h2>
+  <div class="grid cols-3" style="gap: 14px;">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">ACTIVE</span> Full section</div>
+      <div class="frame compact">
+        <div class="header"><div class="ttl">Expense</div><div class="icns"><div class="icn-btn">✎</div><div class="icn-btn">✕</div></div></div>
+        <div class="section-label">What was this for?</div>
+        <div class="section"><div class="row"><div class="ic">📦</div><div class="body"><div class="top">UAT-FULL-AUDIT</div><div class="bot">Other</div></div></div></div>
+        <div class="section-label">Who paid?</div>
+        <div class="section"><div class="row"><div class="ic">🦅</div><div class="body"><div class="top" style="color:var(--accent)">You spent</div></div><div class="trail"><strong>SGD 99.99</strong></div></div></div>
+        <div class="section-label">Schedule</div>
+        <div class="section">
+          <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Repeat</div></div><div class="trail">Custom</div></div>
+          <div class="row"><div class="ic">📅</div><div class="body"><div class="top">End Date</div></div><div class="trail">20 Jun 2026</div></div>
+          <div class="row link" style="color: var(--accent);"><div class="body"><div class="top" style="color: var(--accent)">Manage schedule</div></div><div class="trail tap" style="color: var(--accent);"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">ENDED</span> Muted breadcrumb</div>
+      <div class="frame compact">
+        <div class="header"><div class="ttl">Expense</div><div class="icns"><div class="icn-btn">✎</div><div class="icn-btn">✕</div></div></div>
+        <div class="section-label">What was this for?</div>
+        <div class="section"><div class="row"><div class="ic">📦</div><div class="body"><div class="top">UAT-FULL-AUDIT</div><div class="bot">Other</div></div></div></div>
+        <div class="section-label">Who paid?</div>
+        <div class="section"><div class="row"><div class="ic">🦅</div><div class="body"><div class="top" style="color:var(--accent)">You spent</div></div><div class="trail"><strong>SGD 99.99</strong></div></div></div>
+        <div class="caption"><span class="glyph">↻</span>From a recurring schedule that ended on 20 Jun 2026</div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill danger">CANCELED</span> Fully hidden</div>
+      <div class="frame compact">
+        <div class="header"><div class="ttl">Expense</div><div class="icns"><div class="icn-btn">✎</div><div class="icn-btn">✕</div></div></div>
+        <div class="section-label">What was this for?</div>
+        <div class="section"><div class="row"><div class="ic">📦</div><div class="body"><div class="top">UAT-FULL-AUDIT</div><div class="bot">Other</div></div></div></div>
+        <div class="section-label">Who paid?</div>
+        <div class="section"><div class="row"><div class="ic">🦅</div><div class="body"><div class="top" style="color:var(--accent)">You spent</div></div><div class="trail"><strong>SGD 99.99</strong></div></div></div>
+        <div class="section-label">How was it split?</div>
+        <div class="section"><div class="row"><div class="body"><div class="top">Split Method</div></div><div class="trail">Split equally</div></div></div>
+        <p style="margin-top: 6px; color: var(--dim); font-size: 10px; font-style: italic; text-align: center;">No schedule signal at all</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7: Thread 4 — Manage shortcut + ↻ badge gating -->
+<section class="slide">
+  <div class="eyebrow">Thread 4 · Direct path to schedule editor</div>
+  <h2>Tap "Manage schedule ›" — skip the 4-tap detour</h2>
+  <div class="grid cols-2">
+    <div class="card ok">
+      <h3>Before</h3>
+      <ol style="font-size: 13.5px; line-height: 1.6; padding-left: 22px; margin: 8px 0 0;">
+        <li>Close the expense modal</li>
+        <li>Navigate to Settings → Recurring expenses · Manage</li>
+        <li>Land on templates list</li>
+        <li>Find the right row → tap → modal</li>
+        <li>Tap pencil → schedule editor</li>
+      </ol>
+      <p style="margin-top: 10px; color: var(--muted);">5 taps + 2 context switches.</p>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--success);">After</h3>
+      <ol style="font-size: 13.5px; line-height: 1.6; padding-left: 22px; margin: 8px 0 0;">
+        <li>From the expense modal, tap <strong>Manage schedule ›</strong></li>
+        <li>Land directly on <code>/chat/$chatId/edit-recurring/$templateId</code></li>
+      </ol>
+      <p style="margin-top: 10px; color: var(--muted);">Single tap. Only renders for ACTIVE templates — no shortcut to edit a canceled or ended schedule (nothing to edit).</p>
+    </div>
+  </div>
+  <h3 style="margin-top: 28px; color: var(--violet);">Bonus: <code>↻</code> badge semantics nailed down</h3>
+  <p style="margin-top: 8px;">Today the <code>↻</code> badge on <code>ChatExpenseCell</code> renders whenever <code>recurringTemplateId</code> is set — accidentally a "was recurring" historical marker. After this change, the badge means <strong>"is recurring (live state)"</strong> — only present when the linked template is <code>ACTIVE</code>. Tooltip updated to <em>"Active recurring schedule"</em> so the meaning is explicit.</p>
+</section>
+
+<!-- 8: Thread 5 — edit-expense form silent no-op -->
+<section class="slide">
+  <div class="eyebrow">Thread 5 · Edit-expense form</div>
+  <h2>Stop pretending you can edit recurrence here</h2>
+  <div class="grid cols-2">
+    <div class="card danger">
+      <h3>Bug today (silent no-op)</h3>
+      <ul style="margin: 8px 0 0;">
+        <li><code>RepeatAndEndDateSection</code> renders unconditionally in the form</li>
+        <li>Edit-expense form initializes recurrence to empty default — not the linked template's actual schedule</li>
+        <li>Submit handler never reads <code>value.recurrence</code></li>
+        <li>Backend <code>updateExpense</code> doesn't even accept a <code>recurrence</code> field</li>
+        <li><strong>Net:</strong> user toggles Repeat → picks Monthly → saves → nothing changes</li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <h3>Fix: hide cells in edit mode</h3>
+      <ul style="margin: 8px 0 0;">
+        <li><code>AmountFormStep</code> takes a <code>mode: "add" | "edit"</code> prop</li>
+        <li>The form gates <code>RepeatAndEndDateSection</code> on <code>mode === "add"</code></li>
+        <li>Edit-expense path hides the section entirely — no affordance, no pretense</li>
+        <li>Schedule edits live exclusively at <code>/chat/$chatId/edit-recurring/$templateId</code></li>
+        <li>Drop the now-unused <code>recurrence: formOpts.defaultValues.recurrence</code> line in <code>EditExpensePage</code></li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 24px; color: var(--muted); font-size: 13px;">Why hide rather than show a read-only indicator: <code>ExpenseDetailsModal</code>'s Schedule section + Manage shortcut (Thread 4) is already the one canonical "is this expense recurring? where do I edit?" surface. A second indicator inside the edit form duplicates that without adding capability.</p>
+</section>
+
+<!-- 9: Settings cleanup -->
+<section class="slide">
+  <div class="eyebrow">Single canonical entry point</div>
+  <h2>Remove the duplicate Settings → Recurring expenses cell</h2>
+  <div class="grid cols-mockup-3">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="frame compact">
+        <div class="header"><div class="ttl">Settings</div></div>
+        <div class="section-label">Notifications</div>
+        <div class="section"><div class="row"><div class="ic">🔔</div><div class="body"><div class="top">Recurring Reminders</div></div><div class="trail">⊙</div></div></div>
+        <div class="section-label">Recurring Expenses</div>
+        <div class="section replaced" style="outline: 2px solid var(--danger); outline-offset: -2px; opacity: 0.7;">
+          <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Recurring expenses</div></div><div class="trail tap">Manage</div></div>
+        </div>
+        <div class="section-label">Access tokens</div>
+        <div class="section"><div class="row"><div class="body"><div class="top">…</div></div></div></div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">After</span></div>
+      <div class="frame compact">
+        <div class="header"><div class="ttl">Settings</div></div>
+        <div class="section-label">Notifications</div>
+        <div class="section"><div class="row"><div class="ic">🔔</div><div class="body"><div class="top">Recurring Reminders</div></div><div class="trail">⊙</div></div></div>
+        <div class="section-label">Access tokens</div>
+        <div class="section"><div class="row"><div class="body"><div class="top">…</div></div></div></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size: 16px; color: var(--accent);">What stays</h3>
+      <p style="font-size: 13.5px;">The <strong>Notifications</strong> Section (the <code>RecurringRemindersSection</code> weekly settlement-nudge bot) is unchanged. It's a separate feature with no overlap.</p>
+      <h3 style="font-size: 16px; color: var(--danger); margin-top: 18px;">What goes</h3>
+      <p style="font-size: 13.5px;">The <strong>"Recurring Expenses"</strong> Section + the now-unused <code>RepeatIcon</code> import. One concept → one home.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10: Backend & file changes -->
+<section class="slide">
+  <div class="eyebrow">Implementation footprint</div>
+  <h2>Mostly frontend. One backend include.</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Backend (1 file)</h3>
+      <p><code>packages/trpc/src/routers/expense/getExpenseByChat.ts</code></p>
+      <p style="margin-top: 8px;">Add to the Prisma <code>include</code>:</p>
+      <pre style="background: var(--bg); padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; margin-top: 8px;"><code>include: {
+  shares: true,
+  recurringTemplate: {
+    select: { status: true }
+  },
+}</code></pre>
+      <p style="margin-top: 8px; color: var(--muted); font-size: 12.5px;">Pass <code>recurringTemplate</code> through in the mapped output. No schema change, no new procedure.</p>
+    </div>
+    <div class="card">
+      <h3>Frontend</h3>
+      <ul style="margin: 8px 0 0;">
+        <li><code>ChatTransactionTab.tsx</code> — remove Convert block, add Recurring entry cell</li>
+        <li><code>ChatBalanceTab.tsx</code> — mount <code>ConvertCurrenciesCell</code></li>
+        <li><code>ConvertCurrenciesCell.tsx</code> — <strong>NEW</strong>, extracted</li>
+        <li><code>ChatSettingsPage.tsx</code> — remove duplicate entry</li>
+        <li><code>ExpenseDetailsModal.tsx</code> — gate Schedule section + Manage tap + ENDED caption</li>
+        <li><code>ChatExpenseCell.tsx</code> — gate <code>↻</code> badge on <code>status === "ACTIVE"</code></li>
+        <li><code>RecurringExpenseBadge.tsx</code> — tooltip "Active recurring schedule"</li>
+        <li><code>AmountFormStep.tsx</code> — accept <code>mode</code> prop, gate Repeat section</li>
+        <li><code>AddExpenseForm.tsx</code> / <code>EditExpensePage.tsx</code> — pass <code>mode</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 11: Testing -->
+<section class="slide">
+  <div class="eyebrow">Verification</div>
+  <h2>Tests + manual UAT</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Component smoke</h3>
+      <ul style="margin: 8px 0 0;">
+        <li>New entry cell: hidden on pending / empty list, renders with correct count, navigates on click</li>
+        <li><code>RecurringScheduleSection</code>: full section for ACTIVE, muted Caption for ENDED, null for CANCELED. Manage tap navigates correctly.</li>
+        <li><code>ChatExpenseCell</code>: badge only when <code>recurringTemplate?.status === "ACTIVE"</code></li>
+        <li><code>ConvertCurrenciesCell</code>: null when no foreign currencies; trigger + modal otherwise</li>
+        <li><code>AmountFormStep</code>: Repeat section in <code>"add"</code>, hidden in <code>"edit"</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Backend</h3>
+      <p><code>getExpenseByChat</code> returns <code>recurringTemplate: { status }</code> for expenses with a linked template, <code>null</code> otherwise. Existing callsites continue to work — additive change.</p>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Manual UAT (full-environment lifecycle)</h3>
+      <p style="margin-bottom: 8px;">Single cycle covering each of the five threads, per the full-environment-UAT loop preference. After each: verify DB state via Supabase MCP <em>and</em> AWS Scheduler state via <code>aws scheduler get-schedule</code>.</p>
+      <ul style="margin: 0;">
+        <li>Active templates → entry cell visible with correct count</li>
+        <li>Cancel a template → cell badge + modal Schedule section both disappear; Settings shows no duplicate entry</li>
+        <li>ACTIVE template → tap "Manage schedule ›" → lands on edit page with form populated</li>
+        <li>ENDED template → muted Caption renders; no Schedule section, no Manage tap</li>
+        <li>Edit existing expense → no Repeat / End Date cells. Add expense → cells visible, behave normally</li>
+        <li>Foreign-currency expenses → Convert cell appears at top of Balances; modal triggers; conversion completes</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 12: Recap -->
+<section class="slide">
+  <div class="eyebrow">In one screen</div>
+  <h2>The whole bundle in 6 bullets</h2>
+  <ul style="font-size: 17px; line-height: 1.9;">
+    <li><strong>Move "Recurring expenses" to the top of the Transactions tab</strong> — replaces "Convert currencies" with a violet <code>↻</code> entry cell, count + chevron</li>
+    <li><strong>Convert currencies relocates to the top of the Balances tab</strong> — extracted into <code>ConvertCurrenciesCell</code> so the relocation is a clean refactor</li>
+    <li><strong>Schedule rendering becomes status-aware</strong> — ACTIVE: full section + Manage shortcut; ENDED: muted breadcrumb caption; CANCELED: hidden entirely</li>
+    <li><strong><code>↻</code> badge means "is recurring (live)"</strong> — only renders when linked template is ACTIVE; tooltip says "Active recurring schedule"</li>
+    <li><strong>Manage shortcut from the expense modal</strong> — single-tap path to the schedule editor (vs 5 taps before)</li>
+    <li><strong>Hide Repeat / End Date cells in edit-expense form</strong> — kills the silent no-op; recurrence stays a create-only concern</li>
+  </ul>
+  <p style="margin-top: 28px; color: var(--muted); font-size: 13px;">Spec: <code>docs/superpowers/specs/2026-04-25-recurring-management-refinements-design.md</code></p>
+</section>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">← Prev</button>
+  <span class="counter" id="counter">1 / 12</span>
+  <button class="nav-btn" id="next">Next →</button>
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let idx = 0;
+
+  function update() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${slides.length}`;
+    progress.style.width = `${((idx + 1) / slides.length) * 100}%`;
+    prev.disabled = idx === 0;
+    next.disabled = idx === slides.length - 1;
+    location.hash = `slide-${idx + 1}`;
+  }
+
+  function go(delta) {
+    const newIdx = Math.max(0, Math.min(slides.length - 1, idx + delta));
+    if (newIdx !== idx) { idx = newIdx; update(); }
+  }
+
+  prev.addEventListener('click', () => go(-1));
+  next.addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') { e.preventDefault(); idx = 0; update(); }
+    else if (e.key === 'End') { e.preventDefault(); idx = slides.length - 1; update(); }
+  });
+
+  const hash = location.hash.match(/slide-(\d+)/);
+  if (hash) {
+    const target = parseInt(hash[1], 10) - 1;
+    if (target >= 0 && target < slides.length) idx = target;
+  }
+  update();
+})();
+</script>
+
+</body>
+</html>

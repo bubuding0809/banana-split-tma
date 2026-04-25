@@ -3,6 +3,7 @@ import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
 import {
   createExpenseHandler,
+  tzMidnightForInstant,
   verifyRecurringExpenseSignature,
 } from "@dko/trpc";
 import { env } from "./env.js";
@@ -89,10 +90,17 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
     }
   }
 
-  // 6. Materialise the occurrence. The (recurringTemplateId, date) unique
-  //    index makes this idempotent against AWS retries.
-  const occurrenceDateOnly = new Date(occurrenceMs);
-  occurrenceDateOnly.setUTCHours(0, 0, 0, 0);
+  // 6. Materialise the occurrence. Date is stored as midnight in the
+  //    template's timezone (encoded as UTC) so it lines up with how the
+  //    manual create path stores Expense.date — same SGT-midnight value
+  //    a same-day manual expense would have. Plain `setUTCHours(0,0,0,0)`
+  //    here would store UTC-midnight instead, which differs from the
+  //    manual path by the timezone offset (8h for SGT) and breaks the
+  //    `(recurringTemplateId, date)` unique index's dedupe role.
+  const occurrenceDateOnly = tzMidnightForInstant(
+    new Date(occurrenceMs),
+    tmpl.timezone
+  );
 
   // customSplits is stored as JSON-safe (userId stringified for BigInt).
   // Rehydrate to bigint before handing to createExpenseHandler.

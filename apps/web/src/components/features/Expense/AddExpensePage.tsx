@@ -163,8 +163,10 @@ const AddExpensePage = ({ chatId }: AddExpensePageProps) => {
             customFrequency: recurrence.customFrequency,
             customInterval: recurrence.customInterval,
             weekdays: recurrence.weekdays as Weekday[],
+            // T23:59:59 — picked end-date is inclusive of that day's fire;
+            // AWS Scheduler EndDate is exclusive.
             endDate: recurrence.endDate
-              ? new Date(recurrence.endDate + "T00:00:00")
+              ? new Date(recurrence.endDate + "T23:59:59")
               : undefined,
           });
           await createExpenseWithRecurrenceMutation.mutateAsync({
