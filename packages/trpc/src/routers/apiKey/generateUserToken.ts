@@ -24,6 +24,8 @@ export const generateUserTokenHandler = async (
     });
   }
 
+  // Schema validates min(1) after trim, but the handler can also be called
+  // directly from tests/internal code that bypasses zod — guard explicitly.
   const trimmedName = input.name.trim();
   if (!trimmedName) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Name is required" });
