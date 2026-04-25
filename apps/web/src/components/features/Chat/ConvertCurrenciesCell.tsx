@@ -3,6 +3,7 @@ import {
   AvatarStack,
   Blockquote,
   Cell,
+  Divider,
   IconButton,
   Info,
   Modal,
@@ -218,6 +219,7 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
           </Section>
         </div>
       </Modal>
+      <Divider />
 
       {/* Target currency selection modal for conversion */}
       <CurrencySelectionModal
