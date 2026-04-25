@@ -30,8 +30,8 @@ import {
 } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import {
-  formatRecurrenceSummary,
   PRESET_LABEL,
+  splitRecurrenceSummary,
   type CanonicalFrequency,
   type Weekday,
 } from "@/components/features/Expense/recurrencePresets";
@@ -69,20 +69,16 @@ const RecurringScheduleSection = ({
     endDate: Date | string | null;
   };
 
-  const repeatSummary = formatRecurrenceSummary({
+  const repeatShortLabel =
+    t.interval === 1 ? PRESET_LABEL[t.frequency] : "Custom";
+  // Two-slot summary row: body for the left label, after for the right
+  // value. Mirrors the form + recurring detail modal so users see one
+  // design across all surfaces.
+  const repeatSummary = splitRecurrenceSummary({
     frequency: t.frequency,
     interval: t.interval,
     weekdays: t.weekdays,
-    endDate: null,
   });
-  // Two-cell pattern matching the recurring detail modal + form: short
-  // label on the Repeat row, long descriptive summary as a multiline cell
-  // below when applicable. Avoids ugly wrapping in the after-slot.
-  const repeatShortLabel =
-    t.interval === 1 ? PRESET_LABEL[t.frequency] : "Custom";
-  const showRepeatSummaryRow =
-    repeatSummary !== repeatShortLabel &&
-    (t.frequency === "WEEKLY" || t.interval > 1);
   const endDate = t.endDate
     ? t.endDate instanceof Date
       ? t.endDate
@@ -100,10 +96,10 @@ const RecurringScheduleSection = ({
       >
         <Text weight="2">Repeat</Text>
       </Cell>
-      {showRepeatSummaryRow && (
-        // After slot — Cell wraps body children in a <span> so a
-        // `w-full text-right` div there can't actually fill width or
-        // right-align. The after slot is positioned by telegram-ui itself.
+      {repeatSummary && (
+        // Body holds the left label ("Every"), after holds the right
+        // value (weekdays / interval phrase). after is the only reliable
+        // right-align slot — body children get wrapped in an inline span.
         <Cell
           after={
             <Text
@@ -113,11 +109,15 @@ const RecurringScheduleSection = ({
                 whiteSpace: "normal",
               }}
             >
-              {repeatSummary}
+              {repeatSummary.right}
             </Text>
           }
           style={{ backgroundColor: tSectionBgColor }}
-        />
+        >
+          <Text className="text-sm" style={{ color: tSubtitleTextColor }}>
+            {repeatSummary.left}
+          </Text>
+        </Cell>
       )}
       <Cell
         before={

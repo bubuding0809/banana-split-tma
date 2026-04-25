@@ -12,10 +12,9 @@ import RecurrencePickerSheet, {
   type RecurrenceValue,
 } from "./RecurrencePickerSheet";
 import {
-  formatRecurrenceSummary,
   presetToTemplate,
   PRESET_LABEL,
-  WEEKDAY_LABEL,
+  splitRecurrenceSummary,
 } from "./recurrencePresets";
 
 export interface RepeatAndEndDateSectionProps {
@@ -49,31 +48,23 @@ export default function RepeatAndEndDateSection({
   const r = value;
   const shortLabel = r.preset === "NONE" ? "Never" : PRESET_LABEL[r.preset];
 
-  // Secondary summary text — only renders when it adds info beyond the
-  // Repeat row's right-aligned label.
-  // - WEEKLY (interval=1): just the day list ("Sat, Tue, Sun, Mon, Wed").
-  //   The "Weekly" word is already on the Repeat row, so don't repeat it.
-  // - CUSTOM: full phrase ("Every 2 weeks on Tue") since the Repeat row
-  //   only says "Custom" in this case.
-  // - Everything else: no summary row.
+  // Secondary summary row — uses the two-slot pattern (left in Cell body,
+  // right in Cell after) so the row reads as "Every | Sat, Tue, Sun..."
+  // with the days right-aligned. Returns null for cases where the Repeat
+  // row's short label already says everything (plain Daily / Monthly).
   const summary = (() => {
-    if (r.preset === "WEEKLY") {
-      return r.weekdays.length
-        ? r.weekdays.map((w) => WEEKDAY_LABEL[w]).join(", ")
-        : null;
-    }
-    if (r.preset === "CUSTOM") {
-      return formatRecurrenceSummary({
-        ...presetToTemplate({
-          preset: "CUSTOM",
-          customFrequency: r.customFrequency,
-          customInterval: r.customInterval,
-          weekdays: r.weekdays,
-        }),
-        endDate: null,
-      });
-    }
-    return null;
+    if (r.preset === "NONE") return null;
+    const t = presetToTemplate({
+      preset: r.preset,
+      customFrequency: r.customFrequency,
+      customInterval: r.customInterval,
+      weekdays: r.weekdays,
+    });
+    return splitRecurrenceSummary({
+      frequency: t.frequency,
+      interval: t.interval,
+      weekdays: t.weekdays,
+    });
   })();
 
   const openSheet = () => {
@@ -93,11 +84,11 @@ export default function RepeatAndEndDateSection({
         Repeat
       </Cell>
       {summary && (
-        // Render summary in Cell's `after` slot rather than the body, because
-        // Cell wraps children in a <span> (display:inline), which means
-        // wrappers like `w-full text-right` never actually fill width or
-        // right-align. The after slot is a sibling flex child that telegram-ui
-        // already positions to the right.
+        // Body holds the left-anchored label ("Every" or "Every N weeks")
+        // and the after slot holds the right-aligned value. telegram-ui
+        // positions the after slot to the right via its own flex layout —
+        // this is the only reliable way to right-align in a Cell because
+        // body children get wrapped in an inline <span>.
         <Cell
           onClick={openSheet}
           after={
@@ -105,10 +96,14 @@ export default function RepeatAndEndDateSection({
               className="text-sm"
               style={{ color: tSubtitleTextColor, whiteSpace: "normal" }}
             >
-              {summary}
+              {summary.right}
             </Text>
           }
-        />
+        >
+          <Text className="text-sm" style={{ color: tSubtitleTextColor }}>
+            {summary.left}
+          </Text>
+        </Cell>
       )}
       {r.preset !== "NONE" && (
         <Cell

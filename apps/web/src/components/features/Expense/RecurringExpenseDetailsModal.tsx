@@ -27,8 +27,8 @@ import ShareParticipant from "../Chat/ShareParticipant";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDate } from "@utils/date";
 import {
-  formatRecurrenceSummary,
   PRESET_LABEL,
+  splitRecurrenceSummary,
   type CanonicalFrequency,
   type Weekday,
 } from "./recurrencePresets";
@@ -120,21 +120,16 @@ export default function RecurringExpenseDetailsModal({
       : new Date(template.endDate)
     : null;
 
-  const repeatSummary = formatRecurrenceSummary({
+  const repeatShortLabel =
+    template.interval === 1 ? PRESET_LABEL[template.frequency] : "Custom";
+  // Two-slot summary: left ("Every") in Cell body, right (weekdays /
+  // interval phrase) in Cell after. Returns null when the Repeat row's
+  // short label already conveys everything.
+  const repeatSummary = splitRecurrenceSummary({
     frequency: template.frequency,
     interval: template.interval,
     weekdays: template.weekdays,
-    endDate: null,
   });
-  // Short label for the Repeat row's after-slot. WEEKLY with picked
-  // weekdays and CUSTOM (interval > 1) need the full summary too —
-  // rendered as a separate multiline cell below so the long string
-  // doesn't wrap inside the after slot.
-  const repeatShortLabel =
-    template.interval === 1 ? PRESET_LABEL[template.frequency] : "Custom";
-  const showRepeatSummaryRow =
-    repeatSummary !== repeatShortLabel &&
-    (template.frequency === "WEEKLY" || template.interval > 1);
 
   return (
     <Modal
@@ -288,10 +283,10 @@ export default function RecurringExpenseDetailsModal({
           >
             <Text weight="2">Repeat</Text>
           </Cell>
-          {showRepeatSummaryRow && (
-            // After slot — Cell wraps body children in a <span> so a
-            // `w-full text-right` div there can't actually fill width or
-            // right-align. The after slot is positioned by telegram-ui itself.
+          {repeatSummary && (
+            // Body = left label ("Every"), after = right value (weekdays
+            // or interval phrase). after is the only reliable right-align
+            // slot in a Cell because body children get wrapped in a span.
             <Cell
               after={
                 <Text
@@ -301,11 +296,15 @@ export default function RecurringExpenseDetailsModal({
                     whiteSpace: "normal",
                   }}
                 >
-                  {repeatSummary}
+                  {repeatSummary.right}
                 </Text>
               }
               style={{ backgroundColor: tSectionBgColor }}
-            />
+            >
+              <Text className="text-sm" style={{ color: tSubtitleTextColor }}>
+                {repeatSummary.left}
+              </Text>
+            </Cell>
           )}
           <Cell
             before={
