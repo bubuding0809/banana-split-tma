@@ -6,6 +6,7 @@ import { assertChatAccess } from "../../../middleware/chatScope.js";
 import { getSchedulerClient } from "../../aws/utils/schedulerClient.js";
 import { RECURRING_EXPENSE_SCHEDULE_GROUP } from "../../aws/utils/recurringExpenseScheduler.js";
 import { buildExpenseCron } from "../../aws/utils/buildExpenseCron.js";
+import { computeAwsScheduleStartDate } from "../../aws/utils/computeAwsScheduleStartDate.js";
 
 const FREQUENCY = z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
 const WEEKDAY = z.enum(["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]);
@@ -140,7 +141,15 @@ export default protectedProcedure
               },
             },
             FlexibleTimeWindow: { Mode: "OFF" },
-            StartDate: updated.startDate,
+            // updated.startDate is the original transaction date and may
+            // be older than 5 minutes, which AWS rejects. Recompute a
+            // future-safe StartDate that also lands past the original
+            // day boundary in the template's timezone.
+            StartDate: computeAwsScheduleStartDate({
+              transactionDate: updated.startDate,
+              now: new Date(),
+              timezone: updated.timezone,
+            }),
             EndDate: updated.endDate ?? undefined,
             Description: `Recurring expense ${updated.id} for chat ${updated.chatId}`,
           })
