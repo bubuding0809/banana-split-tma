@@ -3,8 +3,9 @@ import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
+import { resolveCategory, type ChatCategoryRow } from "@repo/categories";
+
 import { trpc } from "@/utils/trpc";
-import { type CanonicalFrequency, type Weekday } from "./recurrencePresets";
 import RecurringExpenseCell, {
   type RecurringTemplateForCell,
 } from "./RecurringExpenseCell";
@@ -13,21 +14,9 @@ interface Props {
   chatId: number;
 }
 
-interface RecurringTemplate {
-  id: string;
-  description: string;
-  amount: string | number;
-  currency: string;
-  payerId: number;
-  chatId: number;
-  frequency: CanonicalFrequency;
-  interval: number;
-  weekdays: Weekday[];
-  startDate: Date | string;
-  endDate: Date | string | null;
-  categoryId: string | null;
+type RecurringTemplate = RecurringTemplateForCell & {
   status: "ACTIVE" | "CANCELED" | "ENDED";
-}
+};
 
 export default function RecurringTemplatesList({ chatId }: Props) {
   const globalNavigate = useNavigate();
@@ -60,16 +49,17 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     return () => offClick();
   }, [chatId, globalNavigate]);
 
-  // Build categoryId → emoji map (the API prefixes custom-category ids
-  // with "chat:" but template.categoryId is the bare UUID).
-  const categoryById = useMemo(() => {
-    const map = new Map<string, { emoji: string; title: string }>();
-    (categoriesData?.items ?? []).forEach((c) => {
-      const id = c.id.replace(/^chat:/, "");
-      map.set(id, { emoji: c.emoji, title: c.title });
-    });
-    return map;
-  }, [categoriesData]);
+  const chatRows = useMemo<ChatCategoryRow[]>(
+    () =>
+      (categoriesData?.items ?? [])
+        .filter((c) => c.kind === "custom")
+        .map((c) => ({
+          id: c.id.replace(/^chat:/, ""),
+          emoji: c.emoji,
+          title: c.title,
+        })),
+    [categoriesData]
+  );
 
   if (status === "pending") {
     return (
@@ -116,26 +106,14 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     <main className="px-3 pb-8">
       <Section header="Recurring expenses">
         {templates.map((t) => {
-          const cat = t.categoryId ? categoryById.get(t.categoryId) : null;
-          const cellTemplate: RecurringTemplateForCell = {
-            id: t.id,
-            description: t.description,
-            amount: t.amount,
-            currency: t.currency,
-            payerId: t.payerId,
-            chatId: t.chatId,
-            frequency: t.frequency,
-            interval: t.interval,
-            weekdays: t.weekdays,
-            startDate: t.startDate,
-            endDate: t.endDate,
-            categoryId: t.categoryId,
-          };
+          const resolved = t.categoryId
+            ? resolveCategory(t.categoryId, chatRows)
+            : null;
           return (
             <RecurringExpenseCell
               key={t.id}
-              template={cellTemplate}
-              categoryEmoji={cat?.emoji}
+              template={t}
+              categoryEmoji={resolved?.emoji}
               onClick={() => setSelectedTemplateId(t.id)}
             />
           );
