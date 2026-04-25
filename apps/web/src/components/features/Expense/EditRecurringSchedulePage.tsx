@@ -25,6 +25,11 @@ import { trpc } from "@/utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
 import RepeatAndEndDateSection from "./RepeatAndEndDateSection";
 import type { RecurrenceValue } from "./RecurrencePickerSheet";
+import {
+  nextOccurrenceAfter,
+  type CanonicalFrequency,
+  type Weekday,
+} from "./recurrencePresets";
 
 interface Props {
   chatId: number;
@@ -98,6 +103,38 @@ export default function EditRecurringSchedulePage({
           )
         : undefined,
     });
+  }, [template, recurrence]);
+
+  // Cross-field validation: end date (when set) must allow at least one
+  // future occurrence after the template's startDate. Mirrors the
+  // superRefine in AddExpenseForm.type.ts so the user sees the problem
+  // BEFORE Save fires and AWS rejects with a cryptic
+  // "...will never schedule an invocation."
+  const validationError = useMemo<string | null>(() => {
+    if (!template || !recurrence) return null;
+    if (recurrence.preset === "NONE") return null;
+    if (!recurrence.endDate) return null;
+    const t = template as { startDate: string | Date };
+    const start =
+      t.startDate instanceof Date ? t.startDate : new Date(t.startDate);
+    const end = new Date(recurrence.endDate + "T00:00:00");
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
+      return null;
+    const newFreq: CanonicalFrequency =
+      recurrence.preset === "CUSTOM"
+        ? recurrence.customFrequency
+        : (recurrence.preset as CanonicalFrequency);
+    const newInterval =
+      recurrence.preset === "CUSTOM" ? recurrence.customInterval : 1;
+    const next = nextOccurrenceAfter(start, {
+      frequency: newFreq,
+      interval: newInterval,
+      weekdays: recurrence.weekdays as Weekday[],
+    });
+    if (end < next) {
+      return `End date must be on or after ${format(next, "d MMM yyyy")} (the next occurrence)`;
+    }
+    return null;
   }, [template, recurrence]);
 
   const trpcUtils = trpc.useUtils();
@@ -188,15 +225,21 @@ export default function EditRecurringSchedulePage({
     tDestructive,
   ]);
 
-  // mainButton (Save) wiring
+  // mainButton (Save) wiring. Disabled while there's a validation error
+  // so a tap can't fire the mutation and hit the AWS "never invocation"
+  // rejection — same pattern as AmountFormStep's onChange validator.
   useEffect(() => {
     if (!template || !recurrence) return;
     mainButton.setParams.ifAvailable({
       text: "Save",
       isVisible: true,
-      isEnabled: true,
+      isEnabled: validationError === null,
     });
     const offClick = mainButton.onClick.ifAvailable(async () => {
+      if (validationError) {
+        hapticFeedback.notificationOccurred("warning");
+        return;
+      }
       // Only send fields that actually changed.
       const t = template as {
         frequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
@@ -300,6 +343,7 @@ export default function EditRecurringSchedulePage({
     updateMutation,
     chatId,
     globalNavigate,
+    validationError,
   ]);
 
   // BackButton wiring. Mount defensively first — newer SDKs throw
@@ -416,6 +460,11 @@ export default function EditRecurringSchedulePage({
               "yyyy-MM-dd"
             )}
           />
+          {validationError && (
+            <Caption className="px-2 text-sm text-red-500">
+              {validationError}
+            </Caption>
+          )}
         </>
       )}
     </main>
