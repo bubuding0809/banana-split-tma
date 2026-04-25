@@ -116,10 +116,10 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
 
   return (
     <section className="pb-8 pt-2">
-      <div className="px-4 pb-2">
+      <div className="shadow-xs">
         <ConvertCurrenciesCell chatId={chatId} />
       </div>
-      <div className="flex flex-col gap-2 px-4">
+      <div className="mt-2 flex flex-col gap-2 px-4">
         <Section
           header={
             <Title weight="2" className="px-1 py-2" level="3">
