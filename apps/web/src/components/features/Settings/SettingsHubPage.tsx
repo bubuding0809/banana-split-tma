@@ -40,9 +40,12 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
     { chatId },
     { enabled: !isPrivateChat }
   );
-  // Both hooks must be called unconditionally (Rules of Hooks).
-  // We pick the right result based on isPrivateChat at render time.
-  const { data: userTokens } = trpc.apiKey.listUserTokens.useQuery();
+  // Both hooks called unconditionally (Rules of Hooks); only the relevant
+  // one fires the network request via `enabled`. We pick the right result at
+  // render time.
+  const { data: userTokens } = trpc.apiKey.listUserTokens.useQuery(undefined, {
+    enabled: isPrivateChat,
+  });
   const { data: chatTokens } = trpc.apiKey.listTokens.useQuery(
     { chatId },
     { enabled: !isPrivateChat }
@@ -75,11 +78,13 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   const goto = useCallback(
     (sub: string) => {
       hapticFeedback.impactOccurred("light");
-      // `as any` because sub-routes don't exist in routeTree yet (Task 21 cleans this up).
-      (navigate as any)({
+      // Cast the args, not the function — sub-routes don't exist in
+      // routeTree yet (Task 21 cleans this up). Narrowing the cast keeps
+      // the rest of the navigate signature type-checked.
+      navigate({
         to: `/chat/$chatId/settings/${sub}`,
         params: { chatId: String(chatId) },
-      });
+      } as any);
     },
     [chatId, navigate]
   );
@@ -117,7 +122,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             color="teal"
             icon={<Users size={16} />}
             label="Members"
-            value={String(members?.length ?? "")}
+            value={members?.length ? String(members.length) : undefined}
             onClick={() => goto("members")}
           />
           <RowLink
