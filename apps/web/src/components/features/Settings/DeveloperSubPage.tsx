@@ -6,10 +6,20 @@ import {
   initData,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { ButtonCell, Section, Text } from "@telegram-apps/telegram-ui";
-import { Plus } from "lucide-react";
+import {
+  Button,
+  ButtonCell,
+  Cell,
+  Modal,
+  Section,
+  Snackbar,
+  Text,
+  Title,
+} from "@telegram-apps/telegram-ui";
+import { BookOpen, Copy, Plus } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import TokenNameSheet from "./TokenNameSheet";
+import SetupGuideModal from "./SetupGuideModal";
 
 interface DeveloperSubPageProps {
   chatId: number;
@@ -22,6 +32,14 @@ interface ListedToken {
   createdAt: string;
 }
 
+const getAgentPrompt = (
+  token: string
+) => `Hey agent, please install and configure the Banana Split CLI for this project:
+1. Run \`npm install -g @banananasplitz/cli\`
+2. Run \`banana login --api-key ${token}\`
+3. Install the skill by evaluating \`banana install-skill\`, extracting the \`skill_path\` from the JSON, and copying that directory into your skills folder.
+4. Confirm you can read the skill, then run \`banana list-expenses\` to verify the connection.`;
+
 export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const navigate = useNavigate();
   const tUser = useSignal(initData.user);
@@ -31,6 +49,8 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<ListedToken | null>(null);
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
+  const [setupGuideOpen, setSetupGuideOpen] = useState(false);
+  const [snackbarText, setSnackbarText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Use the right query family for chat vs user. Both called unconditionally
@@ -81,6 +101,19 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
     });
     return () => off();
   }, [chatId, navigate]);
+
+  const showSnackbar = useCallback((text: string) => {
+    setSnackbarText(text);
+  }, []);
+
+  const copy = useCallback(
+    (text: string, label: string) => {
+      navigator.clipboard.writeText(text);
+      hapticFeedback.impactOccurred("light");
+      showSnackbar(label);
+    },
+    [showSnackbar]
+  );
 
   const handleCreate = useCallback(
     async (name: string) => {
@@ -179,6 +212,18 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
         ))}
       </Section>
 
+      <Section>
+        <Cell
+          before={<BookOpen size={20} />}
+          onClick={() => {
+            hapticFeedback.impactOccurred("light");
+            setSetupGuideOpen(true);
+          }}
+        >
+          MCP setup guide for agents
+        </Cell>
+      </Section>
+
       <TokenNameSheet
         mode="create"
         open={createOpen}
@@ -196,52 +241,107 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
         busy={busy}
       />
 
-      {/* Show the raw key once after creation. */}
       {newRawKey && (
-        <RawKeyModal rawKey={newRawKey} onClose={() => setNewRawKey(null)} />
+        <NewTokenModal
+          rawKey={newRawKey}
+          onClose={() => setNewRawKey(null)}
+          onCopy={copy}
+          onOpenSetupGuide={() => setSetupGuideOpen(true)}
+        />
+      )}
+
+      <SetupGuideModal
+        open={setupGuideOpen}
+        onOpenChange={setSetupGuideOpen}
+        onCopy={showSnackbar}
+      />
+
+      {snackbarText && (
+        <Snackbar
+          duration={3000}
+          onClose={() => setSnackbarText(null)}
+          description="Paste it where you need it."
+        >
+          {snackbarText}
+        </Snackbar>
       )}
     </main>
   );
 }
 
-// Lifted from the existing AccessTokensSection's raw-key reveal modal — show
-// once, allow copy, then dismiss. The original component already has this UX;
-// when we remove the old file in Task 20 we keep this small modal here.
-function RawKeyModal({
-  rawKey,
-  onClose,
-}: {
+interface NewTokenModalProps {
   rawKey: string;
   onClose: () => void;
-}) {
+  onCopy: (text: string, label: string) => void;
+  onOpenSetupGuide: () => void;
+}
+
+function NewTokenModal({
+  rawKey,
+  onClose,
+  onCopy,
+  onOpenSetupGuide,
+}: NewTokenModalProps) {
+  const agentPrompt = getAgentPrompt(rawKey);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-      <div className="bg-(--tg-theme-bg-color) w-full rounded-t-2xl p-4">
-        <div className="text-center text-base font-semibold">New token</div>
-        <Text className="text-(--tg-theme-subtitle-text-color) mt-2 block">
-          Copy this key now — you won't see it again.
+    <Modal open onOpenChange={(open) => !open && onClose()}>
+      <div className="flex max-h-[80vh] flex-col gap-4 overflow-y-auto px-4 pb-6 pt-4">
+        <Title level="2" weight="2">
+          New token
+        </Title>
+        <Text className="text-(--tg-theme-subtitle-text-color) text-sm">
+          Copy this key now — you won&apos;t see it again.
         </Text>
-        <pre className="mt-3 break-all rounded bg-gray-100 p-3 text-xs">
+
+        <pre className="overflow-x-auto rounded-lg border bg-gray-50 p-3 font-mono text-xs dark:bg-gray-800">
           {rawKey}
         </pre>
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText(rawKey);
-            hapticFeedback.impactOccurred("light");
-          }}
-          className="mt-3 w-full rounded bg-blue-500 py-2 font-medium text-white"
+        <Button
+          size="m"
+          stretched
+          mode="filled"
+          before={<Copy size={18} />}
+          onClick={() => onCopy(rawKey, "Token copied")}
         >
-          Copy
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-2 w-full rounded border py-2 font-medium"
-        >
+          Copy token
+        </Button>
+
+        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-gray-100 p-3 dark:border-gray-800">
+          <Title level="3" weight="2">
+            Set up an agent
+          </Title>
+          <Text className="text-(--tg-theme-subtitle-text-color) text-xs">
+            Paste this prompt into Claude, ChatGPT, or any coding agent — it
+            installs the CLI and verifies the connection automatically.
+          </Text>
+          <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-gray-50 p-3 font-mono text-xs dark:bg-gray-800">
+            {agentPrompt}
+          </pre>
+          <Button
+            size="m"
+            stretched
+            mode="filled"
+            before={<Copy size={18} />}
+            onClick={() => onCopy(agentPrompt, "Agent setup prompt copied")}
+          >
+            Copy agent setup prompt
+          </Button>
+          <Button
+            size="m"
+            stretched
+            mode="outline"
+            before={<BookOpen size={18} />}
+            onClick={onOpenSetupGuide}
+          >
+            View MCP setup guide
+          </Button>
+        </div>
+
+        <Button size="m" stretched mode="plain" onClick={onClose}>
           Done
-        </button>
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }
