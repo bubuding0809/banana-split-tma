@@ -131,10 +131,10 @@ export default function RecurringExpenseCell({
           avatarStack={
             <Info type="text">
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-(--tg-theme-link-color) rounded-full bg-[color-mix(in_srgb,var(--tg-theme-link-color)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold">
+                <span className="text-(--tg-theme-link-color) rounded-full bg-[color-mix(in_srgb,var(--tg-theme-link-color)_18%,transparent)] px-2.5 py-1 text-xs font-semibold">
                   ↻ {freqLabel}
                 </span>
-                <Caption className="w-max" weight="2">
+                <Caption className="w-max" weight="2" level="1">
                   Next {format(nextFire, "d MMM")}
                 </Caption>
               </div>
