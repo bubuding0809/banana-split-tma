@@ -68,6 +68,7 @@ export const generateApiKeyHandler = async (
     data: {
       keyHash,
       keyPrefix,
+      name: `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`,
       chatId: input.chatId,
       createdById: input.createdById,
     },

@@ -31,6 +31,7 @@ export const generateUserTokenHandler = async (db: Db, userId?: number) => {
     data: {
       keyHash,
       keyPrefix,
+      name: `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`,
       userId: bigUserId,
     },
   });
