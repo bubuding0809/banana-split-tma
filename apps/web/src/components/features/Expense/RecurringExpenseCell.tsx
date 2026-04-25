@@ -5,10 +5,11 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { format } from "date-fns";
 
 import { trpc } from "@utils/trpc";
 import { formatCurrencyWithCode } from "@/utils/financial";
+import { formatExpenseDateShort } from "@utils/date";
+import RecurringExpenseBadge from "./RecurringExpenseBadge";
 import {
   nextOccurrenceAfter,
   PRESET_LABEL,
@@ -131,11 +132,16 @@ export default function RecurringExpenseCell({
           avatarStack={
             <Info type="text">
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-(--tg-theme-link-color) rounded-full bg-[color-mix(in_srgb,var(--tg-theme-link-color)_18%,transparent)] px-2.5 py-1 text-xs font-semibold">
-                  ↻ {freqLabel}
-                </span>
-                <Caption className="w-max" weight="2" level="1">
-                  Next {format(nextFire, "d MMM")}
+                {/* Match the transaction cell's recurring-indicator shape:
+                    small RecurringExpenseBadge + date Caption inline. */}
+                <div className="flex items-center gap-1.5">
+                  <RecurringExpenseBadge />
+                  <Caption className="w-max" weight="2">
+                    {formatExpenseDateShort(nextFire)}
+                  </Caption>
+                </div>
+                <Caption className="w-max" weight="1" level="1">
+                  {freqLabel}
                 </Caption>
               </div>
             </Info>
