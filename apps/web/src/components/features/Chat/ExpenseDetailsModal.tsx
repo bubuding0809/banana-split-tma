@@ -74,7 +74,6 @@ const RecurringScheduleSection = ({
   if (!template) return null;
 
   const t = template as {
-    id: string;
     frequency: CanonicalFrequency;
     interval: number;
     weekdays: Weekday[];
@@ -172,14 +171,13 @@ const RecurringScheduleSection = ({
         <Text weight="2">End Date</Text>
       </Cell>
       <Cell
-        before={null}
         after={<Navigation />}
         onClick={() => {
           hapticFeedback.impactOccurred("light");
           onClose();
           navigate({
             to: "/chat/$chatId/edit-recurring/$templateId",
-            params: { chatId: String(chatId), templateId: t.id },
+            params: { chatId: String(chatId), templateId },
           });
         }}
         style={{ backgroundColor: tSectionBgColor }}
@@ -446,7 +444,7 @@ const ExpenseDetailsModal = ({
         {expense.recurringTemplateId && (
           <RecurringScheduleSection
             templateId={expense.recurringTemplateId}
-            chatId={Number(expense.chatId)}
+            chatId={expense.chatId}
             onClose={() => onOpenChange(false)}
             tSectionBgColor={tSectionBgColor}
             tButtonColor={tButtonColor}
