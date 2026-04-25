@@ -5,6 +5,7 @@ import {
   IconButton,
   Info,
   Modal,
+  Navigation,
   Section,
   Skeleton,
   Text,
@@ -19,6 +20,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
+import { useNavigate } from "@tanstack/react-router";
 import { formatExpenseDate } from "@utils/date";
 import { useMemo } from "react";
 import { formatCurrencyWithCode } from "@/utils/financial";
@@ -46,15 +48,24 @@ const splitModeMap = {
 
 interface RecurringScheduleSectionProps {
   templateId: string;
+  chatId: number;
+  onClose: () => void;
   tSectionBgColor: string | undefined;
+  tButtonColor: string | undefined;
   tSubtitleTextColor: string | undefined;
 }
 
 const RecurringScheduleSection = ({
   templateId,
+  chatId,
+  onClose,
   tSectionBgColor,
+  tButtonColor,
   tSubtitleTextColor,
 }: RecurringScheduleSectionProps) => {
+  // All hooks must run unconditionally before any early returns to
+  // satisfy the rules of hooks.
+  const navigate = useNavigate();
   const { data: template } = trpc.expense.recurring.get.useQuery(
     { templateId },
     { enabled: Boolean(templateId) }
@@ -63,12 +74,45 @@ const RecurringScheduleSection = ({
   if (!template) return null;
 
   const t = template as {
+    id: string;
     frequency: CanonicalFrequency;
     interval: number;
     weekdays: Weekday[];
     endDate: Date | string | null;
+    status: "ACTIVE" | "CANCELED" | "ENDED";
   };
 
+  // CANCELED templates: hide the Schedule section entirely. The
+  // occurrence still exists in the ledger but its template was canceled
+  // — surfacing schedule details would be misleading.
+  if (t.status === "CANCELED") return null;
+
+  const endDate = t.endDate
+    ? t.endDate instanceof Date
+      ? t.endDate
+      : new Date(t.endDate)
+    : null;
+
+  // ENDED templates: show only a muted breadcrumb caption pointing back
+  // to the recurrence origin. No interactive Schedule section, since
+  // there is nothing to manage.
+  if (t.status === "ENDED") {
+    return (
+      <div className="px-3 pt-2">
+        <Caption style={{ color: tSubtitleTextColor }}>
+          <RepeatIcon
+            size={12}
+            strokeWidth={2.5}
+            style={{ marginRight: 4, verticalAlign: "middle" }}
+          />
+          From a recurring schedule that ended on{" "}
+          {endDate ? formatExpenseDate(endDate) : "an earlier date"}
+        </Caption>
+      </div>
+    );
+  }
+
+  // ACTIVE: full Schedule section + Manage shortcut Cell.
   const repeatShortLabel =
     t.interval === 1 ? PRESET_LABEL[t.frequency] : "Custom";
   // Two-slot summary row: body for the left label, after for the right
@@ -79,11 +123,6 @@ const RecurringScheduleSection = ({
     interval: t.interval,
     weekdays: t.weekdays,
   });
-  const endDate = t.endDate
-    ? t.endDate instanceof Date
-      ? t.endDate
-      : new Date(t.endDate)
-    : null;
 
   return (
     <Section className="px-3" header="Schedule">
@@ -131,6 +170,23 @@ const RecurringScheduleSection = ({
         style={{ backgroundColor: tSectionBgColor }}
       >
         <Text weight="2">End Date</Text>
+      </Cell>
+      <Cell
+        before={null}
+        after={<Navigation />}
+        onClick={() => {
+          hapticFeedback.impactOccurred("light");
+          onClose();
+          navigate({
+            to: "/chat/$chatId/edit-recurring/$templateId",
+            params: { chatId: String(chatId), templateId: t.id },
+          });
+        }}
+        style={{ backgroundColor: tSectionBgColor }}
+      >
+        <Text weight="2" style={{ color: tButtonColor }}>
+          Manage schedule
+        </Text>
       </Cell>
     </Section>
   );
@@ -390,7 +446,10 @@ const ExpenseDetailsModal = ({
         {expense.recurringTemplateId && (
           <RecurringScheduleSection
             templateId={expense.recurringTemplateId}
+            chatId={Number(expense.chatId)}
+            onClose={() => onOpenChange(false)}
             tSectionBgColor={tSectionBgColor}
+            tButtonColor={tButtonColor}
             tSubtitleTextColor={tSubtitleTextColor}
           />
         )}
