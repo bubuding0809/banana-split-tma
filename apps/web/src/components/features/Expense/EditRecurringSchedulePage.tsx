@@ -117,7 +117,10 @@ export default function EditRecurringSchedulePage({
     const t = template as { startDate: string | Date };
     const start =
       t.startDate instanceof Date ? t.startDate : new Date(t.startDate);
-    const end = new Date(recurrence.endDate + "T00:00:00");
+    // T23:59:59 — the user's picked end-date is INCLUSIVE of that day's
+    // fire. AWS treats EndDate as an exclusive upper bound, so submitting
+    // May 25 00:00 would cut off the May 25 9am fire; end-of-day keeps it.
+    const end = new Date(recurrence.endDate + "T23:59:59");
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
       return null;
     const newFreq: CanonicalFrequency =
@@ -268,7 +271,7 @@ export default function EditRecurringSchedulePage({
         recurrence.preset === "CUSTOM" ? recurrence.customInterval : 1;
       const newWeekdays = recurrence.weekdays;
       const newEndDate = recurrence.endDate
-        ? new Date(recurrence.endDate + "T00:00:00")
+        ? new Date(recurrence.endDate + "T23:59:59")
         : null;
 
       if (newFrequency && newFrequency !== t.frequency) {
