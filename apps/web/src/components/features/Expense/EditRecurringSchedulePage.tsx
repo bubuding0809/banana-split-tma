@@ -114,6 +114,13 @@ export default function EditRecurringSchedulePage({
     },
   });
   const tDestructive = useSignal(themeParams.destructiveTextColor);
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const offSecondaryClickRef = useRef<VoidFunction | undefined>(undefined);
 
   // secondaryButton (Delete) wiring
@@ -144,12 +151,14 @@ export default function EditRecurringSchedulePage({
       });
       try {
         await cancelMutation.mutateAsync({ templateId });
+        if (!isMountedRef.current) return;
         hapticFeedback.notificationOccurred("success");
         globalNavigate({
           to: "/chat/$chatId/recurring-expenses",
           params: { chatId: String(chatId) },
         });
       } catch (error) {
+        if (!isMountedRef.current) return;
         console.error("Failed to cancel recurring template:", error);
         hapticFeedback.notificationOccurred("error");
         alert(
@@ -257,12 +266,14 @@ export default function EditRecurringSchedulePage({
       });
       try {
         await updateMutation.mutateAsync(dirtyFields);
+        if (!isMountedRef.current) return;
         hapticFeedback.notificationOccurred("success");
         globalNavigate({
           to: "/chat/$chatId/recurring-expenses",
           params: { chatId: String(chatId) },
         });
       } catch (error) {
+        if (!isMountedRef.current) return;
         console.error("Failed to update recurring template:", error);
         hapticFeedback.notificationOccurred("error");
         alert(

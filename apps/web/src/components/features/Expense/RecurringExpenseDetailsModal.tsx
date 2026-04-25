@@ -289,9 +289,6 @@ export default function RecurringExpenseDetailsModal({
             style={{ backgroundColor: tSectionBgColor }}
           >
             <Text weight="2">End Date</Text>
-            <Text style={{ color: tSubtitleTextColor }} className="sr-only">
-              {endDate ? formatExpenseDate(endDate) : "Never"}
-            </Text>
           </Cell>
         </Section>
       </div>

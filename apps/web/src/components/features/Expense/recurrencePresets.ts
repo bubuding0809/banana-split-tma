@@ -156,7 +156,7 @@ const WEEKDAY_LABEL: Record<Weekday, string> = {
   SAT: "Sat",
 };
 
-const UNIT_SINGULAR: Record<CanonicalFrequency, string> = {
+export const UNIT_SINGULAR: Record<CanonicalFrequency, string> = {
   DAILY: "day",
   WEEKLY: "week",
   MONTHLY: "month",

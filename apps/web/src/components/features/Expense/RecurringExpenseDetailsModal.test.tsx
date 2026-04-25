@@ -44,7 +44,18 @@ vi.mock("@telegram-apps/telegram-ui", () => ({
       Close: ({ children }: any) => <>{children}</>,
     }
   ),
-  Cell: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  Cell: ({
+    children,
+    after,
+  }: {
+    children?: React.ReactNode;
+    after?: React.ReactNode;
+  }) => (
+    <div>
+      {children}
+      {after}
+    </div>
+  ),
   Section: ({
     header,
     children,

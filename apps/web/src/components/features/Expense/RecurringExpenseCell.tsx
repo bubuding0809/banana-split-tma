@@ -12,6 +12,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import {
   nextOccurrenceAfter,
   PRESET_LABEL,
+  UNIT_SINGULAR,
   type CanonicalFrequency,
   type Weekday,
 } from "./recurrencePresets";
@@ -82,7 +83,7 @@ export default function RecurringExpenseCell({
   const freqLabel =
     template.interval === 1
       ? PRESET_LABEL[template.frequency]
-      : `Every ${template.interval} ${template.frequency.toLowerCase()}s`;
+      : `Every ${template.interval} ${UNIT_SINGULAR[template.frequency]}s`;
 
   const flagEmoji =
     supportedCurrencies?.find((c) => c.code === template.currency)?.flagEmoji ??
