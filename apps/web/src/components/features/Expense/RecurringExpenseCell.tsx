@@ -132,16 +132,17 @@ export default function RecurringExpenseCell({
           avatarStack={
             <Info type="text">
               <div className="flex flex-col items-end gap-1.5">
-                {/* Match the transaction cell's recurring-indicator shape:
-                    small RecurringExpenseBadge + date Caption inline. */}
+                {/* Top: small RecurringExpenseBadge + frequency label inline.
+                    Bottom: next-fire date in the same Caption format used by
+                    the transaction cell. */}
                 <div className="flex items-center gap-1.5">
                   <RecurringExpenseBadge />
                   <Caption className="w-max" weight="2">
-                    {formatExpenseDateShort(nextFire)}
+                    {freqLabel}
                   </Caption>
                 </div>
                 <Caption className="w-max" weight="1" level="1">
-                  {freqLabel}
+                  Next {formatExpenseDateShort(nextFire)}
                 </Caption>
               </div>
             </Info>
