@@ -143,6 +143,19 @@ export default function RecurringExpenseDetailsModal({
           }
           after={
             <div className="flex items-center gap-2">
+              <IconButton
+                size="s"
+                mode="gray"
+                onClick={onEdit}
+                aria-label="Edit recurring template"
+                className="p-1"
+              >
+                <Pencil
+                  size={20}
+                  strokeWidth={3}
+                  style={{ color: tButtonColor }}
+                />
+              </IconButton>
               <Modal.Close>
                 <IconButton
                   size="s"
@@ -168,19 +181,6 @@ export default function RecurringExpenseDetailsModal({
       }
     >
       <div className="flex max-h-[70vh] flex-col overflow-y-auto pb-5">
-        {/* Pencil edit button — rendered in body so it's always in the DOM */}
-        <div className="flex justify-end px-3 pb-1">
-          <IconButton
-            size="s"
-            mode="gray"
-            onClick={onEdit}
-            aria-label="Edit recurring template"
-            className="p-1"
-          >
-            <Pencil size={20} strokeWidth={3} style={{ color: tButtonColor }} />
-          </IconButton>
-        </div>
-
         {/* What was this for? */}
         <Section header="What was this for?" className="px-3">
           <Cell

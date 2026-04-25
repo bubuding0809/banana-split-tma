@@ -18,8 +18,21 @@ vi.mock("@telegram-apps/sdk-react", () => ({
 
 vi.mock("@telegram-apps/telegram-ui", () => ({
   Modal: Object.assign(
-    ({ open, children }: { open: boolean; children?: React.ReactNode }) =>
-      open ? <div data-testid="modal">{children}</div> : null,
+    ({
+      open,
+      header,
+      children,
+    }: {
+      open: boolean;
+      header?: React.ReactNode;
+      children?: React.ReactNode;
+    }) =>
+      open ? (
+        <div data-testid="modal">
+          {header}
+          {children}
+        </div>
+      ) : null,
     {
       Header: ({ before, after, children }: any) => (
         <div>
