@@ -25,6 +25,7 @@ import { Route as TmaChatChatIdSnapshotsSnapshotIdRouteImport } from './routes/_
 import { Route as TmaChatChatIdSettingsRemindersRouteImport } from './routes/_tma/chat.$chatId_.settings.reminders'
 import { Route as TmaChatChatIdSettingsNotificationsRouteImport } from './routes/_tma/chat.$chatId_.settings.notifications'
 import { Route as TmaChatChatIdSettingsMembersRouteImport } from './routes/_tma/chat.$chatId_.settings.members'
+import { Route as TmaChatChatIdSettingsDeveloperRouteImport } from './routes/_tma/chat.$chatId_.settings.developer'
 import { Route as TmaChatChatIdSettingsCurrencyRouteImport } from './routes/_tma/chat.$chatId_.settings.currency'
 import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
 import { Route as TmaChatChatIdSettingsAccountRouteImport } from './routes/_tma/chat.$chatId_.settings.account'
@@ -122,6 +123,12 @@ const TmaChatChatIdSettingsMembersRoute =
     path: '/members',
     getParentRoute: () => TmaChatChatIdSettingsRoute,
   } as any)
+const TmaChatChatIdSettingsDeveloperRoute =
+  TmaChatChatIdSettingsDeveloperRouteImport.update({
+    id: '/developer',
+    path: '/developer',
+    getParentRoute: () => TmaChatChatIdSettingsRoute,
+  } as any)
 const TmaChatChatIdSettingsCurrencyRoute =
   TmaChatChatIdSettingsCurrencyRouteImport.update({
     id: '/currency',
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
+  '/chat/$chatId/settings/developer': typeof TmaChatChatIdSettingsDeveloperRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
   '/chat/$chatId/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/chat/$chatId/settings/reminders': typeof TmaChatChatIdSettingsRemindersRoute
@@ -224,6 +232,7 @@ export interface FileRoutesByTo {
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/chat/$chatId/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
+  '/chat/$chatId/settings/developer': typeof TmaChatChatIdSettingsDeveloperRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
   '/chat/$chatId/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/chat/$chatId/settings/reminders': typeof TmaChatChatIdSettingsRemindersRoute
@@ -253,6 +262,7 @@ export interface FileRoutesById {
   '/_tma/chat/$chatId_/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/_tma/chat/$chatId_/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
+  '/_tma/chat/$chatId_/settings/developer': typeof TmaChatChatIdSettingsDeveloperRoute
   '/_tma/chat/$chatId_/settings/members': typeof TmaChatChatIdSettingsMembersRoute
   '/_tma/chat/$chatId_/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/_tma/chat/$chatId_/settings/reminders': typeof TmaChatChatIdSettingsRemindersRoute
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/settings/account'
     | '/chat/$chatId/settings/categories'
     | '/chat/$chatId/settings/currency'
+    | '/chat/$chatId/settings/developer'
     | '/chat/$chatId/settings/members'
     | '/chat/$chatId/settings/notifications'
     | '/chat/$chatId/settings/reminders'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/edit-snapshot/$snapshotId'
     | '/chat/$chatId/settings/account'
     | '/chat/$chatId/settings/currency'
+    | '/chat/$chatId/settings/developer'
     | '/chat/$chatId/settings/members'
     | '/chat/$chatId/settings/notifications'
     | '/chat/$chatId/settings/reminders'
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/settings/account'
     | '/_tma/chat/$chatId_/settings/categories'
     | '/_tma/chat/$chatId_/settings/currency'
+    | '/_tma/chat/$chatId_/settings/developer'
     | '/_tma/chat/$chatId_/settings/members'
     | '/_tma/chat/$chatId_/settings/notifications'
     | '/_tma/chat/$chatId_/settings/reminders'
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdSettingsMembersRouteImport
       parentRoute: typeof TmaChatChatIdSettingsRoute
     }
+    '/_tma/chat/$chatId_/settings/developer': {
+      id: '/_tma/chat/$chatId_/settings/developer'
+      path: '/developer'
+      fullPath: '/chat/$chatId/settings/developer'
+      preLoaderRoute: typeof TmaChatChatIdSettingsDeveloperRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsRoute
+    }
     '/_tma/chat/$chatId_/settings/currency': {
       id: '/_tma/chat/$chatId_/settings/currency'
       path: '/currency'
@@ -565,6 +585,7 @@ interface TmaChatChatIdSettingsRouteChildren {
   TmaChatChatIdSettingsAccountRoute: typeof TmaChatChatIdSettingsAccountRoute
   TmaChatChatIdSettingsCategoriesRoute: typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   TmaChatChatIdSettingsCurrencyRoute: typeof TmaChatChatIdSettingsCurrencyRoute
+  TmaChatChatIdSettingsDeveloperRoute: typeof TmaChatChatIdSettingsDeveloperRoute
   TmaChatChatIdSettingsMembersRoute: typeof TmaChatChatIdSettingsMembersRoute
   TmaChatChatIdSettingsNotificationsRoute: typeof TmaChatChatIdSettingsNotificationsRoute
   TmaChatChatIdSettingsRemindersRoute: typeof TmaChatChatIdSettingsRemindersRoute
@@ -576,6 +597,7 @@ const TmaChatChatIdSettingsRouteChildren: TmaChatChatIdSettingsRouteChildren = {
   TmaChatChatIdSettingsCategoriesRoute:
     TmaChatChatIdSettingsCategoriesRouteWithChildren,
   TmaChatChatIdSettingsCurrencyRoute: TmaChatChatIdSettingsCurrencyRoute,
+  TmaChatChatIdSettingsDeveloperRoute: TmaChatChatIdSettingsDeveloperRoute,
   TmaChatChatIdSettingsMembersRoute: TmaChatChatIdSettingsMembersRoute,
   TmaChatChatIdSettingsNotificationsRoute:
     TmaChatChatIdSettingsNotificationsRoute,
