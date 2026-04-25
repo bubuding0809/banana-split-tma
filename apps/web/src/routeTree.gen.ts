@@ -22,6 +22,7 @@ import { Route as TmaChatChatIdCreateSnapshotRouteImport } from './routes/_tma/c
 import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
 import { Route as TmaChatChatIdSettingsIndexRouteImport } from './routes/_tma/chat.$chatId_.settings.index'
 import { Route as TmaChatChatIdSnapshotsSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.snapshots_.$snapshotId'
+import { Route as TmaChatChatIdSettingsNotificationsRouteImport } from './routes/_tma/chat.$chatId_.settings.notifications'
 import { Route as TmaChatChatIdSettingsMembersRouteImport } from './routes/_tma/chat.$chatId_.settings.members'
 import { Route as TmaChatChatIdSettingsCurrencyRouteImport } from './routes/_tma/chat.$chatId_.settings.currency'
 import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
@@ -101,6 +102,12 @@ const TmaChatChatIdSnapshotsSnapshotIdRoute =
     path: '/$chatId/snapshots/$snapshotId',
     getParentRoute: () => TmaChatRoute,
   } as any)
+const TmaChatChatIdSettingsNotificationsRoute =
+  TmaChatChatIdSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => TmaChatChatIdSettingsRoute,
+  } as any)
 const TmaChatChatIdSettingsMembersRoute =
   TmaChatChatIdSettingsMembersRouteImport.update({
     id: '/members',
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
+  '/chat/$chatId/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/chat/$chatId/snapshots/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
   '/chat/$chatId/settings/': typeof TmaChatChatIdSettingsIndexRoute
   '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
@@ -200,6 +208,7 @@ export interface FileRoutesByTo {
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
+  '/chat/$chatId/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/chat/$chatId/snapshots/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsIndexRoute
   '/chat/$chatId/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
@@ -226,6 +235,7 @@ export interface FileRoutesById {
   '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/_tma/chat/$chatId_/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/_tma/chat/$chatId_/settings/members': typeof TmaChatChatIdSettingsMembersRoute
+  '/_tma/chat/$chatId_/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
   '/_tma/chat/$chatId_/snapshots_/$snapshotId': typeof TmaChatChatIdSnapshotsSnapshotIdRoute
   '/_tma/chat/$chatId_/settings/': typeof TmaChatChatIdSettingsIndexRoute
   '/_tma/chat/$chatId_/settings/categories/$categoryId': typeof TmaChatChatIdSettingsCategoriesCategoryIdRoute
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/settings/categories'
     | '/chat/$chatId/settings/currency'
     | '/chat/$chatId/settings/members'
+    | '/chat/$chatId/settings/notifications'
     | '/chat/$chatId/snapshots/$snapshotId'
     | '/chat/$chatId/settings/'
     | '/chat/$chatId/settings/categories/$categoryId'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/edit-snapshot/$snapshotId'
     | '/chat/$chatId/settings/currency'
     | '/chat/$chatId/settings/members'
+    | '/chat/$chatId/settings/notifications'
     | '/chat/$chatId/snapshots/$snapshotId'
     | '/chat/$chatId/settings'
     | '/chat/$chatId/settings/categories/$categoryId'
@@ -298,6 +310,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/settings/categories'
     | '/_tma/chat/$chatId_/settings/currency'
     | '/_tma/chat/$chatId_/settings/members'
+    | '/_tma/chat/$chatId_/settings/notifications'
     | '/_tma/chat/$chatId_/snapshots_/$snapshotId'
     | '/_tma/chat/$chatId_/settings/'
     | '/_tma/chat/$chatId_/settings/categories/$categoryId'
@@ -404,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdSnapshotsSnapshotIdRouteImport
       parentRoute: typeof TmaChatRoute
     }
+    '/_tma/chat/$chatId_/settings/notifications': {
+      id: '/_tma/chat/$chatId_/settings/notifications'
+      path: '/notifications'
+      fullPath: '/chat/$chatId/settings/notifications'
+      preLoaderRoute: typeof TmaChatChatIdSettingsNotificationsRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsRoute
+    }
     '/_tma/chat/$chatId_/settings/members': {
       id: '/_tma/chat/$chatId_/settings/members'
       path: '/members'
@@ -505,6 +525,7 @@ interface TmaChatChatIdSettingsRouteChildren {
   TmaChatChatIdSettingsCategoriesRoute: typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   TmaChatChatIdSettingsCurrencyRoute: typeof TmaChatChatIdSettingsCurrencyRoute
   TmaChatChatIdSettingsMembersRoute: typeof TmaChatChatIdSettingsMembersRoute
+  TmaChatChatIdSettingsNotificationsRoute: typeof TmaChatChatIdSettingsNotificationsRoute
   TmaChatChatIdSettingsIndexRoute: typeof TmaChatChatIdSettingsIndexRoute
 }
 
@@ -513,6 +534,8 @@ const TmaChatChatIdSettingsRouteChildren: TmaChatChatIdSettingsRouteChildren = {
     TmaChatChatIdSettingsCategoriesRouteWithChildren,
   TmaChatChatIdSettingsCurrencyRoute: TmaChatChatIdSettingsCurrencyRoute,
   TmaChatChatIdSettingsMembersRoute: TmaChatChatIdSettingsMembersRoute,
+  TmaChatChatIdSettingsNotificationsRoute:
+    TmaChatChatIdSettingsNotificationsRoute,
   TmaChatChatIdSettingsIndexRoute: TmaChatChatIdSettingsIndexRoute,
 }
 
