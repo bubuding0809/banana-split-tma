@@ -115,17 +115,19 @@ Focused, single-section page. No multi-step navigation.
 
 When the viewed expense has a non-null `recurringTemplateId`, append a
 new "↻ Recurring schedule" Section between "How was this expense split?"
-and the bottom of the modal.
+and the bottom of the modal. **Read-only**, single row.
 
 **Section content:**
-- Row 1: `↻` icon + "Repeats" + subtitle "<Frequency> · Next <date>" +
+- One row: `↻` icon + "Repeats" + subtitle "<Frequency> · Next <date>" +
   trailing "until <endDate>" (or "forever" when no endDate).
-- Row 2: link-styled cell "View recurring template →" — navigates to
-  `/chat/$chatId/recurring-expenses?selectedTemplate=<templateId>`. The
-  recurring page reads the search param on mount and auto-opens
-  `RecurringExpenseDetailsModal` for that template (mirrors how
-  `ChatExpenseCell` reads `selectedExpense` to auto-open
-  `ExpenseDetailsModal`).
+
+The pencil at the top of the modal continues to mean "edit this single
+occurrence" — its scope is unchanged. Users who want to manage the
+template (edit schedule, cancel) go through Settings → Recurring
+expenses. We deliberately don't add a "View template" deeplink here:
+the inline read-only info is enough to answer "is this recurring?", and
+adding a navigation handoff would muddle the modal's scope (per-occurrence
+edit vs. template management).
 
 Triggers a `trpc.expense.recurring.get.useQuery({ templateId })` only
 when the section needs to render, so non-recurring expenses pay no
@@ -191,12 +193,11 @@ use the existing `formatRecurrenceSummary()` from
 | Path | Component | Status |
 |---|---|---|
 | `/chat/$chatId/recurring-expenses` | `RecurringTemplatesList` | existing — visual upgrade |
-| `/chat/$chatId/recurring-expenses?selectedTemplate=$id` | `RecurringExpenseDetailsModal` opens via search param (deeplink) | NEW search param |
 | `/chat/$chatId/edit-recurring/$templateId` | `EditRecurringSchedulePage` | NEW route |
 
-The `selectedTemplate` search param mirrors how `ChatExpenseCell` uses
-`selectedExpense` so the "View recurring template →" link in the
-augmented `ExpenseDetailsModal` can deeplink into the detail modal.
+No new search param. The `RecurringExpenseDetailsModal` opens via local
+state on the list page (`selectedTemplate`), set by row taps — no
+deeplink entry point in v1.
 
 ## Error handling
 
