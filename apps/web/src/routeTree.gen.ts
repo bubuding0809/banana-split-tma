@@ -27,6 +27,7 @@ import { Route as TmaChatChatIdSettingsNotificationsRouteImport } from './routes
 import { Route as TmaChatChatIdSettingsMembersRouteImport } from './routes/_tma/chat.$chatId_.settings.members'
 import { Route as TmaChatChatIdSettingsCurrencyRouteImport } from './routes/_tma/chat.$chatId_.settings.currency'
 import { Route as TmaChatChatIdSettingsCategoriesRouteImport } from './routes/_tma/chat.$chatId_.settings.categories'
+import { Route as TmaChatChatIdSettingsAccountRouteImport } from './routes/_tma/chat.$chatId_.settings.account'
 import { Route as TmaChatChatIdEditSnapshotSnapshotIdRouteImport } from './routes/_tma/chat.$chatId_.edit-snapshot.$snapshotId'
 import { Route as TmaChatChatIdEditRecurringTemplateIdRouteImport } from './routes/_tma/chat.$chatId_.edit-recurring.$templateId'
 import { Route as TmaChatChatIdEditExpenseExpenseIdRouteImport } from './routes/_tma/chat.$chatId_.edit-expense.$expenseId'
@@ -133,6 +134,12 @@ const TmaChatChatIdSettingsCategoriesRoute =
     path: '/categories',
     getParentRoute: () => TmaChatChatIdSettingsRoute,
   } as any)
+const TmaChatChatIdSettingsAccountRoute =
+  TmaChatChatIdSettingsAccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => TmaChatChatIdSettingsRoute,
+  } as any)
 const TmaChatChatIdEditSnapshotSnapshotIdRoute =
   TmaChatChatIdEditSnapshotSnapshotIdRouteImport.update({
     id: '/$chatId_/edit-snapshot/$snapshotId',
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/chat/$chatId/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/chat/$chatId/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
@@ -214,6 +222,7 @@ export interface FileRoutesByTo {
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/chat/$chatId/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/chat/$chatId/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/chat/$chatId/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/chat/$chatId/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/chat/$chatId/settings/members': typeof TmaChatChatIdSettingsMembersRoute
   '/chat/$chatId/settings/notifications': typeof TmaChatChatIdSettingsNotificationsRoute
@@ -241,6 +250,7 @@ export interface FileRoutesById {
   '/_tma/chat/$chatId_/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
   '/_tma/chat/$chatId_/edit-recurring/$templateId': typeof TmaChatChatIdEditRecurringTemplateIdRoute
   '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': typeof TmaChatChatIdEditSnapshotSnapshotIdRoute
+  '/_tma/chat/$chatId_/settings/account': typeof TmaChatChatIdSettingsAccountRoute
   '/_tma/chat/$chatId_/settings/categories': typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   '/_tma/chat/$chatId_/settings/currency': typeof TmaChatChatIdSettingsCurrencyRoute
   '/_tma/chat/$chatId_/settings/members': typeof TmaChatChatIdSettingsMembersRoute
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-recurring/$templateId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
+    | '/chat/$chatId/settings/account'
     | '/chat/$chatId/settings/categories'
     | '/chat/$chatId/settings/currency'
     | '/chat/$chatId/settings/members'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId/edit-expense/$expenseId'
     | '/chat/$chatId/edit-recurring/$templateId'
     | '/chat/$chatId/edit-snapshot/$snapshotId'
+    | '/chat/$chatId/settings/account'
     | '/chat/$chatId/settings/currency'
     | '/chat/$chatId/settings/members'
     | '/chat/$chatId/settings/notifications'
@@ -319,6 +331,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/$chatId_/edit-expense/$expenseId'
     | '/_tma/chat/$chatId_/edit-recurring/$templateId'
     | '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
+    | '/_tma/chat/$chatId_/settings/account'
     | '/_tma/chat/$chatId_/settings/categories'
     | '/_tma/chat/$chatId_/settings/currency'
     | '/_tma/chat/$chatId_/settings/members'
@@ -465,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TmaChatChatIdSettingsCategoriesRouteImport
       parentRoute: typeof TmaChatChatIdSettingsRoute
     }
+    '/_tma/chat/$chatId_/settings/account': {
+      id: '/_tma/chat/$chatId_/settings/account'
+      path: '/account'
+      fullPath: '/chat/$chatId/settings/account'
+      preLoaderRoute: typeof TmaChatChatIdSettingsAccountRouteImport
+      parentRoute: typeof TmaChatChatIdSettingsRoute
+    }
     '/_tma/chat/$chatId_/edit-snapshot/$snapshotId': {
       id: '/_tma/chat/$chatId_/edit-snapshot/$snapshotId'
       path: '/$chatId/edit-snapshot/$snapshotId'
@@ -542,6 +562,7 @@ const TmaChatChatIdSettingsCategoriesRouteWithChildren =
   )
 
 interface TmaChatChatIdSettingsRouteChildren {
+  TmaChatChatIdSettingsAccountRoute: typeof TmaChatChatIdSettingsAccountRoute
   TmaChatChatIdSettingsCategoriesRoute: typeof TmaChatChatIdSettingsCategoriesRouteWithChildren
   TmaChatChatIdSettingsCurrencyRoute: typeof TmaChatChatIdSettingsCurrencyRoute
   TmaChatChatIdSettingsMembersRoute: typeof TmaChatChatIdSettingsMembersRoute
@@ -551,6 +572,7 @@ interface TmaChatChatIdSettingsRouteChildren {
 }
 
 const TmaChatChatIdSettingsRouteChildren: TmaChatChatIdSettingsRouteChildren = {
+  TmaChatChatIdSettingsAccountRoute: TmaChatChatIdSettingsAccountRoute,
   TmaChatChatIdSettingsCategoriesRoute:
     TmaChatChatIdSettingsCategoriesRouteWithChildren,
   TmaChatChatIdSettingsCurrencyRoute: TmaChatChatIdSettingsCurrencyRoute,
