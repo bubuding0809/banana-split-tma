@@ -9,10 +9,16 @@ import {
 } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
 import { ChevronRight, Plus, Sliders } from "lucide-react";
+import CategoryTile from "@/components/features/Category/CategoryTile";
+
+const PREVIEW_ROWS = 2;
+const PREVIEW_COLS = 4;
+const PREVIEW_COUNT = PREVIEW_ROWS * PREVIEW_COLS;
 
 export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
   const tButtonColor = useSignal(themeParams.buttonColor);
+  const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const { data } = trpc.category.listByChat.useQuery({ chatId });
 
   useEffect(() => {
@@ -34,6 +40,18 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const items = data?.items ?? [];
   const custom = items.filter((c) => c.kind === "custom");
   const base = items.filter((c) => c.kind === "base");
+  const visible = items.filter((c) => !c.hidden);
+  const hiddenCount = items.length - visible.length;
+  const previewTiles = visible.slice(0, PREVIEW_COUNT);
+  const overflowCount = Math.max(0, visible.length - PREVIEW_COUNT);
+  const overflowLine =
+    overflowCount > 0 && hiddenCount > 0
+      ? `+ ${overflowCount} more · ${hiddenCount} hidden`
+      : overflowCount > 0
+        ? `+ ${overflowCount} more`
+        : hiddenCount > 0
+          ? `${hiddenCount} hidden`
+          : null;
 
   return (
     <main className="px-3 pb-8">
@@ -49,6 +67,28 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             Reorder &amp; hide tiles
           </Cell>
         </Link>
+        {previewTiles.length > 0 && (
+          <div className="px-3 pb-3 pt-2">
+            <div className="grid grid-cols-4 gap-2">
+              {previewTiles.map((c) => (
+                <CategoryTile
+                  key={c.id}
+                  emoji={c.emoji}
+                  title={c.title}
+                  showCustomDot={c.kind === "custom"}
+                />
+              ))}
+            </div>
+            {overflowLine ? (
+              <div
+                className="pt-2 text-center text-[11px]"
+                style={{ color: tSubtitleTextColor }}
+              >
+                {overflowLine}
+              </div>
+            ) : null}
+          </div>
+        )}
       </Section>
 
       <Section header="CUSTOM">

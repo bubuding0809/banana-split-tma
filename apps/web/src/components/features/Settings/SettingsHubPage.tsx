@@ -130,7 +130,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
     ? `${schedule.dayOfWeek?.slice(0, 3) ?? ""} ${schedule.time ?? ""}`.trim()
     : "Off";
 
-  const categoryPreview = "Manage tiles"; // No count query yet — keep static; categories sub-page shows full breakdown.
+  const categoryPreview = "Manage";
 
   return (
     <main className="px-3 pb-8">
