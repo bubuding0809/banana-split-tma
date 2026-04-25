@@ -45,6 +45,7 @@ export {
   buildRecurringExpenseScheduleName,
   RECURRING_EXPENSE_SCHEDULE_GROUP,
 } from "./routers/aws/utils/recurringExpenseScheduler.js";
+export { tzMidnightForInstant } from "./routers/aws/utils/tzDate.js";
 
 export * from "./utils/deepLinkProtocol.js";
 
