@@ -302,11 +302,13 @@ export default function EditRecurringSchedulePage({
     globalNavigate,
   ]);
 
-  // BackButton wiring — same pattern as RecurringTemplatesList
+  // BackButton wiring. Mount defensively first — newer SDKs throw
+  // "component is not mounted" if hide() runs before mount().
   useEffect(() => {
+    if (backButton.mount.isAvailable()) backButton.mount();
     backButton.show.ifAvailable();
     return () => {
-      backButton.hide();
+      backButton.hide.ifAvailable();
     };
   }, []);
 

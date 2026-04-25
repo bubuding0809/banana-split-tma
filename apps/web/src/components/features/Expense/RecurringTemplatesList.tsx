@@ -56,11 +56,14 @@ export default function RecurringTemplatesList({ chatId }: Props) {
 
   const offSecondaryClickRef = useRef<VoidFunction | undefined>(undefined);
 
-  // Show / hide Telegram BackButton for the page
+  // Show / hide Telegram BackButton for the page. Mount defensively first
+  // — newer SDKs throw "component is not mounted" if hide() runs before
+  // mount(). See SnapshotFullPage / EditSnapshotPage for the same pattern.
   useEffect(() => {
+    if (backButton.mount.isAvailable()) backButton.mount();
     backButton.show.ifAvailable();
     return () => {
-      backButton.hide();
+      backButton.hide.ifAvailable();
     };
   }, []);
 
