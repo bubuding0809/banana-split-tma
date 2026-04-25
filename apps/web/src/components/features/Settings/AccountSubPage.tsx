@@ -28,6 +28,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
   const navigate = useNavigate();
   const tUser = useSignal(initData.user);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
   const userId = tUser?.id ?? 0;
   const { requestContactInfo, isSupported } = useRequestContact();
   const [busy, setBusy] = useState(false);
@@ -140,11 +141,13 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
       {userData?.phoneNumber && (
         <Section>
           <ButtonCell
-            before={<X size={20} />}
+            before={<X size={20} style={{ color: tDestructiveTextColor }} />}
             onClick={onRemovePhone}
             disabled={busy}
           >
-            {busy ? "Removing…" : "Remove phone number"}
+            <span style={{ color: tDestructiveTextColor }}>
+              {busy ? "Removing…" : "Remove phone number"}
+            </span>
           </ButtonCell>
         </Section>
       )}

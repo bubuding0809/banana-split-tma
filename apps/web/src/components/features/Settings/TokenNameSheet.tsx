@@ -50,8 +50,13 @@ export default function TokenNameSheet({
 
   const submit = async () => {
     if (!canSubmit) return;
-    await onSubmit(trimmed);
-    onOpenChange(false);
+    try {
+      await onSubmit(trimmed);
+      onOpenChange(false);
+    } catch {
+      // Parent already handled the error (haptic, log). Keep the sheet open
+      // so the user can retry without re-entering the name.
+    }
   };
 
   return (

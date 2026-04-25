@@ -10,6 +10,12 @@ interface EventAlertsSubPageProps {
   chatId: number;
 }
 
+type NotifyKey =
+  | "notifyOnExpense"
+  | "notifyOnExpenseUpdate"
+  | "notifyOnSettlement";
+type NotifyPatch = Partial<Record<NotifyKey, boolean>>;
+
 export default function EventAlertsSubPage({
   chatId,
 }: EventAlertsSubPageProps) {
@@ -43,14 +49,16 @@ export default function EventAlertsSubPage({
   }, [chatId, navigate]);
 
   const toggle = useCallback(
-    (
-      key: "notifyOnExpense" | "notifyOnExpenseUpdate" | "notifyOnSettlement"
-    ) => {
+    (key: NotifyKey) => {
       const next = !(chat?.[key] ?? true);
-      updateChat.mutate({ chatId, [key]: next } as any, {
-        onSuccess: () => hapticFeedback.notificationOccurred("success"),
-        onError: () => hapticFeedback.notificationOccurred("error"),
-      });
+      const patch: NotifyPatch = { [key]: next };
+      updateChat.mutate(
+        { chatId, ...patch },
+        {
+          onSuccess: () => hapticFeedback.notificationOccurred("success"),
+          onError: () => hapticFeedback.notificationOccurred("error"),
+        }
+      );
     },
     [chat, chatId, updateChat]
   );
@@ -74,7 +82,6 @@ export default function EventAlertsSubPage({
               onChange={() => toggle("notifyOnExpense")}
             />
           }
-          onClick={() => toggle("notifyOnExpense")}
         >
           Expense added
         </Cell>
@@ -91,7 +98,6 @@ export default function EventAlertsSubPage({
               onChange={() => toggle("notifyOnExpenseUpdate")}
             />
           }
-          onClick={() => toggle("notifyOnExpenseUpdate")}
         >
           Expense updated
         </Cell>
@@ -108,7 +114,6 @@ export default function EventAlertsSubPage({
               onChange={() => toggle("notifyOnSettlement")}
             />
           }
-          onClick={() => toggle("notifyOnSettlement")}
         >
           Settlement recorded
         </Cell>

@@ -16,8 +16,10 @@ import {
   Snackbar,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { BookOpen, Copy, Plus, X } from "lucide-react";
+import { BookOpen, ChevronRight, Copy, Key, Plus, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
+import CodeBlock from "./CodeBlock";
+import IconSquare from "./IconSquare";
 import TokenNameSheet from "./TokenNameSheet";
 import SetupGuideModal from "./SetupGuideModal";
 
@@ -51,7 +53,10 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
   const [editing, setEditing] = useState<ListedToken | null>(null);
   const [newRawKey, setNewRawKey] = useState<string | null>(null);
   const [setupGuideOpen, setSetupGuideOpen] = useState(false);
-  const [snackbarText, setSnackbarText] = useState<string | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    text: string;
+    description?: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Use the right query family for chat vs user. Both called unconditionally
@@ -103,15 +108,15 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
     return () => off();
   }, [chatId, navigate]);
 
-  const showSnackbar = useCallback((text: string) => {
-    setSnackbarText(text);
+  const showSnackbar = useCallback((text: string, description?: string) => {
+    setSnackbar({ text, description });
   }, []);
 
   const copy = useCallback(
     (text: string, label: string) => {
       navigator.clipboard.writeText(text);
       hapticFeedback.impactOccurred("light");
-      showSnackbar(label);
+      showSnackbar(label, "Paste it where you need it.");
     },
     [showSnackbar]
   );
@@ -129,6 +134,7 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
       } catch (err) {
         console.error("Failed to create token:", err);
         hapticFeedback.notificationOccurred("error");
+        throw err;
       } finally {
         setBusy(false);
       }
@@ -151,6 +157,7 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
       } catch (err) {
         console.error("Failed to rename token:", err);
         hapticFeedback.notificationOccurred("error");
+        throw err;
       } finally {
         setBusy(false);
       }
@@ -198,18 +205,21 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
         </ButtonCell>
 
         {tokens.map((t) => (
-          <button
+          <Cell
             key={t.id}
-            type="button"
             onClick={() => setEditing(t)}
-            className="block w-full px-3 py-2 text-left"
+            before={
+              <IconSquare color="red">
+                <Key size={14} />
+              </IconSquare>
+            }
+            subtitle={`Created ${new Date(t.createdAt).toLocaleDateString()} · ${t.keyPrefix}…`}
+            after={
+              <ChevronRight size={18} style={{ color: tSubtitleTextColor }} />
+            }
           >
-            <div className="text-sm font-medium">{t.name}</div>
-            <div className="text-xs" style={{ color: tSubtitleTextColor }}>
-              Created {new Date(t.createdAt).toLocaleDateString()} ·{" "}
-              {t.keyPrefix}…
-            </div>
-          </button>
+            {t.name}
+          </Cell>
         ))}
       </Section>
 
@@ -254,16 +264,16 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
       <SetupGuideModal
         open={setupGuideOpen}
         onOpenChange={setSetupGuideOpen}
-        onCopy={showSnackbar}
+        onCopy={(label) => showSnackbar(label, "Paste it where you need it.")}
       />
 
-      {snackbarText && (
+      {snackbar && (
         <Snackbar
           duration={3000}
-          onClose={() => setSnackbarText(null)}
-          description="Paste it where you need it."
+          onClose={() => setSnackbar(null)}
+          description={snackbar.description}
         >
-          {snackbarText}
+          {snackbar.text}
         </Snackbar>
       )}
     </main>
@@ -355,26 +365,5 @@ function NewTokenModal({
         </Section>
       </div>
     </Modal>
-  );
-}
-
-function CodeBlock({ children, wrap }: { children: string; wrap?: boolean }) {
-  const tSecondaryBackgroundColor = useSignal(
-    themeParams.secondaryBackgroundColor
-  );
-  const tSectionSeparatorColor = useSignal(themeParams.sectionSeparatorColor);
-  return (
-    <pre
-      className={`overflow-x-auto px-4 py-3 font-mono text-xs ${
-        wrap ? "whitespace-pre-wrap break-all" : ""
-      }`}
-      style={{
-        background: tSecondaryBackgroundColor,
-        borderTop: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
-        borderBottom: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
-      }}
-    >
-      {children}
-    </pre>
   );
 }

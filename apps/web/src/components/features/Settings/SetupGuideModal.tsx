@@ -12,6 +12,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { Copy, X } from "lucide-react";
 import { useCallback } from "react";
+import CodeBlock from "./CodeBlock";
 
 interface SetupGuideModalProps {
   open: boolean;
@@ -145,32 +146,5 @@ export default function SetupGuideModal({
         </Section>
       </div>
     </Modal>
-  );
-}
-
-interface CodeBlockProps {
-  children: string;
-  /** Wrap long lines for prose-heavy content. */
-  wrap?: boolean;
-}
-
-function CodeBlock({ children, wrap }: CodeBlockProps) {
-  const tSecondaryBackgroundColor = useSignal(
-    themeParams.secondaryBackgroundColor
-  );
-  const tSectionSeparatorColor = useSignal(themeParams.sectionSeparatorColor);
-  return (
-    <pre
-      className={`overflow-x-auto px-4 py-3 font-mono text-xs ${
-        wrap ? "whitespace-pre-wrap" : ""
-      }`}
-      style={{
-        background: tSecondaryBackgroundColor,
-        borderTop: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
-        borderBottom: `1px solid ${tSectionSeparatorColor ?? "transparent"}`,
-      }}
-    >
-      {children}
-    </pre>
   );
 }

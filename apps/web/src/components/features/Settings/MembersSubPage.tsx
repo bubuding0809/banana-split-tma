@@ -43,7 +43,7 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
   return (
     <main className="px-3 pb-8">
       <Section
-        header={`${members?.length ?? ""} members`}
+        header={members ? `${members.length} members` : "Members"}
         footer='Tap "Add Member" to share a contact via the bot DM. Coming soon.'
       >
         <ButtonCell

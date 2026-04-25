@@ -39,6 +39,17 @@ describe("renameUserTokenHandler", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
+  it("requires authentication", async () => {
+    const db = makeDb({});
+    await expect(
+      renameUserTokenHandler(
+        { tokenId: "00000000-0000-0000-0000-000000000001", name: "Mac" },
+        db,
+        undefined
+      )
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("trims and saves on success", async () => {
     const db = makeDb({});
     await renameUserTokenHandler(
