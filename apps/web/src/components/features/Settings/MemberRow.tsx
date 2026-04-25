@@ -1,4 +1,5 @@
 import { Cell } from "@telegram-apps/telegram-ui";
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface MemberRowProps {
   member: {
@@ -13,20 +14,11 @@ interface MemberRowProps {
 function fullName(m: MemberRowProps["member"]) {
   return [m.firstName, m.lastName].filter(Boolean).join(" ");
 }
-function initials(m: MemberRowProps["member"]) {
-  const first = m.firstName?.[0] ?? "";
-  const last = m.lastName?.[0] ?? "";
-  return (first + last).toUpperCase() || "?";
-}
 
 export default function MemberRow({ member, isYou }: MemberRowProps) {
   return (
     <Cell
-      before={
-        <span className="flex size-10 items-center justify-center rounded-full bg-blue-200 text-sm font-semibold text-blue-700">
-          {initials(member)}
-        </span>
-      }
+      before={<ChatMemberAvatar userId={Number(member.id)} size={40} />}
       subtitle={member.username ? `@${member.username}` : "no username"}
       after={
         isYou ? (

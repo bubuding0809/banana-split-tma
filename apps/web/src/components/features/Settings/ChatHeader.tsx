@@ -1,4 +1,5 @@
 import { Avatar } from "@telegram-apps/telegram-ui";
+import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface MemberPreview {
   id: string;
@@ -18,12 +19,6 @@ interface ChatHeaderProps {
 }
 
 const MAX_PREVIEW = 4;
-
-function initials(m: MemberPreview): string {
-  const first = m.firstName?.[0] ?? "";
-  const last = m.lastName?.[0] ?? "";
-  return (first + last).toUpperCase() || "?";
-}
 
 export default function ChatHeader({
   avatarUrl,
@@ -61,19 +56,18 @@ export default function ChatHeader({
           {previewMembers.map((m, i) => (
             <span
               key={m.id}
-              className="bg-(--tg-theme-secondary-bg-color) flex size-8 items-center justify-center rounded-full text-xs font-semibold text-white"
+              className="rounded-full"
               style={{
                 marginLeft: i === 0 ? 0 : -8,
-                background: stableMemberGradient(m.id),
                 border: "2px solid var(--tg-theme-bg-color)",
               }}
             >
-              {initials(m)}
+              <ChatMemberAvatar userId={Number(m.id)} size={28} />
             </span>
           ))}
           {overflow > 0 && (
             <span
-              className="flex size-8 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700"
+              className="flex size-7 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700"
               style={{
                 marginLeft: -8,
                 border: "2px solid var(--tg-theme-bg-color)",
@@ -86,20 +80,4 @@ export default function ChatHeader({
       )}
     </div>
   );
-}
-
-// Deterministic gradient per member id so colors don't reshuffle across renders.
-function stableMemberGradient(id: string): string {
-  const palette = [
-    "linear-gradient(135deg, #4facfe, #00f2fe)",
-    "linear-gradient(135deg, #43e97b, #38f9d7)",
-    "linear-gradient(135deg, #fa709a, #fee140)",
-    "linear-gradient(135deg, #a18cd1, #fbc2eb)",
-    "linear-gradient(135deg, #ff9966, #ff5e62)",
-    "linear-gradient(135deg, #5ee7df, #b490ca)",
-  ];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++)
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return palette[hash % palette.length];
 }
