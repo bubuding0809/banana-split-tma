@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Recurring Expense Management UI · Design Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --text: #fff;
+    --muted: #98989f;
+    --dim: #666;
+    --accent: #4a9eff;
+    --accent-bg: rgba(74,158,255,.18);
+    --danger: #ff453a;
+    --danger-bg: rgba(255,69,58,.18);
+    --success: #34c759;
+    --warn: #ff9500;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; height: 100%; overflow: hidden; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 56px 72px 80px;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .eyebrow { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 14px; }
+  h1 { font-size: 56px; font-weight: 800; margin: 0 0 12px; line-height: 1.05; letter-spacing: -1px; }
+  h2 { font-size: 38px; font-weight: 700; margin: 0 0 24px; letter-spacing: -.5px; line-height: 1.15; }
+  h3 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+  .subhead { color: var(--muted); font-size: 17px; max-width: 720px; line-height: 1.55; }
+  p { font-size: 16px; line-height: 1.6; color: #d1d1d6; max-width: 780px; }
+  ul { font-size: 16px; line-height: 1.7; color: #d1d1d6; padding-left: 22px; max-width: 780px; }
+  ul li::marker { color: var(--accent); }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 13px; background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 4px; }
+
+  .meta-row { display: flex; gap: 12px; margin-top: 24px; font-size: 13px; color: var(--muted); }
+  .meta-row .pill { background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+
+  .grid { display: grid; gap: 18px; margin-top: 16px; }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid.cols-mockup { grid-template-columns: 1fr 1.1fr; align-items: start; }
+
+  .card { background: var(--surface); border-radius: 14px; padding: 18px 20px; border: 1px solid rgba(255,255,255,.04); }
+  .card h3 { font-size: 17px; margin-bottom: 6px; color: var(--accent); }
+  .card p { font-size: 14px; line-height: 1.55; margin: 0; color: #d1d1d6; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.accent { background: var(--accent-bg); color: var(--accent); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .pill.muted { background: rgba(127,127,127,.2); color: var(--muted); }
+  .pill.success { background: rgba(52,199,89,.18); color: var(--success); }
+
+  /* Mock device frame */
+  .frame { background: #000; padding: 14px; border-radius: 14px; max-width: 360px; border: 1px solid rgba(255,255,255,.08); }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 14px; }
+  .header .ttl { font-size: 17px; font-weight: 700; }
+  .icns { display: flex; gap: 8px; }
+  .icn-btn { width: 28px; height: 28px; border-radius: 8px; background: rgba(127,127,127,.18); display: grid; place-items: center; color: var(--accent); font-size: 13px; }
+  .section-label { font-size: 11px; color: var(--muted); padding: 0 4px 6px 4px; margin-top: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .section { background: var(--surface); border-radius: 12px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 14px; }
+  .row:last-child { border-bottom: 0; }
+  .row .ic { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,.06); display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+  .row .body { flex: 1; min-width: 0; }
+  .row .body .top { font-size: 13px; }
+  .row .body .bot { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .row .trail { color: var(--muted); font-size: 12px; flex-shrink: 0; text-align: right; }
+  .row .trail.tap::after { content: " ›"; }
+  .row .trail strong { color: #fff; }
+  .row.link { color: var(--accent); }
+  .avatar { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #ff9500, #ff2d55); display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 11px; flex-shrink: 0; }
+  .avatar.alex { background: linear-gradient(135deg, #34c759, #5ac8fa); }
+  .badge-rec { background: var(--accent-bg); color: var(--accent); padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+
+  .tg-bottom { display: flex; gap: 8px; padding: 12px 0 0; }
+  .tg-btn { flex: 1; padding: 12px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: 600; }
+  .tg-btn.main { background: #0a84ff; color: #fff; }
+  .tg-btn.danger { background: var(--danger-bg); color: var(--danger); }
+
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,.95), transparent);
+    pointer-events: none;
+  }
+  .nav-btn { background: var(--surface-2); border: none; color: var(--text); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; pointer-events: auto; transition: background .15s; }
+  .nav-btn:hover { background: rgba(74,158,255,.3); }
+  .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+  .counter { color: var(--muted); font-size: 13px; pointer-events: auto; font-variant-numeric: tabular-nums; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .25s ease; z-index: 100; }
+
+  .scope-list { font-size: 14px; line-height: 1.8; color: #d1d1d6; }
+  .scope-list .y { color: var(--success); margin-right: 6px; font-weight: 700; }
+  .scope-list .n { color: var(--danger); margin-right: 6px; font-weight: 700; }
+
+  .arrow { color: var(--accent); font-size: 22px; padding: 0 6px; }
+  .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .flow .step { background: var(--surface); padding: 8px 14px; border-radius: 10px; font-size: 13px; }
+  .flow .step.start { border: 1px solid var(--accent); }
+  .flow .step.end { border: 1px solid var(--success); color: var(--success); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td code { font-size: 12px; }
+  .new-pill { display: inline-block; background: var(--accent); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 2px; font-weight: 700; letter-spacing: .5px; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1: Title -->
+<section class="slide active">
+  <div class="eyebrow">Design spec · 2026-04-25</div>
+  <h1>Recurring Expense<br>Management UI</h1>
+  <p class="subhead">Closing the management gap. The backend exposes <code>list / get / update / cancel</code> for recurring expense templates, but the TMA only renders the bare list. Designing four surfaces to view, edit, and delete — sharing the existing expense Section/Cell language end to end.</p>
+  <div class="meta-row">
+    <span class="pill" style="background: var(--accent-bg); color: var(--accent);">Status: Approved</span>
+    <span class="pill" style="background: var(--surface);">Author: bubu (with Claude Opus 4.7)</span>
+    <span class="pill" style="background: var(--surface);">Surfaces: 4</span>
+    <span class="pill" style="background: var(--surface);">Backend changes: 0</span>
+  </div>
+</section>
+
+<!-- 2: Why -->
+<section class="slide">
+  <div class="eyebrow">The problem</div>
+  <h2>Backend is ready. UI is bare.</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>What exists today</h3>
+      <ul style="margin: 8px 0 0;">
+        <li><code>expense.recurring.list</code> — active templates per chat</li>
+        <li><code>expense.recurring.get</code> — single template</li>
+        <li><code>expense.recurring.update</code> — partial mutate (schedule + amount + description)</li>
+        <li><code>expense.recurring.cancel</code> — soft-delete + AWS schedule cleanup</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What the user can do today</h3>
+      <ul style="margin: 8px 0 0;">
+        <li>See a flat list of templates with no context</li>
+        <li>Tap a row → <strong>nothing happens</strong></li>
+        <li>No way to edit the schedule</li>
+        <li>No way to cancel/delete from the app</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Constraints -->
+<section class="slide">
+  <div class="eyebrow">Design constraints</div>
+  <h2>Reuse over invent. Schedule-only edit. No backend changes.</h2>
+  <div class="grid cols-3">
+    <div class="card">
+      <h3>Reuse, don't reinvent</h3>
+      <p>All four surfaces mirror existing expense Section/Cell shapes. Users see one visual language for the same domain object.</p>
+    </div>
+    <div class="card">
+      <h3>Schedule-only mutation</h3>
+      <p>Form edits frequency / interval / weekdays / endDate. Description, amount, payer, splits, category, currency are immutable — cancel & recreate to change.</p>
+    </div>
+    <div class="card">
+      <h3>Zero backend changes</h3>
+      <p>Every interaction maps to an existing tRPC procedure. No schema changes, no new mutations.</p>
+    </div>
+  </div>
+  <h3 style="margin-top: 32px; color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: .5px;">Out of scope (v1)</h3>
+  <div class="scope-list">
+    <span class="n">✗</span> Per-occurrence editing (calendar-style "this vs. all future")<br>
+    <span class="n">✗</span> Pause / resume (backend doesn't support)<br>
+    <span class="n">✗</span> Bulk operations<br>
+    <span class="n">✗</span> Editing payer / splits / category / currency<br>
+    <span class="n">✗</span> Surfacing recurring schedules in chat-list summary
+  </div>
+</section>
+
+<!-- 4: Surface 1 -->
+<section class="slide">
+  <div class="eyebrow">Surface 1 of 4 · existing route, visual upgrade only</div>
+  <h2>List page — <code>/chat/$chatId/recurring-expenses</code></h2>
+  <div class="grid cols-mockup">
+    <div>
+      <ul>
+        <li>Replace bare <code>Cell</code> with <code>RecurringExpenseCell</code> mirroring <code>ChatExpenseCell</code> structure</li>
+        <li>44px category emoji avatar (leading)</li>
+        <li>"You spend" / "Alex spends" subhead in link colour for self</li>
+        <li>"🇸🇬 SGD X.XX" main line</li>
+        <li><strong>Trailing</strong>: <code>↻ Frequency</code> badge + "Next: <date>"</li>
+        <li><strong>No share amount</strong> — that's per-occurrence, misleading on a schedule view</li>
+        <li>Tap row → opens <code>RecurringExpenseDetailsModal</code> via <code>selectedTemplate</code> search param</li>
+      </ul>
+    </div>
+    <div class="frame" style="margin: 0 auto;">
+      <div class="header"><div class="ttl">Recurring expenses</div></div>
+      <div class="section">
+        <div class="row">
+          <div class="ic" style="width: 36px; height: 36px; font-size: 18px;">🏠</div>
+          <div class="body">
+            <div class="bot" style="color: var(--accent); font-weight: 600;">YOU SPEND</div>
+            <div class="top">🇸🇬 SGD 200.00</div>
+            <div class="bot">on Cleaner bill</div>
+          </div>
+          <div class="trail" style="display: flex; flex-direction: column; gap: 4px;">
+            <span class="badge-rec">↻ Monthly</span>
+            <span><strong>Next 25 May</strong></span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ic" style="width: 36px; height: 36px; font-size: 18px;">🛒</div>
+          <div class="body">
+            <div class="bot">ALEX SPENDS</div>
+            <div class="top">🇸🇬 SGD 25.00</div>
+            <div class="bot">on Test groceries</div>
+          </div>
+          <div class="trail" style="display: flex; flex-direction: column; gap: 4px;">
+            <span class="badge-rec">↻ Weekly</span>
+            <span><strong>Next Tue 28 Apr</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5: Surface 2 -->
+<section class="slide">
+  <div class="eyebrow">Surface 2 of 4 · NEW component</div>
+  <h2>RecurringExpenseDetailsModal — same shape as ExpenseDetailsModal</h2>
+  <div class="grid cols-mockup">
+    <div>
+      <ul>
+        <li>Bottom-sheet <code>Modal</code></li>
+        <li>Five sections, four lifted from <code>ExpenseDetailsModal</code>: <em>What was this for?</em>, <em>Who paid?</em>, <em>Split amounts</em>, <em>How was it split?</em></li>
+        <li>Plus a NEW <strong>Schedule</strong> section showing Repeat + End Date</li>
+        <li>Header pencil ✎ → navigates to edit page</li>
+        <li>Telegram <code>secondaryButton</code> = <strong style="color: var(--danger);">Delete</strong> (red, popup confirm)</li>
+        <li>Pure presentation component — list page owns the secondaryButton lifecycle (mirrors how <code>ChatExpenseCell:200-247</code> works)</li>
+      </ul>
+    </div>
+    <div class="frame" style="margin: 0 auto; max-height: 500px; overflow-y: auto;">
+      <div class="header">
+        <div><span class="ttl">Recurring</span> <span class="badge-rec">↻ Monthly · Next 25 May</span></div>
+        <div class="icns"><div class="icn-btn">✎</div><div class="icn-btn" style="color: var(--muted);">✕</div></div>
+      </div>
+      <div class="section-label">What was this for?</div>
+      <div class="section">
+        <div class="row"><div class="ic">🏠</div><div class="body"><div class="top">Cleaner bill</div><div class="bot">Home</div></div></div>
+      </div>
+      <div class="section-label">Who paid for this?</div>
+      <div class="section">
+        <div class="row">
+          <div class="avatar">RQ</div>
+          <div class="body"><div class="top" style="color: var(--accent);">You spend</div><div class="bot">Started 25 Apr 2026</div></div>
+          <div class="trail"><strong>SGD 200.00</strong></div>
+        </div>
+      </div>
+      <div class="section-label">Split amounts</div>
+      <div class="section">
+        <div class="row"><div class="avatar">RQ</div><div class="body"><div class="top" style="color: var(--accent);">You</div></div><div class="trail"><strong style="color: var(--danger);">SGD 100</strong></div></div>
+        <div class="row"><div class="avatar alex">A</div><div class="body"><div class="top">Alex</div></div><div class="trail"><strong>SGD 100</strong></div></div>
+      </div>
+      <div class="section-label">Schedule <span class="new-pill">NEW</span></div>
+      <div class="section">
+        <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Repeat</div></div><div class="trail">Monthly</div></div>
+        <div class="row"><div class="ic">📅</div><div class="body"><div class="top">End Date</div></div><div class="trail">31 Oct 2026</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6: Surface 3 -->
+<section class="slide">
+  <div class="eyebrow">Surface 3 of 4 · NEW route</div>
+  <h2>Edit page — <code>/chat/$chatId/edit-recurring/$templateId</code></h2>
+  <div class="grid cols-mockup">
+    <div>
+      <ul>
+        <li>Focused single-section page — no multi-step nav</li>
+        <li>Read-only summary line at top: <code>desc · amount · category · payer · splitMode</code> for context</li>
+        <li>One <strong>Schedule</strong> section: Repeat Cell + End Date Cell</li>
+        <li>Both Cells lifted from <code>AmountFormStep</code> into a new shared <code>RepeatAndEndDateSection</code> component</li>
+        <li><code>mainButton</code> = <strong style="color: var(--accent);">Save</strong> → <code>recurring.update</code> with dirty fields</li>
+        <li><code>secondaryButton</code> = <strong style="color: var(--danger);">Delete</strong> → same popup as modal</li>
+        <li>End-date validation reuses <code>nextOccurrenceAfter</code> + zod cross-field check from add-expense</li>
+      </ul>
+    </div>
+    <div class="frame" style="margin: 0 auto;">
+      <div class="header">
+        <div><span class="ttl">Edit recurring</span></div>
+        <div class="icns"><div class="icn-btn" style="color: var(--muted);">✕</div></div>
+      </div>
+      <p style="color: var(--muted); font-size: 11px; padding: 0 4px 8px; margin: 0;">Cleaner bill · SGD 200 · 🏠 Home · You · Equal split</p>
+      <div class="section-label">Schedule</div>
+      <div class="section">
+        <div class="row"><div class="ic">↻</div><div class="body"><div class="top">Repeat</div></div><div class="trail tap">Monthly</div></div>
+        <div class="row"><div class="ic">📅</div><div class="body"><div class="top">End Date</div></div><div class="trail tap">31 Oct 2026 ✕</div></div>
+      </div>
+      <div class="tg-bottom">
+        <div class="tg-btn danger">Delete</div>
+        <div class="tg-btn main">Save</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7: Surface 4 -->
+<section class="slide">
+  <div class="eyebrow">Surface 4 of 4 · existing modal, augmented</div>
+  <h2>ExpenseDetailsModal — gains "Recurring schedule" section</h2>
+  <div class="grid cols-mockup">
+    <div>
+      <ul>
+        <li>When the viewed expense has a non-null <code>recurringTemplateId</code>, append a <strong>read-only</strong> section between "How split?" and the bottom</li>
+        <li>Renders frequency / next fire / endDate from <code>recurring.get({ templateId })</code></li>
+        <li>Triggers tRPC query <strong>only when needed</strong> — non-recurring expenses pay no extra cost</li>
+        <li>Pencil at the modal top continues to mean <strong>"edit this single occurrence"</strong> — scope unchanged</li>
+        <li>To manage the schedule, users navigate via Settings → Recurring expenses. We deliberately don't deeplink from here — would muddle per-occurrence vs. template-level scope</li>
+      </ul>
+    </div>
+    <div class="frame" style="margin: 0 auto;">
+      <div class="header">
+        <div><span class="ttl">Expense</span> <span class="pill danger" style="margin-left: 6px;">🚨 You owe SGD 100</span></div>
+        <div class="icns"><div class="icn-btn">✎</div><div class="icn-btn" style="color: var(--muted);">✕</div></div>
+      </div>
+      <div class="section-label">Who paid for this?</div>
+      <div class="section">
+        <div class="row">
+          <div class="avatar">RQ</div>
+          <div class="body"><div class="top" style="color: var(--accent);">You spent</div><div class="bot">Sun, 25 May 2026</div></div>
+          <div class="trail"><strong>SGD 200</strong></div>
+        </div>
+      </div>
+      <div class="section-label">Split amounts</div>
+      <div class="section">
+        <div class="row"><div class="avatar">RQ</div><div class="body"><div class="top">You</div></div><div class="trail"><strong style="color: var(--danger);">SGD 100</strong></div></div>
+        <div class="row"><div class="avatar alex">A</div><div class="body"><div class="top">Alex</div></div><div class="trail"><strong>SGD 100</strong></div></div>
+      </div>
+      <div class="section-label">↻ Recurring schedule <span class="new-pill">NEW</span></div>
+      <div class="section" style="box-shadow: 0 0 0 1.5px var(--accent);">
+        <div class="row">
+          <div class="ic">↻</div>
+          <div class="body"><div class="top">Repeats</div><div class="bot">Monthly · Next 25 Jun</div></div>
+          <div class="trail">until 31 Oct 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8: Architecture -->
+<section class="slide">
+  <div class="eyebrow">Architecture</div>
+  <h2>One refactor, two new components, two augmentations</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Pure refactor</h3>
+      <p><code>AmountFormStep.tsx:419-590</code> → extract Repeat Cell + End Date Cell + RecurrencePickerSheet wiring into shared <code>RepeatAndEndDateSection</code> component. No behavior change. Existing 27 tests must keep passing.</p>
+    </div>
+    <div class="card">
+      <h3>NEW components</h3>
+      <p><code>RecurringExpenseDetailsModal</code> (presentation only)<br><code>EditRecurringSchedulePage</code> (page, mounts <code>RepeatAndEndDateSection</code>)</p>
+    </div>
+    <div class="card">
+      <h3>Augmented</h3>
+      <p><code>RecurringTemplatesList</code> — visual upgrade, deeplink param<br><code>ExpenseDetailsModal</code> — conditional Schedule section</p>
+    </div>
+    <div class="card">
+      <h3>tRPC contract</h3>
+      <p>Nothing new. <code>list</code>, <code>get</code>, <code>update</code>, <code>cancel</code> all already shipped with the recurring feature. Client computes "Next: <date>" via existing <code>nextOccurrenceAfter</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9: Routing & deeplinks -->
+<section class="slide">
+  <div class="eyebrow">Routing</div>
+  <h2>One new route — that's it</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Component</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><code>/chat/$chatId/recurring-expenses</code></td><td>RecurringTemplatesList</td><td><span class="pill muted">existing — visual upgrade</span></td></tr>
+      <tr><td><code>/chat/$chatId/edit-recurring/$templateId</code></td><td>EditRecurringSchedulePage</td><td><span class="pill accent">NEW route</span></td></tr>
+    </tbody>
+  </table>
+  <h3 style="margin-top: 32px;">Management flow</h3>
+  <div class="flow">
+    <span class="step start">Settings</span>
+    <span class="arrow">→</span>
+    <span class="step">Recurring expenses</span>
+    <span class="arrow">→</span>
+    <span class="step">Tap row</span>
+    <span class="arrow">→</span>
+    <span class="step">RecurringExpenseDetailsModal</span>
+    <span class="arrow">→</span>
+    <span class="step">Tap pencil</span>
+    <span class="arrow">→</span>
+    <span class="step end">Edit page</span>
+  </div>
+  <p style="margin-top: 18px; color: var(--muted); font-size: 14px;">From transactions, the augmented modal is read-only — no cross-modal navigation. Per-occurrence edit and template management are intentionally separated by entry path.</p>
+</section>
+
+<!-- 10: Error handling -->
+<section class="slide">
+  <div class="eyebrow">Resilience</div>
+  <h2>Three failure modes, three responses</h2>
+  <div class="grid cols-3">
+    <div class="card">
+      <h3 style="color: var(--warn);">Save fails</h3>
+      <p>Network or AWS <code>UpdateScheduleCommand</code> error. Toast + keep form dirty so user can retry. tRPC mutation already returns the AWS error verbatim — display as-is.</p>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--warn);">Cancel: AWS fails, DB succeeds</h3>
+      <p>Per <code>cancel.ts:47-58</code>, template is marked CANCELED in DB even if AWS fails. List filters to ACTIVE so the row disappears immediately. Schedule may keep firing for ≤24h but tick endpoint rejects CANCELED templates. No user-visible effect.</p>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--danger);">Race: deleted on another device</h3>
+      <p>tRPC throws NOT_FOUND on the cancel mutation. Catch in <code>onError</code>: toast "This recurring expense was already deleted" → close modal.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11: Testing -->
+<section class="slide">
+  <div class="eyebrow">Verification</div>
+  <h2>Tests + manual UAT</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Unit (must keep passing)</h3>
+      <p>The <code>RepeatAndEndDateSection</code> extraction is a pure refactor. Existing suites must continue to pass:</p>
+      <ul style="margin: 8px 0 0;">
+        <li><code>recurrencePresets.test.ts</code> — 27 tests</li>
+        <li><code>AddExpenseForm.type.test.ts</code> — 12 tests</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Component smoke</h3>
+      <p>RecurringExpenseDetailsModal renders the right Sections given:</p>
+      <ul style="margin: 8px 0 0;">
+        <li>Mock template with no shares vs. with shares</li>
+        <li>Mock template with endDate vs. without</li>
+        <li>Mock template with each frequency (Daily / Weekly / Monthly / Yearly / Custom)</li>
+      </ul>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Manual UAT (full-environment lifecycle)</h3>
+      <p>One cycle each for view, edit-and-save, edit-and-discard, delete. After each: verify DB state via Supabase MCP <em>and</em> AWS Scheduler state via <code>aws scheduler get-schedule</code>. Per the full-environment-UAT loop preference.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12: Recap -->
+<section class="slide">
+  <div class="eyebrow">In one screen</div>
+  <h2>The whole design in 7 bullets</h2>
+  <ul style="font-size: 17px; line-height: 1.9;">
+    <li>List page rows look like <code>ChatExpenseCell</code> — same visual language as transactions</li>
+    <li>Tap row → bottom-sheet modal mirroring <code>ExpenseDetailsModal</code> sections + a new Schedule section</li>
+    <li>Modal pencil → focused <code>/edit-recurring/$templateId</code> page (single section, schedule-only)</li>
+    <li>Modal & edit page share Telegram bottom bar pattern: <span class="pill accent">Save</span> + <span class="pill danger">Delete</span></li>
+    <li>Existing transaction modal grows a read-only "↻ Recurring schedule" section so users see at a glance "this expense is recurring" — no deeplink, scope stays per-occurrence</li>
+    <li>One refactor (extract <code>RepeatAndEndDateSection</code>), two new components, two augmentations, zero backend changes</li>
+    <li>Schedule-only mutation in v1; everything else immutable until users ask for more</li>
+  </ul>
+  <p style="margin-top: 28px; color: var(--muted); font-size: 13px;">Spec: <code>docs/superpowers/specs/2026-04-25-recurring-expense-management-ui-design.md</code></p>
+</section>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">← Prev</button>
+  <span class="counter" id="counter">1 / 12</span>
+  <button class="nav-btn" id="next">Next →</button>
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let idx = 0;
+
+  function update() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${slides.length}`;
+    progress.style.width = `${((idx + 1) / slides.length) * 100}%`;
+    prev.disabled = idx === 0;
+    next.disabled = idx === slides.length - 1;
+    location.hash = `slide-${idx + 1}`;
+  }
+
+  function go(delta) {
+    const newIdx = Math.max(0, Math.min(slides.length - 1, idx + delta));
+    if (newIdx !== idx) { idx = newIdx; update(); }
+  }
+
+  prev.addEventListener('click', () => go(-1));
+  next.addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') { e.preventDefault(); idx = 0; update(); }
+    else if (e.key === 'End') { e.preventDefault(); idx = slides.length - 1; update(); }
+  });
+
+  // Start at hash if present
+  const hash = location.hash.match(/slide-(\d+)/);
+  if (hash) {
+    const target = parseInt(hash[1], 10) - 1;
+    if (target >= 0 && target < slides.length) idx = target;
+  }
+  update();
+})();
+</script>
+
+</body>
+</html>
