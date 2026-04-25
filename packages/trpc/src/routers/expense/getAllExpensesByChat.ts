@@ -17,6 +17,7 @@ export const getAllExpensesByChatHandler = async (
     },
     include: {
       shares: true,
+      recurringTemplate: { select: { status: true } },
     },
     orderBy: {
       date: "desc",
