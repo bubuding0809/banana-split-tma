@@ -362,14 +362,14 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     // Success section matches the group summary format: header line +
     // blank + "Members" sub-heading + tree.
     sections.push(
-      `✅ *Newly members added* to *${escapedTitle}*\n\nMembers\n${tree}`
+      `✅ *New members added* to *${escapedTitle}*\n\nMembers\n${tree}`
     );
   }
   if (conflictList.length > 0) {
     const tree = treeLines(
       conflictList.map((u) => escapeMarkdownV2(u.displayName))
     );
-    sections.push(`⚠️ *Already members*\n${tree}`);
+    sections.push(`⚠️ *Already in this group*\n${tree}`);
   }
   if (realFailureList.length > 0) {
     const tree = treeLines(
@@ -396,8 +396,8 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     // Use tg://user?id=... mentions so freshly-added users get pinged
     // personally. They may not have DM'd the bot, but they're now
     // members of this group, and mentions notify them in-context.
-    // Format: bold "Newly added" title + flat dash list (no blockquote)
-    // for visual alignment with the adder's bot-DM result style.
+    // Format: bold "New members added" title + tree (┣/┗) under each
+    // section (no blockquote).
     const adderMention = userMention(
       Number(ctx.from!.id),
       ctx.from!.first_name
