@@ -402,18 +402,27 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     // Use tg://user?id=... mentions so freshly-added users get pinged
     // personally — they may not have DM'd the bot, but they're now
     // members of this group, and mentions notify them in-context.
+    // Tree format mirrors sendBatchExpenseSummary: header + ┣/┗ branches
+    // inside one blockquote (every line prefixed with `>`).
     const adderMention = userMention(
       Number(ctx.from!.id),
       ctx.from!.first_name
     );
-    const addedMentions = joinMarkdownItems(
-      successList.map((u) => userMention(u.id, u.displayName))
-    );
+    const memberWord =
+      successList.length === 1 ? "a new member" : "new members";
+    const treeLines = successList
+      .map((u, i) => {
+        const branch = i === successList.length - 1 ? "┗" : "┣";
+        return `>${branch} ${userMention(u.id, u.displayName)}`;
+      })
+      .join("\n");
 
     const summaryText = BotMessages.ADD_MEMBER_GROUP_SUMMARY.replace(
       "{adder_mention}",
       adderMention
-    ).replace("{added_mentions}", addedMentions);
+    )
+      .replace("{member_word}", memberWord)
+      .replace("{tree_lines}", treeLines);
 
     try {
       await ctx.api.sendMessage(groupIdStr, summaryText, {
