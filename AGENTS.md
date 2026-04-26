@@ -141,6 +141,56 @@ const tButtonColor = useSignal(themeParams.buttonColor);
 - Implement proper loading states with skeleton components
 - Examples: `ExpenseDetailsModal.tsx`, `SnapshotDetailsModal.tsx`
 
+#### Stepped Instruction Modals (with mini-mockups)
+
+For "what's about to happen" modals — especially flows that hand the user off
+to a context the TMA can't render (bot DM, native pickers, external tools) —
+use a vertical step path with mini Telegram-UI mockups under each step. Sets
+expectations and reduces drop-off vs. plain text.
+
+**Canonical implementation:** `apps/web/src/components/features/Settings/AddMemberSheet.tsx`
+
+**Structure:**
+
+1. **Quote block at the top** — short, humanist prompt with a left accent bar
+   (`border-l-[3px]` themed via `themeParams.buttonColor`). Tone: name the
+   actual pain point, not generic ("Wanna bring those friends who refuse to
+   open the mini app?" beats "Add members to your group"). Don't describe
+   mechanics — that's what the steps are for.
+
+2. **Vertical step path** below the quote:
+   - Each step has a `size-5 border-2` outlined circle with a `size-2` filled
+     inner dot, both colored via `themeParams.buttonColor`. Same style for
+     all steps — this is not a progress tracker.
+   - Connector line runs absolute (`absolute bottom-0 left-[9px] top-6 w-[2px]`,
+     `opacity: 0.5`) so it spans the full height of variable-sized step content.
+   - Title is a `<div className="text-[15px] font-medium leading-snug">`, not
+     `<Text>`, for explicit weight control. Allow `labelNode?: ReactNode` on
+     the StepDef so titles can include inline elements like a styled pill
+     referencing the actual CTA button below.
+
+3. **Mini-mockups under steps** (only where they add value — skip for
+   self-explanatory steps like "swipe back"):
+   - Cards: `themeParams.secondaryBackgroundColor` for the surface; inner
+     elements use subtle `bg-white/5` overlays.
+   - Stack multiple cards under one step when it spans multiple UI surfaces
+     (e.g., a reply-keyboard button THEN the contact picker it opens).
+   - Each card gets a **numbered sub-instruction** above it
+     (`1. Tap the keyboard button to open the contact picker`,
+     `2. Pick your friends`) in `text-[12px]` muted color
+     (`themeParams.subtitleTextColor`).
+   - Use random placeholder names ("Alex Carter", "Sam Wilson") in mockups —
+     not skeleton bars, not real-looking names that suggest specific people.
+
+4. **Single primary CTA** (`<Button stretched size="l" mode="filled">`).
+   No Cancel button — the modal's X icon handles dismissal. Trailing
+   `ArrowRight` icon via the `after` prop is consistent with the "let's go"
+   feel.
+
+**Skip this pattern for:** simple confirmation modals, multi-step forms (use
+the form-step convention instead), or anything where the user already knows
+what's coming.
+
 ## Code Conventions
 
 ### File Naming
