@@ -21,7 +21,11 @@ interface AddMemberSheetProps {
   onLaunchBot?: () => void;
 }
 
-const STEPS = ["Open bot DM", "Pick contacts", "Swipe back here"];
+const STEPS = [
+  "Tap below to open the bot chat",
+  "Pick your contacts",
+  "Swipe back to the app",
+];
 
 export default function AddMemberSheet({
   chatId,
