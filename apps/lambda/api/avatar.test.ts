@@ -178,3 +178,35 @@ describe("GET /api/avatar/:userId — Telegram fetch", () => {
     expect(getFileLinkMock).toHaveBeenCalledWith("big");
   });
 });
+
+describe("GET /api/avatar/:userId — error paths", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockReset();
+    getUserProfilePhotosMock.mockReset();
+    getFileLinkMock.mockReset();
+  });
+
+  it("returns 502 when telegraf throws", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockRejectedValueOnce(new Error("flood wait"));
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).toBe(502);
+  });
+
+  it("returns 502 when upstream fetch fails", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockResolvedValueOnce({
+      photos: [[{ file_id: "big", file_unique_id: "u-b" }]],
+    });
+    getFileLinkMock.mockResolvedValueOnce(
+      new URL("https://api.telegram.org/file/botX/p.jpg")
+    );
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).toBe(502);
+  });
+});
