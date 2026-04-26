@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
+import { createGroupReminderScheduleHandler } from "./createGroupReminderSchedule.js";
 import {
   generateGroupReminderScheduleName,
   getGroupReminderSchedule,
@@ -177,10 +178,36 @@ export const updateGroupReminderScheduleHandler = async (
     );
 
     if (!existingSchedule) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Group reminder schedule not found for chat ID: ${chatId}`,
+      // Upsert fallback: bot-side schedule creation can silently fail when
+      // the chat is first added (e.g. missing AWS env on the bot project),
+      // leaving the chat without a schedule. Toggle-on from the settings
+      // UI must still work, so create using the toggle's payload plus the
+      // same defaults the bot uses on chat join.
+      const created = await createGroupReminderScheduleHandler({
+        chatId: chatId.toString(),
+        dayOfWeek: dayOfWeek ?? "sunday",
+        time: time ?? "9:00pm",
+        timezone: timezone ?? "Asia/Singapore",
+        description,
+        enabled: enabled ?? true,
       });
+
+      return {
+        scheduleArn: created.scheduleArn,
+        scheduleName: created.scheduleName,
+        scheduleExpression: created.scheduleExpression,
+        chatId,
+        dayOfWeek: created.dayOfWeek,
+        time: created.time,
+        timezone: created.timezone,
+        lambdaTarget: {
+          arn: created.lambdaTarget.arn,
+          payload: JSON.stringify(created.lambdaTarget.payload),
+        },
+        state: created.state,
+        updatedDate: created.createdDate,
+        message: `Created group reminder for chat ${chatId} (no prior schedule found) - scheduled for ${created.dayOfWeek} at ${created.time} (${created.timezone})`,
+      };
     }
 
     // Merge existing schedule with updates
