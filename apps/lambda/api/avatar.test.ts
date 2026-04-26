@@ -32,6 +32,7 @@ vi.mock("telegraf", () => ({
 }));
 
 import avatarRouter from "./avatar.js";
+import { prisma } from "@dko/database";
 
 const app = express();
 app.use("/api/avatar", avatarRouter);
@@ -69,5 +70,37 @@ describe("GET /api/avatar/:userId — auth", () => {
       .get("/api/avatar/123")
       .set("Authorization", "tma ok");
     expect(res.status).not.toBe(401);
+  });
+});
+
+describe("GET /api/avatar/:userId — authz", () => {
+  it("returns 403 when caller and target do not share a chat", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      null
+    );
+    const res = await request(app).get("/api/avatar/200?auth=ok");
+    expect(res.status).toBe(403);
+  });
+
+  it("allows self-lookup without checking shared chat", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    const findFirstMock = prisma.chat.findFirst as ReturnType<typeof vi.fn>;
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).not.toBe(403);
+    expect(findFirstMock).not.toHaveBeenCalled();
+  });
+
+  it("proceeds when caller and target share a chat", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 999n,
+    });
+    const res = await request(app).get("/api/avatar/200?auth=ok");
+    // Authz passes; falls through to 404 stub for now.
+    expect(res.status).toBe(404);
   });
 });
