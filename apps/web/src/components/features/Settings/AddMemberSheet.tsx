@@ -76,8 +76,7 @@ export default function AddMemberSheet({
           style={{ borderColor: tButtonColor }}
         >
           <Text style={{ color: tSubtitleTextColor }}>
-            We&apos;ll open the bot DM where you can pick people from your
-            Telegram contacts.
+            Want to bring more friends into this group?
           </Text>
         </blockquote>
 
