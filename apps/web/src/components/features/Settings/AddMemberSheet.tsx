@@ -65,39 +65,81 @@ export default function AddMemberSheet({
     {
       label: "Pick your contacts",
       mockup: (
-        <div className={`${cardClass} space-y-1.5`} style={cardStyle}>
-          <div className="flex items-center justify-between px-1 text-[10px]">
-            <span>✕</span>
-            <span className="font-semibold">Select Users</span>
-            <span style={{ color: tSubtitleTextColor }}>0/10</span>
+        <div className={`${cardClass} space-y-2`} style={cardStyle}>
+          {/* Top bar: rounded ✕ button on left, centered title + counter, spacer right */}
+          <div className="flex items-center gap-2">
+            <div
+              className="grid size-5 shrink-0 place-items-center rounded-full bg-white/10 text-[9px]"
+              style={{ color: tSubtitleTextColor }}
+            >
+              ✕
+            </div>
+            <div className="flex-1 text-center leading-tight">
+              <div className="text-[10px] font-semibold">Select Users</div>
+              <div className="text-[8px]" style={{ color: tSubtitleTextColor }}>
+                0/10
+              </div>
+            </div>
+            {/* Invisible spacer balances the ✕ so title stays centered */}
+            <div className="size-5 shrink-0" />
           </div>
+
+          {/* Search pill with leading magnifier */}
           <div
-            className="rounded-full bg-white/5 px-2 py-0.5 text-[9px]"
+            className="flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px]"
             style={{ color: tSubtitleTextColor }}
           >
-            🔍 Search
+            <span className="text-[9px]">🔍</span>
+            <span>Search</span>
           </div>
+
+          {/* Section header */}
           <div
-            className="text-[8px] tracking-wider"
+            className="px-1 pt-0.5 text-[8px] font-medium tracking-wider"
             style={{ color: tSubtitleTextColor }}
           >
             FREQUENT CONTACTS
           </div>
-          <div className="flex items-center gap-1.5">
-            <div
-              className="size-2 shrink-0 rounded-full border"
-              style={{ borderColor: tSubtitleTextColor }}
-            />
-            <div className="size-3 shrink-0 rounded-full bg-orange-500/70" />
-            <div className="h-2 w-20 rounded-sm bg-white/15" />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div
-              className="size-2 shrink-0 rounded-full border"
-              style={{ borderColor: tSubtitleTextColor }}
-            />
-            <div className="size-3 shrink-0 rounded-full bg-cyan-500/70" />
-            <div className="h-2 w-14 rounded-sm bg-white/15" />
+
+          {/* Contact rows: selection circle + colorful avatar + name with bold
+              last name + last-seen subtitle */}
+          <div className="space-y-1.5 px-0.5">
+            <div className="flex items-center gap-2">
+              <div
+                className="size-2.5 shrink-0 rounded-full border-[1.5px]"
+                style={{ borderColor: tSubtitleTextColor }}
+              />
+              <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-orange-400 to-pink-500" />
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="text-[10px]">
+                  Alex <span className="font-semibold">Carter</span>
+                </div>
+                <div
+                  className="text-[8px]"
+                  style={{ color: tSubtitleTextColor }}
+                >
+                  last seen 5 minutes ago
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="size-2.5 shrink-0 rounded-full border-[1.5px]"
+                style={{ borderColor: tSubtitleTextColor }}
+              />
+              <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-cyan-400 to-blue-600" />
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="text-[10px]">
+                  Sam <span className="font-semibold">Wilson</span>
+                </div>
+                <div
+                  className="text-[8px]"
+                  style={{ color: tSubtitleTextColor }}
+                >
+                  last seen yesterday
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ),
