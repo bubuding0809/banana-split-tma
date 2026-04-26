@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Avatars Overhaul · Design Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<style>
+  :root {
+    --bg: #000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --text: #fff;
+    --muted: #98989f;
+    --dim: #666;
+    --accent: #4a9eff;
+    --accent-bg: rgba(74,158,255,.18);
+    --violet: #a78bfa;
+    --violet-bg: rgba(167,139,250,.18);
+    --teal: #2dd4bf;
+    --teal-bg: rgba(45,212,191,.18);
+    --danger: #ff453a;
+    --danger-bg: rgba(255,69,58,.18);
+    --success: #34c759;
+    --success-bg: rgba(52,199,89,.18);
+    --warn: #ff9500;
+    --warn-bg: rgba(255,149,0,.18);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    height: 100%; overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: contain;
+  }
+
+  /* ============== MOBILE FIRST (base = phone) ============== */
+
+  .deck { position: relative; width: 100vw; height: 100vh; height: 100dvh; }
+  .slide {
+    position: absolute; inset: 0;
+    padding: calc(20px + var(--safe-top)) 18px calc(76px + var(--safe-bot));
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s ease;
+    display: flex; flex-direction: column;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .eyebrow { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; margin-bottom: 10px; }
+  h1 { font-size: 30px; font-weight: 800; margin: 0 0 10px; line-height: 1.08; letter-spacing: -.5px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 0 0 14px; letter-spacing: -.3px; line-height: 1.18; }
+  h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+  .subhead { color: var(--muted); font-size: 14px; line-height: 1.55; }
+  p { font-size: 14px; line-height: 1.55; color: #d1d1d6; }
+  ul { font-size: 13.5px; line-height: 1.65; color: #d1d1d6; padding-left: 18px; margin: 8px 0; }
+  ul li::marker { color: var(--accent); }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; background: rgba(127,127,127,.18); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+  pre {
+    background: var(--surface);
+    padding: 12px 14px;
+    border-radius: 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px; line-height: 1.5;
+    color: #d1d1d6; margin: 10px 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; word-break: normal; }
+
+  .meta-row { display: flex; gap: 6px; margin-top: 16px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+
+  .grid { display: grid; gap: 12px; margin-top: 12px; grid-template-columns: 1fr; }
+
+  .card { background: var(--surface); border-radius: 12px; padding: 14px 16px; border: 1px solid rgba(255,255,255,.04); }
+  .card h3 { font-size: 14px; margin-bottom: 4px; color: var(--accent); }
+  .card.ok h3 { color: var(--success); }
+  .card.warn h3 { color: var(--warn); }
+  .card.danger h3 { color: var(--danger); }
+  .card.violet h3 { color: var(--violet); }
+  .card.teal h3 { color: var(--teal); }
+  .card p { font-size: 12.5px; line-height: 1.5; margin: 0; color: #d1d1d6; }
+  .card ul { font-size: 12.5px; }
+  .card .stat { font-size: 24px; font-weight: 800; letter-spacing: -.4px; margin: 4px 0 0; }
+  .card .stat.success { color: var(--success); }
+  .card .stat.warn { color: var(--warn); }
+  .card .stat.danger { color: var(--danger); }
+  .card .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .pill.accent { background: var(--accent-bg); color: var(--accent); }
+  .pill.violet { background: var(--violet-bg); color: var(--violet); }
+  .pill.teal { background: var(--teal-bg); color: var(--teal); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .pill.muted { background: rgba(127,127,127,.2); color: var(--muted); }
+  .pill.success { background: var(--success-bg); color: var(--success); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 10px 12px calc(10px + var(--safe-bot));
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,.96) 70%, transparent);
+    pointer-events: none; gap: 8px;
+  }
+  .nav-btn {
+    background: var(--surface-2); border: none; color: var(--text);
+    padding: 12px 16px; border-radius: 10px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    pointer-events: auto;
+    transition: background .15s, transform .1s;
+    min-height: 44px; min-width: 88px;
+    -webkit-user-select: none; user-select: none;
+  }
+  .nav-btn:active { transform: scale(.96); background: rgba(74,158,255,.3); }
+  .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+  .counter {
+    color: var(--muted); font-size: 13px; pointer-events: auto;
+    font-variant-numeric: tabular-nums;
+    background: var(--surface); padding: 6px 12px; border-radius: 999px;
+  }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .22s ease; z-index: 100; }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px -4px 0; padding: 0 4px; }
+  table { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  td code { font-size: 11px; white-space: normal; word-break: break-word; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.wrap { white-space: normal; min-width: 160px; }
+  td .pill { font-size: 9px; }
+
+  .check-y { color: var(--success); font-weight: 700; }
+  .check-n { color: var(--danger); font-weight: 700; }
+
+  .step-list { counter-reset: step; list-style: none; padding: 0; }
+  .step-list li {
+    counter-increment: step;
+    padding: 8px 0 8px 40px; position: relative;
+    font-size: 13.5px; line-height: 1.55; color: #d1d1d6;
+  }
+  .step-list li::before {
+    content: counter(step); position: absolute;
+    left: 0; top: 6px; width: 28px; height: 28px;
+    border-radius: 999px; background: var(--accent-bg); color: var(--accent);
+    font-weight: 700; font-size: 13px; display: grid; place-items: center;
+  }
+
+  .avatar { width: 36px; height: 36px; border-radius: 999px; display: inline-grid; place-items: center; font-size: 18px; background: var(--surface-2); color: #fff; flex-shrink: 0; }
+  .avatar.photo { background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .avatar.photo2 { background-image: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .avatar.photo3 { background-image: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .avatar.group { background-image: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
+
+  .stack { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .stack .layer { background: var(--surface); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-left: 3px solid var(--accent); }
+  .stack .layer.l2 { border-left-color: var(--violet); }
+  .stack .layer.l3 { border-left-color: var(--teal); }
+  .stack .layer.l4 { border-left-color: var(--warn); }
+  .stack .layer.bypass { border-left-color: var(--success); }
+  .stack .layer .name { font-size: 13px; font-weight: 600; }
+  .stack .layer .ttl { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .stack .layer .sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .stack .arrow { text-align: center; color: var(--dim); font-size: 14px; margin: -4px 0; }
+
+  .flow-box { background: var(--surface); border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5; }
+  .flow-box .lbl { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .flow-box.danger { border: 1px solid rgba(255,69,58,.4); }
+  .flow-box.danger .lbl { color: var(--danger); }
+  .flow-box.success { border: 1px solid rgba(52,199,89,.4); }
+  .flow-box.success .lbl { color: var(--success); }
+  .flow-box.warn { border: 1px solid rgba(255,149,0,.4); }
+  .flow-box.warn .lbl { color: var(--warn); }
+
+  .url { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; padding: 2px 0; word-break: break-all; }
+  .url .token { background: var(--danger-bg); color: var(--danger); padding: 1px 4px; border-radius: 3px; font-weight: 700; }
+  .url .safe { color: var(--success); }
+
+  .surface-card { background: var(--surface); border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+  .surface-card .num {
+    width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
+    background: var(--accent-bg); color: var(--accent);
+    display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  }
+  .surface-card.s2 .num { background: var(--violet-bg); color: var(--violet); }
+  .surface-card.s3 .num { background: var(--warn-bg); color: var(--warn); }
+  .surface-card .body { flex: 1; min-width: 0; }
+  .surface-card .body .title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .surface-card .body .desc { font-size: 12.5px; color: #d1d1d6; line-height: 1.5; }
+  .surface-card .body .source { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: "SF Mono", ui-monospace, Menlo, monospace; word-break: break-all; }
+
+  .leak-banner {
+    background: var(--danger-bg);
+    border: 1px solid rgba(255,69,58,.4);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #ffd1ce;
+    line-height: 1.5;
+  }
+  .leak-banner strong { color: var(--danger); }
+
+  /* ============== TABLET (>= 700px) ============== */
+  @media (min-width: 700px) {
+    .slide { padding: 36px 32px 88px; }
+    .eyebrow { font-size: 12px; margin-bottom: 12px; }
+    h1 { font-size: 42px; line-height: 1.06; letter-spacing: -.8px; }
+    h2 { font-size: 30px; }
+    h3 { font-size: 18px; }
+    .subhead { font-size: 16px; max-width: 700px; }
+    p { font-size: 15px; max-width: 720px; }
+    ul { font-size: 14px; max-width: 720px; }
+    code { font-size: 13px; }
+    pre { font-size: 12px; padding: 14px 16px; }
+    .meta-row { gap: 10px; font-size: 12px; margin-top: 22px; }
+
+    .grid { gap: 16px; margin-top: 14px; }
+    .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid.cols-mockup { grid-template-columns: 1fr 1.1fr; align-items: start; }
+    .grid.cols-mockup-3 { grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+
+    .card { border-radius: 14px; padding: 16px 18px; }
+    .card h3 { font-size: 15px; }
+    .card .stat { font-size: 28px; }
+
+    .pill { font-size: 11px; padding: 3px 10px; }
+    table { font-size: 13.5px; }
+    th, td { padding: 9px 12px; }
+    td code { font-size: 12px; }
+
+    .step-list li { padding: 10px 0 10px 44px; font-size: 14.5px; }
+    .step-list li::before { width: 32px; height: 32px; font-size: 14px; }
+
+    .avatar { width: 44px; height: 44px; font-size: 22px; }
+    .stack { gap: 10px; max-width: 540px; }
+    .stack .layer .name { font-size: 14px; }
+    .url { font-size: 12.5px; }
+
+    .surface-card .num { width: 36px; height: 36px; font-size: 15px; }
+    .surface-card .body .title { font-size: 15px; }
+    .surface-card .body .desc { font-size: 13.5px; }
+  }
+
+  /* ============== DESKTOP (>= 1024px) ============== */
+  @media (min-width: 1024px) {
+    .slide { padding: 56px 72px 80px; }
+    h1 { font-size: 56px; letter-spacing: -1px; }
+    h2 { font-size: 36px; letter-spacing: -.5px; }
+    h3 { font-size: 22px; }
+    .subhead { font-size: 17px; max-width: 820px; line-height: 1.55; }
+    p { font-size: 16px; max-width: 820px; line-height: 1.6; }
+    ul { font-size: 15px; max-width: 820px; line-height: 1.7; padding-left: 22px; }
+    code { font-size: 13px; }
+    pre { font-size: 12.5px; max-width: 900px; }
+    .meta-row { font-size: 13px; }
+    .grid { gap: 18px; margin-top: 16px; }
+
+    .nav { padding: 16px 32px; }
+    .nav-btn { padding: 8px 14px; min-width: auto; min-height: auto; font-size: 14px; }
+    .counter { background: none; padding: 0; }
+  }
+
+  .swipe-hint {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(74,158,255,.2); color: var(--accent);
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    pointer-events: none; opacity: 0;
+    animation: hint 3s ease forwards; z-index: 90;
+  }
+  @keyframes hint {
+    0% { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  }
+  @media (min-width: 1024px) { .swipe-hint { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="swipe-hint" id="hint">← Swipe to navigate →</div>
+<div class="deck" id="deck">
+
+<!-- 1: Title -->
+<section class="slide active">
+  <div class="eyebrow">Design spec · 2026-04-26</div>
+  <h1>Avatars Overhaul<br>Real photos, no leaks</h1>
+  <p class="subhead">Three avatar surfaces, one PR. Replace per-user emoji with real Telegram photos. Close the bot-token leak that ships in production today on group photos. Use initData directly for the user's own face — instant, free.</p>
+  <div class="meta-row">
+    <span class="pill warn">Awaiting review</span>
+    <span class="pill muted">bubu + Opus 4.7</span>
+    <span class="pill muted">Schema: 0</span>
+    <span class="pill muted">Files: 8</span>
+    <span class="pill danger">Closes prod token leak</span>
+  </div>
+</section>
+
+<!-- 2: Three surfaces -->
+<section class="slide">
+  <div class="eyebrow">Scope</div>
+  <h2>Three avatar surfaces, three sources</h2>
+  <div class="grid">
+    <div class="surface-card">
+      <div class="num">1</div>
+      <div class="body">
+        <div class="title">Self avatar in the TMA</div>
+        <div class="desc">Use <code>initData.user.photo_url</code> directly. Telegram CDN, no backend hit, instant first paint.</div>
+        <div class="source">→ https://t.me/i/userpic/&lt;hash&gt;.jpg</div>
+      </div>
+    </div>
+    <div class="surface-card s2">
+      <div class="num">2</div>
+      <div class="body">
+        <div class="title">Other members' avatars</div>
+        <div class="desc">Member lists, splits, settlements, balances. New proxy route — token stays inside the lambda.</div>
+        <div class="source">→ /api/avatar/&lt;userId&gt;?auth=…</div>
+      </div>
+    </div>
+    <div class="surface-card s3">
+      <div class="num">3</div>
+      <div class="body">
+        <div class="title">Group / chat photos</div>
+        <div class="desc">Chat header, group switcher. New proxy route — <strong>closes a token leak shipped to production today.</strong></div>
+        <div class="source">→ /api/chat-photo/&lt;chatId&gt;?auth=…</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Two leaks -->
+<section class="slide">
+  <div class="eyebrow">Why this exists</div>
+  <h2>Two token leaks, one fix shape</h2>
+  <p>Telegram's Bot API only ever issues file URLs of this shape:</p>
+  <div class="flow-box danger" style="margin-top: 10px;">
+    <div class="lbl">What Telegram returns</div>
+    <div class="url">https://api.telegram.org/file/bot<span class="token">7234567890:AA…secret…</span>/photos/file_42.jpg</div>
+  </div>
+  <div class="grid cols-2" style="margin-top: 14px;">
+    <div class="card warn">
+      <h3 style="color: var(--warn);">User-photo attempt</h3>
+      <p>The previous attempt at user avatars returned this URL straight to the client. Disabled when the leak was discovered. Stub at <code>getUserProfilePhotoUrl.ts</code> returns <code>null</code>.</p>
+    </div>
+    <div class="card danger">
+      <h3>Group-photo (live in prod)</h3>
+      <p><code>routers/telegram/getChat.ts</code> calls <code>teleBot.getFileLink(big_file_id)</code> and returns the URL to the client. <strong>Anyone with DevTools open on a group page reads the bot token right now.</strong></p>
+    </div>
+  </div>
+  <div class="leak-banner">
+    <strong>Why bundle the fixes:</strong> three PRs would mean a window where the group leak coexists with the new user proxy. One PR closes everything in the same deploy.
+  </div>
+</section>
+
+<!-- 4: Approach matrix -->
+<section class="slide">
+  <div class="eyebrow">Approach matrix</div>
+  <h2>One source per surface</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Surface</th><th>Source</th><th>Fallback chain</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="wrap"><strong>Self avatar</strong> in TMA</td>
+          <td class="wrap"><code>initData.user.photo_url</code></td>
+          <td class="wrap">→ proxy → emoji</td>
+        </tr>
+        <tr>
+          <td class="wrap"><strong>Other members</strong></td>
+          <td class="wrap"><code>/api/avatar/:userId</code></td>
+          <td class="wrap">→ emoji</td>
+        </tr>
+        <tr>
+          <td class="wrap"><strong>Group photo</strong></td>
+          <td class="wrap"><code>/api/chat-photo/:chatId</code></td>
+          <td class="wrap">→ default placeholder</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top: 14px;">For self, the initData CDN URL skips the lambda entirely on first paint. If <code>photo_url</code> is undefined (privacy-hidden) the component falls through to the proxy, which 404s and lands on emoji. <strong>Defense in depth.</strong></p>
+  <div class="card teal" style="margin-top: 14px;">
+    <h3>The shared infrastructure</h3>
+    <p>The two proxy routes are nearly identical: same auth (TMA initData), same cache headers, same fallback shape. Differ only in (a) authz check — shared-chat vs chat-membership — and (b) the Telegram API call shape. ~150 LOC total across both.</p>
+  </div>
+</section>
+
+<!-- 5: Architecture / cache stack -->
+<section class="slide">
+  <div class="eyebrow">Architecture</div>
+  <h2>Two cache stacks side by side</h2>
+  <div class="grid cols-2">
+    <div>
+      <div class="eyebrow" style="margin-bottom: 6px;">Self · initData CDN</div>
+      <div class="stack">
+        <div class="layer bypass">
+          <div><div class="name">Browser HTTP cache</div><div class="sub">far-future, immutable</div></div>
+          <div class="ttl">∞</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer bypass">
+          <div><div class="name">Telegram CDN</div><div class="sub">t.me/i/userpic/...</div></div>
+          <div class="ttl">~30ms</div>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: var(--muted); margin-top: 8px;">Lambda not involved. Zero edge requests on our quota.</p>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom: 6px;">Others + groups · proxy</div>
+      <div class="stack">
+        <div class="layer">
+          <div><div class="name">Browser cache</div></div>
+          <div class="ttl">24h</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer l2">
+          <div><div class="name">Vercel CDN edge</div></div>
+          <div class="ttl">7d</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer l3">
+          <div><div class="name">Lambda function</div></div>
+          <div class="ttl">~150ms</div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="layer l4">
+          <div><div class="name">Telegram Bot API</div></div>
+          <div class="ttl">~250ms</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6: Self via initData -->
+<section class="slide">
+  <div class="eyebrow">Surface 1 · Self avatar</div>
+  <h2>Free win from initData</h2>
+  <p>Telegram already hands us a CDN URL for the current user. Bot API 8.0 (Nov 2024) made <code>photo_url</code> available to all Mini Apps regardless of entry point.</p>
+  <div class="grid cols-2">
+    <div class="flow-box success">
+      <div class="lbl">URL shape</div>
+      <div class="url"><span class="safe">https://t.me/i/userpic/&lt;size&gt;/&lt;hash&gt;.jpeg</span></div>
+    </div>
+    <div class="card">
+      <ul style="margin: 0;">
+        <li>No bot token in path</li>
+        <li>Hotlink-friendly Telegram CDN</li>
+        <li>Hash-keyed = cache-immutable per upload</li>
+        <li>Available via <code>useLaunchParams().initData.user.photoUrl</code></li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top: 18px; color: var(--accent);">Caveats</h3>
+  <ul>
+    <li><strong>Optional</strong> — undefined when user privacy hides photos from non-contacts. Component falls through to proxy.</li>
+    <li><strong>Per-launch</strong> — initData is set when TMA opens. Photo changes mid-session won't appear until next launch. Acceptable.</li>
+    <li><strong>Self only</strong> — there's no API to get other users' <code>t.me/i/userpic</code> URLs from the Bot API. Surface 2 covers everyone else.</li>
+  </ul>
+</section>
+
+<!-- 7: User proxy -->
+<section class="slide">
+  <div class="eyebrow">Surface 2 · User proxy code</div>
+  <h2><code>apps/lambda/api/avatar.ts</code></h2>
+  <pre><code>router.get("/:userId", async (req, res) =&gt; {
+  // 1. Auth — TMA initData (header OR ?auth= for &lt;img&gt;)
+  const initData =
+    req.header("authorization")?.replace(/^tma /, "") ??
+    (req.query.auth as string | undefined);
+  if (!initData) return res.status(401).end();
+  let callerId: number;
+  try {
+    validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
+    callerId = parseInitData(initData).user!.id;
+  } catch { return res.status(401).end(); }
+
+  // 2. Authz — caller and target share a chat
+  const targetId = BigInt(req.params.userId);
+  if (BigInt(callerId) !== targetId) {
+    const shared = await prisma.chat.findFirst({
+      where: {
+        members: { some: { id: BigInt(callerId) } },
+        AND:     { members: { some: { id: targetId } } },
+      },
+      select: { id: true },
+    });
+    if (!shared) return res.status(403).end();
+  }
+
+  // 3. Telegram fetch — token URL stays in this function
+  const photos = await teleBot.getUserProfilePhotos(
+    Number(targetId), 0, 1
+  );
+  const biggest = photos.photos[0]?.at(-1);
+  if (!biggest) {
+    res.setHeader("Cache-Control",
+      "public, max-age=3600, s-maxage=3600");
+    return res.status(404).end();
+  }
+  const fileLink = await teleBot.getFileLink(biggest.file_id);
+  const upstream = await fetch(fileLink.toString());
+  const bytes = Buffer.from(await upstream.arrayBuffer());
+
+  res.setHeader("Content-Type", "image/jpeg");
+  res.setHeader("Cache-Control",
+    "public, max-age=86400, s-maxage=604800, " +
+    "stale-while-revalidate=604800");
+  res.status(200).send(bytes);
+});</code></pre>
+</section>
+
+<!-- 8: Chat photo proxy -->
+<section class="slide">
+  <div class="eyebrow">Surface 3 · Chat photo proxy</div>
+  <h2><code>apps/lambda/api/chat-photo.ts</code></h2>
+  <p>Same shape as user proxy. Two differences: <strong>authz</strong> (caller is a member of the chat) and <strong>fetch</strong> (<code>getChat</code> instead of <code>getUserProfilePhotos</code>).</p>
+  <pre><code>router.get("/:chatId", async (req, res) =&gt; {
+  // ...same auth pattern as avatar.ts...
+
+  // Authz — caller is a member of the chat
+  const chatId = BigInt(req.params.chatId);
+  const member = await prisma.chat.findFirst({
+    where: {
+      id: chatId,
+      members: { some: { id: BigInt(callerId) } },
+    },
+    select: { id: true },
+  });
+  if (!member) return res.status(403).end();
+
+  // Telegram fetch
+  const chat = await teleBot.getChat(Number(chatId));
+  const bigFileId = chat.photo?.big_file_id;
+  if (!bigFileId) {
+    res.setHeader("Cache-Control",
+      "public, max-age=3600, s-maxage=3600");
+    return res.status(404).end();
+  }
+  const fileLink = await teleBot.getFileLink(bigFileId);
+  const upstream = await fetch(fileLink.toString());
+  const bytes = Buffer.from(await upstream.arrayBuffer());
+
+  res.setHeader("Content-Type", "image/jpeg");
+  res.setHeader("Cache-Control",
+    "public, max-age=86400, s-maxage=604800, " +
+    "stale-while-revalidate=604800");
+  res.status(200).send(bytes);
+});</code></pre>
+</section>
+
+<!-- 9: ChatMemberAvatar 3-layer logic -->
+<section class="slide">
+  <div class="eyebrow">Surface 1+2 · Web</div>
+  <h2><code>ChatMemberAvatar</code> — three layers</h2>
+  <p>One component, three rendering paths chosen at runtime:</p>
+  <ol class="step-list">
+    <li><strong>If <code>userId === currentUserId</code></strong> and initData has <code>photo_url</code> → use it directly. Telegram CDN, no backend hit.</li>
+    <li><strong>Otherwise</strong> → <code>&lt;img src="/api/avatar/:userId?auth=…"&gt;</code> proxy.</li>
+    <li><strong>On any image error</strong> → emoji via <code>getAnimalAvatarEmoji</code>.</li>
+  </ol>
+  <pre><code>const { initDataRaw, initData } = useLaunchParams();
+const [failed, setFailed] = useState(false);
+
+const src = useMemo(() =&gt; {
+  if (failed) return undefined;
+  // Self → initData CDN URL (no backend hit)
+  if (initData?.user?.id === userId &amp;&amp; initData.user.photoUrl) {
+    return initData.user.photoUrl;
+  }
+  // Others → proxy
+  return `${AVATAR_BASE}/${userId}?auth=${
+    encodeURIComponent(initDataRaw ?? "")
+  }`;
+}, [failed, initData, initDataRaw, userId]);
+
+return (
+  &lt;Avatar
+    size={size} src={src}
+    onError={() =&gt; setFailed(true)}
+    fallbackIcon={getAnimalAvatarEmoji(String(userId))}
+  /&gt;
+);</code></pre>
+</section>
+
+<!-- 10: GroupPage swap -->
+<section class="slide">
+  <div class="eyebrow">Surface 3 · Web + tRPC cleanup</div>
+  <h2>Closing the group leak</h2>
+  <div class="grid cols-2">
+    <div>
+      <h3 style="color: var(--accent);">In <code>GroupPage.tsx</code></h3>
+      <p>Two <code>&lt;Avatar src={tChatData?.photoUrl}&gt;</code> usages today (lines ~345, ~376). Both swap to:</p>
+      <pre><code>const chatPhotoSrc =
+  `${CHAT_PHOTO_BASE}/${chatId}` +
+  `?auth=${encodeURIComponent(initDataRaw ?? "")}`;
+
+&lt;Avatar size={28}
+  src={chatPhotoSrc}
+  onError={...} /&gt;</code></pre>
+    </div>
+    <div>
+      <h3 style="color: var(--danger);">In <code>routers/telegram/getChat.ts</code></h3>
+      <p>Stop calling <code>getFileLink</code> entirely. Strip the <code>photoUrl</code> field from the response — there's no legitimate client use, and leaving it tempts a future contributor to wire the leak back in.</p>
+      <pre><code>const { photo: _, ...rest } = chat;
+return rest;</code></pre>
+      <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">Other consumers of <code>telegram.getChat</code> use <code>title</code>/<code>type</code>/etc. — those still work.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11: Cost -->
+<section class="slide">
+  <div class="eyebrow">Cost · Hobby tier headroom @ 1k users</div>
+  <h2>Still fits, with margin</h2>
+  <p>Self avatars bypass the proxy → ~30% reduction. Group photos add a small slice. Net: ~390 K edge requests/mo for all avatar traffic combined.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Resource</th><th class="num">Quota</th><th class="num">Avatars use</th><th class="num">Headroom</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="wrap">Function invocations</td><td class="num">1M</td><td class="num">~20K</td><td class="num"><span class="check-y">50×</span></td></tr>
+        <tr><td class="wrap">Fast Data Transfer</td><td class="num">100GB</td><td class="num">~6GB</td><td class="num"><span class="check-y">16×</span></td></tr>
+        <tr><td class="wrap"><strong>Edge requests</strong></td><td class="num">1M</td><td class="num">~390K</td><td class="num"><span class="pill warn">2.5×</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid cols-3" style="margin-top: 16px;">
+    <div class="card ok">
+      <div class="label">@ 100 users</div>
+      <div class="stat success">~39K</div>
+      <p>edge req/mo</p>
+    </div>
+    <div class="card ok">
+      <div class="label">@ 1000 users</div>
+      <div class="stat success">~390K</div>
+      <p>fits — watch dashboard</p>
+    </div>
+    <div class="card warn">
+      <div class="label">@ 1300 users</div>
+      <div class="stat warn">~510K</div>
+      <p>50% of quota → migrate to Blob</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12: Edge cases -->
+<section class="slide">
+  <div class="eyebrow">Edge cases</div>
+  <h2>What happens when…</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Case</th><th>Response</th><th>UI</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="wrap">Caller is self, initData has <code>photo_url</code></td><td>initData URL</td><td>real photo</td></tr>
+        <tr><td class="wrap">Caller is self, privacy-hidden</td><td>fall through → proxy → 404</td><td>emoji</td></tr>
+        <tr><td class="wrap">Caller views unrelated user (no shared chat)</td><td><code>403</code></td><td>emoji</td></tr>
+        <tr><td class="wrap">Member's photo privacy-hidden</td><td><code>404</code> + 1h cache</td><td>emoji</td></tr>
+        <tr><td class="wrap">Member with no photo at all</td><td><code>404</code> + 1h cache</td><td>emoji</td></tr>
+        <tr><td class="wrap">Caller views chat they're not in</td><td><code>403</code> from chat-photo</td><td>placeholder</td></tr>
+        <tr><td class="wrap">Chat has no group photo</td><td><code>404</code> + 1h cache</td><td>placeholder</td></tr>
+        <tr><td class="wrap">Telegram rate-limits the bot</td><td><code>502</code></td><td>fallback</td></tr>
+        <tr><td class="wrap">Invalid initData signature</td><td><code>401</code></td><td>fallback</td></tr>
+        <tr><td class="wrap">User changes photo mid-session</td><td>stale until next TMA launch</td><td>old photo</td></tr>
+        <tr><td class="wrap">Group photo changes</td><td>stale ≤7d (CDN)</td><td>old photo</td></tr>
+        <tr><td class="wrap">Cold-region first paint</td><td>~300–600ms one-time</td><td>brief blank</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top: 14px;"><strong>Universal safety net:</strong> any non-200 fires <code>onError</code>, flipping to the appropriate fallback. Users never see broken-image icons.</p>
+</section>
+
+<!-- 13: File map -->
+<section class="slide">
+  <div class="eyebrow">File map</div>
+  <h2>Eight files, one PR</h2>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td class="wrap"><code>apps/lambda/api/avatar.ts</code></td><td><span class="pill success">new</span></td><td class="num">~80</td></tr>
+        <tr><td class="wrap"><code>apps/lambda/api/chat-photo.ts</code></td><td><span class="pill success">new</span></td><td class="num">~70</td></tr>
+        <tr><td class="wrap"><code>apps/lambda/api/index.ts</code></td><td><span class="pill accent">+4</span></td><td class="num">edit</td></tr>
+        <tr><td class="wrap"><code>ChatMemberAvatar.tsx</code></td><td><span class="pill warn">rewrite</span></td><td class="num">~40</td></tr>
+        <tr><td class="wrap"><code>GroupPage.tsx</code></td><td><span class="pill accent">edit</span></td><td class="num">2 srcs</td></tr>
+        <tr><td class="wrap"><code>telegram/getChat.ts</code></td><td><span class="pill accent">edit</span></td><td class="num">strip photoUrl</td></tr>
+        <tr><td class="wrap"><code>telegram/getUserProfilePhotoUrl.ts</code></td><td><span class="pill danger">delete</span></td><td class="num">—</td></tr>
+        <tr><td class="wrap"><code>telegram/index.ts</code></td><td><span class="pill accent">−1</span></td><td class="num">edit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid cols-3" style="margin-top: 16px;">
+    <div class="card ok">
+      <div class="label">DB migrations</div>
+      <div class="stat success">0</div>
+    </div>
+    <div class="card ok">
+      <div class="label">New env vars</div>
+      <div class="stat success">0</div>
+    </div>
+    <div class="card ok">
+      <div class="label">New tRPC procedures</div>
+      <div class="stat success">0</div>
+    </div>
+  </div>
+</section>
+
+<!-- 14: Test plan -->
+<section class="slide">
+  <div class="eyebrow">Verification</div>
+  <h2>Test plan</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3 style="color: var(--violet);">Subagent UAT</h3>
+      <ul style="margin: 6px 0 0;">
+        <li>GET <code>/api/avatar/&lt;own-id&gt;?auth=…</code> → 200.</li>
+        <li>Repeat → <code>x-vercel-cache: HIT</code>.</li>
+        <li>GET <code>/api/avatar/&lt;random-id&gt;</code> → 403.</li>
+        <li>GET <code>/api/chat-photo/&lt;own-chat&gt;</code> → 200.</li>
+        <li>GET non-member chat → 403.</li>
+        <li>No-photo cases → 404 + 1h cache.</li>
+        <li>No auth → 401.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--accent);">Manual UAT</h3>
+      <ul style="margin: 6px 0 0;">
+        <li>Self avatar via initData (DevTools shows <code>t.me/i/userpic</code>).</li>
+        <li>Other members → real photos / emoji where hidden.</li>
+        <li>Chat header → real group photo via proxy.</li>
+        <li><strong>Token leak audit</strong>: zero <code>bot&lt;TOKEN&gt;</code> URLs in DevTools.</li>
+        <li>Spot-check 4–5 of 21 <code>ChatMemberAvatar</code> sites.</li>
+        <li>Hard-reload — "from disk cache".</li>
+        <li>Cross-chat: same member → same avatar.</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top: 18px; color: var(--accent);">Lambda unit tests</h3>
+  <p>Both routes: 401 on missing auth, 403 on authz fail, 200 happy path, 404 + 1h cache on no photo, 502 on telegraf throw. Avatar-only: self-lookup bypasses authz.</p>
+</section>
+
+<!-- 15: Rollout & follow-ups -->
+<section class="slide">
+  <div class="eyebrow">After this ships</div>
+  <h2>Rollout & follow-ups</h2>
+  <div class="grid cols-2">
+    <div>
+      <h3 style="color: var(--accent);">Rollout</h3>
+      <ul>
+        <li>Single PR via <code>.github/workflows/deploy.yml</code> on merge to main.</li>
+        <li>No feature flag — fully reversible by revert.</li>
+        <li>Pre-merge: verify Vercel preview serves both routes with dev-tunnel initData.</li>
+        <li>Post-merge: watch <strong>Edge Requests</strong> daily for first week. 50% of Hobby quota → migrate to Blob.</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color: var(--violet);">Follow-ups (separate PRs)</h3>
+      <ul>
+        <li><strong>Blob migration</strong> if usage approaches the Hobby ceiling (~1300 users).</li>
+        <li><strong>Image transcoding</strong> (Sharp resize + WebP) if bandwidth becomes a budget concern.</li>
+        <li><strong>Manual avatar refresh</strong> gesture if photo-change staleness ever causes confusion.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 16: Approve -->
+<section class="slide">
+  <div class="eyebrow">Decision needed</div>
+  <h2>Ready for review</h2>
+  <p style="font-size: 16px; margin-top: 14px;">If approved, I'll write the implementation plan with bite-sized tasks (TDD, frequent commits) — then ship.</p>
+  <div class="grid cols-3" style="margin-top: 18px;">
+    <div class="card ok">
+      <div class="label">Files</div>
+      <div class="stat success">8</div>
+      <p>2 new, 4 edits, 1 rewrite, 1 delete</p>
+    </div>
+    <div class="card ok">
+      <div class="label">Schema changes</div>
+      <div class="stat success">0</div>
+    </div>
+    <div class="card danger">
+      <div class="label">Live token leaks closed</div>
+      <div class="stat danger">1</div>
+      <p>group photos in <code>getChat.ts</code></p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">← Prev</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">16</span></span>
+  <button class="nav-btn" id="next">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  document.getElementById('total').textContent = total;
+  let cur = 0;
+  const progress = document.getElementById('progress');
+  const curEl = document.getElementById('cur');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+
+  function show(i) {
+    const next = Math.max(0, Math.min(total - 1, i));
+    if (next === cur) return;
+    slides[cur].classList.remove('active');
+    cur = next;
+    slides[cur].classList.add('active');
+    slides[cur].scrollTop = 0;
+    curEl.textContent = cur + 1;
+    progress.style.width = ((cur + 1) / total * 100) + '%';
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === total - 1;
+  }
+  prevBtn.addEventListener('click', () => show(cur - 1));
+  nextBtn.addEventListener('click', () => show(cur + 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(cur - 1);
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') show(cur + 1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(total - 1);
+  });
+
+  let touchStartX = 0, touchStartY = 0, touchActive = false;
+  const SWIPE_THRESHOLD = 60;
+  const SWIPE_RATIO = 1.6;
+
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchActive = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!touchActive) return;
+    touchActive = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return;
+    if (dx < 0) show(cur + 1); else show(cur - 1);
+  }, { passive: true });
+
+  const hint = document.getElementById('hint');
+  ['touchstart', 'click', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, () => hint.style.display = 'none', { once: true })
+  );
+
+  show(0);
+  slides[0].classList.add('active');
+  curEl.textContent = '1';
+  progress.style.width = (1 / total * 100) + '%';
+  prevBtn.disabled = true;
+</script>
+
+</body>
+</html>
