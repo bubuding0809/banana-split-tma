@@ -13,6 +13,7 @@
     "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
+    "@telegram-apps/init-data-node": "^2.0.10",
     "@types/cors": "^2.8.17",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",

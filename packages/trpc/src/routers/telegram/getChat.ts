@@ -10,22 +10,11 @@ export const getChatHandler = async (
   teleBot: Telegram
 ) => {
   const chat = await teleBot.getChat(input.chatId);
-
-  const { big_file_id } = chat.photo ?? {};
-
-  if (big_file_id) {
-    const fileLink = await teleBot.getFileLink(big_file_id);
-
-    return {
-      ...chat,
-      photoUrl: fileLink,
-    };
-  }
-
-  return {
-    ...chat,
-    photoUrl: null,
-  };
+  // chat.photo is intentionally not surfaced — clients use
+  // /api/chat-photo/:chatId to render group photos. Returning the
+  // file_id here would tempt callers to construct token-bearing URLs.
+  const { photo: _photo, ...rest } = chat;
+  return rest;
 };
 
 export default protectedProcedure
