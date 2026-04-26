@@ -1,6 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   hapticFeedback,
+  mainButton,
+  secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -162,6 +164,26 @@ const CurrencySelectionModal: React.FC<CurrencySelectionModalProps> = ({
       currenciesWithBalance,
       maxRecentlyUsed,
     ]);
+
+  // Telegram MainButton + SecondaryButton are rendered by the TMA host
+  // outside the React tree, so they float on top of this Modal. Hide
+  // them while the picker is open so users don't tap "Next" thinking
+  // it confirms their selection. Snapshot pre-open visibility and
+  // restore on close to preserve correctness on hosts that had Back
+  // hidden by default.
+  useEffect(() => {
+    if (!open) return;
+    const prevMainVisible = mainButton.isVisible();
+    const prevSecondaryVisible = secondaryButton.isVisible();
+    mainButton.setParams.ifAvailable({ isVisible: false });
+    secondaryButton.setParams.ifAvailable({ isVisible: false });
+    return () => {
+      mainButton.setParams.ifAvailable({ isVisible: prevMainVisible });
+      secondaryButton.setParams.ifAvailable({
+        isVisible: prevSecondaryVisible,
+      });
+    };
+  }, [open]);
 
   const handleCurrencySelect = (currencyCode: string) => {
     onCurrencySelect(currencyCode);

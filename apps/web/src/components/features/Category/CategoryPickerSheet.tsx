@@ -1,6 +1,11 @@
 import { Modal } from "@telegram-apps/telegram-ui";
-import { hapticFeedback } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  mainButton,
+  secondaryButton,
+} from "@telegram-apps/sdk-react";
 import { Plus, Sliders } from "lucide-react";
+import { useEffect } from "react";
 import CategoryTile from "./CategoryTile";
 
 // Thin wrappers around hapticFeedback — calls throw in non-TMA contexts
@@ -92,6 +97,26 @@ export default function CategoryPickerSheet({
   includeNoneOption,
   onOpenOrganize,
 }: CategoryPickerSheetProps) {
+  // Telegram MainButton + SecondaryButton are rendered by the TMA host
+  // outside the React tree, so they float on top of this Modal. Hide
+  // them while the picker is open so users don't tap "Next" thinking
+  // it confirms their selection. Snapshot pre-open visibility and
+  // restore on close to preserve correctness on hosts that had Back
+  // hidden by default.
+  useEffect(() => {
+    if (!open) return;
+    const prevMainVisible = mainButton.isVisible();
+    const prevSecondaryVisible = secondaryButton.isVisible();
+    mainButton.setParams.ifAvailable({ isVisible: false });
+    secondaryButton.setParams.ifAvailable({ isVisible: false });
+    return () => {
+      mainButton.setParams.ifAvailable({ isVisible: prevMainVisible });
+      secondaryButton.setParams.ifAvailable({
+        isVisible: prevSecondaryVisible,
+      });
+    };
+  }, [open]);
+
   return (
     <Modal
       open={open}

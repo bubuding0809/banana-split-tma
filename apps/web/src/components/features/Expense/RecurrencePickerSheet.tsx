@@ -9,6 +9,8 @@ import {
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
+  mainButton,
+  secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -157,6 +159,27 @@ export default function RecurrencePickerSheet({
   // Reset to top whenever the modal reopens
   useEffect(() => {
     if (open) setScreen("top");
+  }, [open]);
+
+  // Telegram MainButton + SecondaryButton are rendered by the TMA host
+  // outside the React tree, so they float on top of this Modal. Without
+  // this, the wizard's "Next" button stays visible at the bottom and
+  // users tap it expecting it to confirm their day-of-week selection
+  // inside the sheet — but it tries to advance the parent step instead.
+  // Snapshot pre-open visibility and restore on close so we don't show
+  // the secondary button on a step where the parent had it hidden.
+  useEffect(() => {
+    if (!open) return;
+    const prevMainVisible = mainButton.isVisible();
+    const prevSecondaryVisible = secondaryButton.isVisible();
+    mainButton.setParams.ifAvailable({ isVisible: false });
+    secondaryButton.setParams.ifAvailable({ isVisible: false });
+    return () => {
+      mainButton.setParams.ifAvailable({ isVisible: prevMainVisible });
+      secondaryButton.setParams.ifAvailable({
+        isVisible: prevSecondaryVisible,
+      });
+    };
   }, [open]);
 
   const isWeekly =
