@@ -265,6 +265,7 @@ interface NewTokenModalProps {
 
 function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tSectionBgColor = useSignal(themeParams.sectionBackgroundColor);
   const agentPrompt = getAgentPrompt(rawKey);
 
   return (
@@ -306,6 +307,7 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
           <ButtonCell
             before={<Copy size={20} />}
             onClick={() => onCopy(rawKey, "Token copied")}
+            style={{ backgroundColor: tSectionBgColor }}
           >
             Copy token
           </ButtonCell>
@@ -320,6 +322,7 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
           <ButtonCell
             before={<Copy size={20} />}
             onClick={() => onCopy(agentPrompt, "Agent setup prompt copied")}
+            style={{ backgroundColor: tSectionBgColor }}
           >
             Copy agent setup prompt
           </ButtonCell>
