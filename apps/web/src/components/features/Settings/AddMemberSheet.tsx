@@ -70,8 +70,8 @@ export default function AddMemberSheet({
         >
           <div className="px-2 py-3">
             <Text style={{ color: tSubtitleTextColor }}>
-              We'll open the bot DM where you can pick people from your Telegram
-              contacts. They'll be added to this group.
+              We&apos;ll open the bot DM where you can pick people from your
+              Telegram contacts. They&apos;ll be added to this group.
             </Text>
           </div>
         </Section>
