@@ -196,25 +196,26 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
         </Section>
       )}
 
-      <Section header="Personal">
-        {isPrivateChat && (
-          <>
-            <RowLink
-              color="blue"
-              icon={<DollarSign size={16} />}
-              label="Currency"
-              value={chat?.baseCurrency}
-              onClick={() => goto("currency")}
-            />
-            <RowLink
-              color="green"
-              icon={<Tag size={16} />}
-              label="Categories"
-              value={categoryPreview}
-              onClick={() => goto("categories")}
-            />
-          </>
-        )}
+      {isPrivateChat && (
+        <Section header="Preferences">
+          <RowLink
+            color="blue"
+            icon={<DollarSign size={16} />}
+            label="Currency"
+            value={chat?.baseCurrency}
+            onClick={() => goto("currency")}
+          />
+          <RowLink
+            color="green"
+            icon={<Tag size={16} />}
+            label="Categories"
+            value={categoryPreview}
+            onClick={() => goto("categories")}
+          />
+        </Section>
+      )}
+
+      <Section header={isPrivateChat ? "Account" : "Personal"}>
         <RowLink
           color="gray"
           icon={<UserIcon size={16} />}
