@@ -60,10 +60,11 @@ export default function ChatHeader({
           {previewMembers.map((m, i) => (
             <span
               key={m.id}
-              className="rounded-full"
+              className="box-border flex size-8 items-center justify-center rounded-full"
               style={{
                 marginLeft: i === 0 ? 0 : -8,
                 border: `2px solid ${tBackgroundColor ?? "transparent"}`,
+                zIndex: previewMembers.length - i + 1,
               }}
             >
               <ChatMemberAvatar userId={Number(m.id)} size={28} />
@@ -71,7 +72,7 @@ export default function ChatHeader({
           ))}
           {overflow > 0 && (
             <span
-              className="flex size-7 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700"
+              className="box-border flex size-8 items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700"
               style={{
                 marginLeft: -8,
                 border: `2px solid ${tBackgroundColor ?? "transparent"}`,

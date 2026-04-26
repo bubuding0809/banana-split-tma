@@ -134,7 +134,7 @@ const ChatBalanceCell = ({
     <>
       <Cell
         key={member.id}
-        before={<ChatMemberAvatar userId={member.id} size={28} />}
+        before={<ChatMemberAvatar userId={member.id} size={40} />}
         subhead={
           <Skeleton visible={isMemberInfoLoading}>
             {balanceType === "debtor"

@@ -131,7 +131,7 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
             ? Array.from({ length: 2 }).map((_, index) => (
                 <Cell
                   key={index}
-                  before={<Avatar size={48} />}
+                  before={<Avatar size={40} />}
                   after={
                     <Skeleton visible>
                       <Text>Loading...</Text>
@@ -180,7 +180,7 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
             ? Array.from({ length: 2 }).map((_, index) => (
                 <Cell
                   key={index}
-                  before={<Avatar size={48} />}
+                  before={<Avatar size={40} />}
                   after={
                     <Skeleton visible>
                       <Text>Loading...</Text>
