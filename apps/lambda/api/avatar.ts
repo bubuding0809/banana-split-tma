@@ -49,6 +49,9 @@ router.get("/:userId", async (req: Request, res: Response) => {
   // 3. Telegram fetch — token URL stays inside this function
   let bytes: Buffer;
   try {
+    // Telegram user IDs fit safely in Number for the foreseeable future
+    // (current max ~7e9 vs MAX_SAFE_INTEGER ~9e15). Telegraf's signature
+    // requires number, not bigint.
     const photos = await teleBot.getUserProfilePhotos(Number(targetId), 0, 1);
     const biggest = photos.photos[0]?.at(-1);
     if (!biggest) {
@@ -62,9 +65,17 @@ router.get("/:userId", async (req: Request, res: Response) => {
     }
     bytes = Buffer.from(await upstream.arrayBuffer());
   } catch (err) {
+    // Defense in depth — telegraf redacts internally, but the bare
+    // fetch(fileLink) call doesn't, and a future Node/Undici version
+    // could attach the URL to err.cause.message. Match telegraf's
+    // /bot\d+:[A-Za-z0-9_-]+/g pattern.
+    const safeErr =
+      err instanceof Error
+        ? err.message.replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]")
+        : String(err);
     console.warn("avatar fetch failed", {
       targetId: targetId.toString(),
-      err,
+      err: safeErr,
     });
     return res.status(502).end();
   }
