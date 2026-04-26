@@ -32,7 +32,7 @@ export const attachTelegramMessageHandler = async (
   try {
     const expense = await db.expense.findUnique({
       where: { id: input.expenseId },
-      select: { chatId: true },
+      select: { chatId: true, telegramMessageId: true },
     });
 
     if (!expense) {
@@ -43,6 +43,14 @@ export const attachTelegramMessageHandler = async (
     }
 
     await assertChatAccess(session, db, expense.chatId);
+
+    // Idempotency-safe: only attach when the expense has no captured
+    // message ID yet. A second call (e.g. accidental retry from the
+    // bot) is a no-op success rather than silently clobbering the
+    // original ID — clobbering would desync the deleteExpense cleanup.
+    if (expense.telegramMessageId !== null) {
+      return { success: true };
+    }
 
     await db.expense.update({
       where: { id: input.expenseId },

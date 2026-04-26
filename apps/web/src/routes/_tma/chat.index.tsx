@@ -38,7 +38,11 @@ function RouteComponent() {
     const consumedKey = `deep_link_consumed_${startParams.entity_id}`;
     if (sessionStorage.getItem(consumedKey)) return;
 
-    if (startParams.entity_type === "e") {
+    // Belt-and-braces: only consume on personal deep links. Home.tsx
+    // already routes group deep links to `/chat/$chatId`, but if a stale
+    // group startParam lingers when the TMA reactivates at `/chat`,
+    // we'd otherwise pull a group expense into the personal tab.
+    if (startParams.entity_type === "e" && startParams.chat_type === "p") {
       sessionStorage.setItem(consumedKey, "true");
       void navigate({
         to: "/chat",
@@ -49,7 +53,12 @@ function RouteComponent() {
         replace: true,
       });
     }
-  }, [startParams?.entity_type, startParams?.entity_id, navigate]);
+  }, [
+    startParams?.entity_type,
+    startParams?.entity_id,
+    startParams?.chat_type,
+    navigate,
+  ]);
 
   return <UserPage />;
 }
