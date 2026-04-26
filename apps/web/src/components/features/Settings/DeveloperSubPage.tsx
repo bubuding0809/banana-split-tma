@@ -265,6 +265,9 @@ interface NewTokenModalProps {
 
 function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tSecondaryBackgroundColor = useSignal(
+    themeParams.secondaryBackgroundColor
+  );
   const agentPrompt = getAgentPrompt(rawKey);
 
   return (
@@ -296,7 +299,10 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
         />
       }
     >
-      <div className="max-h-[75vh] overflow-y-auto pb-8">
+      <div
+        className="max-h-[75vh] overflow-y-auto pb-8"
+        style={{ backgroundColor: tSecondaryBackgroundColor }}
+      >
         <Section
           className="px-3"
           header="Your token"
@@ -314,7 +320,7 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
         <Section
           className="px-3"
           header="Set up an agent"
-          footer="Paste this prompt into Claude, ChatGPT, or any coding agent — it installs the CLI and verifies the connection automatically."
+          footer="Paste into Claude or ChatGPT and it'll wire up the CLI for you."
         >
           <CodeBlock wrap>{agentPrompt}</CodeBlock>
           <ButtonCell
@@ -323,10 +329,6 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
           >
             Copy agent setup prompt
           </ButtonCell>
-        </Section>
-
-        <Section className="px-3">
-          <Cell onClick={onClose}>Done</Cell>
         </Section>
       </div>
     </Modal>

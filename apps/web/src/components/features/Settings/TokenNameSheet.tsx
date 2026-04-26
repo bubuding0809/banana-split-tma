@@ -122,15 +122,6 @@ export default function TokenNameSheet({
               <span style={{ color: tDestructiveTextColor }}>Revoke token</span>
             </Button>
           )}
-          <Button
-            stretched
-            size="l"
-            mode="plain"
-            onClick={() => onOpenChange(false)}
-            disabled={busy}
-          >
-            Cancel
-          </Button>
         </div>
       </div>
     </Modal>

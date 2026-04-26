@@ -115,7 +115,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
 
       <Section
         header="Contact"
-        footer="Only used so the bot can recognize you across chats."
+        footer="Used to generate a PayNow QR when someone settles up with you."
       >
         <Cell
           before={
