@@ -116,7 +116,11 @@ export const settleAllDebtsHandler = async (
     // Send notification if requested (handler gates on chat.notifyOnSettlement)
     if (input.sendNotification && input.creditorName && input.debtorName) {
       try {
-        await Promise.allSettled(
+        // validBalances and settlements are index-aligned (same iteration
+        // order during creation). After sending notifications, persist
+        // each message ID onto its corresponding settlement so
+        // deleteSettlement can later clean up the notification.
+        const results = await Promise.allSettled(
           validBalances.map((balance) =>
             sendSettlementNotificationMessageHandler(
               {
@@ -134,6 +138,18 @@ export const settleAllDebtsHandler = async (
               teleBot
             )
           )
+        );
+
+        await Promise.allSettled(
+          results.map((result, index) => {
+            if (result.status !== "fulfilled" || !result.value) return null;
+            const settlement = settlements[index];
+            if (!settlement) return null;
+            return db.settlement.update({
+              where: { id: settlement.id },
+              data: { telegramMessageId: BigInt(result.value) },
+            });
+          })
         );
       } catch (notificationError) {
         console.error(

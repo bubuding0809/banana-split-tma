@@ -20,13 +20,17 @@ export const getAllSettlementsByChatHandler = async (
     },
   });
 
-  return settlements.map((settlement) => ({
-    ...settlement,
-    senderId: Number(settlement.senderId),
-    receiverId: Number(settlement.receiverId),
-    chatId: Number(settlement.chatId),
-    amount: Number(settlement.amount),
-  }));
+  return settlements.map((settlement) => {
+    const { telegramMessageId, ...rest } = settlement;
+    void telegramMessageId;
+    return {
+      ...rest,
+      senderId: Number(rest.senderId),
+      receiverId: Number(rest.receiverId),
+      chatId: Number(rest.chatId),
+      amount: Number(rest.amount),
+    };
+  });
 };
 
 export default protectedProcedure
