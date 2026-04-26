@@ -56,7 +56,7 @@ export interface RecurringTemplateForModal {
   frequency: CanonicalFrequency;
   interval: number;
   weekdays: Weekday[];
-  startDate: Date | string;
+  anchorDate: Date | string;
   endDate: Date | string | null;
   timezone: string;
   status: "ACTIVE" | "CANCELED" | "ENDED";
@@ -110,10 +110,10 @@ export default function RecurringExpenseDetailsModal({
         member?.user.last_name ? ` ${member.user.last_name}` : ""
       }`;
 
-  const startDate =
-    template.startDate instanceof Date
-      ? template.startDate
-      : new Date(template.startDate);
+  const anchorDate =
+    template.anchorDate instanceof Date
+      ? template.anchorDate
+      : new Date(template.anchorDate);
   const endDate = template.endDate
     ? template.endDate instanceof Date
       ? template.endDate
@@ -203,7 +203,7 @@ export default function RecurringExpenseDetailsModal({
             before={<ChatMemberAvatar userId={payerIdNum} size={48} />}
             subtitle={
               <Skeleton visible={isMemberLoading}>
-                <Caption>Started {formatExpenseDate(startDate)}</Caption>
+                <Caption>Started {formatExpenseDate(anchorDate)}</Caption>
               </Skeleton>
             }
             after={

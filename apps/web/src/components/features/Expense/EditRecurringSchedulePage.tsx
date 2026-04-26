@@ -107,7 +107,7 @@ export default function EditRecurringSchedulePage({
   }, [template, recurrence]);
 
   // Cross-field validation: end date (when set) must allow at least one
-  // future occurrence after the template's startDate. Mirrors the
+  // future occurrence after the template's anchorDate. Mirrors the
   // superRefine in AddExpenseForm.type.ts so the user sees the problem
   // BEFORE Save fires and AWS rejects with a cryptic
   // "...will never schedule an invocation."
@@ -115,9 +115,9 @@ export default function EditRecurringSchedulePage({
     if (!template || !recurrence) return null;
     if (recurrence.preset === "NONE") return null;
     if (!recurrence.endDate) return null;
-    const t = template as { startDate: string | Date };
+    const t = template as { anchorDate: string | Date };
     const start =
-      t.startDate instanceof Date ? t.startDate : new Date(t.startDate);
+      t.anchorDate instanceof Date ? t.anchorDate : new Date(t.anchorDate);
     // T23:59:59 — the user's picked end-date is INCLUSIVE of that day's
     // fire. AWS treats EndDate as an exclusive upper bound, so submitting
     // May 25 00:00 would cut off the May 25 9am fire; end-of-day keeps it.
@@ -401,7 +401,7 @@ export default function EditRecurringSchedulePage({
     currency: string;
     splitMode: keyof typeof splitModeMap;
     categoryId: string | null;
-    startDate: Date | string;
+    anchorDate: Date | string;
   };
 
   const cat = t.categoryId ? resolveCategory(t.categoryId, chatRows) : null;
@@ -465,9 +465,9 @@ export default function EditRecurringSchedulePage({
               value={recurrence}
               onChange={setRecurrence}
               defaultWeekdayFromDate={format(
-                t.startDate instanceof Date
-                  ? t.startDate
-                  : new Date(t.startDate),
+                t.anchorDate instanceof Date
+                  ? t.anchorDate
+                  : new Date(t.anchorDate),
                 "yyyy-MM-dd"
               )}
             />

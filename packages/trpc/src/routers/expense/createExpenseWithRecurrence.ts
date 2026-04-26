@@ -45,7 +45,7 @@ export default protectedProcedure
       });
     }
 
-    const startDate = input.expense.date ?? new Date();
+    const anchorDate = input.expense.date ?? new Date();
     // Extract day-of-month / month in the chat's timezone — using
     // getUTCDate()/getUTCMonth() is wrong for non-UTC timezones because
     // e.g. a Date that's midnight SGT is 16:00 UTC the previous day,
@@ -55,7 +55,7 @@ export default protectedProcedure
       month: "numeric",
       timeZone: input.recurrence.timezone,
     });
-    const parts = tzFormat.formatToParts(startDate);
+    const parts = tzFormat.formatToParts(anchorDate);
     const dayOfMonth = Number(parts.find((p) => p.type === "day")?.value);
     const month = Number(parts.find((p) => p.type === "month")?.value);
 
@@ -101,7 +101,7 @@ export default protectedProcedure
         frequency: input.recurrence.frequency,
         interval: input.recurrence.interval,
         weekdays: input.recurrence.weekdays,
-        startDate,
+        anchorDate,
         endDate: input.recurrence.endDate ?? null,
         timezone: input.recurrence.timezone,
         awsScheduleName: "", // placeholder — set below
@@ -143,13 +143,13 @@ export default protectedProcedure
     // which forwards an HMAC-signed POST to our Vercel webhook.
     try {
       // AWS Scheduler rejects any StartDate older than 5 minutes. The
-      // template.startDate above is the user-supplied transaction date
-      // (often "today" — already minutes/hours stale, or backfilled days
-      // ago). We need a fresh, future-safe StartDate that also lands AFTER
-      // the original transaction's day boundary so the cron's first fire
+      // anchorDate above is the user-supplied transaction date (often
+      // "today" — already minutes/hours stale, or backfilled days ago).
+      // We need a fresh, future-safe StartDate that also lands AFTER the
+      // original transaction's day boundary so the cron's first fire
       // doesn't duplicate the manually-created original expense.
       const awsStartDate = computeAwsScheduleStartDate({
-        transactionDate: startDate,
+        transactionDate: anchorDate,
         now: new Date(),
         timezone: input.recurrence.timezone,
       });

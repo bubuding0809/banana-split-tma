@@ -81,7 +81,7 @@ const baseTemplate = {
   payerId: 200,
   chatId: 100,
   weekdays: [],
-  startDate: new Date("2026-04-25"),
+  anchorDate: new Date("2026-04-25"),
   endDate: null,
   categoryId: null,
 };

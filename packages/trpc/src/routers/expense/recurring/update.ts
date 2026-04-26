@@ -102,7 +102,7 @@ export default protectedProcedure
           month: "numeric",
           timeZone: updated.timezone,
         });
-        const parts = tzFormat.formatToParts(updated.startDate);
+        const parts = tzFormat.formatToParts(updated.anchorDate);
         const dayOfMonth = Number(parts.find((p) => p.type === "day")?.value);
         const month = Number(parts.find((p) => p.type === "month")?.value);
 
@@ -141,12 +141,12 @@ export default protectedProcedure
               },
             },
             FlexibleTimeWindow: { Mode: "OFF" },
-            // updated.startDate is the original transaction date and may
-            // be older than 5 minutes, which AWS rejects. Recompute a
+            // anchorDate is the original transaction date and may be
+            // older than 5 minutes, which AWS rejects. Recompute a
             // future-safe StartDate that also lands past the original
             // day boundary in the template's timezone.
             StartDate: computeAwsScheduleStartDate({
-              transactionDate: updated.startDate,
+              transactionDate: updated.anchorDate,
               now: new Date(),
               timezone: updated.timezone,
             }),
