@@ -202,7 +202,7 @@ export default function AddMemberSheet({
         <Modal.Header
           before={
             <Title weight="2" level="3">
-              Add a member
+              Manually add members
             </Title>
           }
           after={
