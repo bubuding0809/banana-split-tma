@@ -7,16 +7,33 @@ import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 
 /**
+ * Join a list of pre-formatted MarkdownV2 fragments with commas +
+ * Oxford "and". Items must already be MarkdownV2-safe.
+ */
+function joinMarkdownItems(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0]!;
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  const last = items[items.length - 1];
+  return `${items.slice(0, -1).join(", ")}, and ${last}`;
+}
+
+/**
  * Join a list of display names with commas + Oxford "and", and escape
- * each name for MarkdownV2 rendering.
+ * each name for MarkdownV2 rendering. Use when names should render as
+ * plain text (e.g., in private DM messages where mentions don't ping).
  */
 function joinNames(names: string[]): string {
-  const escaped = names.map(escapeMarkdownV2);
-  if (escaped.length === 0) return "";
-  if (escaped.length === 1) return escaped[0]!;
-  if (escaped.length === 2) return `${escaped[0]!} and ${escaped[1]!}`;
-  const last = escaped[escaped.length - 1]!;
-  return `${escaped.slice(0, -1).join(", ")}, and ${last}`;
+  return joinMarkdownItems(names.map(escapeMarkdownV2));
+}
+
+/**
+ * Build a MarkdownV2 user mention that pings the user when sent in a
+ * group chat. Form: [Display Name](tg://user?id=12345). Display name
+ * is escaped for MarkdownV2.
+ */
+function userMention(id: number, displayName: string): string {
+  return `[${escapeMarkdownV2(displayName)}](tg://user?id=${id})`;
 }
 
 export const userFeature = new Composer<BotContext>();
@@ -288,10 +305,11 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     return;
   }
 
+  type AddMemberRecord = { id: number; displayName: string };
   const users = ctx.message.users_shared.users;
-  const successList: string[] = [];
-  const conflictList: string[] = []; // already members
-  const realFailureList: string[] = []; // unexpected errors
+  const successList: AddMemberRecord[] = [];
+  const conflictList: AddMemberRecord[] = []; // already members
+  const realFailureList: AddMemberRecord[] = []; // unexpected errors
 
   for (const user of users) {
     try {
@@ -314,20 +332,23 @@ userFeature.on("message:users_shared", async (ctx, next) => {
         userId: Number(user.user_id),
       });
 
-      successList.push(
-        user.first_name || user.username || String(user.user_id)
-      );
+      successList.push({
+        id: Number(user.user_id),
+        displayName: user.first_name || user.username || String(user.user_id),
+      });
     } catch (err) {
-      const displayName =
-        user.first_name || user.username || String(user.user_id);
+      const record: AddMemberRecord = {
+        id: Number(user.user_id),
+        displayName: user.first_name || user.username || String(user.user_id),
+      };
       // Distinguish "already a member" from real failures so the user
       // sees the right message. CONFLICT comes from chat.addMember when
       // the user is already in the chat.
       if ((err as { code?: string })?.code === "CONFLICT") {
-        conflictList.push(displayName);
+        conflictList.push(record);
       } else {
         console.error("Failed to add member", user.user_id, err);
-        realFailureList.push(displayName);
+        realFailureList.push(record);
       }
     }
   }
@@ -346,18 +367,20 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   const lines: string[] = [];
 
   if (successList.length > 0) {
-    lines.push(`✅ Added ${joinNames(successList)} to *${escapedTitle}*\\.`);
+    lines.push(
+      `✅ Added ${joinNames(successList.map((u) => u.displayName))} to *${escapedTitle}*\\.`
+    );
   }
   if (conflictList.length > 0) {
     const verb = conflictList.length === 1 ? "is" : "are";
     const noun = conflictList.length === 1 ? "a member" : "members";
     lines.push(
-      `⚠️ ${joinNames(conflictList)} ${verb} already ${noun} of *${escapedTitle}*\\.`
+      `⚠️ ${joinNames(conflictList.map((u) => u.displayName))} ${verb} already ${noun} of *${escapedTitle}*\\.`
     );
   }
   if (realFailureList.length > 0) {
     lines.push(
-      `❌ Couldn't add ${joinNames(realFailureList)} \\(unexpected error\\)\\.`
+      `❌ Couldn't add ${joinNames(realFailureList.map((u) => u.displayName))} \\(unexpected error\\)\\.`
     );
   }
 
@@ -376,10 +399,21 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   // and has an entry point to the TMA. Wrapped in try/catch so a missing
   // send permission doesn't crash the handler.
   if (successList.length > 0) {
+    // Use tg://user?id=... mentions so freshly-added users get pinged
+    // personally — they may not have DM'd the bot, but they're now
+    // members of this group, and mentions notify them in-context.
+    const adderMention = userMention(
+      Number(ctx.from!.id),
+      ctx.from!.first_name
+    );
+    const addedMentions = joinMarkdownItems(
+      successList.map((u) => userMention(u.id, u.displayName))
+    );
+
     const summaryText = BotMessages.ADD_MEMBER_GROUP_SUMMARY.replace(
-      "{adder_first_name}",
-      escapeMarkdownV2(ctx.from!.first_name)
-    ).replace("{added_names}", joinNames(successList));
+      "{adder_mention}",
+      adderMention
+    ).replace("{added_mentions}", addedMentions);
 
     try {
       await ctx.api.sendMessage(groupIdStr, summaryText, {
