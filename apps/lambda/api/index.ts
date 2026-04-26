@@ -1,3 +1,9 @@
+// MUST come before @dko/trpc — env.js runs dotenv.config(), and the
+// scheduler client in @dko/trpc captures process.env.AWS_REGION at
+// module-load time. Prod is unaffected because Vercel populates
+// process.env before Node starts; in dev dotenv is the only source.
+import { env } from "./env.js";
+
 import express, { Router, type Request, type Response } from "express";
 import cors from "cors";
 import multer from "multer";
@@ -14,7 +20,6 @@ import {
   type BroadcastMedia,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
-import { env } from "./env.js";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
