@@ -2,16 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const { validateMock, parseMock } = vi.hoisted(() => {
-  process.env.TELEGRAM_BOT_TOKEN = "test-bot-token";
-  process.env.API_KEY = "test-api-key";
-  process.env.INTERNAL_AGENT_KEY = "test-internal-agent-key";
-  process.env.RECURRING_EXPENSE_WEBHOOK_SECRET = "x".repeat(64);
-  return {
-    validateMock: vi.fn(),
-    parseMock: vi.fn(),
-  };
-});
+const { validateMock, parseMock, getUserProfilePhotosMock, getFileLinkMock } =
+  vi.hoisted(() => {
+    process.env.TELEGRAM_BOT_TOKEN = "test-bot-token";
+    process.env.API_KEY = "test-api-key";
+    process.env.INTERNAL_AGENT_KEY = "test-internal-agent-key";
+    process.env.RECURRING_EXPENSE_WEBHOOK_SECRET = "x".repeat(64);
+    return {
+      validateMock: vi.fn(),
+      parseMock: vi.fn(),
+      getUserProfilePhotosMock: vi.fn(),
+      getFileLinkMock: vi.fn(),
+    };
+  });
 
 vi.mock("@telegram-apps/init-data-node", () => ({
   validate: validateMock,
@@ -26,8 +29,8 @@ vi.mock("@dko/database", () => ({
 
 vi.mock("telegraf", () => ({
   Telegram: vi.fn(function (this: Record<string, unknown>) {
-    this.getUserProfilePhotos = vi.fn();
-    this.getFileLink = vi.fn();
+    this.getUserProfilePhotos = getUserProfilePhotosMock;
+    this.getFileLink = getFileLinkMock;
   }),
 }));
 
@@ -99,8 +102,79 @@ describe("GET /api/avatar/:userId — authz", () => {
     (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       id: 999n,
     });
+    getUserProfilePhotosMock.mockResolvedValueOnce({ photos: [] });
     const res = await request(app).get("/api/avatar/200?auth=ok");
-    // Authz passes; falls through to 404 stub for now.
+    // Authz passes; proceeds to Telegram fetch (no photos → 404).
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/avatar/:userId — Telegram fetch", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockReset();
+    getUserProfilePhotosMock.mockReset();
+    getFileLinkMock.mockReset();
+    getFileLinkMock.mockResolvedValue(
+      new URL("https://api.telegram.org/file/botX/path.jpg")
+    );
+  });
+
+  it("returns 404 with 1h cache when user has no photos", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockResolvedValueOnce({ photos: [] });
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).toBe(404);
+    expect(res.header["cache-control"]).toMatch(/max-age=3600/);
+    expect(res.header["cache-control"]).toMatch(/s-maxage=3600/);
+  });
+
+  it("returns 200 + JPEG with long cache on happy path", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockResolvedValueOnce({
+      photos: [
+        [
+          { file_id: "small", file_unique_id: "u-s" },
+          { file_id: "big", file_unique_id: "u-b" },
+        ],
+      ],
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: () =>
+        Promise.resolve(new Uint8Array([0xff, 0xd8, 0xff]).buffer),
+    });
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).toBe(200);
+    expect(res.header["content-type"]).toMatch(/image\/jpeg/);
+    expect(res.header["cache-control"]).toMatch(/max-age=86400/);
+    expect(res.header["cache-control"]).toMatch(/s-maxage=604800/);
+    expect(res.header["cache-control"]).toMatch(
+      /stale-while-revalidate=604800/
+    );
+    expect(res.body.length).toBeGreaterThan(0);
+  });
+
+  it("picks the largest size variant", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockResolvedValueOnce({
+      photos: [
+        [
+          { file_id: "small", file_unique_id: "u-s" },
+          { file_id: "medium", file_unique_id: "u-m" },
+          { file_id: "big", file_unique_id: "u-b" },
+        ],
+      ],
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new Uint8Array([0xff]).buffer),
+    });
+    await request(app).get("/api/avatar/123?auth=ok");
+    expect(getFileLinkMock).toHaveBeenCalledWith("big");
   });
 });

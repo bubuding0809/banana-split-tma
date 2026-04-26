@@ -46,9 +46,36 @@ router.get("/:userId", async (req: Request, res: Response) => {
     }
   }
 
-  // 3. Stub — Telegram fetch added next task.
-  void teleBot;
-  return res.status(404).end();
+  // 3. Telegram fetch — token URL stays inside this function
+  let bytes: Buffer;
+  try {
+    const photos = await teleBot.getUserProfilePhotos(Number(targetId), 0, 1);
+    const biggest = photos.photos[0]?.at(-1);
+    if (!biggest) {
+      res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+      return res.status(404).end();
+    }
+    const fileLink = await teleBot.getFileLink(biggest.file_id);
+    const upstream = await fetch(fileLink.toString());
+    if (!upstream.ok) {
+      return res.status(502).end();
+    }
+    bytes = Buffer.from(await upstream.arrayBuffer());
+  } catch (err) {
+    console.warn("avatar fetch failed", {
+      targetId: targetId.toString(),
+      err,
+    });
+    return res.status(502).end();
+  }
+
+  // 4. Stream + cache
+  res.setHeader("Content-Type", "image/jpeg");
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800"
+  );
+  return res.status(200).send(bytes);
 });
 
 export default router;
