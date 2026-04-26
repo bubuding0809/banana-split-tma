@@ -47,7 +47,6 @@ export default function AddMemberSheet({
   // Stylized mini-mockups of the actual Telegram UI the user will see
   // in each step. Themed via secondaryBackgroundColor (card surface) +
   // subtle white overlays for inner elements.
-  const cardClass = "mt-2 rounded-lg border border-white/5 p-2";
   const cardStyle = { backgroundColor: tSecondaryBgColor };
   const innerPillClass =
     "rounded-md bg-white/5 px-2 py-1 text-center text-[11px]";
@@ -55,88 +54,99 @@ export default function AddMemberSheet({
   const STEPS: StepDef[] = [
     {
       label: "Tap below to open the bot chat",
-      mockup: (
-        <div className={`${cardClass} space-y-1`} style={cardStyle}>
-          <div className={innerPillClass}>👤 Select user(s)</div>
-          <div className={innerPillClass}>❌ Cancel</div>
-        </div>
-      ),
+      // No mockup — the bot chat is just Telegram, no specific UI to show.
     },
     {
       label: "Pick your contacts",
       mockup: (
-        <div className={`${cardClass} space-y-2`} style={cardStyle}>
-          {/* Top bar: rounded ✕ button on left, centered title + counter, spacer right */}
-          <div className="flex items-center gap-2">
+        <div className="mt-2 space-y-2">
+          {/* Step 2a: reply-keyboard buttons that appear in the bot DM */}
+          <div
+            className="space-y-1 rounded-lg border border-white/5 p-2"
+            style={cardStyle}
+          >
+            <div className={innerPillClass}>👤 Select user(s)</div>
+            <div className={innerPillClass}>❌ Cancel</div>
+          </div>
+
+          {/* Step 2b: tapping "Select user(s)" opens the contact picker dialog */}
+          <div
+            className="space-y-2 rounded-lg border border-white/5 p-2"
+            style={cardStyle}
+          >
+            {/* Top bar: rounded ✕ button on left, centered title + counter, spacer right */}
+            <div className="flex items-center gap-2">
+              <div
+                className="grid size-5 shrink-0 place-items-center rounded-full bg-white/10 text-[9px]"
+                style={{ color: tSubtitleTextColor }}
+              >
+                ✕
+              </div>
+              <div className="flex-1 text-center leading-tight">
+                <div className="text-[10px] font-semibold">Select Users</div>
+                <div
+                  className="text-[8px]"
+                  style={{ color: tSubtitleTextColor }}
+                >
+                  0/10
+                </div>
+              </div>
+              <div className="size-5 shrink-0" />
+            </div>
+
+            {/* Search pill */}
             <div
-              className="grid size-5 shrink-0 place-items-center rounded-full bg-white/10 text-[9px]"
+              className="flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px]"
               style={{ color: tSubtitleTextColor }}
             >
-              ✕
+              <span className="text-[9px]">🔍</span>
+              <span>Search</span>
             </div>
-            <div className="flex-1 text-center leading-tight">
-              <div className="text-[10px] font-semibold">Select Users</div>
-              <div className="text-[8px]" style={{ color: tSubtitleTextColor }}>
-                0/10
-              </div>
+
+            {/* Section header */}
+            <div
+              className="px-1 pt-0.5 text-[8px] font-medium tracking-wider"
+              style={{ color: tSubtitleTextColor }}
+            >
+              FREQUENT CONTACTS
             </div>
-            {/* Invisible spacer balances the ✕ so title stays centered */}
-            <div className="size-5 shrink-0" />
-          </div>
 
-          {/* Search pill with leading magnifier */}
-          <div
-            className="flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px]"
-            style={{ color: tSubtitleTextColor }}
-          >
-            <span className="text-[9px]">🔍</span>
-            <span>Search</span>
-          </div>
-
-          {/* Section header */}
-          <div
-            className="px-1 pt-0.5 text-[8px] font-medium tracking-wider"
-            style={{ color: tSubtitleTextColor }}
-          >
-            FREQUENT CONTACTS
-          </div>
-
-          {/* Contact rows: selection circle + colorful avatar + name with bold
-              last name + last-seen subtitle */}
-          <div className="space-y-1.5 px-0.5">
-            <div className="flex items-center gap-2">
-              <div
-                className="size-2.5 shrink-0 rounded-full border-[1.5px]"
-                style={{ borderColor: tSubtitleTextColor }}
-              />
-              <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-orange-400 to-pink-500" />
-              <div className="min-w-0 flex-1 leading-tight">
-                <div className="text-[10px]">
-                  Alex <span className="font-semibold">Carter</span>
-                </div>
+            {/* Contact rows */}
+            <div className="space-y-1.5 px-0.5">
+              <div className="flex items-center gap-2">
                 <div
-                  className="text-[8px]"
-                  style={{ color: tSubtitleTextColor }}
-                >
-                  last seen 5 minutes ago
+                  className="size-2.5 shrink-0 rounded-full border-[1.5px]"
+                  style={{ borderColor: tSubtitleTextColor }}
+                />
+                <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-orange-400 to-pink-500" />
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="text-[10px]">
+                    Alex <span className="font-semibold">Carter</span>
+                  </div>
+                  <div
+                    className="text-[8px]"
+                    style={{ color: tSubtitleTextColor }}
+                  >
+                    last seen 5 minutes ago
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="size-2.5 shrink-0 rounded-full border-[1.5px]"
-                style={{ borderColor: tSubtitleTextColor }}
-              />
-              <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-cyan-400 to-blue-600" />
-              <div className="min-w-0 flex-1 leading-tight">
-                <div className="text-[10px]">
-                  Sam <span className="font-semibold">Wilson</span>
-                </div>
+              <div className="flex items-center gap-2">
                 <div
-                  className="text-[8px]"
-                  style={{ color: tSubtitleTextColor }}
-                >
-                  last seen yesterday
+                  className="size-2.5 shrink-0 rounded-full border-[1.5px]"
+                  style={{ borderColor: tSubtitleTextColor }}
+                />
+                <div className="bg-linear-to-br size-6 shrink-0 rounded-full from-cyan-400 to-blue-600" />
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="text-[10px]">
+                    Sam <span className="font-semibold">Wilson</span>
+                  </div>
+                  <div
+                    className="text-[8px]"
+                    style={{ color: tSubtitleTextColor }}
+                  >
+                    last seen yesterday
+                  </div>
                 </div>
               </div>
             </div>
@@ -146,7 +156,7 @@ export default function AddMemberSheet({
     },
     {
       label: "Swipe back to the app",
-      // No mockup — gesture is self-explanatory once the user is in the bot DM.
+      // No mockup — gesture is self-explanatory.
     },
   ];
 
