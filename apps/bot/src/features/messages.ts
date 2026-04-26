@@ -3,7 +3,7 @@ export const BotMessages = {
   ADD_MEMBER_CANCEL_BUTTON: "❌ Cancel",
   ADD_MEMBER_START_MESSAGE:
     "Please select members to add to *{group_title}*\\.",
-  ADD_MEMBER_END_MESSAGE: "Added: {success_list}\\nFailed: {failed_list}",
+  ADD_MEMBER_END_MESSAGE: "Added: {success_list}\nFailed: {failed_list}",
   ADD_MEMBER_NOT_A_MEMBER:
     "❌ You can only add members to groups you're a member of.",
   ADD_MEMBER_NOTIFY_USER:

@@ -3,6 +3,8 @@ import { BotContext } from "../types.js";
 import { TRPCError } from "@trpc/server";
 import { BotMessages } from "./messages.js";
 import { escapeMarkdownV2 } from "../utils/markdown.js";
+import { ChatUtils } from "../utils/chat.js";
+import { env } from "../env.js";
 
 export const userFeature = new Composer<BotContext>();
 
@@ -229,6 +231,31 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     return;
   }
 
+  // Compute chat title + mini-app URL once, used by both per-user DMs
+  // (Task 4) and the back-to-app inline button on the success message
+  // (this task). We don't persist title in session — see spec § Source
+  // of chatTitle for why we re-fetch instead.
+  let chatTitle = "the group";
+  try {
+    const chatInfo = await ctx.api.getChat(groupIdStr);
+    if ("title" in chatInfo && chatInfo.title) {
+      chatTitle = chatInfo.title;
+    }
+  } catch {
+    // Fall through with default — the back-to-app button still works,
+    // it just reads "Open the group in app".
+  }
+
+  const miniAppCommand = ChatUtils.createChatContext(
+    BigInt(groupIdStr),
+    "supergroup"
+  );
+  const miniAppUrl = ChatUtils.createMiniAppUrl(
+    env.MINI_APP_DEEPLINK,
+    ctx.me.username,
+    miniAppCommand
+  );
+
   const users = ctx.message.users_shared.users;
   const successList: string[] = [];
   const failedList: string[] = [];
@@ -273,7 +300,20 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     failedList.length ? failedList.join(", ") : "None"
   );
 
+  // Telegram does not allow combining `remove_keyboard` with an inline
+  // keyboard on the same message. Send two messages: first removes the
+  // reply-keyboard, second carries the inline button back to the TMA.
   await ctx.reply(resultText, {
     reply_markup: { remove_keyboard: true },
   });
+
+  if (successList.length > 0) {
+    const buttonLabel = BotMessages.ADD_MEMBER_OPEN_APP_BUTTON.replace(
+      "{chat_title}",
+      chatTitle
+    );
+    await ctx.reply(`✅ ${successList.length} member(s) added.`, {
+      reply_markup: new InlineKeyboard().url(buttonLabel, miniAppUrl),
+    });
+  }
 });
