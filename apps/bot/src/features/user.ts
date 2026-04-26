@@ -7,33 +7,22 @@ import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 
 /**
- * Join a list of pre-formatted MarkdownV2 fragments with commas +
- * Oxford "and". Items must already be MarkdownV2-safe.
- */
-function joinMarkdownItems(items: string[]): string {
-  if (items.length === 0) return "";
-  if (items.length === 1) return items[0]!;
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  const last = items[items.length - 1];
-  return `${items.slice(0, -1).join(", ")}, and ${last}`;
-}
-
-/**
- * Join a list of display names with commas + Oxford "and", and escape
- * each name for MarkdownV2 rendering. Use when names should render as
- * plain text (e.g., in private DM messages where mentions don't ping).
- */
-function joinNames(names: string[]): string {
-  return joinMarkdownItems(names.map(escapeMarkdownV2));
-}
-
-/**
  * Build a MarkdownV2 user mention that pings the user when sent in a
  * group chat. Form: [Display Name](tg://user?id=12345). Display name
  * is escaped for MarkdownV2.
  */
 function userMention(id: number, displayName: string): string {
   return `[${escapeMarkdownV2(displayName)}](tg://user?id=${id})`;
+}
+
+/**
+ * Render a list of pre-formatted MarkdownV2 leaves as a `┣` / `┗`
+ * tree, with the last item using `┗` and all others `┣`.
+ */
+function treeLines(leaves: string[]): string {
+  return leaves
+    .map((leaf, i) => `${i === leaves.length - 1 ? "┗" : "┣"} ${leaf}`)
+    .join("\n");
 }
 
 export const userFeature = new Composer<BotContext>();
@@ -364,32 +353,37 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   });
 
   const escapedTitle = escapeMarkdownV2(chatTitle);
-  const lines: string[] = [];
+  const sections: string[] = [];
 
   if (successList.length > 0) {
-    lines.push(
-      `✅ Added ${joinNames(successList.map((u) => u.displayName))} to *${escapedTitle}*\\.`
+    const tree = treeLines(
+      successList.map((u) => escapeMarkdownV2(u.displayName))
+    );
+    // Success section matches the group summary format: header line +
+    // blank + "Members" sub-heading + tree.
+    sections.push(
+      `✅ *Newly members added* to *${escapedTitle}*\n\nMembers\n${tree}`
     );
   }
   if (conflictList.length > 0) {
-    const verb = conflictList.length === 1 ? "is" : "are";
-    const noun = conflictList.length === 1 ? "a member" : "members";
-    lines.push(
-      `⚠️ ${joinNames(conflictList.map((u) => u.displayName))} ${verb} already ${noun} of *${escapedTitle}*\\.`
+    const tree = treeLines(
+      conflictList.map((u) => escapeMarkdownV2(u.displayName))
     );
+    sections.push(`⚠️ *Already members*\n${tree}`);
   }
   if (realFailureList.length > 0) {
-    lines.push(
-      `❌ Couldn't add ${joinNames(realFailureList.map((u) => u.displayName))} \\(unexpected error\\)\\.`
+    const tree = treeLines(
+      realFailureList.map((u) => escapeMarkdownV2(u.displayName))
     );
+    sections.push(`❌ *Couldn't add* \\(unexpected error\\)\n${tree}`);
   }
 
   // Swipe-back affordance — same pattern as START_MESSAGE_GROUP_REGISTER.
   // Keeps the user on their existing TMA instance, where our
   // visibilitychange listener auto-refreshes the members list.
-  lines.push("◀︎ Return to the app by swiping back");
+  sections.push("◀︎ Return to the app by swiping back");
 
-  const resultText = lines.join("\n\n");
+  const resultText = sections.join("\n\n");
   await ctx.reply(resultText, {
     parse_mode: "MarkdownV2",
   });
@@ -408,12 +402,9 @@ userFeature.on("message:users_shared", async (ctx, next) => {
       Number(ctx.from!.id),
       ctx.from!.first_name
     );
-    const memberList = successList
-      .map((u, i) => {
-        const branch = i === successList.length - 1 ? "┗" : "┣";
-        return `${branch} ${userMention(u.id, u.displayName)}`;
-      })
-      .join("\n");
+    const memberList = treeLines(
+      successList.map((u) => userMention(u.id, u.displayName))
+    );
 
     const summaryText = BotMessages.ADD_MEMBER_GROUP_SUMMARY.replace(
       "{adder_mention}",
