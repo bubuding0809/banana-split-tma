@@ -10,7 +10,7 @@ export const BotMessages = {
   ADD_MEMBER_NOT_A_MEMBER:
     "❌ You can only add members to groups you're a member of.",
   ADD_MEMBER_GROUP_SUMMARY:
-    ">✅ {adder_mention} added {member_word} to Banana Splitz\n{tree_lines}",
+    "✅ *Newly added* by {adder_mention}\n{member_list}",
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
   STATS_CANCELLED: "❌ Statistics cancelled\\.",
   ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",
