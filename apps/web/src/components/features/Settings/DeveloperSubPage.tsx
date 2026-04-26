@@ -265,9 +265,6 @@ interface NewTokenModalProps {
 
 function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
-  const tSecondaryBackgroundColor = useSignal(
-    themeParams.secondaryBackgroundColor
-  );
   const agentPrompt = getAgentPrompt(rawKey);
 
   return (
@@ -299,10 +296,7 @@ function NewTokenModal({ rawKey, onClose, onCopy }: NewTokenModalProps) {
         />
       }
     >
-      <div
-        className="max-h-[75vh] overflow-y-auto pb-8"
-        style={{ backgroundColor: tSecondaryBackgroundColor }}
-      >
+      <div className="max-h-[75vh] overflow-y-auto pb-8">
         <Section
           className="px-3"
           header="Your token"
