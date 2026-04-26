@@ -20,7 +20,7 @@ export interface BuildExpenseCronInput {
  *
  * Biweekly (WEEKLY interval=2) is emitted as a weekly cron — the tick
  * endpoint is responsible for skipping every other occurrence based on
- * the template's startDate.
+ * the template's anchorDate.
  */
 export function buildExpenseCron(input: BuildExpenseCronInput): string {
   const { frequency, interval, weekdays, hour, minute, dayOfMonth, month } =

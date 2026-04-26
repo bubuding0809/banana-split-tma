@@ -79,11 +79,11 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
   }
 
   // 5. Biweekly skip — for WEEKLY interval > 1, only fire if the week-of-year
-  //    delta from startDate is divisible by interval. EventBridge fires every
+  //    delta from anchorDate is divisible by interval. EventBridge fires every
   //    week regardless of interval, so we filter on each firing.
   if (tmpl.frequency === "WEEKLY" && tmpl.interval > 1) {
     const weeks = Math.floor(
-      (occurrenceMs - tmpl.startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+      (occurrenceMs - tmpl.anchorDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
     );
     if (weeks % tmpl.interval !== 0) {
       return res.status(200).json({ skipped: "interval-skip" });

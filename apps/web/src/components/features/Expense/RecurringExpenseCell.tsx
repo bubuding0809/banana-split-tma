@@ -28,7 +28,7 @@ export interface RecurringTemplateForCell {
   frequency: CanonicalFrequency;
   interval: number;
   weekdays: Weekday[];
-  startDate: Date | string;
+  anchorDate: Date | string;
   endDate: Date | string | null;
   categoryId: string | null;
 }
@@ -74,11 +74,11 @@ export default function RecurringExpenseCell({
   // Compute the next fire date using the same helper the form uses.
   // When interval > 1 and frequency=WEEKLY, this matches the Lambda's
   // skip filter — what users see on the cell is what AWS will fire.
-  const startDate =
-    template.startDate instanceof Date
-      ? template.startDate
-      : new Date(template.startDate);
-  const nextFire = nextOccurrenceAfter(startDate, {
+  const anchorDate =
+    template.anchorDate instanceof Date
+      ? template.anchorDate
+      : new Date(template.anchorDate);
+  const nextFire = nextOccurrenceAfter(anchorDate, {
     frequency: template.frequency,
     interval: template.interval,
     weekdays: template.weekdays,

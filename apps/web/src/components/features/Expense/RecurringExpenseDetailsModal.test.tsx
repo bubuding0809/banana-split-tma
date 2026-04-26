@@ -123,7 +123,7 @@ const baseTemplate = {
   frequency: "MONTHLY" as const,
   interval: 1,
   weekdays: [],
-  startDate: new Date("2026-04-25"),
+  anchorDate: new Date("2026-04-25"),
   endDate: new Date("2026-10-31"),
   timezone: "Asia/Singapore",
   status: "ACTIVE" as const,

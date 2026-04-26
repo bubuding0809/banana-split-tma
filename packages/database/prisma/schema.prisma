@@ -305,9 +305,14 @@ model RecurringExpenseTemplate {
   frequency RecurrenceFrequency
   interval  Int                 @default(1)
   weekdays  Weekday[]
-  startDate DateTime
-  endDate   DateTime?
-  timezone  String
+  /// Conceptual anchor for this recurrence: the original transaction date
+  /// the user logged. NOT the AWS schedule start (that's recomputed on
+  /// every push to satisfy AWS's "no older than 5 minutes" rule). Drives
+  /// cron dayOfMonth/month for MONTHLY/YEARLY and the biweekly skip phase
+  /// in the lambda for WEEKLY interval > 1.
+  anchorDate DateTime
+  endDate    DateTime?
+  timezone   String
 
   awsScheduleName String          @unique
   status          RecurringStatus @default(ACTIVE)
