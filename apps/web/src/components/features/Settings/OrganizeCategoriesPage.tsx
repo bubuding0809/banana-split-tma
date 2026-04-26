@@ -488,8 +488,8 @@ export default function OrganizeCategoriesPage({ chatId }: { chatId: number }) {
   return (
     <main className="flex flex-col gap-4 px-3 pb-24 pt-2">
       <p className="text-(--tg-theme-subtitle-text-color) px-1 text-[12px] leading-snug">
-        Speed up expense entry — put frequently-used categories up front and
-        hide the ones you never tap.
+        This grid pops up when you add an expense. Move the ones your chat uses
+        most to the top; the rest can hide out of the way.
       </p>
 
       {visible.length === 0 && (
