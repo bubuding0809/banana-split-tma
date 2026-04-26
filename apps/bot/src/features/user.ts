@@ -236,19 +236,21 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   // (this task). We don't persist title in session — see spec § Source
   // of chatTitle for why we re-fetch instead.
   let chatTitle = "the group";
+  let chatType: "private" | "group" | "supergroup" | "channel" = "supergroup";
   try {
     const chatInfo = await ctx.api.getChat(groupIdStr);
     if ("title" in chatInfo && chatInfo.title) {
       chatTitle = chatInfo.title;
     }
+    chatType = chatInfo.type;
   } catch {
-    // Fall through with default — the back-to-app button still works,
+    // Fall through with defaults — the back-to-app button still works,
     // it just reads "Open the group in app".
   }
 
   const miniAppCommand = ChatUtils.createChatContext(
     BigInt(groupIdStr),
-    "supergroup"
+    chatType
   );
   const miniAppUrl = ChatUtils.createMiniAppUrl(
     env.MINI_APP_DEEPLINK,
