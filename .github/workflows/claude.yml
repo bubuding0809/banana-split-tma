@@ -9,8 +9,6 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
-  pull_request:
-    types: [opened, reopened]
 
 jobs:
   claude:
@@ -18,8 +16,7 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
-      (github.event_name == 'pull_request' && (contains(github.event.pull_request.body, '@claude') || contains(github.event.pull_request.title, '@claude')))
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,15 +43,12 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # For pull_request open/reopen events, the action's tag-mode trigger
-          # detection doesn't scan the PR body for @claude — it only fires on
-          # comment/review events. The job's `if:` already gates on @claude
-          # in the PR body/title, so this prompt only runs when tagged. The
-          # explicit prompt switches the action into agent mode for those
-          # events. For comment-triggered events, prompt is empty and the
-          # action falls back to its default tag-mode behavior (uses the
-          # comment body as the prompt).
-          prompt: "${{ github.event_name == 'pull_request' && format('You were tagged in PR #{0} ({1}). Review the diff for merge readiness. Post ONE review comment whose first line is exactly one of READY, NEEDS CHANGES, or UNCERTAIN. Then 1–6 short bullets explaining. Focus on correctness bugs, schema/migration safety, secret/credential leaks, money or auth logic mistakes, and obvious regressions. Skip nits and style. If the diff is small and clearly correct, pick READY. Do not push commits or modify the PR; just post the review comment.', github.event.pull_request.number, github.event.pull_request.title) || '' }}"
+          # No `prompt:` here — the action runs in tag mode and uses the
+          # @claude-tagged comment/review body as the prompt. We tried
+          # auto-running on PR open with a synthesized prompt but it
+          # tripped the action's permission allowlist (no `gh pr comment`
+          # by default in agent mode), so reviews never posted. Tag the
+          # bot with a comment after opening the PR instead.
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
