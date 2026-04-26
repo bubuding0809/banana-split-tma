@@ -195,6 +195,33 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     return;
   }
 
+  // Membership guard: confirm the requester is actually in the target group
+  // before letting them add anyone. Fail-closed on errors (e.g., bot was
+  // removed from group, transient API error).
+  try {
+    const requesterMember = await ctx.api.getChatMember(
+      groupIdStr,
+      ctx.from!.id
+    );
+    if (
+      requesterMember.status === "left" ||
+      requesterMember.status === "kicked"
+    ) {
+      throw new Error("not-a-member");
+    }
+  } catch (err) {
+    console.warn("Membership guard rejected", {
+      groupIdStr,
+      userId: ctx.from?.id,
+      err,
+    });
+    ctx.session.addMemberGroupId = undefined;
+    await ctx.reply(BotMessages.ADD_MEMBER_NOT_A_MEMBER, {
+      reply_markup: { remove_keyboard: true },
+    });
+    return;
+  }
+
   const users = ctx.message.users_shared.users;
   const successList: string[] = [];
   const failedList: string[] = [];
