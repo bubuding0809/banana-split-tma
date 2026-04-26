@@ -2,6 +2,7 @@ import { getRouteApi, useSearch } from "@tanstack/react-router";
 import {
   hapticFeedback,
   initData,
+  initDataRaw,
   themeParams,
   useSignal,
   popup,
@@ -164,6 +165,17 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
   // * Variables ===================================================================================
   const userId = tUserData?.id ?? 0;
   const chatId = tStartParams?.chat_id ?? 0;
+
+  // VITE_TRPC_URL points to the lambda's /api/trpc — derive the
+  // sibling /api/chat-photo base.
+  const TRPC_URL = import.meta.env.VITE_TRPC_URL;
+  const CHAT_PHOTO_BASE = TRPC_URL
+    ? TRPC_URL.replace(/\/api\/trpc\/?$/, "/api/chat-photo")
+    : "/api/chat-photo";
+  const rawAuth = initDataRaw();
+  const chatPhotoSrc = rawAuth
+    ? `${CHAT_PHOTO_BASE}/${chatId}?auth=${encodeURIComponent(rawAuth)}`
+    : undefined;
 
   // * Effects =====================================================================================
   useEffect(() => {
@@ -342,7 +354,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
             }}
             onClick={handleSettingsClick}
           >
-            <Avatar size={28} src={tChatData?.photoUrl?.href} />
+            <Avatar size={28} src={chatPhotoSrc} />
             <Caption weight="2" className="max-w-28 truncate" level="2">
               {tChatData?.type !== "private"
                 ? tChatData?.title
@@ -371,10 +383,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
           onClick={handleSettingsClick}
           after={<Navigation className="text-nowrap">⚙️</Navigation>}
           before={
-            <Avatar
-              size={48}
-              src={tChatData?.photoUrl?.toString() ?? chatData.photo}
-            >
+            <Avatar size={48} src={chatPhotoSrc}>
               ⏳
             </Avatar>
           }

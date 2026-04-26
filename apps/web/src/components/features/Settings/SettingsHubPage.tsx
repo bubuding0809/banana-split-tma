@@ -4,6 +4,7 @@ import {
   backButton,
   hapticFeedback,
   initData,
+  initDataRaw,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -59,13 +60,18 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   const userId = tUserData?.id ?? 0;
   const isPrivateChat = userId === chatId;
 
+  // VITE_TRPC_URL points to the lambda's /api/trpc — derive the
+  // sibling /api/chat-photo base.
+  const TRPC_URL = import.meta.env.VITE_TRPC_URL;
+  const CHAT_PHOTO_BASE = TRPC_URL
+    ? TRPC_URL.replace(/\/api\/trpc\/?$/, "/api/chat-photo")
+    : "/api/chat-photo";
+  const rawAuth = initDataRaw();
+  const chatPhotoSrc = rawAuth
+    ? `${CHAT_PHOTO_BASE}/${chatId}?auth=${encodeURIComponent(rawAuth)}`
+    : undefined;
+
   const { data: chat } = trpc.chat.getChat.useQuery({ chatId });
-  // Telegram-side chat data carries the live group photo URL (refreshed
-  // through the bot API). Our DB-stored `chat.photo` is a fallback gif.
-  const { data: tChatData } = trpc.telegram.getChat.useQuery(
-    { chatId },
-    { enabled: !isPrivateChat }
-  );
   const { data: members } = trpc.chat.listMembers.useQuery(
     { chatId },
     { enabled: !isPrivateChat }
@@ -135,11 +141,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
   return (
     <main className="px-3 pb-8">
       <ChatHeader
-        avatarUrl={
-          isPrivateChat
-            ? tUserData?.photoUrl
-            : (tChatData?.photoUrl?.href ?? chat?.photo)
-        }
+        avatarUrl={isPrivateChat ? tUserData?.photoUrl : chatPhotoSrc}
         title={chat?.title ?? "..."}
         subtitle={
           isPrivateChat
