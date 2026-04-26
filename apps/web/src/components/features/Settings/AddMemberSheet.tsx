@@ -76,7 +76,7 @@ export default function AddMemberSheet({
           style={{ borderColor: tButtonColor }}
         >
           <Text style={{ color: tSubtitleTextColor }}>
-            Want to bring more friends into this group?
+            Wanna bring those friends who refuse to open the mini app?
           </Text>
         </blockquote>
 
