@@ -196,25 +196,32 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   }
 
   // Membership guard: confirm the requester is actually in the target group
-  // before letting them add anyone. Fail-closed on errors (e.g., bot was
-  // removed from group, transient API error).
+  // before letting them add anyone. Fail-closed: any API error (bot kicked
+  // from group, transient failure, etc.) treats the requester as not-a-member.
+  let requesterMember;
   try {
-    const requesterMember = await ctx.api.getChatMember(
-      groupIdStr,
-      ctx.from!.id
-    );
-    if (
-      requesterMember.status === "left" ||
-      requesterMember.status === "kicked"
-    ) {
-      throw new Error("not-a-member");
-    }
+    requesterMember = await ctx.api.getChatMember(groupIdStr, ctx.from!.id);
   } catch (err) {
-    console.warn("Membership guard rejected", {
+    console.warn("Membership guard: getChatMember failed", {
       groupIdStr,
-      userId: ctx.from?.id,
+      userId: ctx.from!.id,
       err,
     });
+    ctx.session.addMemberGroupId = undefined;
+    await ctx.reply(BotMessages.ADD_MEMBER_NOT_A_MEMBER, {
+      reply_markup: { remove_keyboard: true },
+    });
+    return;
+  }
+
+  // A "restricted" user with is_member: false has been restricted AND has
+  // already left the chat — not a current member. Reject alongside left/kicked.
+  const isNotCurrentMember =
+    requesterMember.status === "left" ||
+    requesterMember.status === "kicked" ||
+    (requesterMember.status === "restricted" && !requesterMember.is_member);
+
+  if (isNotCurrentMember) {
     ctx.session.addMemberGroupId = undefined;
     await ctx.reply(BotMessages.ADD_MEMBER_NOT_A_MEMBER, {
       reply_markup: { remove_keyboard: true },
