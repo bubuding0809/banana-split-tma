@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   hapticFeedback,
   openTelegramLink,
@@ -8,7 +9,6 @@ import {
   Button,
   IconButton,
   Modal,
-  Section,
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
@@ -21,6 +21,8 @@ interface AddMemberSheetProps {
   onLaunchBot?: () => void;
 }
 
+const STEPS = ["Open bot DM", "Pick contacts", "Swipe back here"];
+
 export default function AddMemberSheet({
   chatId,
   open,
@@ -28,6 +30,7 @@ export default function AddMemberSheet({
   onLaunchBot,
 }: AddMemberSheetProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
 
   const handleOpenBot = () => {
     hapticFeedback.impactOccurred("light");
@@ -66,31 +69,42 @@ export default function AddMemberSheet({
         />
       }
     >
-      <div className="pb-6">
-        <Section
-          className="px-3"
-          footer="The bot will send a contact picker. Tap Send when you're done choosing."
+      <div className="flex flex-col gap-5 px-4 pb-6 pt-2">
+        {/* Telegram-style quote block: left accent bar + indented text */}
+        <blockquote
+          className="rounded-r-md border-l-[3px] py-1 pl-3"
+          style={{ borderColor: tButtonColor }}
         >
-          <div className="px-2 py-3">
-            <Text style={{ color: tSubtitleTextColor }}>
-              We&apos;ll open the bot DM where you can pick people from your
-              Telegram contacts. They&apos;ll be added to this group.
-            </Text>
-          </div>
-        </Section>
-        <div className="flex flex-col gap-2 px-3 pt-2">
-          <Button stretched size="l" mode="filled" onClick={handleOpenBot}>
-            Open bot DM
-          </Button>
-          <Button
-            stretched
-            size="l"
-            mode="gray"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
+          <Text style={{ color: tSubtitleTextColor }}>
+            We&apos;ll open the bot DM where you can pick people from your
+            Telegram contacts.
+          </Text>
+        </blockquote>
+
+        {/* Vertical step path: dots connected by a thin line */}
+        <div className="flex flex-col px-2">
+          {STEPS.map((step, i) => (
+            <Fragment key={step}>
+              <div className="flex items-center gap-3 py-1">
+                <div
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: tButtonColor }}
+                />
+                <Text>{step}</Text>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div
+                  className="ml-[4px] h-3 w-[2px]"
+                  style={{ backgroundColor: tButtonColor, opacity: 0.4 }}
+                />
+              )}
+            </Fragment>
+          ))}
         </div>
+
+        <Button stretched size="l" mode="filled" onClick={handleOpenBot}>
+          Open bot DM
+        </Button>
       </div>
     </Modal>
   );
