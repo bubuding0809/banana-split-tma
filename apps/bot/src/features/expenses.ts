@@ -421,7 +421,8 @@ expensesFeature.on("message:text", async (ctx, next) => {
     );
 
     const keyboard = new InlineKeyboard()
-      .url("👀 View Expense", viewExpenseUrl)
+      .url("View Expense", viewExpenseUrl)
+      .row()
       .text("🗑 Undo", `undo_expense:${expense.id}`);
 
     const sent = await ctx.reply(confirmation, {
