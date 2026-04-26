@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   hapticFeedback,
   themeParams,
@@ -39,11 +39,33 @@ export default function TokenNameSheet({
   const tDestructiveTextColor = useSignal(themeParams.destructiveTextColor);
 
   const [name, setName] = useState(initialName);
+  // telegram-ui's <Input> forwards refs to its wrapping <div>, not to the
+  // underlying <input> (despite typing the ref as HTMLInputElement). We
+  // hold the wrapper and query for the input when we need to focus it.
+  const inputWrapperRef = useRef<HTMLInputElement | null>(null);
 
   // Reset the field whenever the sheet (re)opens with a different prefill.
   useEffect(() => {
     if (open) setName(initialName);
   }, [open, initialName]);
+
+  // Autofocus the name input when the sheet opens. The 300ms delay lets
+  // vaul's open animation settle before iOS raises the keyboard — without
+  // it, focus fires while the drawer is still translating, which on iOS
+  // intermittently over-scrolls the sheet because WebKit's auto-scroll
+  // and vaul's visualViewport resize handler race. preventScroll: true
+  // silences WebKit's scroll-on-focus so vaul alone owns the height
+  // adjustment.
+  useEffect(() => {
+    if (!open) return;
+    const t = window.setTimeout(() => {
+      // Runtime value is actually the wrapping div; querySelector works
+      // either way and finds the real <input>.
+      const wrapper = inputWrapperRef.current as unknown as HTMLElement | null;
+      wrapper?.querySelector("input")?.focus({ preventScroll: true });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [open]);
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length > 0 && trimmed.length <= MAX_LEN && !busy;
@@ -95,6 +117,7 @@ export default function TokenNameSheet({
           footer={`Give it a name so you can tell it apart from your other tokens. ${trimmed.length}/${MAX_LEN}`}
         >
           <Input
+            ref={inputWrapperRef}
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, MAX_LEN))}
             placeholder="e.g., CLI on Macbook"
