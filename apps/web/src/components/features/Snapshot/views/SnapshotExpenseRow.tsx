@@ -1,13 +1,13 @@
 import { Caption, Cell, Text } from "@telegram-apps/telegram-ui";
 import { format } from "date-fns";
+import { cn } from "@/utils/cn";
 import { formatCurrencyWithCode } from "@/utils/financial";
 
 type RowItem = {
   id: string;
   description: string;
   date: Date;
-  amountInBase: number;
-  currency: string;
+  shareInBase: number;
   payer: { firstName: string };
   categoryEmoji: string;
 };
@@ -17,15 +17,14 @@ interface SnapshotExpenseRowProps {
   baseCurrency: string;
   /**
    * Override the default category-emoji box in the `before` slot.
-   * Used by PayerView to show member avatars instead of category emojis.
    */
   before?: React.ReactNode;
 }
 
 /**
- * Shared expense row for the grouped lists inside Category/Date/Payer views.
- * Mirrors `SnapshotExpenseCell` in SnapshotDetailsModal so the two surfaces
- * read consistently.
+ * Shared expense row for the grouped lists inside Category/Date views.
+ * Right column mirrors ChatExpenseCell: date / red share amount /
+ * "share" caption.
  */
 export function SnapshotExpenseRow({
   item,
@@ -48,14 +47,23 @@ export function SnapshotExpenseRow({
       }
       description={item.description}
       after={
-        <Caption weight="2" className="w-max shrink-0">
-          {format(item.date, "d MMM yyyy")}
-        </Caption>
+        <div className="flex flex-col items-end gap-0.5">
+          <Caption weight="2" className="w-max shrink-0">
+            {format(item.date, "d MMM yyyy")}
+          </Caption>
+          <Text
+            weight="3"
+            className={cn(item.shareInBase > 0 && "text-red-600")}
+          >
+            {formatCurrencyWithCode(item.shareInBase, baseCurrency)}
+          </Text>
+          <Caption className="w-max">share</Caption>
+        </div>
       }
     >
-      <Text weight="2">
-        {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
-      </Text>
+      {/* The Cell body slot is intentionally empty — all amount info
+          now lives in the `after` column to mirror ChatExpenseCell. */}
+      <span />
     </Cell>
   );
 }
