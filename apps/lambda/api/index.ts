@@ -21,6 +21,8 @@ import {
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
+import avatarRouter from "./avatar.js";
+import chatPhotoRouter from "./chat-photo.js";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
@@ -156,6 +158,9 @@ router.use(
   express.json({ limit: "1mb" }),
   recurringExpenseTickRouter
 );
+
+router.use("/avatar", avatarRouter);
+router.use("/chat-photo", chatPhotoRouter);
 
 router.get("/swagger", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
