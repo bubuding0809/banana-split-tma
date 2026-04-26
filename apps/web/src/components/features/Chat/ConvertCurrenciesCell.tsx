@@ -61,6 +61,12 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
       });
       trpcUtils.expense.getAllExpensesByChat.invalidate({ chatId });
       trpcUtils.settlement.getAllSettlementsByChat.invalidate({ chatId });
+      // The Debts/Collectables sections in ChatBalanceTab read from
+      // these three queries — without invalidation, the balances stay
+      // pinned to the pre-conversion currency until a manual refresh.
+      trpcUtils.chat.getDebtorsMultiCurrency.invalidate({ userId, chatId });
+      trpcUtils.chat.getCreditorsMultiCurrency.invalidate({ userId, chatId });
+      trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({ chatId });
       hapticFeedback.notificationOccurred("success");
       setConvertFromCurrency(null);
     },
@@ -102,6 +108,13 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
         fromCurrency,
         toCurrency,
         userId,
+        // Group notification: gated server-side on chat.type !== "private"
+        // and on having any rows actually converted, so personal chats
+        // and no-op conversions don't post anything.
+        sendNotification: true,
+        actorName: tUserData?.firstName,
+        actorUsername: tUserData?.username,
+        threadId: dChatData?.threadId,
       });
     } else {
       setConvertFromCurrency(null);

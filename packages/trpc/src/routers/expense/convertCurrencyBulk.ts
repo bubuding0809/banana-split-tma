@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { Telegram } from "telegraf";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { toNumber } from "../../utils/financial.js";
 import { getCurrentRateHandler } from "../currency/getCurrentRate.js";
+import { sendCurrencyConversionNotificationMessageHandler } from "../telegram/sendCurrencyConversionNotificationMessage.js";
 import { Decimal } from "decimal.js";
 
 export const inputSchema = z.object({
@@ -11,6 +13,13 @@ export const inputSchema = z.object({
   fromCurrency: z.string().min(3).max(3).toUpperCase(),
   toCurrency: z.string().min(3).max(3).toUpperCase(),
   userId: z.number(),
+  // Group notification (skipped for private chats inside the helper).
+  // All optional so existing callers (CLI, MCP, agent) keep working;
+  // when omitted, no notification is posted.
+  sendNotification: z.boolean().default(false),
+  actorName: z.string().optional(),
+  actorUsername: z.string().optional(),
+  threadId: z.number().optional(),
 });
 
 export const outputSchema = z.object({
@@ -22,7 +31,8 @@ export const outputSchema = z.object({
 
 export const convertCurrencyBulkHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  teleBot: Telegram
 ) => {
   try {
     const { chatId, fromCurrency, toCurrency, userId } = input;
@@ -152,6 +162,41 @@ export const convertCurrencyBulkHandler = async (
       { timeout: 15000 }
     );
 
+    // Group notification (best-effort). Helper short-circuits for
+    // private chats so personal-chat conversions don't post a self-DM.
+    if (
+      input.sendNotification &&
+      input.actorName &&
+      (expensesToConvert.length > 0 || settlementsToConvert.length > 0)
+    ) {
+      try {
+        await sendCurrencyConversionNotificationMessageHandler(
+          {
+            chatId,
+            actorUserId: userId,
+            actorName: input.actorName,
+            actorUsername: input.actorUsername,
+            fromCurrency,
+            toCurrency,
+            rate: toNumber(rate),
+            convertedExpenses: expensesToConvert.length,
+            convertedSettlements: settlementsToConvert.length,
+            threadId: input.threadId,
+            force: false,
+          },
+          db,
+          teleBot
+        );
+      } catch (notificationError) {
+        // Conversion succeeded — don't surface a notification failure
+        // back to the user. Log and move on.
+        console.error(
+          "Failed to send currency conversion notification:",
+          notificationError
+        );
+      }
+    }
+
     return {
       convertedExpenses: expensesToConvert.length,
       convertedSettlements: settlementsToConvert.length,
@@ -186,5 +231,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return convertCurrencyBulkHandler(input, ctx.db);
+    return convertCurrencyBulkHandler(input, ctx.db, ctx.teleBot);
   });
