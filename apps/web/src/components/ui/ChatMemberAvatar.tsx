@@ -1,5 +1,4 @@
 import { getAnimalAvatarEmoji } from "@/utils/emoji";
-import { trpc } from "@/utils/trpc";
 import { Avatar, ImageProps } from "@telegram-apps/telegram-ui";
 
 interface ChatMemberProps {
@@ -8,16 +7,8 @@ interface ChatMemberProps {
 }
 
 const ChatMemberAvatar = ({ userId, size = 24 }: ChatMemberProps) => {
-  const { data: photoUrl } = trpc.telegram.getUserProfilePhotoUrl.useQuery({
-    userId,
-  });
-
-  if (!photoUrl) {
-    return (
-      <Avatar size={size}>{getAnimalAvatarEmoji(userId.toString())}</Avatar>
-    );
-  }
-  return <Avatar src={photoUrl} size={size} />;
+  // Real-photo logic lands in Task 11 (initData + /api/avatar proxy).
+  return <Avatar size={size}>{getAnimalAvatarEmoji(userId.toString())}</Avatar>;
 };
 
 export default ChatMemberAvatar;
