@@ -1,4 +1,4 @@
-import { Fragment, ReactNode } from "react";
+import { ReactNode } from "react";
 import {
   hapticFeedback,
   openTelegramLink,
@@ -23,7 +23,7 @@ interface AddMemberSheetProps {
 
 interface StepDef {
   label: string;
-  mockup: ReactNode;
+  mockup?: ReactNode;
 }
 
 export default function AddMemberSheet({
@@ -45,10 +45,9 @@ export default function AddMemberSheet({
   };
 
   // Stylized mini-mockups of the actual Telegram UI the user will see
-  // in each step. Themed via secondaryBgColor (card surface) +
+  // in each step. Themed via secondaryBackgroundColor (card surface) +
   // subtle white overlays for inner elements.
-  const cardBaseClass =
-    "mt-2 max-w-[260px] rounded-lg border border-white/5 p-2";
+  const cardClass = "mt-2 rounded-lg border border-white/5 p-2";
   const cardStyle = { backgroundColor: tSecondaryBgColor };
   const innerPillClass =
     "rounded-md bg-white/5 px-2 py-1 text-center text-[11px]";
@@ -57,7 +56,7 @@ export default function AddMemberSheet({
     {
       label: "Tap below to open the bot chat",
       mockup: (
-        <div className={`${cardBaseClass} space-y-1`} style={cardStyle}>
+        <div className={`${cardClass} space-y-1`} style={cardStyle}>
           <div className={innerPillClass}>👤 Select user(s)</div>
           <div className={innerPillClass}>❌ Cancel</div>
         </div>
@@ -66,7 +65,7 @@ export default function AddMemberSheet({
     {
       label: "Pick your contacts",
       mockup: (
-        <div className={`${cardBaseClass} space-y-1.5`} style={cardStyle}>
+        <div className={`${cardClass} space-y-1.5`} style={cardStyle}>
           <div className="flex items-center justify-between px-1 text-[10px]">
             <span>✕</span>
             <span className="font-semibold">Select Users</span>
@@ -90,7 +89,7 @@ export default function AddMemberSheet({
               style={{ borderColor: tSubtitleTextColor }}
             />
             <div className="size-3 shrink-0 rounded-full bg-orange-500/70" />
-            <span className="text-[10px]">Clive</span>
+            <div className="h-2 w-20 rounded-sm bg-white/15" />
           </div>
           <div className="flex items-center gap-1.5">
             <div
@@ -98,26 +97,14 @@ export default function AddMemberSheet({
               style={{ borderColor: tSubtitleTextColor }}
             />
             <div className="size-3 shrink-0 rounded-full bg-cyan-500/70" />
-            <span className="text-[10px]">Anthony</span>
+            <div className="h-2 w-14 rounded-sm bg-white/15" />
           </div>
         </div>
       ),
     },
     {
       label: "Swipe back to the app",
-      mockup: (
-        <div
-          className={`${cardBaseClass} flex items-center gap-2`}
-          style={cardStyle}
-        >
-          <span className="text-base" style={{ color: tButtonColor }}>
-            ◀
-          </span>
-          <span className="text-[11px]" style={{ color: tSubtitleTextColor }}>
-            swipe back
-          </span>
-        </div>
-      ),
+      // No mockup — gesture is self-explanatory once the user is in the bot DM.
     },
   ];
 
@@ -161,28 +148,37 @@ export default function AddMemberSheet({
           </Text>
         </blockquote>
 
-        {/* Vertical step path with mockups under each label */}
-        <div className="flex flex-col px-2">
-          {STEPS.map((step, i) => (
-            <Fragment key={step.label}>
-              <div className="flex items-start gap-3 py-1">
+        {/* Vertical step path. Connector line runs from each dot down to
+            the next via absolute positioning so it spans the full card
+            height regardless of mockup size. Last step omits the line. */}
+        <div className="px-2">
+          {STEPS.map((step, i) => {
+            const isLast = i === STEPS.length - 1;
+            return (
+              <div
+                key={step.label}
+                className={`relative pl-7 ${isLast ? "" : "pb-6"}`}
+              >
+                {/* Connector line — bottom: 0 lets it reach the next dot */}
+                {!isLast && (
+                  <div
+                    className="absolute bottom-0 left-[4px] top-4 w-[2px]"
+                    style={{
+                      backgroundColor: tButtonColor,
+                      opacity: 0.4,
+                    }}
+                  />
+                )}
+                {/* Dot */}
                 <div
-                  className="mt-1.5 size-2.5 shrink-0 rounded-full"
+                  className="absolute left-0 top-1.5 size-2.5 rounded-full"
                   style={{ backgroundColor: tButtonColor }}
                 />
-                <div className="min-w-0 flex-1">
-                  <Text>{step.label}</Text>
-                  {step.mockup}
-                </div>
+                <Text>{step.label}</Text>
+                {step.mockup}
               </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className="ml-[4px] h-3 w-[2px]"
-                  style={{ backgroundColor: tButtonColor, opacity: 0.4 }}
-                />
-              )}
-            </Fragment>
-          ))}
+            );
+          })}
         </div>
 
         <Button
