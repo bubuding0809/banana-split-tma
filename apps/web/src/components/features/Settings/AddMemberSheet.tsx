@@ -12,7 +12,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 interface AddMemberSheetProps {
   chatId: number;
@@ -101,8 +101,14 @@ export default function AddMemberSheet({
           ))}
         </div>
 
-        <Button stretched size="l" mode="filled" onClick={handleOpenBot}>
-          Open bot DM
+        <Button
+          stretched
+          size="l"
+          mode="filled"
+          onClick={handleOpenBot}
+          after={<ArrowRight size={20} strokeWidth={2.5} />}
+        >
+          Let&apos;s go
         </Button>
       </div>
     </Modal>
