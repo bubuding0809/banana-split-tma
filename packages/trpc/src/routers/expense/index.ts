@@ -9,6 +9,7 @@ import updateExpensesBulk from "./updateExpensesBulk.js";
 import deleteExpense from "./deleteExpense.js";
 import convertCurrencyBulk from "./convertCurrencyBulk.js";
 import sendBatchExpenseSummary from "./sendBatchExpenseSummary.js";
+import attachTelegramMessage from "./attachTelegramMessage.js";
 import { createTRPCRouter } from "../../trpc.js";
 import { recurringRouter } from "./recurring/index.js";
 
@@ -24,5 +25,6 @@ export const expenseRouter = createTRPCRouter({
   deleteExpense,
   convertCurrencyBulk,
   sendBatchExpenseSummary,
+  attachTelegramMessage,
   recurring: recurringRouter,
 });

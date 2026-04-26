@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 import { UserPage } from "@/components/features";
+import { useStartParams } from "@/hooks";
 
 const searchSchema = z.object({
   selectedTab: z.enum(["groups", "personal"]).catch("personal"),
@@ -22,5 +24,41 @@ export const Route = createFileRoute("/_tma/chat/")({
 });
 
 function RouteComponent() {
+  const startParams = useStartParams();
+  const navigate = useNavigate();
+
+  // Mirror the deep-link consumer in `chat.$chatId.tsx`: when a personal
+  // chat deep link (chat_type "p") carries an expense entity, land the
+  // user on the personal transactions tab with the modal auto-opened.
+  // Without this, a "View Expense" tap from the bot DM lands on the
+  // hub but the modal never opens because only the group route consumed
+  // entity_type === "e".
+  useEffect(() => {
+    if (!startParams?.entity_id) return;
+    const consumedKey = `deep_link_consumed_${startParams.entity_id}`;
+    if (sessionStorage.getItem(consumedKey)) return;
+
+    // Belt-and-braces: only consume on personal deep links. Home.tsx
+    // already routes group deep links to `/chat/$chatId`, but if a stale
+    // group startParam lingers when the TMA reactivates at `/chat`,
+    // we'd otherwise pull a group expense into the personal tab.
+    if (startParams.entity_type === "e" && startParams.chat_type === "p") {
+      sessionStorage.setItem(consumedKey, "true");
+      void navigate({
+        to: "/chat",
+        search: {
+          selectedTab: "personal",
+          selectedExpense: startParams.entity_id,
+        },
+        replace: true,
+      });
+    }
+  }, [
+    startParams?.entity_type,
+    startParams?.entity_id,
+    startParams?.chat_type,
+    navigate,
+  ]);
+
   return <UserPage />;
 }
