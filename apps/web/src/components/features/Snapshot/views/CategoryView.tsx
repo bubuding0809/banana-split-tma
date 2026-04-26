@@ -38,7 +38,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Section header="By category">
+      <Section header="By category · your share">
         <div className="px-4 py-3">
           <SnapshotBarChart
             data={chartData}
@@ -71,7 +71,14 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
           {group.items.map((item) => (
             <SnapshotExpenseRow
               key={item.id}
-              item={item}
+              item={{
+                id: item.id,
+                description: item.description,
+                date: item.date,
+                shareInBase: item.userShareInBase,
+                payer: item.payer,
+                categoryEmoji: item.categoryEmoji,
+              }}
               baseCurrency={baseCurrency}
             />
           ))}
