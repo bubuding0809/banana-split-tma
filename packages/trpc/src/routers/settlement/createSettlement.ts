@@ -107,7 +107,7 @@ export const createSettlementHandler = async (
     // Send notification if requested (handler gates on chat.notifyOnSettlement)
     if (input.sendNotification && input.creditorName && input.debtorName) {
       try {
-        await sendSettlementNotificationMessageHandler(
+        const messageId = await sendSettlementNotificationMessageHandler(
           {
             chatId: Number(input.chatId),
             creditorUserId: Number(input.receiverId), // creditor receives the money
@@ -122,6 +122,15 @@ export const createSettlementHandler = async (
           db,
           teleBot
         );
+
+        // Persist the Telegram message ID so deleteSettlement can clean
+        // up the notification when this settlement is later deleted.
+        if (messageId) {
+          await db.settlement.update({
+            where: { id: settlement.id },
+            data: { telegramMessageId: BigInt(messageId) },
+          });
+        }
       } catch (notificationError) {
         console.error(
           "Failed to send settlement notification:",

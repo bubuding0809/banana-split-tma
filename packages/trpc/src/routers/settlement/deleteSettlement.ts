@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
+import { Telegram } from "telegraf";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -16,6 +17,7 @@ export const outputSchema = z.object({
 export const deleteSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
+  teleBot: Telegram,
   session: {
     authType:
       | "superadmin"
@@ -27,10 +29,11 @@ export const deleteSettlementHandler = async (
   }
 ) => {
   try {
-    // Lookup settlement to enforce scope
+    // Lookup settlement to enforce scope and grab the captured Telegram
+    // message ID so we can clean up the notification.
     const settlement = await db.settlement.findUnique({
       where: { id: input.settlementId },
-      select: { chatId: true },
+      select: { chatId: true, telegramMessageId: true },
     });
 
     if (!settlement) {
@@ -41,6 +44,26 @@ export const deleteSettlementHandler = async (
     }
 
     await assertChatAccess(session, db, settlement.chatId);
+
+    // Best-effort: drop the Telegram notification first so its absence
+    // doesn't fail a successful DB delete. Reasons this can fail are
+    // expected (already deleted, >48h old, missing permission) and
+    // shouldn't block.
+    if (settlement.telegramMessageId) {
+      try {
+        await teleBot.deleteMessage(
+          Number(settlement.chatId),
+          Number(settlement.telegramMessageId)
+        );
+      } catch (telegramError) {
+        console.error(
+          `Failed to delete settlement Telegram notification ${settlement.telegramMessageId} in chat ${settlement.chatId}:`,
+          telegramError instanceof Error
+            ? telegramError.message
+            : String(telegramError)
+        );
+      }
+    }
 
     await db.settlement.delete({
       where: {
@@ -88,5 +111,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteSettlementHandler(input, ctx.db, ctx.session);
+    return deleteSettlementHandler(input, ctx.db, ctx.teleBot, ctx.session);
   });
