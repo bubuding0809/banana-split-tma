@@ -7,7 +7,6 @@ import type { SnapshotAggregations } from "./aggregations/computeSnapshotAggrega
 
 interface SnapshotHeroProps {
   aggregations: SnapshotAggregations;
-  onYourShareClick?: () => void;
 }
 
 /**
@@ -18,10 +17,7 @@ interface SnapshotHeroProps {
  *       showing the user's share — identical header copy + visual weight
  *       as the modal.
  */
-export function SnapshotHero({
-  aggregations,
-  onYourShareClick,
-}: SnapshotHeroProps) {
+export function SnapshotHero({ aggregations }: SnapshotHeroProps) {
   const { details, baseCurrency, totalInBase, dateRange, userShareInBase } =
     aggregations;
   const expenseCount = details.expenses.length;
@@ -56,7 +52,6 @@ export function SnapshotHero({
       {userShareInBase > 0 && (
         <Section header="How much did you spend?">
           <Cell
-            onClick={onYourShareClick}
             before={
               <span className="rounded-lg bg-red-500 p-1.5">
                 <TrendingDown size={20} color="white" />

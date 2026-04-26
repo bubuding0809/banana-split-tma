@@ -8,7 +8,6 @@ import { SnapshotHero } from "./SnapshotHero";
 import { SnapshotViewTabs, type SnapshotView } from "./SnapshotViewTabs";
 import { CategoryView } from "./views/CategoryView";
 import { DateView } from "./views/DateView";
-import { PayerView } from "./views/PayerView";
 
 const routeApi = getRouteApi("/_tma/chat/$chatId_/snapshots_/$snapshotId");
 
@@ -23,7 +22,11 @@ export function SnapshotFullPage({
 }: SnapshotFullPageProps) {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const view = (search.view ?? "cat") as SnapshotView;
+  // Defensively coerce stale `view=payer` query params (from deep-links
+  // that predate this change) so they don't fall through to the
+  // default branch as a string that doesn't match either view.
+  const rawView = search.view ?? "cat";
+  const view: SnapshotView = rawView === "date" ? "date" : "cat";
 
   const { status, error, aggregations } = useSnapshotAggregations(snapshotId);
 
@@ -135,14 +138,10 @@ export function SnapshotFullPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <SnapshotHero
-        aggregations={aggregations}
-        onYourShareClick={() => handleTabChange("payer")}
-      />
+      <SnapshotHero aggregations={aggregations} />
       <SnapshotViewTabs value={view} onChange={handleTabChange} />
       {view === "cat" && <CategoryView aggregations={aggregations} />}
       {view === "date" && <DateView aggregations={aggregations} />}
-      {view === "payer" && <PayerView aggregations={aggregations} />}
     </div>
   );
 }
