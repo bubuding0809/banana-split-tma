@@ -22,7 +22,8 @@ interface AddMemberSheetProps {
 }
 
 interface StepDef {
-  label: string;
+  label: string; // Stable string for React key + accessible fallback
+  labelNode?: ReactNode; // Overrides label rendering when present
   mockup?: ReactNode;
 }
 
@@ -34,6 +35,7 @@ export default function AddMemberSheet({
 }: AddMemberSheetProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
 
   const handleOpenBot = () => {
@@ -53,7 +55,23 @@ export default function AddMemberSheet({
 
   const STEPS: StepDef[] = [
     {
-      label: "Tap below to open the bot chat",
+      label: "Tap the Let's go button below to open the bot chat",
+      labelNode: (
+        <>
+          Tap the{" "}
+          <span
+            className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 align-middle text-[12px] font-semibold"
+            style={{
+              backgroundColor: tButtonColor,
+              color: tButtonTextColor,
+            }}
+          >
+            Let&apos;s go
+            <ArrowRight size={10} strokeWidth={3} />
+          </span>{" "}
+          button below to open the bot chat
+        </>
+      ),
       // No mockup — the bot chat is just Telegram, no specific UI to show.
     },
     {
@@ -249,7 +267,7 @@ export default function AddMemberSheet({
                 </div>
                 {/* Title — bolder per the Tailwind UI reference */}
                 <div className="text-[15px] font-medium leading-snug">
-                  {step.label}
+                  {step.labelNode ?? step.label}
                 </div>
                 {step.mockup}
               </div>
