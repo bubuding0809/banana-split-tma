@@ -2,8 +2,15 @@ export const BotMessages = {
   ADD_MEMBER_SELECT_BUTTON: "👤 Select user(s)",
   ADD_MEMBER_CANCEL_BUTTON: "❌ Cancel",
   ADD_MEMBER_START_MESSAGE:
-    "Please select members to add to *{group_title}*\\.",
-  ADD_MEMBER_END_MESSAGE: "Added: {success_list}\\nFailed: {failed_list}",
+    "👥 Tap below to pick people to add to *{group_title}*\\.\n" +
+    "You can choose up to 10 at once\\.",
+  ADD_MEMBER_ACK: "Got it ✓",
+  ADD_MEMBER_CANCELLED:
+    "❌ Cancelled\\. You can start a new add from the app anytime\\.",
+  ADD_MEMBER_NOT_A_MEMBER:
+    "❌ You can only add members to groups you're a member of.",
+  ADD_MEMBER_GROUP_SUMMARY:
+    "✅ *New members added* by {adder_mention}\n\nMembers\n{member_list}",
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
   STATS_CANCELLED: "❌ Statistics cancelled\\.",
   ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",

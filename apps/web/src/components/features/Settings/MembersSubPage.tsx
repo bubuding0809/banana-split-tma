@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   backButton,
@@ -24,6 +24,8 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: members, status } = trpc.chat.listMembers.useQuery({ chatId });
+  const trpcUtils = trpc.useUtils();
+  const didStartAddFlow = useRef(false);
 
   useEffect(() => {
     backButton.show();
@@ -40,11 +42,27 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
     return () => off();
   }, [chatId, navigate]);
 
+  // When the user returns from the bot DM after launching the add-member
+  // flow, re-fetch the members list so newly-added members appear without
+  // a manual refresh. Gated on didStartAddFlow so we don't refetch on
+  // unrelated tab switches.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && didStartAddFlow.current) {
+        didStartAddFlow.current = false;
+        trpcUtils.chat.listMembers.invalidate({ chatId });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [chatId, trpcUtils]);
+
   return (
     <main className="px-3 pb-8">
       <Section
         header={members ? `${members.length} members` : "Members"}
-        footer='Tap "Add Member" to share a contact via the bot DM. Coming soon.'
+        footer='Tap "Add Member" to pick people from your Telegram contacts via the bot.'
       >
         <ButtonCell
           before={<Plus size={20} />}
@@ -64,7 +82,14 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
         )}
       </Section>
 
-      <AddMemberSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AddMemberSheet
+        chatId={chatId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onLaunchBot={() => {
+          didStartAddFlow.current = true;
+        }}
+      />
     </main>
   );
 }
