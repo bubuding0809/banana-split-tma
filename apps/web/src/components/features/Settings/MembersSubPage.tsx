@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   backButton,
@@ -25,6 +25,7 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
 
   const { data: members, status } = trpc.chat.listMembers.useQuery({ chatId });
   const trpcUtils = trpc.useUtils();
+  const didStartAddFlow = useRef(false);
 
   useEffect(() => {
     backButton.show();
@@ -41,12 +42,14 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
     return () => off();
   }, [chatId, navigate]);
 
-  // When the user returns from the bot DM (or any other tab switch),
-  // re-fetch the members list so newly-added members appear without a
-  // manual refresh.
+  // When the user returns from the bot DM after launching the add-member
+  // flow, re-fetch the members list so newly-added members appear without
+  // a manual refresh. Gated on didStartAddFlow so we don't refetch on
+  // unrelated tab switches.
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && didStartAddFlow.current) {
+        didStartAddFlow.current = false;
         trpcUtils.chat.listMembers.invalidate({ chatId });
       }
     };
@@ -83,6 +86,9 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
         chatId={chatId}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+        onLaunchBot={() => {
+          didStartAddFlow.current = true;
+        }}
       />
     </main>
   );

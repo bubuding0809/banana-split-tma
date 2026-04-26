@@ -18,17 +18,20 @@ interface AddMemberSheetProps {
   chatId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLaunchBot?: () => void;
 }
 
 export default function AddMemberSheet({
   chatId,
   open,
   onOpenChange,
+  onLaunchBot,
 }: AddMemberSheetProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
 
   const handleOpenBot = () => {
     hapticFeedback.impactOccurred("light");
+    onLaunchBot?.();
     const deepLink = `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=ADD_MEMBER${chatId}`;
     openTelegramLink(deepLink);
     onOpenChange(false);

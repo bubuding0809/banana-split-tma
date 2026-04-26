@@ -248,15 +248,31 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     // it just reads "Open the group in app".
   }
 
-  const miniAppCommand = ChatUtils.createChatContext(
-    BigInt(groupIdStr),
-    chatType
-  );
-  const miniAppUrl = ChatUtils.createMiniAppUrl(
-    env.MINI_APP_DEEPLINK,
-    ctx.me.username,
-    miniAppCommand
-  );
+  let miniAppUrl: string;
+  try {
+    const miniAppCommand = ChatUtils.createChatContext(
+      BigInt(groupIdStr),
+      chatType
+    );
+    miniAppUrl = ChatUtils.createMiniAppUrl(
+      env.MINI_APP_DEEPLINK,
+      ctx.me.username,
+      miniAppCommand
+    );
+  } catch (err) {
+    console.warn("Failed to build mini-app URL — likely corrupted session", {
+      groupIdStr,
+      err,
+    });
+    ctx.session.addMemberGroupId = undefined;
+    await ctx.reply(
+      "Session expired. Please start the add member process again.",
+      {
+        reply_markup: { remove_keyboard: true },
+      }
+    );
+    return;
+  }
 
   const users = ctx.message.users_shared.users;
   const successList: string[] = [];
@@ -334,7 +350,7 @@ userFeature.on("message:users_shared", async (ctx, next) => {
       "{chat_title}",
       chatTitle
     );
-    await ctx.reply(`✅ ${successList.length} member(s) added.`, {
+    await ctx.reply("Tap below to return to the chat:", {
       reply_markup: new InlineKeyboard().url(buttonLabel, miniAppUrl),
     });
   }
