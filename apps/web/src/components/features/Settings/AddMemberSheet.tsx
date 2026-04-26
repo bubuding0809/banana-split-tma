@@ -1,5 +1,6 @@
 import {
   hapticFeedback,
+  openTelegramLink,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -14,18 +15,24 @@ import {
 import { X } from "lucide-react";
 
 interface AddMemberSheetProps {
+  chatId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// Placeholder for the upcoming Telegram contact-share flow. The actual flow
-// will deeplink the user to the bot DM and trigger user_shared on a button
-// press. Until that lands, we explain the eventual flow and dismiss.
 export default function AddMemberSheet({
+  chatId,
   open,
   onOpenChange,
 }: AddMemberSheetProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
+
+  const handleOpenBot = () => {
+    hapticFeedback.impactOccurred("light");
+    const deepLink = `${import.meta.env.VITE_TELEGRAM_BOT_DEEP_LINK}?start=ADD_MEMBER${chatId}`;
+    openTelegramLink(deepLink);
+    onOpenChange(false);
+  };
 
   return (
     <Modal
@@ -59,22 +66,26 @@ export default function AddMemberSheet({
       <div className="pb-6">
         <Section
           className="px-3"
-          footer="Soon you'll be able to share a contact with the bot in your private chat to add them here. We'll let you know once it's ready."
+          footer="The bot will send a contact picker. Tap Send when you're done choosing."
         >
           <div className="px-2 py-3">
             <Text style={{ color: tSubtitleTextColor }}>
-              This flow isn't wired up yet — coming soon.
+              We'll open the bot DM where you can pick people from your Telegram
+              contacts. They'll be added to this group.
             </Text>
           </div>
         </Section>
-        <div className="px-3 pt-2">
+        <div className="flex flex-col gap-2 px-3 pt-2">
+          <Button stretched size="l" mode="filled" onClick={handleOpenBot}>
+            Open bot DM
+          </Button>
           <Button
             stretched
             size="l"
-            mode="filled"
+            mode="gray"
             onClick={() => onOpenChange(false)}
           >
-            Got it
+            Cancel
           </Button>
         </div>
       </div>

@@ -44,7 +44,7 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
     <main className="px-3 pb-8">
       <Section
         header={members ? `${members.length} members` : "Members"}
-        footer='Tap "Add Member" to share a contact via the bot DM. Coming soon.'
+        footer='Tap "Add Member" to pick contacts from the bot DM and add them to this group.'
       >
         <ButtonCell
           before={<Plus size={20} />}
@@ -64,7 +64,11 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
         )}
       </Section>
 
-      <AddMemberSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AddMemberSheet
+        chatId={chatId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </main>
   );
 }

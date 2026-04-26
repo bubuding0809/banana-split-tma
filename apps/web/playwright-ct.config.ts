@@ -20,6 +20,10 @@ export default defineConfig({
     ctPort: 3100,
     ctViteConfig: {
       resolve: {
+        // Prioritise ESM ("module") over CJS ("main") so that packages like
+        // @telegram-apps/telegram-ui that ship separate CJS and ESM bundles
+        // resolve to the ESM build inside the CT Vite sandbox.
+        mainFields: ["module", "jsnext:main", "jsnext", "main"],
         alias: {
           "@": path.resolve(__dirname, "./src"),
           "@components": path.resolve(__dirname, "./src/components"),
