@@ -258,13 +258,8 @@ const SnapshotDetailsModal = ({
       );
   }, [snapShotDetails?.expenses, userId]);
 
-  const categoryEmojiByExpenseId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const g of aggregations?.byCategory ?? []) {
-      for (const item of g.items) map.set(item.id, g.emoji);
-    }
-    return map;
-  }, [aggregations]);
+  const categoryEmojiByExpenseId =
+    aggregations?.categoryEmojiByExpenseId ?? new Map<string, string>();
 
   // Setup virtualizer for expense list
   const virtualizer = useVirtualizer({

@@ -51,6 +51,13 @@ export type SnapshotAggregations = {
   userShareInBase: number;
   byCategory: CategoryGroup[];
   byDate: DateGroup[];
+  /**
+   * Resolved category emoji for every expense in the snapshot — keyed
+   * by expense id. Includes expenses the user has no share in, so
+   * consumers like SnapshotDetailsModal can show the right emoji even
+   * for rows that don't appear in the user-share-filtered `byCategory`.
+   */
+  categoryEmojiByExpenseId: Map<string, string>;
 };
 
 type ComputeArgs = {
@@ -173,6 +180,14 @@ export function computeSnapshotAggregations({
     g.items.sort((a, b) => b.userShareInBase - a.userShareInBase);
   }
 
+  // Emoji lookup spans every expense in the snapshot, regardless of
+  // whether the user has a share in it — needed by consumers (e.g.
+  // SnapshotDetailsModal) that list the full expense set.
+  const categoryEmojiByExpenseId = new Map<string, string>();
+  for (const item of normalized) {
+    categoryEmojiByExpenseId.set(item.id, item.categoryEmoji);
+  }
+
   return {
     details,
     baseCurrency,
@@ -181,5 +196,6 @@ export function computeSnapshotAggregations({
     userShareInBase,
     byCategory,
     byDate,
+    categoryEmojiByExpenseId,
   };
 }

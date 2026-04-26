@@ -370,4 +370,52 @@ describe("computeSnapshotAggregations", () => {
     expect(out.byDate).toHaveLength(1);
     expect(out.byDate[0]!.date.getDate()).toBe(5);
   });
+
+  it("populates categoryEmojiByExpenseId for every expense, including ones the user has no share in", () => {
+    const out = computeSnapshotAggregations({
+      details: asDetails({
+        ...BASE_DETAILS,
+        expenses: [
+          // User 100 IS in this one — appears in byCategory
+          mkExpense({
+            id: "e1",
+            categoryId: "base:food",
+            shares: [
+              {
+                userId: 100,
+                amount: 10,
+                user: { id: 100, firstName: "Alice" },
+              },
+              { userId: 200, amount: 10, user: { id: 200, firstName: "Bob" } },
+            ],
+          }),
+          // User 100 has a share record but with amount=null — drops
+          // out of byCategory but the modal still renders this expense
+          mkExpense({
+            id: "e2",
+            categoryId: "base:transport",
+            shares: [
+              {
+                userId: 100,
+                amount: null,
+                user: { id: 100, firstName: "Alice" },
+              },
+              { userId: 200, amount: 20, user: { id: 200, firstName: "Bob" } },
+            ],
+          }),
+        ],
+      }),
+      rates: {},
+      baseCurrency: "SGD",
+      currentUserId: 100,
+      chatCategories: [],
+    });
+
+    // Both expenses must be in the emoji map regardless of user share
+    expect(out.categoryEmojiByExpenseId.size).toBe(2);
+    expect(out.categoryEmojiByExpenseId.get("e1")).toBeTruthy();
+    expect(out.categoryEmojiByExpenseId.get("e2")).toBeTruthy();
+    // Sanity: byCategory only includes user-share expenses
+    expect(out.byCategory).toHaveLength(1);
+  });
 });
