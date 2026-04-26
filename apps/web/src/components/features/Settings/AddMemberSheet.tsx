@@ -83,7 +83,7 @@ export default function AddMemberSheet({
               className="mb-1.5 text-[12px]"
               style={{ color: tSubtitleTextColor }}
             >
-              Tap the button:
+              1. Tap the keyboard button to open the contact picker
             </div>
             {/* Reply-keyboard buttons that appear in the bot DM */}
             <div
@@ -100,7 +100,7 @@ export default function AddMemberSheet({
               className="mb-1.5 text-[12px]"
               style={{ color: tSubtitleTextColor }}
             >
-              Then pick your friends:
+              2. Pick your friends
             </div>
             {/* Tapping "Select user(s)" opens the contact picker dialog */}
             <div
@@ -202,7 +202,7 @@ export default function AddMemberSheet({
         <Modal.Header
           before={
             <Title weight="2" level="3">
-              Manually add members
+              Add members
             </Title>
           }
           after={
