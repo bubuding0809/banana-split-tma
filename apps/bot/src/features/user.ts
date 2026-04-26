@@ -355,9 +355,9 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   ctx.session.addMemberGroupId = undefined;
 
   // Telegram doesn't allow combining `remove_keyboard` with an inline
-  // keyboard on one message. Send a brief ack first to clear the
-  // reply-keyboard, then a single combined message that has both the
-  // result text and the back-to-app button.
+  // keyboard on one message. The first message removes the keyboard
+  // with a brief ack, and the second carries the result text plus a
+  // swipe-back affordance to return the user to their TMA session.
   await ctx.reply(BotMessages.ADD_MEMBER_ACK, {
     reply_markup: { remove_keyboard: true },
   });
@@ -381,18 +381,13 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     );
   }
 
+  // Swipe-back affordance — same pattern as START_MESSAGE_GROUP_REGISTER.
+  // Keeps the user on their existing TMA instance, where our
+  // visibilitychange listener auto-refreshes the members list.
+  lines.push("◀︎ Return to the app by swiping back");
+
   const resultText = lines.join("\n\n");
   await ctx.reply(resultText, {
     parse_mode: "MarkdownV2",
-    reply_markup:
-      successList.length > 0
-        ? new InlineKeyboard().url(
-            BotMessages.ADD_MEMBER_OPEN_APP_BUTTON.replace(
-              "{chat_title}",
-              chatTitle
-            ),
-            miniAppUrl
-          )
-        : undefined,
   });
 });
