@@ -1,4 +1,4 @@
-import { Cell } from "@telegram-apps/telegram-ui";
+import { Badge, Cell } from "@telegram-apps/telegram-ui";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface MemberRowProps {
@@ -22,9 +22,9 @@ export default function MemberRow({ member, isYou }: MemberRowProps) {
       subtitle={member.username ? `@${member.username}` : "no username"}
       after={
         isYou ? (
-          <span className="rounded bg-gray-400 px-2 py-0.5 text-xs font-medium text-white">
+          <Badge type="number" mode="primary">
             You
-          </span>
+          </Badge>
         ) : null
       }
     >
