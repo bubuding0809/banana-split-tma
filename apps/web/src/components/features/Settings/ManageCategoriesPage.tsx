@@ -1,5 +1,10 @@
 import { useEffect } from "react";
-import { ButtonCell, Cell, Section } from "@telegram-apps/telegram-ui";
+import {
+  ButtonCell,
+  Cell,
+  Section,
+  Skeleton,
+} from "@telegram-apps/telegram-ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   backButton,
@@ -19,7 +24,7 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
   const navigate = useNavigate();
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
-  const { data } = trpc.category.listByChat.useQuery({ chatId });
+  const { data, isPending } = trpc.category.listByChat.useQuery({ chatId });
 
   useEffect(() => {
     backButton.mount();
@@ -67,7 +72,17 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
             Reorder &amp; hide tiles
           </Cell>
         </Link>
-        {previewTiles.length > 0 && (
+        {isPending ? (
+          <div className="px-3 pb-3 pt-2">
+            <div className="grid grid-cols-4 gap-2">
+              {Array.from({ length: PREVIEW_COUNT }).map((_, i) => (
+                <Skeleton key={i} visible>
+                  <CategoryTile emoji="·" title="Loading" />
+                </Skeleton>
+              ))}
+            </div>
+          </div>
+        ) : previewTiles.length > 0 ? (
           <div className="px-3 pb-3 pt-2">
             <div className="grid grid-cols-4 gap-2">
               {previewTiles.map((c) => (
@@ -88,7 +103,7 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
               </div>
             ) : null}
           </div>
-        )}
+        ) : null}
       </Section>
 
       <Section header="CUSTOM">
@@ -110,7 +125,19 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
           Create custom category
         </ButtonCell>
 
-        {custom.length === 0 ? (
+        {isPending ? (
+          Array.from({ length: 2 }).map((_, i) => (
+            <Cell
+              key={`skeleton-${i}`}
+              before={<span className="text-xl">·</span>}
+              after={<ChevronRight size={16} />}
+            >
+              <Skeleton visible>
+                <span>Loading category</span>
+              </Skeleton>
+            </Cell>
+          ))
+        ) : custom.length === 0 ? (
           <Cell description="Tap Create custom category above to add your first one.">
             No custom categories yet
           </Cell>
@@ -137,11 +164,25 @@ export default function ManageCategoriesPage({ chatId }: { chatId: number }) {
       </Section>
 
       <Section header="BASE">
-        {base.map((c) => (
-          <Cell key={c.id} before={<span className="text-xl">{c.emoji}</span>}>
-            {c.title}
-          </Cell>
-        ))}
+        {isPending
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Cell
+                key={`skeleton-${i}`}
+                before={<span className="text-xl">·</span>}
+              >
+                <Skeleton visible>
+                  <span>Loading category</span>
+                </Skeleton>
+              </Cell>
+            ))
+          : base.map((c) => (
+              <Cell
+                key={c.id}
+                before={<span className="text-xl">{c.emoji}</span>}
+              >
+                {c.title}
+              </Cell>
+            ))}
       </Section>
     </main>
   );

@@ -14,6 +14,7 @@ import {
   Modal,
   Navigation,
   Section,
+  Skeleton,
   Snackbar,
   Title,
 } from "@telegram-apps/telegram-ui";
@@ -75,6 +76,9 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
       createdAt: t.createdAt,
     }));
   }, [isPrivate, userTokensQ.data, chatTokensQ.data]);
+  const tokensPending = isPrivate
+    ? userTokensQ.isPending
+    : chatTokensQ.isPending;
 
   const generateChat = trpc.apiKey.generateToken.useMutation();
   const generateUser = trpc.apiKey.generateUserToken.useMutation();
@@ -202,21 +206,42 @@ export default function DeveloperSubPage({ chatId }: DeveloperSubPageProps) {
           Generate new token
         </ButtonCell>
 
-        {tokens.map((t) => (
-          <Cell
-            key={t.id}
-            onClick={() => setEditing(t)}
-            before={
-              <IconSquare color="red">
-                <Key size={14} />
-              </IconSquare>
-            }
-            subtitle={`Created ${new Date(t.createdAt).toLocaleDateString()} · ${t.keyPrefix}…`}
-            after={<Navigation />}
-          >
-            {t.name}
-          </Cell>
-        ))}
+        {tokensPending
+          ? Array.from({ length: 2 }).map((_, i) => (
+              <Cell
+                key={`skeleton-${i}`}
+                before={
+                  <IconSquare color="red">
+                    <Key size={14} />
+                  </IconSquare>
+                }
+                subtitle={
+                  <Skeleton visible>
+                    <span>Created 0/0/0000 · sk_xxxxxx…</span>
+                  </Skeleton>
+                }
+                after={<Navigation />}
+              >
+                <Skeleton visible>
+                  <span>Loading token</span>
+                </Skeleton>
+              </Cell>
+            ))
+          : tokens.map((t) => (
+              <Cell
+                key={t.id}
+                onClick={() => setEditing(t)}
+                before={
+                  <IconSquare color="red">
+                    <Key size={14} />
+                  </IconSquare>
+                }
+                subtitle={`Created ${new Date(t.createdAt).toLocaleDateString()} · ${t.keyPrefix}…`}
+                after={<Navigation />}
+              >
+                {t.name}
+              </Cell>
+            ))}
       </Section>
 
       <TokenNameSheet

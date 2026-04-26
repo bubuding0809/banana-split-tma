@@ -1,13 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
-import {
-  Avatar,
-  Cell,
-  Section,
-  Skeleton,
-  Text,
-} from "@telegram-apps/telegram-ui";
+import { Avatar, Cell, Section, Skeleton } from "@telegram-apps/telegram-ui";
 import { Check } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { getFlagUrl } from "@/utils/emoji";
@@ -64,45 +58,68 @@ export default function CurrencySubPage({ chatId }: CurrencySubPageProps) {
   return (
     <main className="px-3 pb-8">
       <Section header="Selected">
-        <Skeleton visible={status === "pending"}>
-          {selected ? (
-            <Cell
-              before={
-                <Avatar size={28} src={getFlagUrl(selected.countryCode)}>
-                  {selected.flagEmoji}
-                </Avatar>
-              }
-              subtitle={`${selected.code} · ${selected.symbol ?? ""}`}
-              after={<Check size={18} />}
-            >
-              {selected.name}
-            </Cell>
-          ) : (
-            <Cell>
-              <Text>Loading…</Text>
-            </Cell>
-          )}
-        </Skeleton>
+        {status === "pending" || !selected ? (
+          <Cell
+            before={<Avatar size={28} />}
+            subtitle={
+              <Skeleton visible>
+                <span>CODE · ¤</span>
+              </Skeleton>
+            }
+          >
+            <Skeleton visible>
+              <span>Loading currency</span>
+            </Skeleton>
+          </Cell>
+        ) : (
+          <Cell
+            before={
+              <Avatar size={28} src={getFlagUrl(selected.countryCode)}>
+                {selected.flagEmoji}
+              </Avatar>
+            }
+            subtitle={`${selected.code} · ${selected.symbol ?? ""}`}
+            after={<Check size={18} />}
+          >
+            {selected.name}
+          </Cell>
+        )}
       </Section>
 
       <Section
         header="All currencies"
         footer="Used as the base currency for splits in this chat."
       >
-        {others.map((c) => (
-          <Cell
-            key={c.code}
-            before={
-              <Avatar size={28} src={getFlagUrl(c.countryCode)}>
-                {c.flagEmoji}
-              </Avatar>
-            }
-            subtitle={`${c.code} · ${c.symbol ?? ""}`}
-            onClick={() => select(c.code)}
-          >
-            {c.name}
-          </Cell>
-        ))}
+        {status === "pending"
+          ? Array.from({ length: 8 }).map((_, i) => (
+              <Cell
+                key={`skeleton-${i}`}
+                before={<Avatar size={28} />}
+                subtitle={
+                  <Skeleton visible>
+                    <span>CODE · ¤</span>
+                  </Skeleton>
+                }
+              >
+                <Skeleton visible>
+                  <span>Loading currency</span>
+                </Skeleton>
+              </Cell>
+            ))
+          : others.map((c) => (
+              <Cell
+                key={c.code}
+                before={
+                  <Avatar size={28} src={getFlagUrl(c.countryCode)}>
+                    {c.flagEmoji}
+                  </Avatar>
+                }
+                subtitle={`${c.code} · ${c.symbol ?? ""}`}
+                onClick={() => select(c.code)}
+              >
+                {c.name}
+              </Cell>
+            ))}
       </Section>
     </main>
   );
