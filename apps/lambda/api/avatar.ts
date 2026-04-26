@@ -6,6 +6,7 @@ import {
   parse as parseInitData,
 } from "@telegram-apps/init-data-node";
 import { env } from "./env.js";
+import { redactBotToken } from "./_redact.js";
 
 const router = Router();
 const teleBot = new Telegram(env.TELEGRAM_BOT_TOKEN);
@@ -65,17 +66,11 @@ router.get("/:userId", async (req: Request, res: Response) => {
     }
     bytes = Buffer.from(await upstream.arrayBuffer());
   } catch (err) {
-    // Defense in depth — telegraf redacts internally, but the bare
-    // fetch(fileLink) call doesn't, and a future Node/Undici version
-    // could attach the URL to err.cause.message. Match telegraf's
-    // /bot\d+:[A-Za-z0-9_-]+/g pattern.
-    const safeErr =
-      err instanceof Error
-        ? err.message.replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]")
-        : String(err);
+    // Redact the bot token from any error message before logging.
+    // See _redact.ts for rationale.
     console.warn("avatar fetch failed", {
       targetId: targetId.toString(),
-      err: safeErr,
+      err: redactBotToken(err),
     });
     return res.status(502).end();
   }

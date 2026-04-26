@@ -75,8 +75,65 @@ describe("GET /api/chat-photo/:chatId — auth + authz", () => {
     (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       id: -1001n,
     });
+    getChatMock.mockResolvedValueOnce({});
     const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
-    // Authz passes; falls through to 404 stub for now.
+    // Authz passes; falls through to 404 (no photo on chat).
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/chat-photo/:chatId — Telegram fetch", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockReset();
+    getChatMock.mockReset();
+    getFileLinkMock.mockReset();
+    getFileLinkMock.mockResolvedValue(
+      new URL("https://api.telegram.org/file/botX/path.jpg")
+    );
+  });
+
+  it("returns 404 with 1h cache when chat has no photo", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: -1001n,
+    });
+    getChatMock.mockResolvedValueOnce({});
+    const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
+    expect(res.status).toBe(404);
+    expect(res.header["cache-control"]).toMatch(/max-age=3600/);
+  });
+
+  it("returns 200 + JPEG with long cache on happy path", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: -1001n,
+    });
+    getChatMock.mockResolvedValueOnce({
+      photo: { big_file_id: "big", small_file_id: "small" },
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new Uint8Array([0xff, 0xd8]).buffer),
+    });
+    const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
+    expect(res.status).toBe(200);
+    expect(res.header["content-type"]).toMatch(/image\/jpeg/);
+    expect(res.header["cache-control"]).toMatch(/max-age=86400/);
+    expect(res.header["cache-control"]).toMatch(/s-maxage=604800/);
+  });
+
+  it("returns 502 when telegraf throws", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: -1001n,
+    });
+    getChatMock.mockRejectedValueOnce(new Error("flood wait"));
+    const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
+    expect(res.status).toBe(502);
   });
 });
