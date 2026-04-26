@@ -6,6 +6,19 @@ import { escapeMarkdownV2 } from "../utils/markdown.js";
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 
+/**
+ * Join a list of display names with commas + Oxford "and", and escape
+ * each name for MarkdownV2 rendering.
+ */
+function joinNames(names: string[]): string {
+  const escaped = names.map(escapeMarkdownV2);
+  if (escaped.length === 0) return "";
+  if (escaped.length === 1) return escaped[0]!;
+  if (escaped.length === 2) return `${escaped[0]!} and ${escaped[1]!}`;
+  const last = escaped[escaped.length - 1]!;
+  return `${escaped.slice(0, -1).join(", ")}, and ${last}`;
+}
+
 export const userFeature = new Composer<BotContext>();
 
 userFeature.command("start", async (ctx, next) => {
@@ -176,7 +189,8 @@ userFeature.command("cancel", async (ctx) => {
 
 userFeature.hears(BotMessages.ADD_MEMBER_CANCEL_BUTTON, async (ctx) => {
   ctx.session.addMemberGroupId = undefined;
-  await ctx.reply(BotMessages.SUCCESS_OPERATION_CANCELLED, {
+  await ctx.reply(BotMessages.ADD_MEMBER_CANCELLED, {
+    parse_mode: "MarkdownV2",
     reply_markup: { remove_keyboard: true },
   });
 });
@@ -276,7 +290,8 @@ userFeature.on("message:users_shared", async (ctx, next) => {
 
   const users = ctx.message.users_shared.users;
   const successList: string[] = [];
-  const failedList: string[] = [];
+  const conflictList: string[] = []; // already members
+  const realFailureList: string[] = []; // unexpected errors
 
   for (const user of users) {
     try {
@@ -323,35 +338,61 @@ userFeature.on("message:users_shared", async (ctx, next) => {
         user.first_name || user.username || String(user.user_id)
       );
     } catch (err) {
-      console.error("Failed to add member", user.user_id, err);
-      failedList.push(user.first_name || user.username || String(user.user_id));
+      const displayName =
+        user.first_name || user.username || String(user.user_id);
+      // Distinguish "already a member" from real failures so the user
+      // sees the right message. CONFLICT comes from chat.addMember when
+      // the user is already in the chat.
+      if ((err as { code?: string })?.code === "CONFLICT") {
+        conflictList.push(displayName);
+      } else {
+        console.error("Failed to add member", user.user_id, err);
+        realFailureList.push(displayName);
+      }
     }
   }
 
   ctx.session.addMemberGroupId = undefined;
 
-  const resultText = BotMessages.ADD_MEMBER_END_MESSAGE.replace(
-    "{success_list}",
-    successList.length ? successList.join(", ") : "None"
-  ).replace(
-    "{failed_list}",
-    failedList.length ? failedList.join(", ") : "None"
-  );
-
-  // Telegram does not allow combining `remove_keyboard` with an inline
-  // keyboard on the same message. Send two messages: first removes the
-  // reply-keyboard, second carries the inline button back to the TMA.
-  await ctx.reply(resultText, {
+  // Telegram doesn't allow combining `remove_keyboard` with an inline
+  // keyboard on one message. Send a brief ack first to clear the
+  // reply-keyboard, then a single combined message that has both the
+  // result text and the back-to-app button.
+  await ctx.reply(BotMessages.ADD_MEMBER_ACK, {
     reply_markup: { remove_keyboard: true },
   });
 
+  const escapedTitle = escapeMarkdownV2(chatTitle);
+  const lines: string[] = [];
+
   if (successList.length > 0) {
-    const buttonLabel = BotMessages.ADD_MEMBER_OPEN_APP_BUTTON.replace(
-      "{chat_title}",
-      chatTitle
-    );
-    await ctx.reply("Tap below to return to the chat:", {
-      reply_markup: new InlineKeyboard().url(buttonLabel, miniAppUrl),
-    });
+    lines.push(`✅ Added ${joinNames(successList)} to *${escapedTitle}*\\.`);
   }
+  if (conflictList.length > 0) {
+    const verb = conflictList.length === 1 ? "is" : "are";
+    const noun = conflictList.length === 1 ? "a member" : "members";
+    lines.push(
+      `⚠️ ${joinNames(conflictList)} ${verb} already ${noun} of *${escapedTitle}*\\.`
+    );
+  }
+  if (realFailureList.length > 0) {
+    lines.push(
+      `❌ Couldn't add ${joinNames(realFailureList)} \\(unexpected error\\)\\.`
+    );
+  }
+
+  const resultText = lines.join("\n\n");
+  await ctx.reply(resultText, {
+    parse_mode: "MarkdownV2",
+    reply_markup:
+      successList.length > 0
+        ? new InlineKeyboard().url(
+            BotMessages.ADD_MEMBER_OPEN_APP_BUTTON.replace(
+              "{chat_title}",
+              chatTitle
+            ),
+            miniAppUrl
+          )
+        : undefined,
+  });
 });
