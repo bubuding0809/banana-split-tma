@@ -7,6 +7,7 @@ import { env } from "../env.js";
 import { Decimal } from "decimal.js";
 import { classifyCategory, resolveCategory } from "@repo/categories";
 import { getAgentModel } from "@repo/agent";
+import { encodeV1DeepLink } from "@dko/trpc";
 import type { LanguageModel } from "ai";
 
 interface Expense {
@@ -403,15 +404,44 @@ expensesFeature.on("message:text", async (ctx, next) => {
       .replace("{category_line}", categoryLine)
       .replace("{date_label}", dateLabel);
 
-    const undoKeyboard = new InlineKeyboard().text(
-      "🗑 Undo",
-      `undo_expense:${expense.id}`
+    // Personal expenses live on chatId === userId. The deep link opens
+    // the TMA at the user's personal transactions tab and auto-opens
+    // the expense modal — same shape used by the group "View Expense"
+    // CTA, just with chat_type "p".
+    const deepLinkPayload = encodeV1DeepLink(
+      BigInt(ctx.from.id),
+      "p",
+      "e",
+      expense.id
+    );
+    const viewExpenseUrl = ChatUtils.createMiniAppUrl(
+      env.MINI_APP_DEEPLINK,
+      ctx.me.username,
+      deepLinkPayload
     );
 
-    await ctx.reply(confirmation, {
+    const keyboard = new InlineKeyboard()
+      .url("👀 View Expense", viewExpenseUrl)
+      .text("🗑 Undo", `undo_expense:${expense.id}`);
+
+    const sent = await ctx.reply(confirmation, {
       parse_mode: "MarkdownV2",
-      reply_markup: undoKeyboard,
+      reply_markup: keyboard,
     });
+
+    // Persist the message ID so deleting the expense from the TMA can
+    // also clean up this confirmation message via the existing
+    // deleteExpense → deleteExpenseMessages best-effort path. Failure
+    // is non-fatal — the expense + the visible message are both fine,
+    // we just lose the auto-cleanup on app delete.
+    try {
+      await ctx.trpc.expense.attachTelegramMessage({
+        expenseId: expense.id,
+        telegramMessageId: sent.message_id,
+      });
+    } catch (linkErr) {
+      console.warn("bot: attachTelegramMessage failed", linkErr);
+    }
   } catch (error) {
     console.error("Error creating personal expense:", error);
     await ctx.reply(BotMessages.ERROR_EXPENSE_CREATE_FAILED);
