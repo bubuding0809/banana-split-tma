@@ -24,6 +24,7 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: members, status } = trpc.chat.listMembers.useQuery({ chatId });
+  const trpcUtils = trpc.useUtils();
 
   useEffect(() => {
     backButton.show();
@@ -40,11 +41,25 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
     return () => off();
   }, [chatId, navigate]);
 
+  // When the user returns from the bot DM (or any other tab switch),
+  // re-fetch the members list so newly-added members appear without a
+  // manual refresh.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        trpcUtils.chat.listMembers.invalidate({ chatId });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [chatId, trpcUtils]);
+
   return (
     <main className="px-3 pb-8">
       <Section
         header={members ? `${members.length} members` : "Members"}
-        footer='Tap "Add Member" to pick contacts from the bot DM and add them to this group.'
+        footer='Tap "Add Member" to pick people from your Telegram contacts via the bot.'
       >
         <ButtonCell
           before={<Plus size={20} />}
