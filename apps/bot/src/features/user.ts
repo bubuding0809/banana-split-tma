@@ -314,26 +314,6 @@ userFeature.on("message:users_shared", async (ctx, next) => {
         userId: Number(user.user_id),
       });
 
-      // Best-effort DM to the newly-added user. Bots can only initiate a
-      // chat with users who have previously DM'd the bot — for first-time
-      // users Telegram returns Forbidden, which we swallow.
-      try {
-        const dmText = BotMessages.ADD_MEMBER_NOTIFY_USER.replace(
-          "{adder_first_name}",
-          escapeMarkdownV2(ctx.from!.first_name)
-        ).replace("{chat_title}", escapeMarkdownV2(chatTitle));
-        const dmButtonLabel = BotMessages.ADD_MEMBER_OPEN_APP_BUTTON.replace(
-          "{chat_title}",
-          chatTitle
-        );
-        await ctx.api.sendMessage(Number(user.user_id), dmText, {
-          parse_mode: "MarkdownV2",
-          reply_markup: new InlineKeyboard().url(dmButtonLabel, miniAppUrl),
-        });
-      } catch (dmErr) {
-        console.warn("Could not DM added user", user.user_id, dmErr);
-      }
-
       successList.push(
         user.first_name || user.username || String(user.user_id)
       );
@@ -390,4 +370,30 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   await ctx.reply(resultText, {
     parse_mode: "MarkdownV2",
   });
+
+  // Post a single summary in the target group so everyone (including
+  // freshly-added first-timers who haven't DM'd the bot) sees the event
+  // and has an entry point to the TMA. Wrapped in try/catch so a missing
+  // send permission doesn't crash the handler.
+  if (successList.length > 0) {
+    const summaryText = BotMessages.ADD_MEMBER_GROUP_SUMMARY.replace(
+      "{adder_first_name}",
+      escapeMarkdownV2(ctx.from!.first_name)
+    ).replace("{added_names}", joinNames(successList));
+
+    try {
+      await ctx.api.sendMessage(groupIdStr, summaryText, {
+        parse_mode: "MarkdownV2",
+        reply_markup: new InlineKeyboard().url(
+          "Open Banana Splitz",
+          miniAppUrl
+        ),
+      });
+    } catch (err) {
+      console.warn("Failed to send group summary message", {
+        groupIdStr,
+        err,
+      });
+    }
+  }
 });

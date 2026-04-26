@@ -9,10 +9,8 @@ export const BotMessages = {
     "❌ Cancelled\\. You can start a new add from the app anytime\\.",
   ADD_MEMBER_NOT_A_MEMBER:
     "❌ You can only add members to groups you're a member of.",
-  ADD_MEMBER_NOTIFY_USER:
-    "👋 *{adder_first_name}* added you to *{chat_title}* on Banana Splitz\\.\n\n" +
-    "Open the app to see shared expenses and start splitting\\.",
-  ADD_MEMBER_OPEN_APP_BUTTON: "Open {chat_title} in app",
+  ADD_MEMBER_GROUP_SUMMARY:
+    "✅ *{adder_first_name}* added *{added_names}* to Banana Splitz\\.",
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
   STATS_CANCELLED: "❌ Statistics cancelled\\.",
   ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",
