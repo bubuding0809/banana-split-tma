@@ -8,7 +8,13 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Cell, Navigation, Section, Text } from "@telegram-apps/telegram-ui";
+import {
+  Cell,
+  Navigation,
+  Section,
+  Skeleton,
+  Text,
+} from "@telegram-apps/telegram-ui";
 import {
   Bell,
   Clock,
@@ -71,30 +77,37 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
     ? `${CHAT_PHOTO_BASE}/${chatId}?auth=${encodeURIComponent(rawAuth)}`
     : undefined;
 
-  const { data: chat } = trpc.chat.getChat.useQuery({ chatId });
-  const { data: members } = trpc.chat.listMembers.useQuery(
-    { chatId },
-    { enabled: !isPrivateChat }
-  );
-  const { data: schedule } = trpc.aws.getChatSchedule.useQuery(
-    { chatId },
-    { enabled: !isPrivateChat }
-  );
+  const { data: chat, isPending: chatPending } = trpc.chat.getChat.useQuery({
+    chatId,
+  });
+  const { data: members, isPending: membersPending } =
+    trpc.chat.listMembers.useQuery({ chatId }, { enabled: !isPrivateChat });
+  const { data: schedule, isPending: schedulePending } =
+    trpc.aws.getChatSchedule.useQuery({ chatId }, { enabled: !isPrivateChat });
   // Both hooks called unconditionally (Rules of Hooks); only the relevant
   // one fires the network request via `enabled`. We pick the right result at
   // render time.
-  const { data: userTokens } = trpc.apiKey.listUserTokens.useQuery(undefined, {
+  const userTokensQ = trpc.apiKey.listUserTokens.useQuery(undefined, {
     enabled: isPrivateChat,
   });
-  const { data: chatTokens } = trpc.apiKey.listTokens.useQuery(
+  const chatTokensQ = trpc.apiKey.listTokens.useQuery(
     { chatId },
     { enabled: !isPrivateChat }
   );
-  const tokens = isPrivateChat ? userTokens : chatTokens;
-  const { data: userData } = trpc.user.getUser.useQuery(
+  const tokens = isPrivateChat ? userTokensQ.data : chatTokensQ.data;
+  const tokensPending = isPrivateChat
+    ? userTokensQ.isPending
+    : chatTokensQ.isPending;
+  const { data: userData, isPending: userPending } = trpc.user.getUser.useQuery(
     { userId },
     { enabled: userId !== 0 }
   );
+
+  // Group queries are gated on `!isPrivateChat`; in private chat their
+  // isPending stays true forever because they never run. Only treat them
+  // as loading in group chats.
+  const groupMembersLoading = !isPrivateChat && membersPending;
+  const groupScheduleLoading = !isPrivateChat && schedulePending;
 
   // Back button → chat.
   useEffect(() => {
@@ -142,7 +155,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
     <main className="px-3 pb-8">
       <ChatHeader
         avatarUrl={isPrivateChat ? tUserData?.photoUrl : chatPhotoSrc}
-        title={chat?.title ?? "..."}
+        title={chat?.title ?? ""}
         subtitle={
           isPrivateChat
             ? "Personal chat"
@@ -151,6 +164,8 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
         members={isPrivateChat ? [] : (members ?? [])}
         memberCount={members?.length ?? 0}
         onMembersClick={() => goto("members")}
+        loading={chatPending}
+        membersLoading={groupMembersLoading}
       />
 
       {!isPrivateChat && (
@@ -160,6 +175,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             icon={<Users size={16} />}
             label="Members"
             value={members?.length ? String(members.length) : undefined}
+            loading={groupMembersLoading}
             onClick={() => goto("members")}
           />
           <RowLink
@@ -167,6 +183,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             icon={<DollarSign size={16} />}
             label="Currency"
             value={chat?.baseCurrency}
+            loading={chatPending}
             onClick={() => goto("currency")}
           />
           <RowLink
@@ -186,6 +203,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             icon={<Bell size={16} />}
             label="Event alerts"
             value={`${notificationsOnCount} on`}
+            loading={chatPending}
             onClick={() => goto("notifications")}
           />
           <RowLink
@@ -193,6 +211,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             icon={<Clock size={16} />}
             label="Recurring reminder"
             value={reminderPreview}
+            loading={groupScheduleLoading}
             onClick={() => goto("reminders")}
           />
         </Section>
@@ -205,6 +224,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             icon={<DollarSign size={16} />}
             label="Currency"
             value={chat?.baseCurrency}
+            loading={chatPending}
             onClick={() => goto("currency")}
           />
           <RowLink
@@ -223,6 +243,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
           icon={<UserIcon size={16} />}
           label="Account"
           value={userData?.phoneNumber ? "Phone added" : "No phone"}
+          loading={userPending}
           onClick={() => goto("account")}
         />
         <RowLink
@@ -230,6 +251,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
           icon={<Key size={16} />}
           label="Developer"
           value={tokens?.length ? `${tokens.length} active` : undefined}
+          loading={tokensPending}
           onClick={() => goto("developer")}
         />
       </Section>
@@ -242,10 +264,18 @@ interface RowLinkProps {
   icon: React.ReactNode;
   label: string;
   value?: string;
+  loading?: boolean;
   onClick: () => void;
 }
 
-function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
+function RowLink({
+  color,
+  icon,
+  label,
+  value,
+  loading = false,
+  onClick,
+}: RowLinkProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   return (
     <Cell
@@ -253,7 +283,13 @@ function RowLink({ color, icon, label, value, onClick }: RowLinkProps) {
       before={<IconSquare color={color}>{icon}</IconSquare>}
       after={
         <Navigation>
-          {value && <Text style={{ color: tSubtitleTextColor }}>{value}</Text>}
+          {loading ? (
+            <Skeleton visible>
+              <Text style={{ color: tSubtitleTextColor }}>————</Text>
+            </Skeleton>
+          ) : (
+            value && <Text style={{ color: tSubtitleTextColor }}>{value}</Text>
+          )}
         </Navigation>
       }
     >

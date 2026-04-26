@@ -6,6 +6,7 @@ import {
   Cell,
   Navigation,
   Section,
+  Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
 import {
@@ -34,7 +35,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
   const [busy, setBusy] = useState(false);
 
   const trpcUtils = trpc.useUtils();
-  const { data: userData } = trpc.user.getUser.useQuery(
+  const { data: userData, isPending: userPending } = trpc.user.getUser.useQuery(
     { userId },
     { enabled: userId !== 0 }
   );
@@ -124,7 +125,11 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
             </IconSquare>
           }
           after={
-            userData?.phoneNumber ? (
+            userPending ? (
+              <Skeleton visible>
+                <Text>+00 0000 0000</Text>
+              </Skeleton>
+            ) : userData?.phoneNumber ? (
               <Text>{userData.phoneNumber}</Text>
             ) : (
               <Navigation>
@@ -132,7 +137,7 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
               </Navigation>
             )
           }
-          onClick={() => !userData?.phoneNumber && onAddPhone()}
+          onClick={() => !userPending && !userData?.phoneNumber && onAddPhone()}
         >
           Phone
         </Cell>

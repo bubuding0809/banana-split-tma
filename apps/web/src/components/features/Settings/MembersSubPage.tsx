@@ -6,7 +6,13 @@ import {
   initData,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { ButtonCell, Section, Skeleton } from "@telegram-apps/telegram-ui";
+import {
+  Avatar,
+  ButtonCell,
+  Cell,
+  Section,
+  Skeleton,
+} from "@telegram-apps/telegram-ui";
 import { Plus } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import MemberRow from "./MemberRow";
@@ -71,15 +77,25 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
           Add Member
         </ButtonCell>
 
-        {status === "pending" ? (
-          <Skeleton visible>
-            <div className="h-14" />
-          </Skeleton>
-        ) : (
-          (members ?? []).map((m) => (
-            <MemberRow key={m.id} member={m} isYou={m.id === youId} />
-          ))
-        )}
+        {status === "pending"
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Cell
+                key={`skeleton-${i}`}
+                before={<Avatar size={40} />}
+                subtitle={
+                  <Skeleton visible>
+                    <span>@username</span>
+                  </Skeleton>
+                }
+              >
+                <Skeleton visible>
+                  <span>Loading member</span>
+                </Skeleton>
+              </Cell>
+            ))
+          : (members ?? []).map((m) => (
+              <MemberRow key={m.id} member={m} isYou={m.id === youId} />
+            ))}
       </Section>
 
       <AddMemberSheet

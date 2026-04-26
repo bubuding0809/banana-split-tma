@@ -1,5 +1,5 @@
 import { themeParams, useSignal } from "@telegram-apps/sdk-react";
-import { Avatar } from "@telegram-apps/telegram-ui";
+import { Avatar, Skeleton } from "@telegram-apps/telegram-ui";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface MemberPreview {
@@ -17,9 +17,14 @@ interface ChatHeaderProps {
   /** Total member count, used for the "+N" overflow chip. */
   memberCount?: number;
   onMembersClick?: () => void;
+  /** Skeleton the title/subtitle while the parent's chat query is pending. */
+  loading?: boolean;
+  /** Skeleton the avatar stack while the parent's members query is pending. Group only. */
+  membersLoading?: boolean;
 }
 
 const MAX_PREVIEW = 4;
+const SKELETON_STACK_COUNT = 4;
 
 export default function ChatHeader({
   avatarUrl,
@@ -28,6 +33,8 @@ export default function ChatHeader({
   members = [],
   memberCount = 0,
   onMembersClick,
+  loading = false,
+  membersLoading = false,
 }: ChatHeaderProps) {
   const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
   const tBackgroundColor = useSignal(themeParams.backgroundColor);
@@ -43,14 +50,34 @@ export default function ChatHeader({
       <Avatar
         size={96}
         src={avatarUrl}
-        acronym={title.slice(0, 2).toUpperCase()}
+        acronym={loading ? undefined : title.slice(0, 2).toUpperCase()}
       />
-      <div className="mt-2 text-base font-semibold">{title}</div>
-      <div className="text-sm" style={{ color: tSubtitleTextColor }}>
-        {subtitle}
-      </div>
+      <Skeleton visible={loading}>
+        <div className="mt-2 text-base font-semibold">
+          {loading ? "Loading group" : title}
+        </div>
+      </Skeleton>
+      <Skeleton visible={loading}>
+        <div className="text-sm" style={{ color: tSubtitleTextColor }}>
+          {loading ? "Group · — members" : subtitle}
+        </div>
+      </Skeleton>
 
-      {previewMembers.length > 0 && (
+      {membersLoading ? (
+        <div className="mt-3 flex" aria-hidden>
+          {Array.from({ length: SKELETON_STACK_COUNT }).map((_, i) => (
+            <Skeleton key={i} visible>
+              <span
+                className="box-border block size-8 rounded-full bg-gray-300"
+                style={{
+                  marginLeft: i === 0 ? 0 : -8,
+                  border: `2px solid ${tBackgroundColor ?? "transparent"}`,
+                }}
+              />
+            </Skeleton>
+          ))}
+        </div>
+      ) : previewMembers.length > 0 ? (
         <button
           type="button"
           onClick={onMembersClick}
@@ -82,7 +109,7 @@ export default function ChatHeader({
             </span>
           )}
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

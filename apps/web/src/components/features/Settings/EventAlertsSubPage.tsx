@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
-import { Cell, Section, Switch } from "@telegram-apps/telegram-ui";
+import { Cell, Section, Skeleton, Switch } from "@telegram-apps/telegram-ui";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import IconSquare from "./IconSquare";
@@ -21,7 +21,7 @@ export default function EventAlertsSubPage({
 }: EventAlertsSubPageProps) {
   const navigate = useNavigate();
   const trpcUtils = trpc.useUtils();
-  const { data: chat } = trpc.chat.getChat.useQuery({ chatId });
+  const { data: chat, isPending } = trpc.chat.getChat.useQuery({ chatId });
 
   const updateChat = trpc.chat.updateChat.useMutation({
     onMutate: (input) => {
@@ -77,10 +77,13 @@ export default function EventAlertsSubPage({
             </IconSquare>
           }
           after={
-            <Switch
-              checked={chat?.notifyOnExpense ?? true}
-              onChange={() => toggle("notifyOnExpense")}
-            />
+            <Skeleton visible={isPending}>
+              <Switch
+                checked={chat?.notifyOnExpense ?? true}
+                onChange={() => toggle("notifyOnExpense")}
+                disabled={isPending}
+              />
+            </Skeleton>
           }
         >
           Expense added
@@ -93,10 +96,13 @@ export default function EventAlertsSubPage({
             </IconSquare>
           }
           after={
-            <Switch
-              checked={chat?.notifyOnExpenseUpdate ?? true}
-              onChange={() => toggle("notifyOnExpenseUpdate")}
-            />
+            <Skeleton visible={isPending}>
+              <Switch
+                checked={chat?.notifyOnExpenseUpdate ?? true}
+                onChange={() => toggle("notifyOnExpenseUpdate")}
+                disabled={isPending}
+              />
+            </Skeleton>
           }
         >
           Expense updated
@@ -109,10 +115,13 @@ export default function EventAlertsSubPage({
             </IconSquare>
           }
           after={
-            <Switch
-              checked={chat?.notifyOnSettlement ?? true}
-              onChange={() => toggle("notifyOnSettlement")}
-            />
+            <Skeleton visible={isPending}>
+              <Switch
+                checked={chat?.notifyOnSettlement ?? true}
+                onChange={() => toggle("notifyOnSettlement")}
+                disabled={isPending}
+              />
+            </Skeleton>
           }
         >
           Settlement recorded
