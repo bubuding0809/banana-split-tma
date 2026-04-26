@@ -5,9 +5,11 @@ import getScope from "./getScope.js";
 import generateToken from "./generateToken.js";
 import listTokens from "./listTokens.js";
 import revokeToken from "./revokeToken.js";
+import renameToken from "./renameToken.js";
 import generateUserToken from "./generateUserToken.js";
 import listUserTokens from "./listUserTokens.js";
 import revokeUserToken from "./revokeUserToken.js";
+import renameUserToken from "./renameUserToken.js";
 
 export const apiKeyRouter = createTRPCRouter({
   generate,
@@ -16,7 +18,9 @@ export const apiKeyRouter = createTRPCRouter({
   generateToken,
   listTokens,
   revokeToken,
+  renameToken,
   generateUserToken,
   listUserTokens,
   revokeUserToken,
+  renameUserToken,
 });

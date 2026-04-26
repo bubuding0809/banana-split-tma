@@ -9,6 +9,7 @@ const inputSchema = z.object({
 const outputSchema = z.array(
   z.object({
     id: z.string(),
+    name: z.string(),
     keyPrefix: z.string(),
     createdAt: z.string(),
     createdBy: z.object({
@@ -55,6 +56,7 @@ export const listTokensHandler = async (
     },
     select: {
       id: true,
+      name: true,
       keyPrefix: true,
       createdAt: true,
       createdBy: {

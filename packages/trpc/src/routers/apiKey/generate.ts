@@ -6,6 +6,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
   createdById: z.number().transform((val) => BigInt(val)),
+  name: z.string().trim().min(1).max(40).optional(),
 });
 
 const outputSchema = z.object({
@@ -63,11 +64,15 @@ export const generateApiKeyHandler = async (
   // Hash the key for storage
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
-  // Store in database
+  const name =
+    input.name?.trim() ||
+    `Token · ${new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit" })}`;
+
   await db.chatApiKey.create({
     data: {
       keyHash,
       keyPrefix,
+      name,
       chatId: input.chatId,
       createdById: input.createdById,
     },

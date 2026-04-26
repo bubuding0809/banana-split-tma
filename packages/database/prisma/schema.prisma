@@ -166,6 +166,7 @@ model ChatApiKey {
   id          String    @id @default(uuid())
   keyHash     String    @unique
   keyPrefix   String
+  name        String
   chatId      BigInt
   chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdById BigInt
@@ -180,6 +181,7 @@ model UserApiKey {
   id        String    @id @default(uuid())
   keyHash   String    @unique
   keyPrefix String
+  name      String
   userId    BigInt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   revokedAt DateTime?

@@ -1,19 +1,19 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import crypto from "node:crypto";
 import { Db, protectedProcedure } from "../../trpc.js";
 
 const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
+  tokenId: z.string().uuid(),
   name: z.string().trim().min(1, "Name is required").max(40, "Name too long"),
 });
 
 const outputSchema = z.object({
-  rawKey: z.string(),
-  keyPrefix: z.string(),
+  id: z.string(),
+  name: z.string(),
 });
 
-export const generateTokenHandler = async (
+export const renameTokenHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   userId?: number
@@ -40,7 +40,6 @@ export const generateTokenHandler = async (
       members: { some: { id: bigUserId } },
     },
   });
-
   if (!chat) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -48,27 +47,32 @@ export const generateTokenHandler = async (
     });
   }
 
-  const randomBytes = crypto.randomBytes(48);
-  const rawKey = `bsk_${randomBytes.toString("base64url")}`;
-  const keyPrefix = rawKey.slice(0, 8);
-  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-
-  await db.chatApiKey.create({
-    data: {
-      keyHash,
-      keyPrefix,
-      name: trimmedName,
+  const token = await db.chatApiKey.findFirst({
+    where: {
+      id: input.tokenId,
       chatId: input.chatId,
-      createdById: bigUserId,
+      revokedAt: null,
     },
   });
+  if (!token) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Token not found",
+    });
+  }
 
-  return { rawKey, keyPrefix };
+  const updated = await db.chatApiKey.update({
+    where: { id: token.id },
+    data: { name: trimmedName },
+    select: { id: true, name: true },
+  });
+
+  return updated;
 };
 
 export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return generateTokenHandler(input, ctx.db, ctx.session.user?.id);
+    return renameTokenHandler(input, ctx.db, ctx.session.user?.id);
   });

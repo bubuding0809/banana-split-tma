@@ -127,6 +127,7 @@ async function main() {
     const result = await superadmin.apiKey.generate.mutate({
       chatId: 999999,
       createdById: 111111,
+      name: "e2e-basic",
     });
     scopedKey = result.rawKey;
     ok(`Generated scoped key: ${result.keyPrefix}... for chat 999999`);

@@ -5,6 +5,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 const outputSchema = z.array(
   z.object({
     id: z.string(),
+    name: z.string(),
     keyPrefix: z.string(),
     createdAt: z.string(),
   })
@@ -27,6 +28,7 @@ export const listUserTokensHandler = async (db: Db, userId?: number) => {
     },
     select: {
       id: true,
+      name: true,
       keyPrefix: true,
       createdAt: true,
     },
