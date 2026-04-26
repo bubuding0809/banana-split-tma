@@ -54,8 +54,7 @@ jobs:
           # events. For comment-triggered events, prompt is empty and the
           # action falls back to its default tag-mode behavior (uses the
           # comment body as the prompt).
-          prompt: ${{ github.event_name == 'pull_request' && format('You were tagged in PR #{0} ({1}). Review the diff for merge readiness. Post ONE review comment with the verdict on the first line — exactly one of: READY, NEEDS CHANGES, UNCERTAIN. Then 1–6 short bullets explaining. Focus on correctness bugs, schema/migration safety, secret/credential leaks, money or auth logic mistakes, and obvious regressions. Skip nits and style. If the diff is small and clearly correct, pick READY. Do not push commits or modify the PR; just post the review comment.', github.event.pull_request.number, github.event.pull_request.title) || '' }}
-
+          prompt: "${{ github.event_name == 'pull_request' && format('You were tagged in PR #{0} ({1}). Review the diff for merge readiness. Post ONE review comment whose first line is exactly one of READY, NEEDS CHANGES, or UNCERTAIN. Then 1–6 short bullets explaining. Focus on correctness bugs, schema/migration safety, secret/credential leaks, money or auth logic mistakes, and obvious regressions. Skip nits and style. If the diff is small and clearly correct, pick READY. Do not push commits or modify the PR; just post the review comment.', github.event.pull_request.number, github.event.pull_request.title) || '' }}"
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
