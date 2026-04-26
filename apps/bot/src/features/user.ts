@@ -409,7 +409,10 @@ userFeature.on("message:users_shared", async (ctx, next) => {
       ctx.from!.first_name
     );
     const memberList = successList
-      .map((u) => `\\- ${userMention(u.id, u.displayName)}`)
+      .map((u, i) => {
+        const branch = i === successList.length - 1 ? "┗" : "┣";
+        return `${branch} ${userMention(u.id, u.displayName)}`;
+      })
       .join("\n");
 
     const summaryText = BotMessages.ADD_MEMBER_GROUP_SUMMARY.replace(
