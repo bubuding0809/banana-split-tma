@@ -7,6 +7,7 @@ import {
   popup,
   useSignal,
   viewportContentSafeAreaInsetTop,
+  viewportSafeAreaInsetTop,
 } from "@telegram-apps/sdk-react";
 import { RefreshCcw } from "lucide-react";
 import { getRouteApi } from "@tanstack/react-router";
@@ -38,9 +39,15 @@ export function SnapshotFullPage({
   // Telegram fullscreen mode renders content edge-to-edge, so the
   // sticky tabs need to be pushed below the iOS status bar / Dynamic
   // Island. `env(safe-area-inset-top)` doesn't reliably propagate
-  // through the WebView, so we read the SDK signal directly and bind
-  // it to CSS vars that descendant sticky elements consume.
-  const safeAreaTop = useSignal(viewportContentSafeAreaInsetTop) ?? 0;
+  // through the WebView, so we read the SDK signals directly. We take
+  // the max of both safe-area variants (device-level vs content-level)
+  // and floor at 47px so Dynamic-Island iPhones aren't clipped when
+  // the signal under-reports.
+  const deviceSafeAreaTop = useSignal(viewportSafeAreaInsetTop) ?? 0;
+  const contentSafeAreaTop = useSignal(viewportContentSafeAreaInsetTop) ?? 0;
+  // 60 covers Dynamic-Island iPhones (~59px); falls back to that
+  // when the SDK signal returns 0 (e.g. before viewport.mount resolves).
+  const safeAreaTop = Math.max(deviceSafeAreaTop, contentSafeAreaTop, 60);
   const stickyVars = {
     "--snapshot-tabs-top": `${safeAreaTop}px`,
     "--snapshot-headers-top": `${safeAreaTop + 56}px`,
@@ -158,8 +165,13 @@ export function SnapshotFullPage({
     <div className="flex flex-col gap-4" style={stickyVars}>
       <SnapshotHero aggregations={aggregations} />
       <div
-        className="bg-(--tg-theme-bg-color,#000)/80 sticky z-30 -mx-4 border-b border-white/5 px-4 pb-2 pt-3 backdrop-blur-md"
-        style={{ top: "var(--snapshot-tabs-top)" }}
+        className="sticky z-30 -mx-4 border-b border-white/5 px-4 pb-2 pt-3"
+        style={{
+          top: "var(--snapshot-tabs-top)",
+          backgroundColor: "rgba(0, 0, 0, 0.65)",
+          backdropFilter: "saturate(180%) blur(20px)",
+          WebkitBackdropFilter: "saturate(180%) blur(20px)",
+        }}
       >
         <SnapshotViewTabs value={view} onChange={handleTabChange} />
       </div>
