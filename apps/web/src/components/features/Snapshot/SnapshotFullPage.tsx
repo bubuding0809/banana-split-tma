@@ -139,7 +139,10 @@ export function SnapshotFullPage({
   return (
     <div className="flex flex-col gap-4">
       <SnapshotHero aggregations={aggregations} />
-      <div className="sticky top-0 z-30 -mx-4 bg-[var(--tg-theme-bg-color,#000)] px-4 py-2">
+      <div
+        className="bg-(--tg-theme-bg-color,#000)/80 sticky z-30 -mx-4 border-b border-white/5 px-4 pb-2 pt-3 backdrop-blur-md"
+        style={{ top: "env(safe-area-inset-top, 0px)" }}
+      >
         <SnapshotViewTabs value={view} onChange={handleTabChange} />
       </div>
       {view === "cat" && <CategoryView aggregations={aggregations} />}

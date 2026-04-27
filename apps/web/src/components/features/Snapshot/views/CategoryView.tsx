@@ -54,7 +54,10 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
           header={
             <Section.Header
               large
-              className="sticky top-[60px] z-20 bg-[var(--tgui--section_bg_color)]"
+              className="bg-(--tgui--section_bg_color) sticky z-20"
+              style={{
+                top: "calc(env(safe-area-inset-top, 0px) + 56px)",
+              }}
             >
               <div className="flex w-full items-baseline justify-between gap-3 px-3">
                 <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
