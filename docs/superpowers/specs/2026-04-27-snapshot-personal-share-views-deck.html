@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snapshot Personal-Share Views · Design Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --text: #fff;
+    --muted: #98989f;
+    --dim: #666;
+    --accent: #4a9eff;
+    --accent-bg: rgba(74,158,255,.18);
+    --violet: #a78bfa;
+    --violet-bg: rgba(167,139,250,.18);
+    --teal: #2dd4bf;
+    --teal-bg: rgba(45,212,191,.18);
+    --danger: #ff453a;
+    --danger-bg: rgba(255,69,58,.18);
+    --success: #34c759;
+    --success-bg: rgba(52,199,89,.18);
+    --warn: #ff9500;
+    --warn-bg: rgba(255,149,0,.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; height: 100%; overflow: hidden; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 56px 72px 80px;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .eyebrow { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 14px; }
+  h1 { font-size: 56px; font-weight: 800; margin: 0 0 12px; line-height: 1.05; letter-spacing: -1px; }
+  h2 { font-size: 36px; font-weight: 700; margin: 0 0 22px; letter-spacing: -.5px; line-height: 1.15; }
+  h3 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+  .subhead { color: var(--muted); font-size: 17px; max-width: 820px; line-height: 1.55; }
+  p { font-size: 16px; line-height: 1.6; color: #d1d1d6; max-width: 820px; }
+  ul { font-size: 15px; line-height: 1.7; color: #d1d1d6; padding-left: 22px; max-width: 820px; }
+  ul li::marker { color: var(--accent); }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 13px; background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 4px; }
+
+  .meta-row { display: flex; gap: 12px; margin-top: 24px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .meta-row .pill { background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+
+  .grid { display: grid; gap: 18px; margin-top: 16px; }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid.cols-mockup { grid-template-columns: 1fr 1.1fr; align-items: start; }
+
+  .card { background: var(--surface); border-radius: 14px; padding: 18px 20px; border: 1px solid rgba(255,255,255,.04); }
+  .card h3 { font-size: 16px; margin-bottom: 6px; color: var(--accent); }
+  .card.ok h3 { color: var(--success); }
+  .card.warn h3 { color: var(--warn); }
+  .card.danger h3 { color: var(--danger); }
+  .card p { font-size: 13.5px; line-height: 1.55; margin: 0; color: #d1d1d6; }
+  .card ul { font-size: 13.5px; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.accent { background: var(--accent-bg); color: var(--accent); }
+  .pill.violet { background: var(--violet-bg); color: var(--violet); }
+  .pill.teal { background: var(--teal-bg); color: var(--teal); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .pill.muted { background: rgba(127,127,127,.2); color: var(--muted); }
+  .pill.success { background: var(--success-bg); color: var(--success); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+
+  .frame { background: #000; padding: 14px; border-radius: 14px; max-width: 320px; border: 1px solid rgba(255,255,255,.08); }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 12px; }
+  .header .ttl { font-size: 13px; font-weight: 700; }
+  .back { font-size: 11px; color: var(--muted); background: var(--surface); padding: 4px 8px; border-radius: 999px; }
+
+  .you-spent {
+    background: rgba(255, 69, 58, 0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .you-spent .left { display: flex; align-items: center; gap: 8px; }
+  .you-spent .icon {
+    background: var(--danger); width: 28px; height: 28px;
+    border-radius: 7px; display: flex; align-items: center;
+    justify-content: center; font-size: 14px;
+  }
+  .you-spent .title { font-weight: 600; font-size: 12px; }
+  .you-spent .sub { color: var(--muted); font-size: 10px; }
+  .you-spent .amount { color: var(--danger); font-weight: 700; font-size: 13px; }
+  .you-spent .total { color: var(--muted); font-size: 10px; text-align: right; }
+
+  .tabs-2 {
+    display: flex; gap: 4px; background: #222; border-radius: 8px;
+    padding: 3px; margin-bottom: 10px;
+  }
+  .tabs-2 .tab { flex: 1; text-align: center; padding: 6px; border-radius: 6px; font-size: 10px; color: var(--muted); }
+  .tabs-2 .tab.active { background: var(--surface-2); color: #fff; }
+
+  .section-label { font-size: 9px; color: var(--muted); margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+  .bar-row { margin-bottom: 8px; }
+  .bar-row .top {
+    display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;
+  }
+  .bar-row .name { color: #fff; }
+  .bar-row .amt { color: #fff; }
+  .bar { height: 5px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--accent); border-radius: 3px; }
+
+  .group-header {
+    color: #fff; font-weight: 600; font-size: 11px;
+    margin-top: 12px; display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  .group-header .meta { color: var(--muted); font-weight: 400; font-size: 10px; }
+
+  .expense-row {
+    background: var(--surface); border-radius: 8px; padding: 8px;
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  }
+  .expense-row .e-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--surface-2); display: flex; align-items: center;
+    justify-content: center; font-size: 14px;
+  }
+  .expense-row .e-mid { flex: 1; min-width: 0; }
+  .expense-row .e-who { font-size: 10px; color: var(--muted); }
+  .expense-row .e-desc { font-weight: 600; font-size: 11px; }
+  .expense-row .e-sub { font-size: 10px; color: var(--muted); }
+  .expense-row .e-right { text-align: right; }
+  .expense-row .e-amt { font-weight: 600; color: var(--danger); font-size: 11px; }
+  .expense-row .e-date { color: var(--muted); font-size: 10px; }
+  .expense-row .e-share-cap { font-size: 9px; color: var(--muted); }
+
+  .date-bars {
+    display: flex; align-items: flex-end; gap: 8px;
+    height: 90px; padding: 0 4px; margin-bottom: 6px;
+  }
+  .date-bar { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .date-bar .b { width: 100%; background: var(--accent); border-radius: 6px 6px 0 0; }
+  .date-bar .l { font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  .bot-msg {
+    background: #182533;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #fff;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    max-width: 320px;
+    white-space: pre-wrap;
+  }
+  .keys { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .key-row { display: flex; gap: 5px; }
+  .key { flex: 1; background: #2b3a4a; border-radius: 6px; padding: 7px 9px; text-align: center; font-size: 10px; color: #d6e3f0; }
+  .key.active { background: #3a5470; color: #fff; }
+  .key.removed { background: transparent; border: 1px dashed var(--danger); color: var(--danger); text-decoration: line-through; }
+  .key.full-width { background: var(--accent); color: #fff; font-weight: 600; }
+
+  .frame-label { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,.95), transparent);
+    pointer-events: none;
+  }
+  .nav-btn { background: var(--surface-2); border: none; color: var(--text); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; pointer-events: auto; transition: background .15s; }
+  .nav-btn:hover { background: rgba(74,158,255,.3); }
+  .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+  .counter { color: var(--muted); font-size: 13px; pointer-events: auto; font-variant-numeric: tabular-nums; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .25s ease; z-index: 100; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td code { font-size: 12px; }
+  td .pill { font-size: 10px; }
+
+  .check-y { color: var(--success); font-weight: 700; }
+  .check-n { color: var(--danger); font-weight: 700; }
+
+  .step-list { counter-reset: step; list-style: none; padding: 0; max-width: 700px; }
+  .step-list li { counter-increment: step; padding: 10px 0 10px 48px; position: relative; font-size: 15px; line-height: 1.6; color: #d1d1d6; }
+  .step-list li::before { content: counter(step); position: absolute; left: 0; top: 8px; width: 32px; height: 32px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1: Title -->
+<section class="slide active">
+  <div class="eyebrow">Design spec · 2026-04-27</div>
+  <h1>Snapshot detail<br>Personal-share views</h1>
+  <p class="subhead">Reframe the snapshot detail page so its breakdowns answer the question the page is already asking — <em>"how much did <strong>you</strong> spend?"</em>. Drop the "By Payer" tab in both the mini app and the bot's group message.</p>
+  <div class="meta-row">
+    <span class="pill warn">Status: Awaiting user review</span>
+    <span class="pill muted">Author: bubu (with Claude Opus 4.7)</span>
+    <span class="pill muted">Schema changes: 0</span>
+    <span class="pill muted">New tRPC: 0</span>
+    <span class="pill muted">Surfaces: TMA + bot</span>
+  </div>
+</section>
+
+<!-- 2: The mismatch -->
+<section class="slide">
+  <div class="eyebrow">Why this exists</div>
+  <h2>The numbers don't add up to the user</h2>
+  <p>The hero card says <strong>"You spent SGD 174.16"</strong>. The bars and group totals immediately below sum to <strong>SGD 1,886.97</strong> — the trip's total spend. Each row also shows the full expense amount, not the user's share.</p>
+  <p style="margin-top: 14px;">It's not <em>wrong</em> data, it's the wrong question. The page is "your view of this snapshot." The breakdowns should answer "where did <em>your</em> $174 go?" — by category, by date.</p>
+  <div class="grid cols-2" style="margin-top: 18px;">
+    <div class="card warn">
+      <h3>Today (mismatch)</h3>
+      <ul>
+        <li>Hero anchor: <strong>$174.16</strong> (your share)</li>
+        <li>Category bars: sum to <strong>$1,886.97</strong></li>
+        <li>Row amount: full expense (e.g. $323.27)</li>
+        <li>Three tabs: Category / Date / <em>Payer</em></li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <h3>After this spec</h3>
+      <ul>
+        <li>Hero anchor: <strong>$174.16</strong> (unchanged)</li>
+        <li>Category bars: sum to <strong>$174.16</strong></li>
+        <li>Row amount: your share (e.g. $32.30, red)</li>
+        <li>Two tabs: Category / Date</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Why no By Payer -->
+<section class="slide">
+  <div class="eyebrow">Decision · brainstorm output</div>
+  <h2>Why "By Payer" is removed</h2>
+  <p>Three reasonable meanings, none of them clean enough to keep:</p>
+  <table>
+    <thead>
+      <tr><th>Option</th><th>Bars sum to</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>A.</strong> "Where my share came from" — group <em>my</em> share by payer</td>
+        <td>$174.16</td>
+        <td><span class="check-y">consistent</span> but the value-add over By Category + the Shares section is small</td>
+      </tr>
+      <tr>
+        <td><strong>B.</strong> "Who paid the most cash" (current behavior)</td>
+        <td>$1,886.97</td>
+        <td><span class="check-n">inconsistent</span> with the "You spent" anchor</td>
+      </tr>
+      <tr>
+        <td><strong>C.</strong> Net to/from each payer (settlement-flavored)</td>
+        <td>—</td>
+        <td><span class="check-n">overlaps</span> with existing settlement features; mixed-sign bars are ugly</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top: 18px;">Decision: <strong>drop the tab entirely.</strong> Cleaner page, fewer toggles, no semantic confusion. Same call applies to the bot's group message — the Payer button goes away there too.</p>
+</section>
+
+<!-- 4: Mini app — before / after -->
+<section class="slide">
+  <div class="eyebrow">Surface 1 · TMA snapshot detail</div>
+  <h2>By Category — anchored on your share</h2>
+  <div class="grid cols-2" style="margin-top: 12px;">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="frame">
+        <div class="header"><span class="back">← Back</span><span class="ttl">📸 Banana Splitz</span><span></span></div>
+        <div class="you-spent">
+          <div class="left">
+            <div class="icon">↘</div>
+            <div><div class="title">You spent</div><div class="sub">Net sum of your shares</div></div>
+          </div>
+          <div><div class="amount">SGD 174.16</div><div class="total">Total</div></div>
+        </div>
+        <div class="tabs-2">
+          <div class="tab active">Categ…</div>
+          <div class="tab">Date</div>
+          <div class="tab">Payer</div>
+        </div>
+        <div class="section-label">By Category · group totals</div>
+        <div class="bar-row">
+          <div class="top"><span class="name">🍜 Food</span><span class="amt">SGD 942.71</span></div>
+          <div class="bar"><div style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="top"><span class="name">🏨 Accommodations</span><span class="amt">SGD 730.26</span></div>
+          <div class="bar"><div style="width:77%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="top"><span class="name">💊 Health</span><span class="amt">SGD 144.83</span></div>
+          <div class="bar"><div style="width:15%"></div></div>
+        </div>
+        <div class="group-header"><span>🍜 Food · 7</span><span>SGD 942.71</span></div>
+        <div class="expense-row">
+          <div class="e-icon">🍜</div>
+          <div class="e-mid">
+            <div class="e-who">Ruoqian spent</div>
+            <div class="e-desc">SGD 323.27</div>
+            <div class="e-sub">Beard Brothers BBQ JB</div>
+          </div>
+          <div class="e-right"><div class="e-date">26 Apr 2026</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">After</span></div>
+      <div class="frame">
+        <div class="header"><span class="back">← Back</span><span class="ttl">📸 Banana Splitz</span><span></span></div>
+        <div class="you-spent">
+          <div class="left">
+            <div class="icon">↘</div>
+            <div><div class="title">You spent</div><div class="sub">Net sum of your shares</div></div>
+          </div>
+          <div><div class="amount">SGD 174.16</div><div class="total">Total</div></div>
+        </div>
+        <div class="tabs-2">
+          <div class="tab active">Categ…</div>
+          <div class="tab">Date</div>
+        </div>
+        <div class="section-label">By Category · your share</div>
+        <div class="bar-row">
+          <div class="top"><span class="name">🍜 Food</span><span class="amt">SGD 87.10</span></div>
+          <div class="bar"><div style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="top"><span class="name">🏨 Accommodations</span><span class="amt">SGD 65.43</span></div>
+          <div class="bar"><div style="width:75%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="top"><span class="name">💊 Health</span><span class="amt">SGD 14.49</span></div>
+          <div class="bar"><div style="width:17%"></div></div>
+        </div>
+        <div class="group-header"><span>🍜 Food · 5 <span class="meta">your share</span></span><span>SGD 87.10</span></div>
+        <div class="expense-row">
+          <div class="e-icon">🍜</div>
+          <div class="e-mid">
+            <div class="e-who">Ruoqian spent</div>
+            <div class="e-desc">SGD 323.27</div>
+            <div class="e-sub">Beard Brothers BBQ JB</div>
+          </div>
+          <div class="e-right">
+            <div class="e-date">26 Apr</div>
+            <div class="e-amt">SGD 32.30</div>
+            <div class="e-share-cap">share</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5: By Date -->
+<section class="slide">
+  <div class="eyebrow">Surface 1 · TMA — same fix</div>
+  <h2>By Date — same anchor</h2>
+  <div class="grid cols-2" style="margin-top: 12px;">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="frame">
+        <div class="tabs-2">
+          <div class="tab">Categ…</div>
+          <div class="tab active">Date</div>
+          <div class="tab">Payer</div>
+        </div>
+        <div class="section-label">By Date · group totals</div>
+        <div class="date-bars">
+          <div class="date-bar"><div class="b" style="height:90%"></div><div class="l">29 Mar</div></div>
+          <div class="date-bar"><div class="b" style="height:80%"></div><div class="l">25 Apr</div></div>
+          <div class="date-bar"><div class="b" style="height:78%"></div><div class="l">26 Apr</div></div>
+        </div>
+        <div class="group-header"><span>📅 26 Apr · 14</span><span>SGD 606.71</span></div>
+        <div class="expense-row">
+          <div class="e-icon">🍜</div>
+          <div class="e-mid">
+            <div class="e-who">Ruoqian spent</div>
+            <div class="e-desc">SGD 323.27</div>
+            <div class="e-sub">Beard Brothers BBQ JB</div>
+          </div>
+          <div class="e-right"><div class="e-date">26 Apr 2026</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">After</span></div>
+      <div class="frame">
+        <div class="tabs-2">
+          <div class="tab">Categ…</div>
+          <div class="tab active">Date</div>
+        </div>
+        <div class="section-label">By Date · your share</div>
+        <div class="date-bars">
+          <div class="date-bar"><div class="b" style="height:88%"></div><div class="l">29 Mar</div></div>
+          <div class="date-bar"><div class="b" style="height:62%"></div><div class="l">25 Apr</div></div>
+          <div class="date-bar"><div class="b" style="height:55%"></div><div class="l">26 Apr</div></div>
+        </div>
+        <div class="group-header"><span>📅 26 Apr · 9 <span class="meta">your share</span></span><span>SGD 56.21</span></div>
+        <div class="expense-row">
+          <div class="e-icon">🍜</div>
+          <div class="e-mid">
+            <div class="e-who">Ruoqian spent</div>
+            <div class="e-desc">SGD 323.27</div>
+            <div class="e-sub">Beard Brothers BBQ JB</div>
+          </div>
+          <div class="e-right">
+            <div class="e-date">26 Apr</div>
+            <div class="e-amt">SGD 32.30</div>
+            <div class="e-share-cap">share</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6: Five edge case calls -->
+<section class="slide">
+  <div class="eyebrow">Edge cases · resolved</div>
+  <h2>Five details, five calls</h2>
+  <div class="grid cols-2">
+    <div class="card ok">
+      <h3>Group count</h3>
+      <p><strong>Your count only.</strong> "26 Apr · 9 your share" — count of expenses you have a share in, not the day's total expense count.</p>
+    </div>
+    <div class="card ok">
+      <h3>Zero-share rows</h3>
+      <p><strong>Drop entirely.</strong> If your share is $0, the row doesn't appear in the grouped lists. The full expense list (main page) is unaffected.</p>
+    </div>
+    <div class="card ok">
+      <h3>Per-row layout</h3>
+      <p><strong>Mirror <code>ChatExpenseCell</code>.</strong> Right column: date / red share amount / "share" caption. Full expense amount no longer shown in row.</p>
+    </div>
+    <div class="card ok">
+      <h3>Empty groups</h3>
+      <p><strong>Disappear.</strong> Categories or dates where you have no share at all aren't rendered — no bar, no list section.</p>
+    </div>
+    <div class="card ok" style="grid-column: 1 / -1;">
+      <h3>Section label</h3>
+      <p><strong>Add the qualifier.</strong> <code>BY CATEGORY</code> → <code>BY CATEGORY · YOUR SHARE</code>. Same for date. Disambiguates from the group-totals story without needing a tooltip.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7: Bot message -->
+<section class="slide">
+  <div class="eyebrow">Surface 2 · bot group message</div>
+  <h2>Bot message — drop the Payer button</h2>
+  <p>The bot message lives in the group chat. There's no single "you" to anchor on, so totals stay. Only change: remove the Payer toggle button + its render branch. The "🧾 Shares" section already shows per-person amounts and stays.</p>
+  <div class="grid cols-2" style="margin-top: 16px;">
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill warn">Today</span></div>
+      <div class="bot-msg">📸 <strong>Staycayyyyy</strong>
+By @ruoqian
+29 Mar – 26 Apr 2026
+<strong>SGD 1,886.97</strong> · 20 expenses
+
+🧾 <strong>Shares</strong>
+🌸 ting · SGD 471.74
+Ruoqian · SGD 471.74
+…
+
+📋 <strong>Expenses by category</strong>
+🍜 Food · SGD 942.71
+ ┣ Beard Brothers BBQ JB · SGD 323.27
+ ┗ …<div class="keys">
+  <div class="key-row">
+    <div class="key active">✅ Category</div>
+    <div class="key">📅 Date</div>
+    <div class="key">👤 Payer</div>
+  </div>
+  <div class="key-row">
+    <div class="key full-width">View Snapshot 📊</div>
+  </div>
+</div></div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-label"><span class="pill success">After</span></div>
+      <div class="bot-msg">📸 <strong>Staycayyyyy</strong>
+By @ruoqian
+29 Mar – 26 Apr 2026
+<strong>SGD 1,886.97</strong> · 20 expenses
+
+🧾 <strong>Shares</strong>
+🌸 ting · SGD 471.74
+Ruoqian · SGD 471.74
+…
+
+📋 <strong>Expenses by category</strong>
+🍜 Food · SGD 942.71
+ ┣ Beard Brothers BBQ JB · SGD 323.27
+ ┗ …<div class="keys">
+  <div class="key-row">
+    <div class="key active">✅ Category</div>
+    <div class="key">📅 Date</div>
+    <div class="key removed">👤 Payer</div>
+  </div>
+  <div class="key-row">
+    <div class="key full-width">View Snapshot 📊</div>
+  </div>
+</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8: Files -->
+<section class="slide">
+  <div class="eyebrow">Implementation · files affected</div>
+  <h2>Mostly small, mostly local</h2>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>aggregations/computeSnapshotAggregations.ts</code></td>
+        <td>Add per-expense <code>userShareInBase</code>, per-group <code>userShareTotalInBase</code> + <code>userShareCount</code>, filter zero-share rows + empty groups, drop <code>byPayer</code>.</td>
+      </tr>
+      <tr>
+        <td><code>views/SnapshotExpenseRow.tsx</code></td>
+        <td>Right column matches <code>ChatExpenseCell</code>: date / red share / "share" caption.</td>
+      </tr>
+      <tr>
+        <td><code>views/CategoryView.tsx</code> · <code>views/DateView.tsx</code></td>
+        <td>Bars + group headers consume new fields. Section label gets <code>· YOUR SHARE</code>.</td>
+      </tr>
+      <tr>
+        <td><code>SnapshotViewTabs.tsx</code></td>
+        <td>Drop <code>"payer"</code> from views.</td>
+      </tr>
+      <tr>
+        <td><code>SnapshotFullPage.tsx</code></td>
+        <td>Remove PayerView branch; coerce stale <code>view=payer</code> query param to <code>cat</code>.</td>
+      </tr>
+      <tr>
+        <td><code>views/PayerView.tsx</code></td>
+        <td><span class="check-n">Delete.</span></td>
+      </tr>
+      <tr>
+        <td><code>routers/snapshot/shareSnapshotMessage.ts</code></td>
+        <td>Drop <code>"payer"</code> from <code>SNAPSHOT_VIEWS</code>, <code>VIEW_BUTTONS</code>, <code>renderItemLine</code>, <code>renderBreakdown</code>, <code>legendFor</code>. Remove <code>groupByPayer</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 9: UAT plan -->
+<section class="slide">
+  <div class="eyebrow">UAT plan</div>
+  <h2>Verify the math, then verify the chrome</h2>
+  <h3 style="margin-top: 8px; color: var(--accent);">Mini app</h3>
+  <ul>
+    <li>Snapshot where you have share in some but not all expenses → bars in Category and Date both sum to "You spent". Per-row amounts in red, "share" caption.</li>
+    <li>Categories you weren't in (zero share) don't appear at all.</li>
+    <li>Group counts say "5", not "20", when 5 of 20 are yours.</li>
+    <li>Tabs: only Category / Date — no Payer chip.</li>
+    <li>Stale URL <code>?view=payer</code> lands on Category, no error.</li>
+  </ul>
+  <h3 style="margin-top: 16px; color: var(--accent);">Bot</h3>
+  <ul>
+    <li>Create snapshot from mini app → bot posts to group → keyboard has 2 toggle buttons (Category, Date) + View Snapshot deep-link. No Payer.</li>
+    <li>Toggle between Category and Date — both render. "🧾 Shares" section appears in both.</li>
+    <li>Old pre-change snapshot message in chat history: pressing legacy Payer button doesn't crash bot; pressing Category or Date works.</li>
+  </ul>
+</section>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">← Prev</button>
+  <span class="counter" id="counter">1 / 9</span>
+  <button class="nav-btn" id="next">Next →</button>
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let idx = 0;
+
+  function update() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${slides.length}`;
+    progress.style.width = `${((idx + 1) / slides.length) * 100}%`;
+    prev.disabled = idx === 0;
+    next.disabled = idx === slides.length - 1;
+    location.hash = `slide-${idx + 1}`;
+  }
+
+  function go(delta) {
+    const newIdx = Math.max(0, Math.min(slides.length - 1, idx + delta));
+    if (newIdx !== idx) { idx = newIdx; update(); }
+  }
+
+  prev.addEventListener('click', () => go(-1));
+  next.addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') { e.preventDefault(); idx = 0; update(); }
+    else if (e.key === 'End') { e.preventDefault(); idx = slides.length - 1; update(); }
+  });
+
+  const hash = location.hash.match(/slide-(\d+)/);
+  if (hash) {
+    const target = parseInt(hash[1], 10) - 1;
+    if (target >= 0 && target < slides.length) idx = target;
+  }
+  update();
+})();
+</script>
+
+</body>
+</html>

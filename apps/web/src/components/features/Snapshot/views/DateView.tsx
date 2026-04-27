@@ -24,7 +24,7 @@ export function DateView({ aggregations }: DateViewProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Section header="By date">
+      <Section header="By date · your share">
         <div className="px-4 py-3">
           <SnapshotBarChart
             data={chartData}
@@ -60,7 +60,15 @@ export function DateView({ aggregations }: DateViewProps) {
           {group.items.map((item) => (
             <SnapshotExpenseRow
               key={item.id}
-              item={item}
+              item={{
+                id: item.id,
+                description: item.description,
+                date: item.date,
+                amountInBase: item.amountInBase,
+                shareInBase: item.userShareInBase,
+                payer: item.payer,
+                categoryEmoji: item.categoryEmoji,
+              }}
               baseCurrency={baseCurrency}
             />
           ))}

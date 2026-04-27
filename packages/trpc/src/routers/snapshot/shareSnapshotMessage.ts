@@ -23,7 +23,7 @@ const MAX_DISPLAYED_USERS = 15;
 const MAX_EXPENSE_LINES = 50;
 
 /** Supported views for the snapshot share breakdown section. */
-export const SNAPSHOT_VIEWS = ["cat", "date", "payer"] as const;
+export const SNAPSHOT_VIEWS = ["cat", "date"] as const;
 export type SnapshotView = (typeof SNAPSHOT_VIEWS)[number];
 
 const inputSchema = z.object({
@@ -462,40 +462,6 @@ function groupByDate(ctx: SnapshotContext): GroupedBreakdown[] {
   );
 }
 
-function groupByPayer(ctx: SnapshotContext): GroupedBreakdown[] {
-  const map = new Map<string, GroupedBreakdown>();
-  for (const e of ctx.expenses) {
-    const key = e.payerId.toString();
-    const existing = map.get(key);
-    if (existing) {
-      existing.items.push(e);
-      existing.totalInBase = existing.totalInBase.plus(e.amountInBase);
-    } else {
-      map.set(key, {
-        key,
-        header: "",
-        items: [e],
-        totalInBase: e.amountInBase,
-      });
-    }
-  }
-  for (const g of map.values()) {
-    const first = g.items[0]!;
-    const member = ctx.memberMap.get(first.payerId);
-    const mention = mentionFor(first.payerId, member);
-    const total = escapeMarkdown(
-      fmtMoney(g.totalInBase.toNumber(), ctx.currencyCode),
-      2
-    );
-    const count = g.items.length;
-    g.header = `${mention} paid *${total}* \\(${count} ${count === 1 ? "expense" : "expenses"}\\)`;
-    g.items.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }
-  return Array.from(map.values()).sort((a, b) =>
-    b.totalInBase.comparedTo(a.totalInBase)
-  );
-}
-
 function renderItemLine(
   ctx: SnapshotContext,
   item: NormalizedExpense,
@@ -505,8 +471,6 @@ function renderItemLine(
   const desc = escapeMarkdown(item.description, 2);
   const amt = escapeMarkdown(fmtBare(item.amountInBase.toNumber()), 2);
   const dateStr = escapeMarkdown(formatShortDate(item.date), 2);
-  const payer = ctx.memberMap.get(item.payerId);
-  const payerLabel = mentionFor(item.payerId, payer);
   const catEmoji = item.categoryEmoji;
   // Row shape = description · cost · then the two dimensions *not*
   // used as the group header. Keeps width consistent across views.
@@ -518,20 +482,11 @@ function renderItemLine(
       return `>${prefix} ${desc} · ${amt} · ${dateStr}`;
     case "date":
       return `>${prefix} ${desc} · ${amt} · ${catEmoji}`;
-    case "payer":
-      // Payer *is* the group header here, so payer doesn't appear in
-      // the row anyway — we keep category_emoji for context.
-      return `>${prefix} ${desc} · ${amt} · ${dateStr} · ${catEmoji}`;
   }
 }
 
 function renderBreakdown(ctx: SnapshotContext, view: SnapshotView): string[] {
-  const groups =
-    view === "cat"
-      ? groupByCategory(ctx)
-      : view === "date"
-        ? groupByDate(ctx)
-        : groupByPayer(ctx);
+  const groups = view === "cat" ? groupByCategory(ctx) : groupByDate(ctx);
 
   if (groups.length === 0) return [];
 
@@ -582,8 +537,6 @@ function legendFor(view: SnapshotView): string {
       return `📋 *Expenses by category*`;
     case "date":
       return `📋 *Expenses by date*`;
-    case "payer":
-      return `📋 *Expenses by payer*`;
   }
 }
 
@@ -592,7 +545,6 @@ function legendFor(view: SnapshotView): string {
 const VIEW_BUTTONS: Array<{ view: SnapshotView; label: string }> = [
   { view: "cat", label: "📋 Category" },
   { view: "date", label: "📅 Date" },
-  { view: "payer", label: "👤 Payer" },
 ];
 
 type KeyboardButton =

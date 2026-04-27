@@ -10,6 +10,12 @@ type NormalizedExpense = {
   description: string;
   date: Date;
   amountInBase: number;
+  /**
+   * The current user's share for this expense in base currency.
+   * `0` when the user is not a participant — such items are filtered
+   * out of the per-group `items` arrays before they reach the views.
+   */
+  userShareInBase: number;
   currency: string;
   payerId: number;
   payer: { id: number; firstName: string };
@@ -22,21 +28,18 @@ export type CategoryGroup = {
   key: string;
   emoji: string;
   title: string;
+  /** Sum of the current user's share across `items`, in base currency. */
   totalInBase: number;
+  /** Only expenses where `userShareInBase > 0`. */
   items: NormalizedExpense[];
 };
 
 export type DateGroup = {
   key: string;
   date: Date;
+  /** Sum of the current user's share across `items`, in base currency. */
   totalInBase: number;
-  items: NormalizedExpense[];
-};
-
-export type PayerGroup = {
-  payerId: number;
-  payer: { id: number; firstName: string };
-  totalInBase: number;
+  /** Only expenses where `userShareInBase > 0`. */
   items: NormalizedExpense[];
 };
 
@@ -48,7 +51,13 @@ export type SnapshotAggregations = {
   userShareInBase: number;
   byCategory: CategoryGroup[];
   byDate: DateGroup[];
-  byPayer: PayerGroup[];
+  /**
+   * Resolved category emoji for every expense in the snapshot — keyed
+   * by expense id. Includes expenses the user has no share in, so
+   * consumers like SnapshotDetailsModal can show the right emoji even
+   * for rows that don't appear in the user-share-filtered `byCategory`.
+   */
+  categoryEmojiByExpenseId: Map<string, string>;
 };
 
 type ComputeArgs = {
@@ -88,9 +97,9 @@ export function computeSnapshotAggregations({
     totalInBase += amountInBase;
 
     const userShare = expense.shares.find((s) => s.userId === currentUserId);
-    if (userShare?.amount != null) {
-      userShareInBase += Number(userShare.amount) / rate;
-    }
+    const expenseUserShareInBase =
+      userShare?.amount != null ? Number(userShare.amount) / rate : 0;
+    userShareInBase += expenseUserShareInBase;
 
     const resolved = resolveCategory(expense.categoryId, chatCategories);
     normalized.push({
@@ -98,6 +107,7 @@ export function computeSnapshotAggregations({
       description: expense.description,
       date: new Date(expense.date),
       amountInBase,
+      userShareInBase: expenseUserShareInBase,
       currency: expense.currency,
       payerId: expense.payerId,
       payer: expense.payer,
@@ -116,19 +126,22 @@ export function computeSnapshotAggregations({
       }
     : null;
 
-  // Group by category — sorted desc by total; items sorted date desc
+  // Group by category — only includes expenses where the user has a
+  // share. Group total = sum of user shares. Empty groups dropped.
+  // Sorted desc by user-share total; items sorted date desc.
   const catMap = new Map<string, CategoryGroup>();
   for (const item of normalized) {
+    if (item.userShareInBase <= 0) continue;
     const existing = catMap.get(item.categoryKey);
     if (existing) {
       existing.items.push(item);
-      existing.totalInBase += item.amountInBase;
+      existing.totalInBase += item.userShareInBase;
     } else {
       catMap.set(item.categoryKey, {
         key: item.categoryKey,
         emoji: item.categoryEmoji,
         title: item.categoryTitle,
-        totalInBase: item.amountInBase,
+        totalInBase: item.userShareInBase,
         items: [item],
       });
     }
@@ -140,19 +153,22 @@ export function computeSnapshotAggregations({
     g.items.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
-  // Group by calendar day — sorted asc; items sorted amount desc
+  // Group by calendar day — only includes expenses where the user has
+  // a share. Group total = sum of user shares. Empty days dropped.
+  // Sorted asc by date; items sorted by user-share desc within a day.
   const dateMap = new Map<string, DateGroup>();
   for (const item of normalized) {
+    if (item.userShareInBase <= 0) continue;
     const key = dayKey(item.date);
     const existing = dateMap.get(key);
     if (existing) {
       existing.items.push(item);
-      existing.totalInBase += item.amountInBase;
+      existing.totalInBase += item.userShareInBase;
     } else {
       dateMap.set(key, {
         key,
         date: dayDate(item.date),
-        totalInBase: item.amountInBase,
+        totalInBase: item.userShareInBase,
         items: [item],
       });
     }
@@ -161,30 +177,15 @@ export function computeSnapshotAggregations({
     (a, b) => a.date.getTime() - b.date.getTime()
   );
   for (const g of byDate) {
-    g.items.sort((a, b) => b.amountInBase - a.amountInBase);
+    g.items.sort((a, b) => b.userShareInBase - a.userShareInBase);
   }
 
-  // Group by payer — sorted desc by total; items sorted date desc
-  const payerMap = new Map<number, PayerGroup>();
+  // Emoji lookup spans every expense in the snapshot, regardless of
+  // whether the user has a share in it — needed by consumers (e.g.
+  // SnapshotDetailsModal) that list the full expense set.
+  const categoryEmojiByExpenseId = new Map<string, string>();
   for (const item of normalized) {
-    const existing = payerMap.get(item.payerId);
-    if (existing) {
-      existing.items.push(item);
-      existing.totalInBase += item.amountInBase;
-    } else {
-      payerMap.set(item.payerId, {
-        payerId: item.payerId,
-        payer: item.payer,
-        totalInBase: item.amountInBase,
-        items: [item],
-      });
-    }
-  }
-  const byPayer = [...payerMap.values()].sort(
-    (a, b) => b.totalInBase - a.totalInBase
-  );
-  for (const g of byPayer) {
-    g.items.sort((a, b) => b.date.getTime() - a.date.getTime());
+    categoryEmojiByExpenseId.set(item.id, item.categoryEmoji);
   }
 
   return {
@@ -195,6 +196,6 @@ export function computeSnapshotAggregations({
     userShareInBase,
     byCategory,
     byDate,
-    byPayer,
+    categoryEmojiByExpenseId,
   };
 }

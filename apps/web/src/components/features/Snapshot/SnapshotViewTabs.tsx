@@ -1,7 +1,7 @@
 import { SegmentedControl } from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 
-export const SNAPSHOT_VIEWS = ["cat", "date", "payer"] as const;
+export const SNAPSHOT_VIEWS = ["cat", "date"] as const;
 export type SnapshotView = (typeof SNAPSHOT_VIEWS)[number];
 
 interface SnapshotViewTabsProps {
@@ -12,7 +12,6 @@ interface SnapshotViewTabsProps {
 const VIEWS: Array<{ id: SnapshotView; label: string }> = [
   { id: "cat", label: "📋 Category" },
   { id: "date", label: "📅 Date" },
-  { id: "payer", label: "👤 Payer" },
 ];
 
 export function SnapshotViewTabs({ value, onChange }: SnapshotViewTabsProps) {
