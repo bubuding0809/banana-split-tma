@@ -64,6 +64,7 @@ export function DateView({ aggregations }: DateViewProps) {
                 id: item.id,
                 description: item.description,
                 date: item.date,
+                amountInBase: item.amountInBase,
                 shareInBase: item.userShareInBase,
                 payer: item.payer,
                 categoryEmoji: item.categoryEmoji,

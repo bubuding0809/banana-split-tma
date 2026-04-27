@@ -7,6 +7,7 @@ type RowItem = {
   id: string;
   description: string;
   date: Date;
+  amountInBase: number;
   shareInBase: number;
   payer: { firstName: string };
   categoryEmoji: string;
@@ -23,8 +24,9 @@ interface SnapshotExpenseRowProps {
 
 /**
  * Shared expense row for the grouped lists inside Category/Date views.
- * Right column mirrors ChatExpenseCell: date / red share amount /
- * "share" caption.
+ * Layout mirrors ChatExpenseCell on the group transactions tab:
+ *   - body: full expense amount (in base currency)
+ *   - after: date / red share amount / "share" caption
  */
 export function SnapshotExpenseRow({
   item,
@@ -61,9 +63,9 @@ export function SnapshotExpenseRow({
         </div>
       }
     >
-      {/* The Cell body slot is intentionally empty — all amount info
-          now lives in the `after` column to mirror ChatExpenseCell. */}
-      <span />
+      <Text weight="2">
+        {formatCurrencyWithCode(item.amountInBase, baseCurrency)}
+      </Text>
     </Cell>
   );
 }

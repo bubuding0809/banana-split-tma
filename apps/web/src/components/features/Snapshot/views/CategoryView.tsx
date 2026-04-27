@@ -75,6 +75,7 @@ export function CategoryView({ aggregations }: CategoryViewProps) {
                 id: item.id,
                 description: item.description,
                 date: item.date,
+                amountInBase: item.amountInBase,
                 shareInBase: item.userShareInBase,
                 payer: item.payer,
                 categoryEmoji: item.categoryEmoji,
