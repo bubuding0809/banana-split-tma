@@ -1,6 +1,13 @@
 import { useEffect } from "react";
+import type { CSSProperties } from "react";
 import { Button, Placeholder, Skeleton } from "@telegram-apps/telegram-ui";
-import { backButton, hapticFeedback, popup } from "@telegram-apps/sdk-react";
+import {
+  backButton,
+  hapticFeedback,
+  popup,
+  useSignal,
+  viewportContentSafeAreaInsetTop,
+} from "@telegram-apps/sdk-react";
 import { RefreshCcw } from "lucide-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSnapshotAggregations } from "./hooks/useSnapshotAggregations";
@@ -27,6 +34,17 @@ export function SnapshotFullPage({
   // default branch as a string that doesn't match either view.
   const rawView = search.view ?? "cat";
   const view: SnapshotView = rawView === "date" ? "date" : "cat";
+
+  // Telegram fullscreen mode renders content edge-to-edge, so the
+  // sticky tabs need to be pushed below the iOS status bar / Dynamic
+  // Island. `env(safe-area-inset-top)` doesn't reliably propagate
+  // through the WebView, so we read the SDK signal directly and bind
+  // it to CSS vars that descendant sticky elements consume.
+  const safeAreaTop = useSignal(viewportContentSafeAreaInsetTop) ?? 0;
+  const stickyVars = {
+    "--snapshot-tabs-top": `${safeAreaTop}px`,
+    "--snapshot-headers-top": `${safeAreaTop + 56}px`,
+  } as CSSProperties;
 
   const { status, error, aggregations } = useSnapshotAggregations(snapshotId);
 
@@ -137,11 +155,11 @@ export function SnapshotFullPage({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" style={stickyVars}>
       <SnapshotHero aggregations={aggregations} />
       <div
         className="bg-(--tg-theme-bg-color,#000)/80 sticky z-30 -mx-4 border-b border-white/5 px-4 pb-2 pt-3 backdrop-blur-md"
-        style={{ top: "env(safe-area-inset-top, 0px)" }}
+        style={{ top: "var(--snapshot-tabs-top)" }}
       >
         <SnapshotViewTabs value={view} onChange={handleTabChange} />
       </div>
