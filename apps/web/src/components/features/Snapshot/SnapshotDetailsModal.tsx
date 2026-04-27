@@ -21,22 +21,14 @@ import {
   secondaryButton,
   initData,
 } from "@telegram-apps/sdk-react";
-import {
-  X,
-  TrendingDown,
-  RefreshCcw,
-  Pencil,
-  Send,
-  BarChart3,
-} from "lucide-react";
+import { X, RefreshCcw, Pencil, Send, BarChart3 } from "lucide-react";
 import { formatCurrencyWithCode } from "@/utils/financial";
-import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
 import { cn } from "@/utils/cn";
 import { useNavigate } from "@tanstack/react-router";
-import { compareDatesDesc } from "@/utils/date";
+import { compareDatesDesc, formatSnapshotDateRange } from "@/utils/date";
 import { compareTransactions } from "@/utils/transactionHelpers";
 import { useSnapshotAggregations } from "./hooks/useSnapshotAggregations";
 
@@ -413,58 +405,45 @@ const SnapshotDetailsModal = ({
       }
     >
       <div className="max-h-[80vh]">
-        {/* Header Information */}
+        {/* Header — mirrors the snapshot list-row + detail-page hero:
+            title + date range on the left, red user-share + expense
+            count on the right. */}
         <Section>
           <Cell
-            subhead={`By ${snapShotDetails.creator.firstName}`}
-            before={
-              <ChatMemberAvatar userId={snapShotDetails.creator.id} size={48} />
-            }
             after={
-              <Info type="text" subtitle="Created">
-                {format(new Date(snapShotDetails.createdAt), "dd/MM/yy")}
+              <Info
+                type="text"
+                subtitle={`${snapShotDetails.expenses.length} ${
+                  snapShotDetails.expenses.length === 1 ? "Expense" : "Expenses"
+                }`}
+              >
+                {userShareTotal === null ? (
+                  <Skeleton visible>
+                    <Text weight="3" className="text-red-600">
+                      Loading...
+                    </Text>
+                  </Skeleton>
+                ) : (
+                  <Text weight="3" className="text-red-600">
+                    {formatCurrencyWithCode(userShareTotal, baseCurrency)}
+                  </Text>
+                )}
               </Info>
             }
-            subtitle={`${snapShotDetails.expenses.length} expenses`}
+            description={
+              aggregations?.dateRange
+                ? formatSnapshotDateRange(
+                    aggregations.dateRange.earliest,
+                    aggregations.dateRange.latest
+                  )
+                : undefined
+            }
           >
             <Text weight="2" className="text-lg">
               {snapShotDetails.title}
             </Text>
           </Cell>
         </Section>
-
-        {/* Total Damage for Main User */}
-        {userId &&
-          (userShareTotal === null ||
-            (userShareTotal !== null && userShareTotal > 0)) && (
-            <Section header="How much did you spend?" className="mt-4">
-              <Cell
-                before={
-                  <span className="rounded-lg bg-red-500 p-1.5">
-                    <TrendingDown size={20} color="white" />
-                  </span>
-                }
-                after={
-                  <Info type="text" subtitle="Total">
-                    {userShareTotal === null ? (
-                      <Skeleton visible>
-                        <Text weight="3" className="text-lg text-red-600">
-                          Loading...
-                        </Text>
-                      </Skeleton>
-                    ) : (
-                      <Text weight="3" className="text-lg text-red-600">
-                        {formatCurrencyWithCode(userShareTotal, baseCurrency)}
-                      </Text>
-                    )}
-                  </Info>
-                }
-                description="Net sum of your expense shares"
-              >
-                <Text weight="3">You spent</Text>
-              </Cell>
-            </Section>
-          )}
 
         {/* Expenses List */}
         <Section header="Included Expenses" className="mt-4">
