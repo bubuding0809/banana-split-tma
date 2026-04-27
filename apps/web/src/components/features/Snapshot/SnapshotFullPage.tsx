@@ -1,14 +1,6 @@
 import { useEffect } from "react";
-import type { CSSProperties } from "react";
 import { Button, Placeholder, Skeleton } from "@telegram-apps/telegram-ui";
-import {
-  backButton,
-  hapticFeedback,
-  popup,
-  useSignal,
-  viewportContentSafeAreaInsetTop,
-  viewportSafeAreaInsetTop,
-} from "@telegram-apps/sdk-react";
+import { backButton, hapticFeedback, popup } from "@telegram-apps/sdk-react";
 import { RefreshCcw } from "lucide-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSnapshotAggregations } from "./hooks/useSnapshotAggregations";
@@ -35,23 +27,6 @@ export function SnapshotFullPage({
   // default branch as a string that doesn't match either view.
   const rawView = search.view ?? "cat";
   const view: SnapshotView = rawView === "date" ? "date" : "cat";
-
-  // Telegram fullscreen mode renders content edge-to-edge, so the
-  // sticky tabs need to be pushed below the iOS status bar / Dynamic
-  // Island. `env(safe-area-inset-top)` doesn't reliably propagate
-  // through the WebView, so we read the SDK signals directly. We take
-  // the max of both safe-area variants (device-level vs content-level)
-  // and floor at 47px so Dynamic-Island iPhones aren't clipped when
-  // the signal under-reports.
-  const deviceSafeAreaTop = useSignal(viewportSafeAreaInsetTop) ?? 0;
-  const contentSafeAreaTop = useSignal(viewportContentSafeAreaInsetTop) ?? 0;
-  // 60 covers Dynamic-Island iPhones (~59px); falls back to that
-  // when the SDK signal returns 0 (e.g. before viewport.mount resolves).
-  const safeAreaTop = Math.max(deviceSafeAreaTop, contentSafeAreaTop, 60);
-  const stickyVars = {
-    "--snapshot-tabs-top": `${safeAreaTop}px`,
-    "--snapshot-headers-top": `${safeAreaTop + 56}px`,
-  } as CSSProperties;
 
   const { status, error, aggregations } = useSnapshotAggregations(snapshotId);
 
@@ -162,19 +137,9 @@ export function SnapshotFullPage({
   };
 
   return (
-    <div className="flex flex-col gap-4" style={stickyVars}>
+    <div className="flex flex-col gap-4">
       <SnapshotHero aggregations={aggregations} />
-      <div
-        className="sticky z-30 -mx-4 border-b border-white/5 px-4 pb-2 pt-3"
-        style={{
-          top: "var(--snapshot-tabs-top)",
-          backgroundColor: "rgba(0, 0, 0, 0.65)",
-          backdropFilter: "saturate(180%) blur(20px)",
-          WebkitBackdropFilter: "saturate(180%) blur(20px)",
-        }}
-      >
-        <SnapshotViewTabs value={view} onChange={handleTabChange} />
-      </div>
+      <SnapshotViewTabs value={view} onChange={handleTabChange} />
       {view === "cat" && <CategoryView aggregations={aggregations} />}
       {view === "date" && <DateView aggregations={aggregations} />}
     </div>
