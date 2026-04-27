@@ -139,7 +139,9 @@ export function SnapshotFullPage({
   return (
     <div className="flex flex-col gap-4">
       <SnapshotHero aggregations={aggregations} />
-      <SnapshotViewTabs value={view} onChange={handleTabChange} />
+      <div className="sticky top-0 z-30 -mx-4 bg-[var(--tg-theme-bg-color,#000)] px-4 py-2">
+        <SnapshotViewTabs value={view} onChange={handleTabChange} />
+      </div>
       {view === "cat" && <CategoryView aggregations={aggregations} />}
       {view === "date" && <DateView aggregations={aggregations} />}
     </div>
