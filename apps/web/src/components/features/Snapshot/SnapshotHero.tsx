@@ -33,18 +33,15 @@ export function SnapshotHero({ aggregations }: SnapshotHeroProps) {
           subhead={`By ${details.creator.firstName}`}
           before={<ChatMemberAvatar userId={details.creator.id} size={48} />}
           after={
-            <Info
-              type="text"
-              subtitle={`${expenseCount} ${
-                expenseCount === 1 ? "expense" : "expenses"
-              }`}
-            >
+            <Info type="text" subtitle={dateRangeText}>
               <Text weight="2" className="text-lg">
                 {formatCurrencyWithCode(totalInBase, baseCurrency)}
               </Text>
             </Info>
           }
-          subtitle={dateRangeText}
+          subtitle={`${expenseCount} ${
+            expenseCount === 1 ? "expense" : "expenses"
+          }`}
         >
           <Text weight="2" className="text-lg">
             {details.title}
