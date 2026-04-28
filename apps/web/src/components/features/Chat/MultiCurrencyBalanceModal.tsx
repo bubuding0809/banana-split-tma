@@ -362,6 +362,7 @@ const MultiCurrencyBalanceModal = ({
     ) {
       offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(
         async () => {
+          hapticFeedback.impactOccurred.ifAvailable("light");
           try {
             await navigator.clipboard.writeText(memberData.phoneNumber!);
             hapticFeedback.notificationOccurred.ifAvailable("success");

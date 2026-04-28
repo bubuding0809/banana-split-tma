@@ -82,6 +82,7 @@ const ToReceiveModal = ({
   );
 
   const handleSendReminder = useCallback(async () => {
+    hapticFeedback.impactOccurred.ifAvailable("light");
     if (!tUserData?.firstName) {
       popup.open.ifAvailable({
         message: "Unable to send reminder. User data not available.",

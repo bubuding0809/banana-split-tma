@@ -134,6 +134,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
     // field touched surfaces the inline error — better than a silently
     // unresponsive button.
     if (title.trim().length === 0) {
+      hapticFeedback.notificationOccurred("error");
       setNameTouched(true);
       return;
     }
@@ -331,6 +332,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
         >
           <EmojiPicker
             onEmojiClick={(e) => {
+              hapticFeedback.selectionChanged();
               // Manual pick — lock out further auto-suggest so name edits
               // don't overwrite the user's explicit choice.
               userTouchedEmojiRef.current = true;
