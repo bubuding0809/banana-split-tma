@@ -2,9 +2,6 @@ name: Deploy Vercel project (prebuilt)
 description: pull → build on the runner → deploy --prebuilt. Skips Vercel's hosted build queue.
 
 inputs:
-  working-directory:
-    description: Path to the app's project root (the directory containing vercel.ts).
-    required: true
   vercel-token:
     description: Vercel auth token.
     required: true
@@ -31,37 +28,42 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install Vercel CLI
-      shell: bash
-      run: pnpm add -g vercel@latest
-
-    # vercel build uses corepack to resolve the project's package
-    # manager. Activate pnpm@9 so its pnpm bootstrap finds the binary
-    # via corepack instead of trying to spawn a missing one itself.
+    # vercel build hardcodes pnpm paths that only exist on Vercel's
+    # build container (see vercel/vercel#15204). Activating pnpm via
+    # corepack and running vercel from the REPO ROOT — not the app dir
+    # — sidesteps both the path bug and the cwd double-concat bug.
     - name: Enable corepack pnpm
       shell: bash
       run: |
         corepack enable
         corepack prepare pnpm@9.0.0 --activate
 
+    # Pin to 51.x — 52.0.0 ships breaking changes, and earlier 51.x
+    # versions don't support recent Next.js builders.
+    - name: Install Vercel CLI 51
+      shell: bash
+      run: pnpm add -g vercel@51
+
+    # Stage the project link at repo root so vercel CLI runs from
+    # there and lets the dashboard's rootDirectory resolve once.
+    - name: Stage .vercel/project.json
+      shell: bash
+      env:
+        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+      run: |
+        mkdir -p .vercel
+        printf '{"projectId":"%s","orgId":"%s"}\n' "$VERCEL_PROJECT_ID" "$VERCEL_ORG_ID" > .vercel/project.json
+
     - name: Pull Vercel env
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
       env:
-        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
-        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+        ENABLE_EXPERIMENTAL_COREPACK: "1"
       run: vercel pull --yes --environment=${{ inputs.target }} --token=${{ inputs.vercel-token }}
 
-    # ENABLE_EXPERIMENTAL_COREPACK=1 makes vercel build use the
-    # corepack-managed pnpm we activated above, avoiding its built-in
-    # pnpm fetcher which crashes with `spawn sh ENOENT` outside Vercel's
-    # build container.
     - name: Build
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
       env:
-        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
-        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
         ENABLE_EXPERIMENTAL_COREPACK: "1"
       run: |
         if [ "${{ inputs.target }}" = "production" ]; then
@@ -72,16 +74,13 @@ runs:
 
     - name: Deploy prebuilt
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
       env:
-        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
-        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
         VERCEL_GIT_COMMIT_SHA: ${{ inputs.git-sha }}
         VERCEL_GIT_COMMIT_REF: ${{ inputs.git-ref }}
         VERCEL_GIT_COMMIT_MESSAGE: ${{ inputs.git-message }}
       run: |
         if [ "${{ inputs.target }}" = "production" ]; then
-          vercel deploy --prebuilt --prod --token=${{ inputs.vercel-token }}
+          vercel deploy --prebuilt --prod --archive=tgz --token=${{ inputs.vercel-token }}
         else
-          vercel deploy --prebuilt --token=${{ inputs.vercel-token }}
+          vercel deploy --prebuilt --archive=tgz --token=${{ inputs.vercel-token }}
         fi
