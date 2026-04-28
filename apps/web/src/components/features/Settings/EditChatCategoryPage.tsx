@@ -146,6 +146,7 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
 
   const onDelete = () => {
     if (!categoryId) return;
+    hapticFeedback.impactOccurred("medium");
     if (
       !window.confirm(
         `Delete "${existing?.emoji ?? ""} ${existing?.title ?? "this category"}"?\n\n` +

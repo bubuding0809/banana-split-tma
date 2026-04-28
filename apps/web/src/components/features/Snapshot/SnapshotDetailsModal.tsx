@@ -181,6 +181,7 @@ const SnapshotDetailsModal = ({
   }, [snapShotDetails, snapshotId, navigate, onOpenChange]);
 
   const handleDelete = useCallback(async () => {
+    hapticFeedback.impactOccurred("medium");
     const action = await popup.open.ifAvailable({
       title: "Delete Snapshot?",
       message:

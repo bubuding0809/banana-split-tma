@@ -113,6 +113,7 @@ export default function RecurringTemplatesList({ chatId }: Props) {
 
         offSecondaryClickRef.current?.();
         offSecondaryClickRef.current = secondaryButton.onClick(async () => {
+          hapticFeedback.impactOccurred("medium");
           const action = await popup.open.ifAvailable({
             title: "Delete recurring expense?",
             message: "Future occurrences won't fire. Past expenses are kept.",
