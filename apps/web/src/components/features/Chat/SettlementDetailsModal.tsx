@@ -91,12 +91,14 @@ const SettlementDetailsModal = ({
           userId: userId,
           chatId: settlement.chatId,
         });
+        hapticFeedback.notificationOccurred("success");
       },
     }
   );
 
   //* Handlers =====================================================================================
   const handleDeleteSettlement = useCallback(async () => {
+    hapticFeedback.impactOccurred("medium");
     try {
       const result = await popup.open.ifAvailable({
         title: "Delete Settlement",

@@ -105,6 +105,10 @@ const ChatExpenseCell = ({
         userId,
         chatId,
       });
+      hapticFeedback.notificationOccurred("success");
+    },
+    onError: () => {
+      hapticFeedback.notificationOccurred("error");
     },
   });
 
@@ -146,6 +150,7 @@ const ChatExpenseCell = ({
   }, [hasShare, expenseDetails?.shares, userId]);
 
   const onDeleteExpense = async () => {
+    hapticFeedback.impactOccurred("medium");
     const action = await popup.open.ifAvailable({
       title: "Delete Expense?",
       message: `You can't undo this action.`,
