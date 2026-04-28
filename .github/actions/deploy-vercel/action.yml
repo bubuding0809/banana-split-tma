@@ -1,0 +1,73 @@
+name: Deploy Vercel project (prebuilt)
+description: pull → build on the runner → deploy --prebuilt. Skips Vercel's hosted build queue.
+
+inputs:
+  working-directory:
+    description: Path to the app's project root (the directory containing vercel.ts).
+    required: true
+  vercel-token:
+    description: Vercel auth token.
+    required: true
+  vercel-org-id:
+    description: Vercel team/org ID.
+    required: true
+  vercel-project-id:
+    description: Vercel project ID for this app.
+    required: true
+  target:
+    description: production or preview.
+    required: false
+    default: production
+  git-sha:
+    description: Commit SHA — surfaced in the Vercel deployment record.
+    required: true
+  git-ref:
+    description: Branch ref name.
+    required: true
+  git-message:
+    description: Commit message.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Vercel CLI
+      shell: bash
+      run: pnpm add -g vercel@latest
+
+    - name: Pull Vercel env
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+      run: vercel pull --yes --environment=${{ inputs.target }} --token=${{ inputs.vercel-token }}
+
+    - name: Build
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+      run: |
+        if [ "${{ inputs.target }}" = "production" ]; then
+          vercel build --prod --token=${{ inputs.vercel-token }}
+        else
+          vercel build --token=${{ inputs.vercel-token }}
+        fi
+
+    - name: Deploy prebuilt
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+        VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+        VERCEL_GIT_COMMIT_SHA: ${{ inputs.git-sha }}
+        VERCEL_GIT_COMMIT_REF: ${{ inputs.git-ref }}
+        VERCEL_GIT_COMMIT_MESSAGE: ${{ inputs.git-message }}
+      run: |
+        if [ "${{ inputs.target }}" = "production" ]; then
+          vercel deploy --prebuilt --prod --token=${{ inputs.vercel-token }}
+        else
+          vercel deploy --prebuilt --token=${{ inputs.vercel-token }}
+        fi
