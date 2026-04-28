@@ -109,6 +109,7 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/deploy-vercel
         with:
+          app-name: lambda
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_LAMBDA }}
@@ -126,6 +127,7 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/deploy-vercel
         with:
+          app-name: web
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
@@ -143,6 +145,7 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/deploy-vercel
         with:
+          app-name: bot
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
@@ -160,6 +163,7 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/deploy-vercel
         with:
+          app-name: admin
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}

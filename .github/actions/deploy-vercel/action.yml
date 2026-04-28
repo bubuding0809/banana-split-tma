@@ -2,6 +2,9 @@ name: Deploy Vercel project (prebuilt)
 description: pull → build on the runner → deploy --prebuilt. Skips Vercel's hosted build queue.
 
 inputs:
+  app-name:
+    description: Workspace package name of the app being deployed (e.g. web, lambda).
+    required: true
   vercel-token:
     description: Vercel auth token.
     required: true
@@ -54,6 +57,14 @@ runs:
       run: |
         mkdir -p .vercel
         printf '{"projectId":"%s","orgId":"%s"}\n' "$VERCEL_PROJECT_ID" "$VERCEL_ORG_ID" > .vercel/project.json
+
+    # vercel build runs `pnpm run build` inside apps/<name>/, which is
+    # `tsc -b && vite build` for web/admin. tsc needs workspace deps'
+    # dist/ to resolve types (e.g. @dko/trpc), so build them first.
+    # Turbo cache + remote cache makes this near-free on warm runs.
+    - name: Build workspace deps
+      shell: bash
+      run: pnpm turbo run build --filter=${{ inputs.app-name }}^...
 
     - name: Pull Vercel env
       shell: bash
