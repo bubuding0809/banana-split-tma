@@ -9,6 +9,7 @@ import {
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
   backButton,
+  hapticFeedback,
   mainButton,
   secondaryButton,
   themeParams,
@@ -108,9 +109,13 @@ export default function EditChatCategoryPage({ chatId, categoryId }: Props) {
   const deleteMut = trpc.category.delete.useMutation({
     onSuccess: () => {
       utils.category.listByChat.invalidate({ chatId });
+      hapticFeedback.notificationOccurred("success");
       leaveCategoryPage();
     },
-    onError: (e) => setError(e.message),
+    onError: (e) => {
+      hapticFeedback.notificationOccurred("error");
+      setError(e.message);
+    },
   });
 
   // Emoji auto-suggest — runs synchronously against a local keyword index

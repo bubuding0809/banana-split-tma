@@ -91,6 +91,7 @@ const SettlementDetailsModal = ({
           userId: userId,
           chatId: settlement.chatId,
         });
+        hapticFeedback.notificationOccurred("success");
       },
     }
   );

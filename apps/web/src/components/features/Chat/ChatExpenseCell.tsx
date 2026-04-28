@@ -105,6 +105,10 @@ const ChatExpenseCell = ({
         userId,
         chatId,
       });
+      hapticFeedback.notificationOccurred("success");
+    },
+    onError: () => {
+      hapticFeedback.notificationOccurred("error");
     },
   });
 
