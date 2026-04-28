@@ -1,6 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
+import { getMemberBalanceSummaryHandler } from "./getMemberBalanceSummary.js";
 
 export const inputSchema = z.object({
   chatId: z
@@ -17,6 +19,17 @@ export const removeMemberHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db
 ) => {
+  const summary = await getMemberBalanceSummaryHandler(
+    { chatId: input.chatId, userId: input.userId },
+    db
+  );
+  if (summary.balances.length > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Member has outstanding balance",
+    });
+  }
+
   return db.chat.update({
     where: { id: input.chatId },
     data: { members: { disconnect: { id: input.userId } } },
