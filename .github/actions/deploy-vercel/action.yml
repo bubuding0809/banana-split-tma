@@ -35,6 +35,15 @@ runs:
       shell: bash
       run: pnpm add -g vercel@latest
 
+    # vercel build uses corepack to resolve the project's package
+    # manager. Activate pnpm@9 so its pnpm bootstrap finds the binary
+    # via corepack instead of trying to spawn a missing one itself.
+    - name: Enable corepack pnpm
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare pnpm@9.0.0 --activate
+
     - name: Pull Vercel env
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -43,12 +52,17 @@ runs:
         VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
       run: vercel pull --yes --environment=${{ inputs.target }} --token=${{ inputs.vercel-token }}
 
+    # ENABLE_EXPERIMENTAL_COREPACK=1 makes vercel build use the
+    # corepack-managed pnpm we activated above, avoiding its built-in
+    # pnpm fetcher which crashes with `spawn sh ENOENT` outside Vercel's
+    # build container.
     - name: Build
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
         VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+        ENABLE_EXPERIMENTAL_COREPACK: "1"
       run: |
         if [ "${{ inputs.target }}" = "production" ]; then
           vercel build --prod --token=${{ inputs.vercel-token }}
