@@ -1,6 +1,7 @@
 {
   "name": "lambda",
   "type": "module",
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "check-types": "tsc --noEmit",
     "dev": "NODE_ENV=development PORT=8081 tsx watch index.dev.ts",
