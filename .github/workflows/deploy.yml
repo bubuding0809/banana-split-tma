@@ -10,13 +10,6 @@ on:
         description: "Force-deploy lambda/web/bot/admin regardless of path filters"
         type: boolean
         default: false
-      target:
-        description: "Deploy target. Use 'preview' for UAT dispatches, 'production' otherwise."
-        type: choice
-        default: production
-        options:
-          - production
-          - preview
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -106,17 +99,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/deploy-vercel
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          app-name: lambda
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_LAMBDA }}
-          target: ${{ inputs.target || 'production' }}
-          git-sha: ${{ github.sha }}
-          git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LAMBDA }}
+          # Git metadata — Vercel CLI auto-attaches these to the
+          # deployment record so the inspector shows SHA/branch/commit
+          # message even after the dashboard git integration is off.
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-web:
     needs: [filter, migrate]
@@ -124,17 +130,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/deploy-vercel
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          app-name: web
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-          target: ${{ inputs.target || 'production' }}
-          git-sha: ${{ github.sha }}
-          git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-bot:
     needs: [filter, migrate]
@@ -142,17 +158,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/deploy-vercel
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          app-name: bot
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
-          target: ${{ inputs.target || 'production' }}
-          git-sha: ${{ github.sha }}
-          git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BOT }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   deploy-admin:
     needs: [filter, migrate]
@@ -160,17 +186,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/deploy-vercel
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          app-name: admin
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
-          target: ${{ inputs.target || 'production' }}
-          git-sha: ${{ github.sha }}
-          git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.ref_name }}
+          VERCEL_GIT_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   publish-cli:
     needs: [filter]

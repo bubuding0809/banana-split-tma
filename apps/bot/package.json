@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "tsx watch scripts/dev.ts",
     "build": "tsx scripts/set-webhook.ts && tsx scripts/set-commands.ts",
