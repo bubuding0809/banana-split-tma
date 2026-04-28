@@ -9,6 +9,7 @@ import getCreditors from "./getCreditors.js";
 import getCreditorsMultiCurrency from "./getCreditorsMultiCurrency.js";
 import getDebtors from "./getDebtors.js";
 import getDebtorsMultiCurrency from "./getDebtorsMultiCurrency.js";
+import getMemberBalanceSummary from "./getMemberBalanceSummary.js";
 import getMembers from "./getMembers.js";
 import getSimplifiedDebts from "./getSimplifiedDebts.js";
 import getSimplifiedDebtsMultiCurrency from "./getSimplifiedDebtsMultiCurrency.js";
@@ -27,6 +28,7 @@ export const chatRouter = createTRPCRouter({
   addMember,
   removeMember,
   getMembers,
+  getMemberBalanceSummary,
   hasMember,
   listMembers,
   getNetShare,

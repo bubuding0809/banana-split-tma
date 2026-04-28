@@ -17,10 +17,18 @@ import { Plus } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import MemberRow from "./MemberRow";
 import AddMemberSheet from "./AddMemberSheet";
+import RemoveMemberSheet from "./RemoveMemberSheet";
 
 interface MembersSubPageProps {
   chatId: number;
 }
+
+type Member = {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  username: string | null;
+};
 
 export default function MembersSubPage({ chatId }: MembersSubPageProps) {
   const navigate = useNavigate();
@@ -28,6 +36,7 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
   const youId = tUserData?.id?.toString();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
 
   const { data: members, status } = trpc.chat.listMembers.useQuery({ chatId });
   const trpcUtils = trpc.useUtils();
@@ -94,7 +103,12 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
               </Cell>
             ))
           : (members ?? []).map((m) => (
-              <MemberRow key={m.id} member={m} isYou={m.id === youId} />
+              <MemberRow
+                key={m.id}
+                member={m}
+                isYou={m.id === youId}
+                onRequestRemove={setRemoveTarget}
+              />
             ))}
       </Section>
 
@@ -104,6 +118,21 @@ export default function MembersSubPage({ chatId }: MembersSubPageProps) {
         onOpenChange={setSheetOpen}
         onLaunchBot={() => {
           didStartAddFlow.current = true;
+        }}
+      />
+
+      <RemoveMemberSheet
+        chatId={chatId}
+        member={removeTarget}
+        isYou={removeTarget?.id === youId}
+        onOpenChange={(next) => {
+          if (!next) setRemoveTarget(null);
+        }}
+        onRemoved={(_member, isYou) => {
+          setRemoveTarget(null);
+          if (isYou) {
+            navigate({ to: "/chat", search: { selectedTab: "groups" } });
+          }
         }}
       />
     </main>
