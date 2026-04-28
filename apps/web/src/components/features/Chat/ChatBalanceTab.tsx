@@ -115,7 +115,7 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
     : getCreditorStatus;
 
   return (
-    <section className="pb-8">
+    <section className="pb-24">
       <div className="shadow-xs">
         <ConvertCurrenciesCell chatId={chatId} />
       </div>
