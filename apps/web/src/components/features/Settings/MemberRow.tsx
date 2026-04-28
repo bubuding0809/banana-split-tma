@@ -1,6 +1,10 @@
-import { hapticFeedback } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
 import { Cell, IconButton } from "@telegram-apps/telegram-ui";
-import { X } from "lucide-react";
+import { XCircle } from "lucide-react";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 
 interface MemberRowProps {
@@ -28,6 +32,7 @@ export default function MemberRow({
   isYou,
   onRequestRemove,
 }: MemberRowProps) {
+  const tDestructive = useSignal(themeParams.destructiveTextColor);
   return (
     <Cell
       before={<ChatMemberAvatar userId={Number(member.id)} size={40} />}
@@ -43,7 +48,7 @@ export default function MemberRow({
           }}
           aria-label={isYou ? "Leave group" : `Remove ${fullName(member)}`}
         >
-          <X size={18} strokeWidth={2.5} />
+          <XCircle size={22} strokeWidth={2} style={{ color: tDestructive }} />
         </IconButton>
       }
     >
