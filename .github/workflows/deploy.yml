@@ -116,7 +116,7 @@ jobs:
           target: ${{ inputs.target || 'production' }}
           git-sha: ${{ github.sha }}
           git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message }}
+          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
 
   deploy-web:
     needs: [filter, migrate]
@@ -134,7 +134,7 @@ jobs:
           target: ${{ inputs.target || 'production' }}
           git-sha: ${{ github.sha }}
           git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message }}
+          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
 
   deploy-bot:
     needs: [filter, migrate]
@@ -152,7 +152,7 @@ jobs:
           target: ${{ inputs.target || 'production' }}
           git-sha: ${{ github.sha }}
           git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message }}
+          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
 
   deploy-admin:
     needs: [filter, migrate]
@@ -170,7 +170,7 @@ jobs:
           target: ${{ inputs.target || 'production' }}
           git-sha: ${{ github.sha }}
           git-ref: ${{ github.ref_name }}
-          git-message: ${{ github.event.head_commit.message }}
+          git-message: ${{ github.event.head_commit.message || format('Manual deploy ({0})', inputs.target || 'production') }}
 
   publish-cli:
     needs: [filter]

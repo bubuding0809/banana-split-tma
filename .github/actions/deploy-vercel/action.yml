@@ -43,6 +43,14 @@ runs:
 
     # Pin to 51.x — 52.0.0 ships breaking changes, and earlier 51.x
     # versions don't support recent Next.js builders.
+    - name: Cache global pnpm dir
+      id: pnpm-global
+      shell: bash
+      run: echo "dir=$(pnpm config get global-dir)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-global.outputs.dir }}
+        key: ${{ runner.os }}-pnpm-global-vercel-51
     - name: Install Vercel CLI 51
       shell: bash
       run: pnpm add -g vercel@51
