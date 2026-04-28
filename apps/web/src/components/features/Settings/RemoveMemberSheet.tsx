@@ -73,14 +73,25 @@ export default function RemoveMemberSheet({
       trpcUtils.chat.listMembers.setData({ chatId }, (prev) =>
         prev ? prev.filter((m) => m.id !== member.id) : prev
       );
-      // Invalidate balance/summary views that may reference the removed member
+      if (isYou) {
+        // The caller has just left — any refetch of chat-scoped queries will
+        // 403 on assertChatAccess. Hand off navigation immediately and let
+        // the invalidations run fire-and-forget on the way out.
+        onRemoved(member, true);
+        void Promise.all([
+          trpcUtils.chat.getDebtorsMultiCurrency.invalidate({ chatId }),
+          trpcUtils.chat.getCreditorsMultiCurrency.invalidate({ chatId }),
+          trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({ chatId }),
+        ]);
+        return;
+      }
       await Promise.all([
         trpcUtils.chat.listMembers.invalidate({ chatId }),
         trpcUtils.chat.getDebtorsMultiCurrency.invalidate({ chatId }),
         trpcUtils.chat.getCreditorsMultiCurrency.invalidate({ chatId }),
         trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({ chatId }),
       ]);
-      onRemoved(member, isYou);
+      onRemoved(member, false);
     },
     onError: () => {
       hapticFeedback.notificationOccurred("error");
@@ -201,6 +212,12 @@ export default function RemoveMemberSheet({
             <div className="flex items-center justify-center py-8">
               <Spinner size="m" />
             </div>
+          ) : balanceQuery.isError ? (
+            <ErrorState
+              onRetry={() => balanceQuery.refetch()}
+              onClose={handleClose}
+              subtitleColor={tSubtitleTextColor}
+            />
           ) : balanceQuery.data && balanceQuery.data.balances.length > 0 ? (
             <BlockedState
               isYou={isYou}
@@ -413,5 +430,29 @@ function ClearState({
         </Button>
       </div>
     </>
+  );
+}
+
+interface ErrorStateProps {
+  onRetry: () => void;
+  onClose: () => void;
+  subtitleColor: string | undefined;
+}
+
+function ErrorState({ onRetry, onClose, subtitleColor }: ErrorStateProps) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-6">
+      <Text style={{ color: subtitleColor, textAlign: "center" }}>
+        Could not load balance info. Try again before removing.
+      </Text>
+      <div className="flex w-full flex-col gap-2">
+        <Button stretched size="l" mode="filled" onClick={onRetry}>
+          Retry
+        </Button>
+        <Button stretched size="l" mode="plain" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
