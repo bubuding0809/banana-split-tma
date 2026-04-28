@@ -192,6 +192,7 @@ const ToPayModal = ({
 
     const offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(
       async () => {
+        hapticFeedback.impactOccurred.ifAvailable("light");
         if (!memberData?.phoneNumber) {
           hapticFeedback.notificationOccurred.ifAvailable("error");
           return;

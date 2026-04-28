@@ -157,6 +157,7 @@ const SplitModeFormStep = withForm({
       }
 
       // Reset participants and custom splits when changing split mode
+      hapticFeedback.selectionChanged();
       form.setFieldValue("splitMode", mode);
       form.setFieldValue("participants", []);
       form.setFieldValue("customSplits", []);
