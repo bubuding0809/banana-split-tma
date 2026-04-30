@@ -405,6 +405,10 @@ export const expenseCommands: Command[] = [
       }
 
       if (frequency) {
+        const timezone =
+          (opts["recurrence-timezone"] as string) ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone;
+
         if (!["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(frequency)) {
           return error(
             "invalid_option",
@@ -449,7 +453,10 @@ export const expenseCommands: Command[] = [
           // Default to current day if WEEKLY and no weekdays provided
           const baseDate = date || new Date();
           const currentDayStr = baseDate
-            .toLocaleDateString("en-US", { weekday: "short" })
+            .toLocaleDateString("en-US", {
+              weekday: "short",
+              timeZone: timezone,
+            })
             .toUpperCase();
           weekdays = [currentDayStr];
         }
@@ -474,10 +481,6 @@ export const expenseCommands: Command[] = [
             );
           }
         }
-
-        const timezone =
-          (opts["recurrence-timezone"] as string) ||
-          Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         recurrenceParams = {
           frequency,
