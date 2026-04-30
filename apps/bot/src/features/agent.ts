@@ -15,6 +15,12 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
   }
   if (!userMessage || !ctx.chat || !ctx.from) return;
 
+  // Reaction is handled by the global reactionsMiddleware. We just need to
+  // signal that we're working on it so the chat shows the typing indicator.
+  void ctx.api
+    .sendChatAction(ctx.chat.id, "typing")
+    .catch((e) => console.warn("[Agent] sendChatAction failed:", e));
+
   // Keep a reference to the raw text to preserve @mentions in their original form
   const rawText = ctx.message?.text || ctx.message?.caption || userMessage;
 
@@ -37,10 +43,6 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
       userMessage += `\n\n[System Note: In the user's message, ${extraMentions.join(", ")}]`;
     }
   }
-
-  // React with thinking emoji and send typing indicator
-  await ctx.react("🤔").catch(() => {});
-  await ctx.api.sendChatAction(ctx.chat.id, "typing").catch(() => {});
 
   let replyMsg: { message_id: number } | null = null;
   let fullText = "";

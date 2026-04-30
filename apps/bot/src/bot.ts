@@ -3,6 +3,7 @@ import { env } from "./env.js";
 import { BotContext, SessionData } from "./types.js";
 import { trpcMiddleware } from "./middleware/trpc.js";
 import { loggerMiddleware } from "./middleware/logger.js";
+import { reactionsMiddleware } from "./middleware/reactions.js";
 import { userFeature } from "./features/user.js";
 import { groupFeature } from "./features/group.js";
 import { expensesFeature } from "./features/expenses.js";
@@ -20,6 +21,7 @@ function initial(): SessionData {
 bot.use(session({ initial }));
 
 bot.use(loggerMiddleware);
+bot.use(reactionsMiddleware);
 bot.use(trpcMiddleware);
 bot.use(agentFeature);
 bot.use(groupFeature);
