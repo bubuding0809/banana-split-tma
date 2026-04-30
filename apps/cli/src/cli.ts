@@ -9,6 +9,7 @@ import { currencyCommands } from "./commands/currency.js";
 import { reminderCommands } from "./commands/reminder.js";
 import { meCommands } from "./commands/me.js";
 import { categoryCommands } from "./commands/category.js";
+import { recurringCommands } from "./commands/recurring.js";
 import type { Command } from "./commands/types.js";
 import { resolveApiKey, resolveApiUrl, writeConfigFile } from "./config.js";
 import { createTrpcClient } from "./client.js";
@@ -23,6 +24,7 @@ const ALL_COMMANDS: Command[] = [
   ...reminderCommands,
   ...meCommands,
   ...categoryCommands,
+  ...recurringCommands,
 ];
 
 const GLOBAL_OPTIONS = {
