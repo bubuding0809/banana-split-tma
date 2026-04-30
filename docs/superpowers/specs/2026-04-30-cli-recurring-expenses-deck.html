@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLI Recurring Expenses Feature Spec</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-primary: #0066ff;
+            --accent-secondary: #00ffff;
+            --font-headers: 'DejaVu Sans Bold', Arial, sans-serif;
+            --font-body: 'DejaVu Sans', Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slide {
+            width: 960px;
+            height: 540px;
+            margin: 40px 0;
+            padding: 50px;
+            box-sizing: border-box;
+            background-color: #252525;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary));
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-headers);
+            margin-top: 0;
+        }
+
+        h1 {
+            color: var(--accent-secondary);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--accent-primary);
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--accent-primary);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        .content {
+            flex-grow: 1;
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background-color: #111;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            color: var(--accent-secondary);
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .footer {
+            font-size: 0.9rem;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            margin-top: auto;
+            border-top: 1px solid #444;
+            padding-top: 15px;
+        }
+
+        /* Title Slide specific */
+        .slide-title {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-title h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+        }
+
+        .slide-title p {
+            font-size: 1.5rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: Title -->
+    <div class="slide slide-title">
+        <h1>CLI Recurring Expenses</h1>
+        <p>Achieving API Parity in the Command Line Interface</p>
+    </div>
+
+    <!-- Slide 2: The Goal -->
+    <div class="slide">
+        <h2>The Goal & Context</h2>
+        <div class="content">
+            <p><strong>Current State:</strong> The backend tRPC API fully supports recurring expenses (creation, listing, updating, canceling) via the <code>recurringRouter</code> and AWS EventBridge scheduling.</p>
+            <p><strong>The Gap:</strong> The CLI (`apps/cli`) currently only supports one-off expenses.</p>
+            <p><strong>The Objective:</strong> Expose full recurring expense capabilities in the CLI to enable power-user workflows and automated agent integrations.</p>
+        </div>
+        <div class="footer">
+            <span>Tech Innovation Theme</span>
+            <span>Slide 2</span>
+        </div>
+    </div>
+
+    <!-- Slide 3: Architectural Approach -->
+    <div class="slide">
+        <h2>Architectural Approach</h2>
+        <div class="content">
+            <p>We are implementing the <strong>Distinct Namespace Approach</strong>:</p>
+            <ul>
+                <li><strong>Creation:</strong> Handled by enhancing the existing <code>create-expense</code> command with new flags. <em>(Because creating a recurrence materializes the initial expense immediately).</em></li>
+                <li><strong>Management:</strong> Handled by a brand new suite of isolated commands in a dedicated <code>recurring</code> namespace.</li>
+            </ul>
+            <p>This approach keeps command flags tidy and mirrors the backend's strict separation between standard endpoints and the <code>recurringRouter</code>.</p>
+        </div>
+        <div class="footer">
+            <span>Tech Innovation Theme</span>
+            <span>Slide 3</span>
+        </div>
+    </div>
+
+    <!-- Slide 4: Enhancing create-expense -->
+    <div class="slide">
+        <h2>Enhancing <code>create-expense</code></h2>
+        <div class="content">
+            <p>We will add five new optional flags to the existing command:</p>
+            <ul>
+                <li><code>--recurrence-frequency</code>: DAILY, WEEKLY, MONTHLY, YEARLY</li>
+                <li><code>--recurrence-interval</code>: Default 1</li>
+                <li><code>--recurrence-weekdays</code>: Comma-separated (e.g. MON,WED)</li>
+                <li><code>--recurrence-end-date</code>: ISO 8601 string</li>
+                <li><code>--recurrence-timezone</code>: Auto-defaults to system timezone</li>
+            </ul>
+            <div class="code-block">
+                $ banana create-expense --amount 50 --description "Netflix" \<br>
+                &nbsp;&nbsp;--payer-id 123 --split-mode EQUAL --participant-ids 123,456 \<br>
+                &nbsp;&nbsp;--recurrence-frequency MONTHLY
+            </div>
+        </div>
+        <div class="footer">
+            <span>Tech Innovation Theme</span>
+            <span>Slide 4</span>
+        </div>
+    </div>
+
+    <!-- Slide 5: New Management Commands -->
+    <div class="slide">
+        <h2>New Management Commands</h2>
+        <div class="content">
+            <p>A new <code>recurring.ts</code> module will introduce 4 targeted commands:</p>
+            <ul>
+                <li><strong><code>list-recurring-expenses</code></strong>: Lists active templates for a chat context.</li>
+                <li><strong><code>get-recurring-expense</code></strong>: Fetches full details for a given <code>--template-id</code>.</li>
+                <li><strong><code>update-recurring-expense</code></strong>: Modifies schedule or amount/description on an active template.</li>
+                <li><strong><code>cancel-recurring-expense</code></strong>: Soft-deletes/halts an active recurring template.</li>
+            </ul>
+        </div>
+        <div class="footer">
+            <span>Tech Innovation Theme</span>
+            <span>Slide 5</span>
+        </div>
+    </div>
+
+</body>
+</html>

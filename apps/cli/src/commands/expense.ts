@@ -192,6 +192,7 @@ export const expenseCommands: Command[] = [
       "banana create-expense --amount 50 --description 'Dinner' --payer-id 123 --split-mode EQUAL --participant-ids 123,456",
       "banana create-expense --amount 12 --description 'Lunch' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --category base:food",
       'banana create-expense --amount 100 --description \'Groceries\' --payer-id 123 --split-mode EXACT --participant-ids 123,456 --custom-splits \'[{"userId":123,"amount":60},{"userId":456,"amount":40}]\'',
+      "banana create-expense --amount 50 --description 'Netflix' --payer-id 123 --split-mode EQUAL --participant-ids 123,456 --recurrence-frequency MONTHLY",
     ],
     options: {
       "chat-id": {
@@ -250,6 +251,34 @@ export const expenseCommands: Command[] = [
         type: "string",
         description:
           "Category id (e.g. base:food or chat:<uuid>). Run list-categories to see options.",
+        required: false,
+      },
+      "recurrence-frequency": {
+        type: "string",
+        description:
+          "Set to DAILY, WEEKLY, MONTHLY, or YEARLY to create a recurring template",
+        required: false,
+      },
+      "recurrence-interval": {
+        type: "string",
+        description: "Recurrence interval multiplier (default: 1)",
+        required: false,
+      },
+      "recurrence-weekdays": {
+        type: "string",
+        description:
+          "Comma-separated weekdays for weekly schedules (e.g., MON,WED)",
+        required: false,
+      },
+      "recurrence-end-date": {
+        type: "string",
+        description: "ISO 8601 end date for the recurrence",
+        required: false,
+      },
+      "recurrence-timezone": {
+        type: "string",
+        description:
+          "Timezone for the schedule (defaults to system local timezone)",
         required: false,
       },
     },
@@ -358,12 +387,118 @@ export const expenseCommands: Command[] = [
         }
       }
 
+      const frequency = opts["recurrence-frequency"]
+        ? String(opts["recurrence-frequency"]).toUpperCase()
+        : undefined;
+      let recurrenceParams: any = undefined;
+
+      if (
+        !frequency &&
+        (opts["recurrence-interval"] ||
+          opts["recurrence-weekdays"] ||
+          opts["recurrence-end-date"] ||
+          opts["recurrence-timezone"])
+      ) {
+        return error(
+          "invalid_option",
+          "Recurrence options require --recurrence-frequency",
+          "create-expense"
+        );
+      }
+
+      if (frequency) {
+        const timezone =
+          (opts["recurrence-timezone"] as string) ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        if (!["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(frequency)) {
+          return error(
+            "invalid_option",
+            "--recurrence-frequency must be DAILY, WEEKLY, MONTHLY, or YEARLY",
+            "create-expense"
+          );
+        }
+
+        const interval = opts["recurrence-interval"]
+          ? Number(opts["recurrence-interval"])
+          : 1;
+        if (
+          Number.isNaN(interval) ||
+          interval <= 0 ||
+          !Number.isInteger(interval)
+        ) {
+          return error(
+            "invalid_option",
+            "--recurrence-interval must be a positive integer",
+            "create-expense"
+          );
+        }
+
+        let weekdays: string[] | undefined;
+        if (opts["recurrence-weekdays"]) {
+          weekdays = String(opts["recurrence-weekdays"])
+            .split(",")
+            .map((s) => s.trim().toUpperCase());
+          const validWeekdays = [
+            "SUN",
+            "MON",
+            "TUE",
+            "WED",
+            "THU",
+            "FRI",
+            "SAT",
+          ];
+          if (weekdays.some((w) => !validWeekdays.includes(w))) {
+            return error(
+              "invalid_option",
+              "--recurrence-weekdays must contain valid short days (SUN,MON,TUE...)",
+              "create-expense"
+            );
+          }
+        } else if (frequency === "WEEKLY") {
+          // Default to current day if WEEKLY and no weekdays provided
+          const baseDate = date || new Date();
+          const DAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+          weekdays = [DAY_NAMES[baseDate.getDay()]!];
+        }
+
+        let endDate: Date | undefined;
+        if (opts["recurrence-end-date"]) {
+          endDate = new Date(String(opts["recurrence-end-date"]));
+          if (Number.isNaN(endDate.getTime())) {
+            return error(
+              "invalid_option",
+              "--recurrence-end-date must be a valid ISO 8601 date string",
+              "create-expense"
+            );
+          }
+
+          const baseDate = date || new Date();
+          if (endDate < baseDate) {
+            return error(
+              "invalid_option",
+              "--recurrence-end-date cannot be before the expense date",
+              "create-expense"
+            );
+          }
+        }
+
+        recurrenceParams = {
+          frequency,
+          interval,
+          weekdays: weekdays ?? [],
+          endDate,
+          timezone,
+        };
+      }
+
       return run("create-expense", async () => {
         const chatId = await resolveChatId(
           trpc,
           opts["chat-id"] as string | undefined
         );
-        return trpc.expense.createExpense.mutate({
+
+        const payload = {
           chatId,
           creatorId,
           payerId,
@@ -380,7 +515,16 @@ export const expenseCommands: Command[] = [
           customSplits,
           categoryId: opts.category ? String(opts.category) : undefined,
           sendNotification: true,
-        });
+        };
+
+        if (recurrenceParams) {
+          return trpc.expense.createExpenseWithRecurrence.mutate({
+            expense: payload,
+            recurrence: recurrenceParams,
+          });
+        }
+
+        return trpc.expense.createExpense.mutate(payload);
       });
     },
   },
