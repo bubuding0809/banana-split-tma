@@ -387,7 +387,9 @@ export const expenseCommands: Command[] = [
         }
       }
 
-      const frequency = opts["recurrence-frequency"] as string | undefined;
+      const frequency = opts["recurrence-frequency"]
+        ? String(opts["recurrence-frequency"]).toUpperCase()
+        : undefined;
       let recurrenceParams: any = undefined;
 
       if (
@@ -420,10 +422,14 @@ export const expenseCommands: Command[] = [
         const interval = opts["recurrence-interval"]
           ? Number(opts["recurrence-interval"])
           : 1;
-        if (Number.isNaN(interval) || interval <= 0) {
+        if (
+          Number.isNaN(interval) ||
+          interval <= 0 ||
+          !Number.isInteger(interval)
+        ) {
           return error(
             "invalid_option",
-            "--recurrence-interval must be a positive number",
+            "--recurrence-interval must be a positive integer",
             "create-expense"
           );
         }
@@ -452,13 +458,8 @@ export const expenseCommands: Command[] = [
         } else if (frequency === "WEEKLY") {
           // Default to current day if WEEKLY and no weekdays provided
           const baseDate = date || new Date();
-          const currentDayStr = baseDate
-            .toLocaleDateString("en-US", {
-              weekday: "short",
-              timeZone: timezone,
-            })
-            .toUpperCase();
-          weekdays = [currentDayStr];
+          const DAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+          weekdays = [DAY_NAMES[baseDate.getDay()]!];
         }
 
         let endDate: Date | undefined;

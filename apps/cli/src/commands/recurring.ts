@@ -127,7 +127,15 @@ export const recurringCommands: Command[] = [
       }
 
       if (opts.description !== undefined) {
-        payload.description = String(opts.description);
+        const desc = String(opts.description);
+        if (desc.length < 1 || desc.length > 60) {
+          return error(
+            "invalid_option",
+            "--description must be between 1 and 60 characters",
+            "update-recurring-expense"
+          );
+        }
+        payload.description = desc;
       }
 
       if (opts.frequency !== undefined) {
@@ -144,10 +152,10 @@ export const recurringCommands: Command[] = [
 
       if (opts.interval !== undefined) {
         const ival = Number(opts.interval);
-        if (Number.isNaN(ival) || ival <= 0) {
+        if (Number.isNaN(ival) || ival <= 0 || !Number.isInteger(ival)) {
           return error(
             "invalid_option",
-            "--interval must be a positive number",
+            "--interval must be a positive integer",
             "update-recurring-expense"
           );
         }
@@ -191,6 +199,22 @@ export const recurringCommands: Command[] = [
           }
           payload.endDate = ed;
         }
+      }
+
+      const hasUpdate = [
+        "amount",
+        "description",
+        "frequency",
+        "interval",
+        "weekdays",
+        "end-date",
+      ].some((k) => opts[k] !== undefined);
+      if (!hasUpdate) {
+        return error(
+          "invalid_option",
+          "At least one field to update is required",
+          "update-recurring-expense"
+        );
       }
 
       return run("update-recurring-expense", async () => {
