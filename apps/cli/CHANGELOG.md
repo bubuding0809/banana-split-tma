@@ -4,6 +4,13 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-04-30
+
+### Added
+
+- Added support for managing recurring expenses. `create-expense` now accepts recurrence flags (`--recurrence-frequency`, `--recurrence-interval`, `--recurrence-weekdays`, `--recurrence-end-date`, `--recurrence-timezone`) to establish a recurring template alongside the initial expense.
+- Introduced a new `recurring` command module containing `list-recurring-expenses`, `get-recurring-expense`, `update-recurring-expense`, and `cancel-recurring-expense` to manage the lifecycles of active subscriptions and scheduled expenses.
+
 ## [0.13.0] - 2026-04-23
 
 ### Fixed
