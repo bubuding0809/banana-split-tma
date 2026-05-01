@@ -57,4 +57,19 @@ describe("migrateChatHandler", () => {
     );
     expect(result.migrated).toBe(true);
   });
+
+  it("returns migrated:false when old chat doesn't exist (idempotent)", async () => {
+    const db = makeDb({ oldChat: null, newChat: { id: 2n } });
+    const result = await migrateChatHandler(
+      { oldChatId: 1n, newChatId: 2n },
+      db
+    );
+    expect(result.migrated).toBe(false);
+    expect(result.migratedRecords).toEqual({
+      expenses: 0,
+      settlements: 0,
+      snapshots: 0,
+      schedules: 0,
+    });
+  });
 });

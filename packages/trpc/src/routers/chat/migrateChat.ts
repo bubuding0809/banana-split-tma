@@ -43,10 +43,17 @@ export const migrateChatHandler = async (
     });
 
     if (!existingChat) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Chat with ID ${oldChatId} not found`,
-      });
+      return {
+        status: 200,
+        message: `Chat ${oldChatId} not found — already migrated`,
+        migrated: false,
+        migratedRecords: {
+          expenses: 0,
+          settlements: 0,
+          snapshots: 0,
+          schedules: 0,
+        },
+      };
     }
 
     // Validate that the new chat ID doesn't already exist
