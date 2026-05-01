@@ -90,33 +90,42 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
   }
 });
 
+async function runMigration(
+  ctx: BotContext,
+  oldChatId: number,
+  newChatId: number
+): Promise<void> {
+  const result = await ctx.trpc.chat.migrateChat({ oldChatId, newChatId });
+
+  if (!result.migrated) {
+    // Idempotent no-op: the other side's event already migrated. Stay quiet.
+    return;
+  }
+
+  const chatContext = ChatUtils.createChatContext(newChatId, "supergroup");
+  const url = ChatUtils.createMiniAppUrl(
+    env.MINI_APP_DEEPLINK || "",
+    ctx.me.username,
+    chatContext,
+    "compact"
+  );
+
+  const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+
+  await ctx.api.sendMessage(newChatId, MIGRATION_MESSAGE_GROUP, {
+    reply_markup: keyboard,
+    parse_mode: "MarkdownV2",
+  });
+}
+
 botEventsFeature.on("message:migrate_to_chat_id", async (ctx) => {
   const oldChatId = ctx.chat.id;
   const newChatId = ctx.message.migrate_to_chat_id;
+  await runMigration(ctx, oldChatId, newChatId);
+});
 
-  try {
-    migratedChatIds.add(newChatId);
-
-    await ctx.trpc.chat.migrateChat({
-      oldChatId,
-      newChatId,
-    });
-
-    const chatContext = ChatUtils.createChatContext(newChatId, "supergroup");
-    const url = ChatUtils.createMiniAppUrl(
-      env.MINI_APP_DEEPLINK || "",
-      ctx.me.username,
-      chatContext,
-      "compact"
-    );
-
-    const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
-
-    await ctx.api.sendMessage(newChatId, MIGRATION_MESSAGE_GROUP, {
-      reply_markup: keyboard,
-      parse_mode: "MarkdownV2",
-    });
-  } catch (error) {
-    console.error("Failed to migrate chat:", error);
-  }
+botEventsFeature.on("message:migrate_from_chat_id", async (ctx) => {
+  const newChatId = ctx.chat.id;
+  const oldChatId = ctx.message.migrate_from_chat_id;
+  await runMigration(ctx, oldChatId, newChatId);
 });
