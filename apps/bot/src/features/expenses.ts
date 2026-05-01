@@ -7,7 +7,7 @@ import { env } from "../env.js";
 import { Decimal } from "decimal.js";
 import { classifyCategory, resolveCategory } from "@repo/categories";
 import { getAgentModel } from "@repo/agent";
-import { encodeV1DeepLink } from "@dko/trpc";
+import { encodeV1DeepLink, formatDateLabel } from "@dko/trpc";
 import type { LanguageModel } from "ai";
 
 interface Expense {
@@ -25,25 +25,6 @@ interface Expense {
     userId: number;
     amount: number;
   }[];
-}
-
-// Human-friendly date for the expense confirmation. "Today" / "Yesterday"
-// read more naturally than the raw date when the user just recorded an
-// expense; anything further back falls through to a short date string.
-function formatDateLabel(date: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round(
-    (target.getTime() - today.getTime()) / 86_400_000
-  );
-  if (diffDays === 0) return "Today";
-  if (diffDays === -1) return "Yesterday";
-  if (diffDays === 1) return "Tomorrow";
-  return target.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 export const expensesFeature = new Composer<BotContext>();

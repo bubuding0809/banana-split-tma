@@ -9,6 +9,7 @@ import {
   createDeepLinkedUrl,
 } from "../../utils/telegram.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
+import { formatDateLabel } from "../../utils/formatDateLabel.js";
 import { inlineKeyboard } from "telegraf/markup";
 
 // Fields that can be marked with ✏️ on an edited notification. Kept in
@@ -62,6 +63,10 @@ const inputSchema = z.object({
   // Mini App create/edit path already have it, and we want the label
   // in every notification.
   expenseDate: z.date(),
+  // IANA timezone for the chat. Used to label the date as
+  // Today/Yesterday/Tomorrow in the chat's local day boundary. Optional —
+  // null/undefined falls back to Asia/Singapore in `formatDateLabel`.
+  chatTimezone: z.string().nullish(),
   threadId: z.number().optional(),
   force: z.boolean().default(false),
 });
@@ -69,23 +74,6 @@ const inputSchema = z.object({
 // Exported type for use in other handlers
 export type ExpenseNotificationData = z.infer<typeof inputSchema>;
 export type ExpenseParticipant = z.infer<typeof participantSchema>;
-
-// Human-friendly date label — "Today" / "Yesterday" / "Tomorrow" for
-// near dates, short ISO-ish date otherwise. Kept local to this file to
-// avoid a cross-package shared-utils dance; the bot's private-chat
-// flow duplicates this (apps/bot/src/features/expenses.ts).
-const formatDateLabel = (date: Date): string => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round(
-    (target.getTime() - today.getTime()) / 86_400_000
-  );
-  if (diffDays === 0) return "Today";
-  if (diffDays === -1) return "Yesterday";
-  if (diffDays === 1) return "Tomorrow";
-  return target.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-};
 
 // Raw currency format — `SGD 50.00` — matches web + CLI + the bot's
 // parse-expense input. Avoids Intl locale surprises across currencies.
@@ -113,6 +101,7 @@ export const formatExpenseMessage = (
   opts?: {
     isUpdate?: boolean;
     changedFields?: readonly ExpenseChangedField[];
+    chatTimezone?: string | null;
   }
 ): string => {
   const escapedDescription = escapeMarkdown(expenseDescription, 2);
@@ -155,7 +144,10 @@ export const formatExpenseMessage = (
       ? `> 🏷 • ${mark("category", `${categoryEmoji} ${escapeMarkdown(categoryTitle, 2)}`)}\n`
       : "";
 
-  const dateLabel = escapeMarkdown(formatDateLabel(expenseDate), 2);
+  const dateLabel = escapeMarkdown(
+    formatDateLabel(expenseDate, opts?.chatTimezone),
+    2
+  );
   const titleVerb = isUpdate ? "Expense" : "New Expense";
   const titleLine = `🧾 ${titleVerb} by ${mark("payer", payerMention)}`;
   const splitsHeader = `💸 Splits${changed.has("split") ? " ✏️" : ""}`;
@@ -211,7 +203,8 @@ export const sendExpenseNotificationMessageHandler = async (
     input.currency,
     input.expenseDate,
     input.categoryEmoji,
-    input.categoryTitle
+    input.categoryTitle,
+    { chatTimezone: input.chatTimezone }
   );
 
   const botInfo = await teleBot.getMe();

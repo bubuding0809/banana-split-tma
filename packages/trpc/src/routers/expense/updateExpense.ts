@@ -585,6 +585,7 @@ export const updateExpenseHandler = async (
                   participants: participantsWithAmounts,
                   currency: currency,
                   expenseDate: input.date ?? existingExpense.date,
+                  chatTimezone: existingExpense.chat.timezone,
                   categoryEmoji,
                   categoryTitle,
                   changedFields,
