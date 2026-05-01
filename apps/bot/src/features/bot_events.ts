@@ -8,8 +8,6 @@ import {
 import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 
-const migratedChatIds = new Set<number>();
-
 export const botEventsFeature = new Composer<BotContext>();
 
 botEventsFeature.on("my_chat_member", async (ctx, next) => {
@@ -32,52 +30,43 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
     return next();
   }
 
-  // Wait briefly in case this is a migration race condition where message:migrate_to_chat_id
-  // hasn't arrived yet but we're getting the my_chat_member upgrade trigger
-  if (chat.type === "supergroup") {
-    for (let i = 0; i < 10; i++) {
-      await new Promise((r) => setTimeout(r, 500));
-      if (migratedChatIds.has(chat.id)) {
-        break;
-      }
-    }
-  }
-
-  // Skip chats that were just migrated to a supergroup
-  if (migratedChatIds.has(chat.id)) {
-    migratedChatIds.delete(chat.id);
-    console.log(`Skipping my_chat_member for migrated chat ${chat.id}`);
-    return next();
-  }
-
   console.log(`Bot added to group: ${chat.id}`);
 
   try {
-    let chatPhotoUrl = undefined;
+    let chatPhotoUrl: string | undefined;
     const fullChat = await ctx.api.getChat(chat.id);
     if (fullChat.photo) {
       const file = await ctx.api.getFile(fullChat.photo.big_file_id);
       chatPhotoUrl = file.file_path;
     }
 
-    let chatExists = false;
+    let existingChat: Awaited<ReturnType<typeof ctx.trpc.chat.getChat>> | null =
+      null;
     try {
-      await ctx.trpc.chat.getChat({ chatId: chat.id });
-      chatExists = true;
+      existingChat = await ctx.trpc.chat.getChat({ chatId: chat.id });
     } catch (e: unknown) {
       if ((e as any)?.code !== "NOT_FOUND") {
         throw e;
       }
     }
 
-    if (!chatExists) {
-      await ctx.trpc.chat.createChat({
-        chatId: chat.id,
-        chatTitle: chat.title || `Group:${chat.id}`,
-        chatType: chat.type,
-        chatPhoto: chatPhotoUrl || undefined,
-      });
+    if (existingChat) {
+      // Either: this chat was created by a prior add (re-add path)
+      // or: it was just created by migrateChat (migratedFromChatId is set).
+      // In both cases skip the welcome — the user has been greeted before,
+      // or the migrate handler will deliver its own dedicated message.
+      console.log(
+        `my_chat_member: chat ${chat.id} already exists (migrated=${existingChat.migratedFromChatId !== null}); skipping welcome`
+      );
+      return next();
     }
+
+    await ctx.trpc.chat.createChat({
+      chatId: chat.id,
+      chatTitle: chat.title || `Group:${chat.id}`,
+      chatType: chat.type,
+      chatPhoto: chatPhotoUrl || undefined,
+    });
 
     await ctx.reply(GROUP_JOIN_MESSAGE);
 
