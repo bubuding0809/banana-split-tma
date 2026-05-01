@@ -22,6 +22,9 @@ export const getChatHandler = async (
     ...chat,
     id: Number(chat.id),
     threadId: chat?.threadId ? Number(chat.threadId) : undefined,
+    migratedFromChatId: chat?.migratedFromChatId
+      ? Number(chat.migratedFromChatId)
+      : null,
     debtSimplificationEnabled: chat?.debtSimplificationEnabled ?? false,
     notifyOnExpense: chat?.notifyOnExpense ?? true,
     notifyOnSettlement: chat?.notifyOnSettlement ?? true,

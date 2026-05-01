@@ -39,10 +39,7 @@ export const createChatHandler = async (
       where: { id: input.chatId },
     });
     if (existingChat) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: `Chat with ID ${input.chatId} already exists`,
-      });
+      return existingChat;
     }
 
     const chat = await db.chat.create({
@@ -65,6 +62,10 @@ export const createChatHandler = async (
       error instanceof Error &&
       error.message.includes("Unique constraint failed")
     ) {
+      const existing = await db.chat.findUnique({
+        where: { id: input.chatId },
+      });
+      if (existing) return existing;
       throw new TRPCError({
         code: "CONFLICT",
         message: `Chat with ID ${input.chatId} already exists`,

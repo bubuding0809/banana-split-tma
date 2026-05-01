@@ -18,6 +18,7 @@ export const inputSchema = z.object({
 export const outputSchema = z.object({
   status: z.number(),
   message: z.string(),
+  migrated: z.boolean(),
   migratedRecords: z.object({
     expenses: z.number(),
     settlements: z.number(),
@@ -33,30 +34,32 @@ export const migrateChatHandler = async (
   const { oldChatId, newChatId } = input;
 
   try {
-    // Validate that the old chat exists
-    const existingChat = await db.chat.findUnique({
-      where: { id: oldChatId },
-      include: {
-        members: true,
-      },
-    });
+    // All reads + writes happen inside a single transaction. We acquire a
+    // Postgres transaction-scoped advisory lock on newChatId first so that
+    // any concurrent migrate-to-this-target serializes behind us. The lock
+    // is auto-released on commit/rollback and is safe across instances.
+    const migrationResult = await db.$transaction(async (tx) => {
+      // Acquire transaction-scoped advisory lock on newChatId.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${newChatId}::bigint)`;
 
-    if (!existingChat) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Chat with ID ${oldChatId} not found`,
+      // Re-read state inside the lock so we observe the post-serialization view.
+      const oldChat = await tx.chat.findUnique({
+        where: { id: oldChatId },
+        include: { members: true },
       });
-    }
 
-    // Validate that the new chat ID doesn't already exist
-    const existingNewChat = await db.chat.findUnique({
-      where: { id: newChatId },
-    });
+      if (!oldChat) {
+        return {
+          migrated: false as const,
+          counts: { expenses: 0, settlements: 0, snapshots: 0, schedules: 0 },
+        };
+      }
 
-    if (existingNewChat) {
-      // The race condition caused the new chat to be created already.
-      // We must explicitly merge the records and delete the old chat.
-      const migrationResult = await db.$transaction(async (tx) => {
+      const newChat = await tx.chat.findUnique({ where: { id: newChatId } });
+
+      if (newChat) {
+        // Race-branch: the new chat already exists. Explicitly merge old → new
+        // with an "old wins" policy by reparenting old chat's child records.
         const expenseCount = await tx.expense.count({
           where: { chatId: oldChatId },
         });
@@ -67,7 +70,6 @@ export const migrateChatHandler = async (
           where: { chatId: oldChatId },
         });
 
-        // Reassign all related records to the newly created chat
         await tx.expense.updateMany({
           where: { chatId: oldChatId },
           data: { chatId: newChatId },
@@ -80,13 +82,33 @@ export const migrateChatHandler = async (
           where: { chatId: oldChatId },
           data: { chatId: newChatId },
         });
-
-        // Re-link users
-        const oldChat = await tx.chat.findUnique({
-          where: { id: oldChatId },
-          include: { members: true },
+        await tx.recurringExpenseTemplate.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
         });
-        if (oldChat && oldChat.members.length > 0) {
+        await tx.chatApiKey.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+
+        // "Old wins" merge: discard whatever defaults landed on the new chat,
+        // then move the user-customized rows from the old chat.
+        await tx.chatCategory.deleteMany({ where: { chatId: newChatId } });
+        await tx.chatCategory.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+
+        await tx.chatCategoryOrdering.deleteMany({
+          where: { chatId: newChatId },
+        });
+        await tx.chatCategoryOrdering.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+
+        // Connect old members to the new chat.
+        if (oldChat.members.length > 0) {
           const userIds = oldChat.members.map((m) => ({ id: m.id }));
           await tx.chat.update({
             where: { id: newChatId },
@@ -94,27 +116,28 @@ export const migrateChatHandler = async (
           });
         }
 
-        // Delete the old chat
+        // Mark migration source on the new chat row.
+        await tx.chat.update({
+          where: { id: newChatId },
+          data: { migratedFromChatId: oldChatId },
+        });
+
+        // Delete old chat (cascades to _ChatToUser).
         await tx.chat.delete({ where: { id: oldChatId } });
 
         return {
-          expenses: expenseCount,
-          settlements: settlementCount,
-          snapshots: snapshotCount,
-          schedules: 0,
+          migrated: true as const,
+          counts: {
+            expenses: expenseCount,
+            settlements: settlementCount,
+            snapshots: snapshotCount,
+            schedules: 0,
+          },
         };
-      });
+      }
 
-      return {
-        status: 200,
-        message: `Successfully merged existing chat ${oldChatId} into new chat ${newChatId}`,
-        migratedRecords: migrationResult,
-      };
-    }
-
-    // Use a transaction to ensure data integrity
-    const migrationResult = await db.$transaction(async (tx) => {
-      // Step 1: Get counts of records that will be migrated (for reporting)
+      // Branch B: new chat doesn't exist yet. Use raw SQL to UPDATE the primary
+      // key; ON UPDATE CASCADE migrates child FKs in a single statement.
       const expenseCount = await tx.expense.count({
         where: { chatId: oldChatId },
       });
@@ -125,18 +148,33 @@ export const migrateChatHandler = async (
         where: { chatId: oldChatId },
       });
 
-      // Step 2: Use raw SQL to update the primary key - this will cascade to all related tables
-      // Thanks to onUpdate: Cascade in our schema, this single update will automatically
-      // update all expenses, settlements, and snapshots while preserving all relationships
       await tx.$executeRaw`UPDATE "Chat" SET id = ${newChatId} WHERE id = ${oldChatId}`;
 
+      // Set migration source on the (now-renamed) chat row.
+      await tx.chat.update({
+        where: { id: newChatId },
+        data: { migratedFromChatId: oldChatId },
+      });
+
       return {
-        expenses: expenseCount,
-        settlements: settlementCount,
-        snapshots: snapshotCount,
-        schedules: 0,
+        migrated: true as const,
+        counts: {
+          expenses: expenseCount,
+          settlements: settlementCount,
+          snapshots: snapshotCount,
+          schedules: 0,
+        },
       };
     });
+
+    if (!migrationResult.migrated) {
+      return {
+        status: 200,
+        message: `Chat ${oldChatId} not found — already migrated`,
+        migrated: false,
+        migratedRecords: migrationResult.counts,
+      };
+    }
 
     // Step 6: Handle AWS EventBridge schedules (outside of DB transaction)
     // Note: This is a best-effort operation - we don't fail the migration if schedules fail
@@ -160,6 +198,18 @@ export const migrateChatHandler = async (
             "AWS_GROUP_REMINDER_LAMBDA_ARN not configured - skipping schedule migration"
           );
         } else {
+          // The new chat may already have a default schedule attached by
+          // createChat's finally block (when my_chat_member ran first).
+          // Remove it before we rewrite from the old chat's customized settings.
+          try {
+            await deleteGroupReminderSchedule(
+              schedulerClient,
+              Number(newChatId)
+            );
+          } catch {
+            // No-op: missing schedule is fine.
+          }
+
           // Delete the old schedule
           await deleteGroupReminderSchedule(schedulerClient, Number(oldChatId));
 
@@ -200,12 +250,13 @@ export const migrateChatHandler = async (
       );
     }
 
-    migrationResult.schedules = schedulesHandled;
+    migrationResult.counts.schedules = schedulesHandled;
 
     return {
       status: 200,
       message: "Chat migrated successfully",
-      migratedRecords: migrationResult,
+      migrated: true,
+      migratedRecords: migrationResult.counts,
     };
   } catch (error) {
     if (error instanceof TRPCError) {
