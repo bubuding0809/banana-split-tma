@@ -82,6 +82,14 @@ export const migrateChatHandler = async (
           where: { chatId: oldChatId },
           data: { chatId: newChatId },
         });
+        await tx.recurringExpenseTemplate.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+        await tx.chatApiKey.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
 
         // Connect old members to the new chat.
         if (oldChat.members.length > 0) {

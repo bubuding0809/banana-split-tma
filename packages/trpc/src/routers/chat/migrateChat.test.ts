@@ -91,4 +91,35 @@ describe("migrateChatHandler", () => {
       calls.some((c) => c.includes("pg_advisory_xact_lock") && c.includes("2"))
     ).toBe(true);
   });
+
+  it("race-branch moves RecurringExpenseTemplate and ChatApiKey rows", async () => {
+    const moves: Record<string, { from: bigint; to: bigint } | null> = {
+      recurringExpenseTemplate: null,
+      chatApiKey: null,
+    };
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      recurringExpenseTemplate: {
+        updateMany: async ({ where, data }: any) => {
+          moves.recurringExpenseTemplate = {
+            from: where.chatId,
+            to: data.chatId,
+          };
+          return { count: 0 };
+        },
+      },
+      chatApiKey: {
+        updateMany: async ({ where, data }: any) => {
+          moves.chatApiKey = { from: where.chatId, to: data.chatId };
+          return { count: 0 };
+        },
+      },
+    };
+    const db = {
+      $transaction: async (cb: any) => cb(tx),
+    } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+    expect(moves.recurringExpenseTemplate).toEqual({ from: 1n, to: 2n });
+    expect(moves.chatApiKey).toEqual({ from: 1n, to: 2n });
+  });
 });
