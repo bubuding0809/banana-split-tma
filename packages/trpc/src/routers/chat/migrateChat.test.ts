@@ -72,4 +72,23 @@ describe("migrateChatHandler", () => {
       schedules: 0,
     });
   });
+
+  it("acquires a transaction-scoped advisory lock on newChatId", async () => {
+    const calls: string[] = [];
+    const txMock = {
+      ...makeTxMock({ oldChat: null, newChat: null }),
+      $executeRaw: async (strings: TemplateStringsArray, ...values: any[]) => {
+        calls.push(strings.join("?") + " :: " + values.join(","));
+        return 1;
+      },
+    };
+    const db = {
+      chat: { findUnique: async () => null },
+      $transaction: async (cb: any) => cb(txMock),
+    } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+    expect(
+      calls.some((c) => c.includes("pg_advisory_xact_lock") && c.includes("2"))
+    ).toBe(true);
+  });
 });
