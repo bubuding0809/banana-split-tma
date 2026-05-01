@@ -48,4 +48,17 @@ describe("formatDateLabel", () => {
     const expenseDate = new Date("2026-04-30T16:00:00Z"); // Apr 30 in UTC
     expect(formatDateLabel(expenseDate, "UTC")).toBe("Yesterday");
   });
+
+  it("does not skip a calendar day across a DST 'spring forward' boundary", () => {
+    // 2026 US spring-forward: 2026-03-08 02:00 EST → 03:00 EDT (Sunday is 23h).
+    // Now: Mon 2026-03-09 00:30 EDT == 04:30 UTC.
+    vi.setSystemTime(new Date("2026-03-09T04:30:00Z"));
+    // Expense date: Sun 2026-03-08 (the short day) at noon EDT = 16:00 UTC.
+    const expenseDate = new Date("2026-03-08T16:00:00Z");
+    // A naive `Date.now() - 86_400_000` yesterday calculation lands on Sat
+    // Mar 7 instead of Sun Mar 8 because the prior day was 23h long, so the
+    // expense gets labelled "Mar 8" instead of "Yesterday". The Date.UTC of
+    // tz-extracted ymd is immune to this.
+    expect(formatDateLabel(expenseDate, "America/New_York")).toBe("Yesterday");
+  });
 });
