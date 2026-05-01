@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
+import { getSchedulerClient } from "./utils/schedulerClient.js";
+import { getGroupReminderSchedule } from "./utils/groupReminderUtils.js";
 
 const AWS_GROUP_REMINDER_LAMBDA_ARN =
   process.env.AWS_GROUP_REMINDER_LAMBDA_ARN!;
@@ -199,6 +201,46 @@ export const createGroupReminderScheduleHandler = async (
 ) => {
   try {
     const { chatId, dayOfWeek, time, timezone, description, enabled } = input;
+
+    // Idempotency check: if a schedule already exists for this chat, return
+    // its data instead of creating a new one. Silently no-ops on the
+    // createChat-finally / migrateChat race when migrate created the
+    // schedule first with the old chat's customized settings.
+    try {
+      const schedulerClient = getSchedulerClient();
+      const existing = await getGroupReminderSchedule(
+        schedulerClient,
+        Number(chatId)
+      );
+      if (existing) {
+        return {
+          scheduleArn: existing.scheduleArn ?? "",
+          scheduleName: existing.scheduleName,
+          scheduleExpression: existing.scheduleExpression,
+          chatId,
+          dayOfWeek: existing.dayOfWeek,
+          time: existing.time,
+          timezone: existing.timezone,
+          lambdaTarget: {
+            arn: AWS_GROUP_REMINDER_LAMBDA_ARN,
+            payload: { chatId },
+          },
+          state: (existing.enabled ? "ENABLED" : "DISABLED") as
+            | "ENABLED"
+            | "DISABLED",
+          createdDate: existing.createdDate ?? new Date(),
+          message: `Schedule already exists for chat ${chatId} — no-op.`,
+        };
+      }
+    } catch (lookupError) {
+      // If the lookup itself fails (e.g., transient AWS error), fall through
+      // to the create path. The create call will produce a more meaningful
+      // error if there's a real problem.
+      console.warn(
+        `Schedule existence check failed for chat ${chatId}; proceeding to create:`,
+        lookupError
+      );
+    }
 
     // Generate schedule name and expression
     const scheduleName = generateScheduleName(chatId);
