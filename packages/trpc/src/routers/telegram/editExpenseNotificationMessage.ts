@@ -29,6 +29,7 @@ interface EditExpenseMessageInput {
   expenseDate: Date;
   categoryEmoji?: string;
   categoryTitle?: string;
+  chatTimezone?: string | null;
   // Fields that actually changed in this update. Each gets a trailing
   // ✏️ in the rendered message; empty/undefined means no markers.
   changedFields?: readonly ExpenseChangedField[];
@@ -79,7 +80,11 @@ export const editExpenseMessageHandler = async (
       input.expenseDate,
       input.categoryEmoji,
       input.categoryTitle,
-      { isUpdate: true, changedFields: input.changedFields }
+      {
+        isUpdate: true,
+        changedFields: input.changedFields,
+        chatTimezone: input.chatTimezone,
+      }
     );
 
     // Build the "View Expense" deep link payload. Uses the v1 protocol

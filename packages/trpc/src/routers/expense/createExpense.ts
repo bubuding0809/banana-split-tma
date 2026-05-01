@@ -392,6 +392,7 @@ export const createExpenseHandler = async (
               select: {
                 type: true,
                 threadId: true,
+                timezone: true,
               },
             }),
           ]);
@@ -450,6 +451,7 @@ export const createExpenseHandler = async (
               participants: participantsWithAmounts,
               currency: currency,
               expenseDate: input.date ?? new Date(),
+              chatTimezone: chatForNotification?.timezone,
               categoryEmoji,
               categoryTitle,
               threadId:
