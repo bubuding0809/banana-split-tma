@@ -22,15 +22,15 @@ export function formatDateLabel(
   const target = ymdInTimezone(date, tz);
   const now = new Date();
   const today = ymdInTimezone(now, tz);
-  const yesterday = ymdInTimezone(new Date(now.getTime() - 86_400_000), tz);
-  const tomorrow = ymdInTimezone(new Date(now.getTime() + 86_400_000), tz);
 
-  const same = (a: typeof target, b: typeof target) =>
-    a.year === b.year && a.month === b.month && a.day === b.day;
+  // Use Date.UTC to safely calculate day differences without DST jitter
+  const targetUtc = Date.UTC(target.year, target.month - 1, target.day);
+  const todayUtc = Date.UTC(today.year, today.month - 1, today.day);
+  const diffDays = Math.round((targetUtc - todayUtc) / 86_400_000);
 
-  if (same(target, today)) return "Today";
-  if (same(target, yesterday)) return "Yesterday";
-  if (same(target, tomorrow)) return "Tomorrow";
+  if (diffDays === 0) return "Today";
+  if (diffDays === -1) return "Yesterday";
+  if (diffDays === 1) return "Tomorrow";
   return new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     month: "short",
