@@ -18,6 +18,7 @@ export const inputSchema = z.object({
 export const outputSchema = z.object({
   status: z.number(),
   message: z.string(),
+  migrated: z.boolean(),
   migratedRecords: z.object({
     expenses: z.number(),
     settlements: z.number(),
@@ -108,6 +109,7 @@ export const migrateChatHandler = async (
       return {
         status: 200,
         message: `Successfully merged existing chat ${oldChatId} into new chat ${newChatId}`,
+        migrated: true,
         migratedRecords: migrationResult,
       };
     }
@@ -205,6 +207,7 @@ export const migrateChatHandler = async (
     return {
       status: 200,
       message: "Chat migrated successfully",
+      migrated: true,
       migratedRecords: migrationResult,
     };
   } catch (error) {
