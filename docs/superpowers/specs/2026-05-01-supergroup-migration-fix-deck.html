@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Supergroup migration reliability fix</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --muted: #9aa3ad;
+  --accent: #ffd45e;
+  --ok: #4ade80;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --note: #60a5fa;
+  --border: #2a2f37;
+  --panel: #181b20;
+}
+.reveal { font-size: 26px; }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+.reveal h1 { font-size: 1.9em; color: var(--accent); }
+.reveal h2 { font-size: 1.3em; color: var(--accent); margin-bottom: 0.6em; }
+.reveal h3 { font-size: 1em; color: var(--fg); margin-bottom: 0.4em; }
+.reveal section { text-align: left; }
+.reveal section.title { text-align: center; }
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal small { color: var(--muted); font-size: 0.7em; }
+.reveal code { background: #232831; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+.reveal pre { font-size: 0.55em; box-shadow: none; }
+.reveal pre code { padding: 0.8em; max-height: 60vh; }
+.reveal table { font-size: 0.7em; border-collapse: collapse; width: 100%; }
+.reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.reveal table th { background: var(--panel); color: var(--accent); font-weight: 600; }
+.reveal table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.65em; font-weight: 600; letter-spacing: 0.02em; margin-right: 4px; vertical-align: middle; }
+.pill.ok   { background: rgba(74,222,128,0.15); color: var(--ok);   border: 1px solid rgba(74,222,128,0.4); }
+.pill.bad  { background: rgba(239,68,68,0.15);  color: var(--bad);  border: 1px solid rgba(239,68,68,0.4); }
+.pill.warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.pill.note { background: rgba(96,165,250,0.15); color: var(--note); border: 1px solid rgba(96,165,250,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.card h3 { margin: 0 0 6px 0; font-size: 0.85em; }
+.card p, .card ul { margin: 0; font-size: 0.78em; }
+.card ul { padding-left: 1.2em; }
+.callout { background: rgba(255,212,94,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 0.85em; margin: 10px 0; }
+.callout.bad { background: rgba(239,68,68,0.08); border-left-color: var(--bad); }
+.callout.note { background: rgba(96,165,250,0.07); border-left-color: var(--note); }
+.muted { color: var(--muted); }
+ul.tight li { margin: 0.18em 0; }
+.bigtitle { font-size: 0.6em; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title">
+  <h1>Supergroup migration reliability fix</h1>
+  <p class="muted" style="font-size: 0.9em;">Replace the broken in-memory race guard with a self-correcting design<br/>that tolerates dropped events, cross-instance routing, and concurrent triggers.</p>
+  <p class="bigtitle">2026-05-01 · design spec</p>
+</section>
+
+<section>
+  <h2>Three structural flaws to fix</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3><span class="pill bad">A</span> single event side</h3>
+      <p>Bot listens only to <code>migrate_to_chat_id</code> on the old chat. Telegram's symmetric event on the new supergroup is ignored.</p>
+    </div>
+    <div class="card">
+      <h3><span class="pill bad">B</span> in-memory dedup</h3>
+      <p><code>migratedChatIds</code> Set is per-instance heap. Cross-instance webhook routing on Vercel makes the 5s race-condition guard ineffective.</p>
+    </div>
+    <div class="card">
+      <h3><span class="pill bad">C</span> silent catch</h3>
+      <p>Migration errors disappear into a single console line. No alerts, no rethrow, short retention.</p>
+    </div>
+  </div>
+  <div class="callout">Each flaw alone can break a migration. Labour day was likely flaw A; flaw B is a ticking bomb regardless.</div>
+</section>
+
+<section>
+  <h2>Solution: 5 components landing together</h2>
+  <ol style="font-size: 0.85em;">
+    <li><strong>Symmetric Telegram listener</strong> — add <code>message:migrate_from_chat_id</code> handler, both call shared <code>runMigration</code> helper.</li>
+    <li><strong>Idempotent <code>migrateChat</code> + advisory lock</strong> — Postgres <code>pg_advisory_xact_lock</code> on <code>newChatId</code>; re-read state inside lock; idempotent no-op when old chat already gone.</li>
+    <li><strong>"Old wins" race-branch merge</strong> — extend race-branch to move all chat-scoped tables; replace new chat's defaults with old's.</li>
+    <li><strong>Message dedup via <code>Chat.migratedFromChatId</code></strong> — new nullable column distinguishes "fresh add" from "migrated"; <code>my_chat_member</code> uses it to skip welcome on migrated chats.</li>
+    <li><strong>Stop swallowing errors</strong> — let migrate errors propagate to grammy's <code>bot.catch</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Component 2: Idempotent <code>migrateChat</code></h2>
+  <pre><code class="language-typescript" data-trim>
+await db.$transaction(async (tx) =&gt; {
+  // Serializes against any concurrent migrate for this newChatId.
+  // Auto-released on commit/rollback. Cross-instance safe.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${newChatId}::bigint)`;
+
+  const oldChat = await tx.chat.findUnique({ where: { id: oldChatId } });
+  if (!oldChat) return { migrated: false };  // ← idempotent no-op
+
+  const newChat = await tx.chat.findUnique({ where: { id: newChatId } });
+  if (newChat) {
+    // race-branch: explicit merge with "old wins" policy
+    return { migrated: true };
+  } else {
+    // raw SQL UPDATE on Chat.id; cascade does the rest
+    return { migrated: true };
+  }
+});
+  </code></pre>
+  <div class="callout note">Returning <code>{ migrated: false }</code> for the no-op case is what lets us de-duplicate the user-visible <code>MIGRATION_MESSAGE_GROUP</code>.</div>
+</section>
+
+<section>
+  <h2>Component 3: race-branch merge — all tables</h2>
+  <table>
+    <thead><tr><th>Table</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Expense, Settlement, ExpenseSnapshot</td><td>UPDATE chatId = newId WHERE chatId = oldId</td></tr>
+      <tr><td>RecurringExpenseTemplate, ChatApiKey</td><td>same as above (currently missed)</td></tr>
+      <tr><td>ChatCategory</td><td>DELETE WHERE chatId = newId, then UPDATE old → new</td></tr>
+      <tr><td>ChatCategoryOrdering</td><td>same delete-then-move</td></tr>
+      <tr><td>_ChatToUser (members)</td><td>connect old members to new (existing)</td></tr>
+      <tr><td>Chat (new)</td><td>set <code>migratedFromChatId = oldId</code></td></tr>
+      <tr><td>Chat (old)</td><td>DELETE (cascade clears _ChatToUser)</td></tr>
+      <tr><td>AWS schedule</td><td>after tx: read old's, delete new's default, recreate new's with old's settings, delete old's</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">"Old wins" preserves user customizations. Defaults are recoverable; user data isn't.</div>
+</section>
+
+<section>
+  <h2>Component 4: differentiating new vs migrated</h2>
+  <pre><code class="language-prisma" data-trim>
+model Chat {
+  id                  BigInt   @id
+  // ... existing fields
+  migratedFromChatId  BigInt?    // ← new
+}
+  </code></pre>
+  <h3 style="margin-top: 16px;">my_chat_member rules</h3>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li>Chat exists, <code>migratedFromChatId</code> set → migrated chat → <span class="pill ok">skip welcome</span></li>
+    <li>Chat exists, <code>migratedFromChatId</code> null → re-add → <span class="pill ok">skip welcome</span></li>
+    <li>Chat doesn't exist → fresh add → <code>createChat</code> + <span class="pill warn">send welcome</span></li>
+  </ul>
+  <h3 style="margin-top: 16px;">runMigration rules</h3>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li><code>migrateChat</code> returns <code>{ migrated: true }</code> → <span class="pill warn">send MIGRATION_MESSAGE_GROUP</span></li>
+    <li><code>migrateChat</code> returns <code>{ migrated: false }</code> → <span class="pill ok">no message</span> (idempotent path)</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Behavior under each event ordering</h2>
+  <table>
+    <thead><tr><th>Ordering</th><th>What runs</th><th>User sees</th></tr></thead>
+    <tbody>
+      <tr><td>migrate first, then my_chat_member, then second migrate</td><td>migrate (Branch B) → my_chat_member skips → second migrate no-op</td><td>1× migration ✓</td></tr>
+      <tr><td>my_chat_member first, then migrate</td><td>welcome sent → migrate runs race-branch → migration message</td><td>welcome + migration <span class="pill warn">accepted edge</span></td></tr>
+      <tr><td>concurrent migrate_to + migrate_from</td><td>advisory lock serializes; one does work, other is no-op</td><td>1× migration ✓</td></tr>
+      <tr><td>fresh supergroup, no migration</td><td>my_chat_member creates row + welcome</td><td>welcome only ✓</td></tr>
+      <tr><td>bot kicked then re-added</td><td>my_chat_member finds row, skips welcome</td><td>nothing</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Out of scope</h2>
+  <ul class="tight">
+    <li><span class="pill note">deferred</span> Admin slash command <code>/migrate &lt;oldId&gt;</code> for manual recovery</li>
+    <li><span class="pill note">deferred</span> Alerting on migration failure (Sentry/Slack) — current <code>bot.catch</code> + Vercel logs is the agreed minimum</li>
+    <li><span class="pill note">deferred</span> Heuristic post-hoc migration via member overlap</li>
+    <li><span class="pill note">accepted</span> The "welcome + migration" edge case when my_chat_member fires first; closing it would need a DB-poll, judged not worth the latency</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <h3>Handler-level</h3>
+  <ul class="tight" style="font-size: 0.8em;">
+    <li><code>migrated: true</code> for fresh-Branch-B and race-branch; <code>migrated: false</code> when old chat already gone</li>
+    <li>Race-branch moves all 7 chat-scoped tables; sets <code>migratedFromChatId</code></li>
+    <li><code>createChat</code> returns existing row on unique-conflict; schedule handler no-ops if exists</li>
+  </ul>
+  <h3>Concurrency</h3>
+  <ul class="tight" style="font-size: 0.8em;">
+    <li>Two parallel <code>migrateChat</code> calls for same pair → one does work, one no-ops; no DB inconsistency</li>
+  </ul>
+  <h3>Manual UAT (Telegram)</h3>
+  <ul class="tight" style="font-size: 0.8em;">
+    <li>Real upgrade with expenses + categories + snapshot — all carry over, exactly one migration message</li>
+    <li>Bot offline during upgrade, online after — migration still completes via new-side event</li>
+    <li>Direct fresh-supergroup creation — welcome only, no migration message</li>
+    <li>Kick + re-add — no welcome, no duplicate seeding</li>
+  </ul>
+</section>
+
+<section class="title">
+  <h1>Ready for review</h1>
+  <p class="muted" style="font-size: 0.9em;"><code>docs/superpowers/specs/2026-05-01-supergroup-migration-fix-design.md</code></p>
+  <p class="bigtitle">After approval → writing-plans skill → implementation on a feature branch</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({ hash: true, transition: 'fade', plugins: [RevealHighlight], width: 1280, height: 800 });
+</script>
+</body>
+</html>
