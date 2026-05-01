@@ -198,6 +198,18 @@ export const migrateChatHandler = async (
             "AWS_GROUP_REMINDER_LAMBDA_ARN not configured - skipping schedule migration"
           );
         } else {
+          // The new chat may already have a default schedule attached by
+          // createChat's finally block (when my_chat_member ran first).
+          // Remove it before we rewrite from the old chat's customized settings.
+          try {
+            await deleteGroupReminderSchedule(
+              schedulerClient,
+              Number(newChatId)
+            );
+          } catch {
+            // No-op: missing schedule is fine.
+          }
+
           // Delete the old schedule
           await deleteGroupReminderSchedule(schedulerClient, Number(oldChatId));
 
