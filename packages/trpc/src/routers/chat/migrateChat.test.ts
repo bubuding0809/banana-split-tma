@@ -122,4 +122,44 @@ describe("migrateChatHandler", () => {
     expect(moves.recurringExpenseTemplate).toEqual({ from: 1n, to: 2n });
     expect(moves.chatApiKey).toEqual({ from: 1n, to: 2n });
   });
+
+  it("race-branch replaces new chat's categories+ordering with old chat's", async () => {
+    const ops: string[] = [];
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      chatCategory: {
+        deleteMany: async ({ where }: any) => {
+          ops.push(`category.deleteMany(chatId=${where.chatId})`);
+          return { count: 0 };
+        },
+        updateMany: async ({ where, data }: any) => {
+          ops.push(`category.updateMany(${where.chatId}->${data.chatId})`);
+          return { count: 0 };
+        },
+      },
+      chatCategoryOrdering: {
+        deleteMany: async ({ where }: any) => {
+          ops.push(`ordering.deleteMany(chatId=${where.chatId})`);
+          return { count: 0 };
+        },
+        updateMany: async ({ where, data }: any) => {
+          ops.push(`ordering.updateMany(${where.chatId}->${data.chatId})`);
+          return { count: 0 };
+        },
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+    expect(ops).toContain("category.deleteMany(chatId=2)");
+    expect(ops).toContain("category.updateMany(1->2)");
+    expect(ops).toContain("ordering.deleteMany(chatId=2)");
+    expect(ops).toContain("ordering.updateMany(1->2)");
+    // Delete must come before move for both.
+    expect(ops.indexOf("category.deleteMany(chatId=2)")).toBeLessThan(
+      ops.indexOf("category.updateMany(1->2)")
+    );
+    expect(ops.indexOf("ordering.deleteMany(chatId=2)")).toBeLessThan(
+      ops.indexOf("ordering.updateMany(1->2)")
+    );
+  });
 });

@@ -91,6 +91,22 @@ export const migrateChatHandler = async (
           data: { chatId: newChatId },
         });
 
+        // "Old wins" merge: discard whatever defaults landed on the new chat,
+        // then move the user-customized rows from the old chat.
+        await tx.chatCategory.deleteMany({ where: { chatId: newChatId } });
+        await tx.chatCategory.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+
+        await tx.chatCategoryOrdering.deleteMany({
+          where: { chatId: newChatId },
+        });
+        await tx.chatCategoryOrdering.updateMany({
+          where: { chatId: oldChatId },
+          data: { chatId: newChatId },
+        });
+
         // Connect old members to the new chat.
         if (oldChat.members.length > 0) {
           const userIds = oldChat.members.map((m) => ({ id: m.id }));
