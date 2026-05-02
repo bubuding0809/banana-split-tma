@@ -16,9 +16,11 @@ const MAX_ITEMS_SHOWN = 10;
 const CHANGED_FIELDS = [
   "description",
   "amount",
+  "currency",
   "payer",
   "category",
   "split", // covers splitMode + participants — they share one branch
+  "date",
 ] as const;
 export type BatchSummaryChangedField = (typeof CHANGED_FIELDS)[number];
 
@@ -94,8 +96,15 @@ export const formatBatchSummaryMessage = (
     const mark = (field: BatchSummaryChangedField, body: string) =>
       changed.includes(field) ? `${body} ✏️` : body;
 
+    // Currency lives inside the amount string, so a currency-only diff
+    // shows visually as an amount edit — fold both flags onto the same
+    // ✏️ marker on the amount branch.
+    const amtMarked =
+      changed.includes("amount") || changed.includes("currency")
+        ? `${amt} ✏️`
+        : amt;
     // Order matters — these are the branches under the 🧾 title line.
-    const branches: string[] = [mark("amount", amt)];
+    const branches: string[] = [amtMarked];
     if (item.payerName) {
       branches.push(
         mark("payer", `paid by ${escapeMarkdown(item.payerName, 2)}`)
