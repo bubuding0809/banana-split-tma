@@ -18,9 +18,11 @@ import { inlineKeyboard } from "telegraf/markup";
 export const EXPENSE_CHANGED_FIELDS = [
   "description",
   "amount",
+  "currency",
   "payer",
   "category",
   "split",
+  "date",
 ] as const;
 export type ExpenseChangedField = (typeof EXPENSE_CHANGED_FIELDS)[number];
 
@@ -152,12 +154,22 @@ export const formatExpenseMessage = (
   const titleLine = `🧾 ${titleVerb} by ${mark("payer", payerMention)}`;
   const splitsHeader = `💸 Splits${changed.has("split") ? " ✏️" : ""}`;
 
+  // Currency lives inside the amount string ("MYR 8.00"), so a
+  // currency-only change reads as an amount change visually — fold the
+  // ✏️ marker on the Total row when either the amount or the currency
+  // shifted.
+  const totalMark =
+    changed.has("amount") || changed.has("currency")
+      ? `${escapedTotal} ✏️`
+      : escapedTotal;
+  const dateMark = changed.has("date") ? `${dateLabel} ✏️` : dateLabel;
+
   return `${titleLine}
 
 > 📝 • ${mark("description", escapedDescription)}
-${categoryLine}> 📅 • ${dateLabel}
+${categoryLine}> 📅 • ${dateMark}
 
-Total: ${mark("amount", escapedTotal)}
+Total: ${totalMark}
 
 ${splitsHeader}
 ${participantList}`;

@@ -21,13 +21,15 @@ import {
 import { Telegram } from "telegraf";
 
 // Diff pre- vs post-update state to decide which fields the edited
-// notification should mark with ✏️. Matches the 5-field vocabulary
-// used by sendBatchExpenseSummary so singular and batch edits render
-// the same signal.
-const computeChangedFields = (
+// notification should mark with ✏️. Covers every user-visible Expense
+// field; matches the vocabulary used by sendBatchExpenseSummary so
+// singular and batch edits render the same signal.
+export const computeChangedFields = (
   existing: {
     description: string;
     amount: { toNumber(): number } | number;
+    currency: string;
+    date: Date;
     payerId: bigint;
     categoryId: string | null;
     splitMode: SplitMode;
@@ -36,6 +38,8 @@ const computeChangedFields = (
   input: {
     description: string;
     amount: number;
+    currency?: string;
+    date?: Date;
     payerId: bigint;
     categoryId?: string | null;
     splitMode: SplitMode;
@@ -51,6 +55,20 @@ const computeChangedFields = (
       ? existing.amount
       : existing.amount.toNumber();
   if (Math.abs(existingAmount - input.amount) > 0.005) changed.push("amount");
+
+  // `input.currency === undefined` means the caller left it alone — same
+  // convention as categoryId. Only flag a change when the caller passes
+  // a different value.
+  if (input.currency !== undefined && existing.currency !== input.currency) {
+    changed.push("currency");
+  }
+
+  if (
+    input.date !== undefined &&
+    existing.date.getTime() !== input.date.getTime()
+  ) {
+    changed.push("date");
+  }
 
   if (existing.payerId !== input.payerId) changed.push("payer");
 
@@ -470,6 +488,8 @@ export const updateExpenseHandler = async (
       {
         description: existingExpense.description,
         amount: existingExpense.amount as unknown as { toNumber(): number },
+        currency: existingExpense.currency,
+        date: existingExpense.date,
         payerId: existingExpense.payerId,
         categoryId: existingExpense.categoryId,
         splitMode: existingExpense.splitMode,
@@ -481,6 +501,8 @@ export const updateExpenseHandler = async (
       {
         description: input.description,
         amount: input.amount,
+        currency: input.currency,
+        date: input.date,
         payerId: input.payerId,
         categoryId: input.categoryId,
         splitMode: input.splitMode,
