@@ -511,17 +511,16 @@ export const updateExpenseHandler = async (
     );
 
     // Send notification if requested and teleBot is available.
-    // Also respect the per-chat `notifyOnExpenseUpdate` preference —
-    // users can disable the edit+bump for every update (singular or
-    // driven by bulk-update fan-out) via Settings.
+    // The per-chat `notifyOnExpenseUpdate` preference gates only the
+    // "📝 Expense updated" bump reply (the noisy ping). The bubble edit
+    // itself always runs when there's something to edit — Telegram's
+    // edit is silent and keeps the original "🧾 New Expense" bubble
+    // accurate when readers scroll back.
     // No-op guard: if nothing the user can see actually changed, skip
-    // the edit+bump — avoids Telegram's "message is not modified" error
-    // and avoids pinging participants for a net-zero update.
-    if (
-      input.sendNotification &&
-      existingExpense.chat.notifyOnExpenseUpdate &&
-      changedFields.length > 0
-    ) {
+    // both the edit and the bump — avoids Telegram's "message is not
+    // modified" error and avoids pinging participants for a net-zero
+    // update.
+    if (input.sendNotification && changedFields.length > 0) {
       try {
         // Fetch creator and participant details for notification
         const [payer, creator, participants] = await Promise.all([
@@ -590,10 +589,14 @@ export const updateExpenseHandler = async (
             }
           }
 
+          const wantsBump = existingExpense.chat.notifyOnExpenseUpdate;
+
           // If we have the original message ID, edit it instead of sending a new one
           if (existingExpense.telegramMessageId) {
             try {
-              // Edit the original expense message with updated details
+              // Edit the original expense message with updated details.
+              // Always runs — keeps the bubble accurate even when the
+              // chat has muted update bumps.
               await editExpenseMessageHandler(
                 {
                   chatId: Number(input.chatId),
@@ -616,53 +619,55 @@ export const updateExpenseHandler = async (
                 teleBot
               );
 
-              // Send a small bump reply to notify about the update
-              const bumpMessageId = await sendExpenseUpdateBumpHandler(
-                {
-                  chatId: Number(input.chatId),
-                  replyToMessageId: Number(existingExpense.telegramMessageId),
-                  updaterUserId: Number(input.creatorId),
-                  updaterName: creator.firstName,
-                  threadId,
-                },
-                teleBot
-              );
-
-              // Store the bump message ID for future deletion
-              if (bumpMessageId) {
-                await db.expense.update({
-                  where: { id: input.expenseId },
-                  data: {
-                    telegramUpdateBumpMessageIds: {
-                      push: BigInt(bumpMessageId),
-                    },
+              // Send a small bump reply only when the chat opted in.
+              if (wantsBump) {
+                const bumpMessageId = await sendExpenseUpdateBumpHandler(
+                  {
+                    chatId: Number(input.chatId),
+                    replyToMessageId: Number(existingExpense.telegramMessageId),
+                    updaterUserId: Number(input.creatorId),
+                    updaterName: creator.firstName,
+                    threadId,
                   },
-                });
+                  teleBot
+                );
+
+                // Store the bump message ID for future deletion
+                if (bumpMessageId) {
+                  await db.expense.update({
+                    where: { id: input.expenseId },
+                    data: {
+                      telegramUpdateBumpMessageIds: {
+                        push: BigInt(bumpMessageId),
+                      },
+                    },
+                  });
+                }
               }
             } catch (editError) {
               // The original notification is gone — most commonly the
-              // user deleted it from the chat. Re-posting the full
-              // "🧾 New Expense" bubble would be noisy and confusing.
-              // Instead, drop a minimal "📝 Expense updated" message with
-              // a "View Expense" button and null out telegramMessageId
-              // so future edits skip the failing edit-attempt and just
-              // post another standalone bump.
+              // user deleted it from the chat. Null telegramMessageId so
+              // future updates don't keep retrying a dead edit. If the
+              // chat opted in to bumps, drop a minimal "📝 Expense
+              // updated" standalone as a recovery signal.
               console.error(
                 "Failed to edit expense message, falling back to standalone update:",
                 editError
               );
-              const standaloneId = await sendExpenseUpdateStandaloneHandler(
-                {
-                  chatId: Number(input.chatId),
-                  chatType: existingExpense.chat.type,
-                  expenseId: input.expenseId,
-                  expenseDescription: input.description,
-                  updaterUserId: Number(input.creatorId),
-                  updaterName: creator.firstName,
-                  threadId,
-                },
-                teleBot
-              );
+              const standaloneId = wantsBump
+                ? await sendExpenseUpdateStandaloneHandler(
+                    {
+                      chatId: Number(input.chatId),
+                      chatType: existingExpense.chat.type,
+                      expenseId: input.expenseId,
+                      expenseDescription: input.description,
+                      updaterUserId: Number(input.creatorId),
+                      updaterName: creator.firstName,
+                      threadId,
+                    },
+                    teleBot
+                  )
+                : null;
               await db.expense.update({
                 where: { id: input.expenseId },
                 data: {
@@ -677,11 +682,12 @@ export const updateExpenseHandler = async (
                 },
               });
             }
-          } else {
+          } else if (wantsBump) {
             // No original message ID was ever stored (e.g. expense was
             // created while notifyOnExpense was off, or a previous
-            // fallback nulled it). Post the same minimal standalone bump
-            // so participants still see an update signal.
+            // fallback nulled it). Post a minimal standalone bump so
+            // participants still see an update signal — but only when
+            // the chat opted in to update notifications.
             const standaloneId = await sendExpenseUpdateStandaloneHandler(
               {
                 chatId: Number(input.chatId),
