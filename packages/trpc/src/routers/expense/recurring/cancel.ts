@@ -51,7 +51,10 @@ export default protectedProcedure
       ) {
         // Already gone; fine.
       } else {
-        ctx.log.error({ err: awsError }, "schedule.delete.failed");
+        ctx.log.error(
+          { err: awsError },
+          "recurringExpense.schedule.delete.failed"
+        );
       }
     }
 

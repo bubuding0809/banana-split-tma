@@ -92,7 +92,7 @@ export const createChatHandler = async (
         log
       );
     } catch (error) {
-      log.error({ err: error }, "schedule.create.failed");
+      log.error({ err: error }, "chat.defaultSchedule.create.failed");
     }
   }
 };

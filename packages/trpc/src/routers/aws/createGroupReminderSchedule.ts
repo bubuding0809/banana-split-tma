@@ -297,7 +297,7 @@ export const createGroupReminderScheduleHandler = async (
     }
 
     // Handle validation and other errors
-    log.error({ err: error }, "schedule.create.failed");
+    log.error({ err: error }, "schedule.groupReminder.create.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to create group reminder schedule: ${error instanceof Error ? error.message : "Unknown error"}`,

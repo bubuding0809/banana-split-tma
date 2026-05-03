@@ -69,9 +69,14 @@ export const deleteExpenseMessagesHandler = async (
     }
   }
 
-  console.log(
-    `Telegram message deletion summary for chat ${input.chatId}: ` +
-      `${deletedCount} deleted, ${failedCount} failed out of ${messageIdsToDelete.length} total`
+  log.info(
+    {
+      chat_id: input.chatId,
+      deleted_count: deletedCount,
+      failed_count: failedCount,
+      total: messageIdsToDelete.length,
+    },
+    "telegram.expenseMessage.deleteBatch.done"
   );
 
   return { deletedCount, failedCount };

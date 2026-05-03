@@ -238,14 +238,19 @@ export const migrateChatHandler = async (
           );
 
           schedulesHandled = 1;
-          console.log(
-            `Successfully migrated schedule from chat ${oldChatId} to ${newChatId}`
+          log.info(
+            {
+              old_chat_id: oldChatId.toString(),
+              new_chat_id: newChatId.toString(),
+            },
+            "schedule.migrate.ok"
           );
         }
       } else {
         // No existing schedule found - this is normal, not all chats have schedules
-        console.log(
-          `No existing schedule found for chat ${oldChatId} - skipping schedule migration`
+        log.info(
+          { old_chat_id: oldChatId.toString() },
+          "schedule.migrate.noop"
         );
       }
     } catch (scheduleError) {

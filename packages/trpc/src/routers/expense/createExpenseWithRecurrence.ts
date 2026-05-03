@@ -175,7 +175,10 @@ export default protectedProcedure
       await ctx.db.recurringExpenseTemplate
         .delete({ where: { id: template.id } })
         .catch(() => {});
-      ctx.log.error({ err: awsError }, "schedule.create.failed");
+      ctx.log.error(
+        { err: awsError },
+        "recurringExpense.schedule.create.failed"
+      );
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to create recurring schedule: ${awsError instanceof Error ? awsError.message : "unknown"}`,
