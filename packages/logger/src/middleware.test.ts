@@ -68,5 +68,6 @@ describe("withRequestLogger", () => {
     expect(typeof end.duration_ms).toBe("number");
     expect(end.duration_ms).toBeGreaterThanOrEqual(0);
     expect(end.request_id).toBe(start.request_id);
+    expect(end.aborted).toBe(false);
   });
 });

@@ -22,7 +22,10 @@ export function withRequestLogger(logger: Logger): RequestHandler {
       "req.start"
     );
 
-    res.on("finish", () => {
+    let logged = false;
+    const emitEnd = () => {
+      if (logged) return;
+      logged = true;
       logger.info(
         {
           request_id: requestId,
@@ -30,10 +33,13 @@ export function withRequestLogger(logger: Logger): RequestHandler {
           path: req.path,
           status: res.statusCode,
           duration_ms: Date.now() - start,
+          aborted: !res.writableEnded,
         },
         "req.end"
       );
-    });
+    };
+    res.on("finish", emitEnd);
+    res.on("close", emitEnd);
 
     next();
   };
