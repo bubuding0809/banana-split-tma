@@ -34,21 +34,21 @@ bot.use(statsFeature);
 bot.use(snapshotViewFeature);
 bot.use(botEventsFeature);
 
-// Basic catch-all error handler
+// Catch-all for errors that bypass the logger middleware (e.g. thrown
+// before bot.use(loggerMiddleware) ran). The middleware already logs
+// bot.update.unhandled and rethrows, so when ctx.log is present we
+// don't log again — preventing 2x event count for normal handler errors.
+// A separate event name (bot.update.uncaught) makes the rare
+// pre-middleware case clearly distinguishable in Axiom.
 bot.catch((err) => {
-  // Use ctx.log if the logger middleware ran (most cases); fall back to
-  // the module-level logger otherwise (e.g. errors thrown before middleware).
-  const log = (err.ctx as unknown as { log?: Logger }).log;
-  if (log) {
-    log.error({ err: err.error }, "bot.update.unhandled");
-  } else {
-    botLog.error(
-      {
-        err: err.error,
-        update_id: err.ctx.update.update_id,
-        chat_id: err.ctx.chat?.id?.toString(),
-      },
-      "bot.update.unhandled"
-    );
-  }
+  const log: Logger | undefined = (err.ctx as unknown as { log?: Logger }).log;
+  if (log) return; // middleware already logged bot.update.unhandled
+  botLog.error(
+    {
+      err: err.error,
+      update_id: err.ctx.update.update_id,
+      chat_id: err.ctx.chat?.id?.toString(),
+    },
+    "bot.update.uncaught"
+  );
 });

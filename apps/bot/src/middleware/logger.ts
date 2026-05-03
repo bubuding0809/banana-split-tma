@@ -22,16 +22,28 @@ export function makeLoggerMiddleware(log: Logger): Middleware<BotContext> {
     ctx.log = child;
     ctx.requestId = requestId;
 
+    // update_type stays low-cardinality (a Telegram event class) so Axiom
+    // dashboards can group cleanly. action is the high-cardinality
+    // human-readable detail.
+    let updateType = "other";
     let action: string | undefined;
-    if (ctx.message?.text) action = ctx.message.text;
-    else if (ctx.callbackQuery?.data) action = `cb:${ctx.callbackQuery.data}`;
-    else if (ctx.inlineQuery?.query) action = `inline:${ctx.inlineQuery.query}`;
-    else if (ctx.myChatMember) action = "my_chat_member";
+    if (ctx.message?.text !== undefined) {
+      updateType = "message";
+      action = ctx.message.text;
+    } else if (ctx.callbackQuery?.data !== undefined) {
+      updateType = "callback_query";
+      action = ctx.callbackQuery.data;
+    } else if (ctx.inlineQuery?.query !== undefined) {
+      updateType = "inline_query";
+      action = ctx.inlineQuery.query;
+    } else if (ctx.myChatMember) {
+      updateType = "my_chat_member";
+    } else if (ctx.message) {
+      // Non-text message (photo, sticker, etc.)
+      updateType = "message";
+    }
 
-    child.info(
-      { action, update_type: action ? action.split(":")[0] : "other" },
-      "bot.update.start"
-    );
+    child.info({ update_type: updateType, action }, "bot.update.start");
 
     const start = Date.now();
     try {

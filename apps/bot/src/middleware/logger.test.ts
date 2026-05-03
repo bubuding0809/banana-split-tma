@@ -35,10 +35,36 @@ describe("bot logger middleware", () => {
     expect(start.user_id).toBe("9");
     expect(start.username).toBe("alice");
     expect(start.request_id).toMatch(/^[0-9a-f-]{36}$/);
+    // update_type is the low-cardinality categorical (Telegram event class).
+    // action is the raw human-readable detail.
+    expect(start.update_type).toBe("message");
+    expect(start.action).toBe("/start");
     expect((ctx as unknown as { log: unknown }).log).toBeDefined();
     expect((ctx as unknown as { requestId: string }).requestId).toBe(
       start.request_id
     );
+  });
+
+  it("classifies update_type for callback_query distinctly from message", async () => {
+    const lines: string[] = [];
+    const log = createLogger("bot", {
+      destination: { write: (s) => lines.push(s) },
+    });
+
+    const middleware = makeLoggerMiddleware(log) as MiddlewareFn;
+    const ctx = {
+      update: { update_id: 99 },
+      callbackQuery: { data: "expense:edit:abc" },
+      from: { id: 5 },
+    } as unknown as BotContext;
+
+    await middleware(ctx, async () => {});
+
+    const start = lines
+      .map((l) => JSON.parse(l))
+      .find((p) => p.msg === "bot.update.start");
+    expect(start.update_type).toBe("callback_query");
+    expect(start.action).toBe("expense:edit:abc");
   });
 
   it("logs bot.update.unhandled when next throws", async () => {
