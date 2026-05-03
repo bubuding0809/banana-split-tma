@@ -4,7 +4,7 @@
 
 **Goal:** Make every backend error visible in Axiom with request-bound context so an agent can reconstruct one user's session from a single `request_id`.
 
-**Architecture:** New `@repo/logger` package wraps pino + an `AsyncLocalStorage` request store. Express middleware assigns a `request_id` per HTTP request. tRPC gains an `errorFormatter` that auto-logs every procedure error and a `ctx.log` child logger pre-bound to request-scoped fields. Bot's existing pretty-print logger middleware is rewritten in pino. Logs flow as JSON to stdout; the Vercel Axiom integration forwards them. Agents query Axiom via the official MCP server (`https://mcp.axiom.co/mcp`).
+**Architecture:** New `@repo/logger` package wraps pino + an `AsyncLocalStorage` request store. Express middleware assigns a `request_id` per HTTP request. tRPC gains an `errorFormatter` that auto-logs every procedure error and a `ctx.log` child logger pre-bound to request-scoped fields. Bot's existing pretty-print logger middleware is rewritten in pino. Logs flow as JSON via `pino.multistream` to both stdout (Vercel's built-in log view stays useful as a fallback) and Axiom over HTTP via the `@axiomhq/js` client (no Log Drain required — works on Hobby). Agents query Axiom via the official MCP server (`https://mcp.axiom.co/mcp`).
 
 **Tech Stack:** pino 9, AsyncLocalStorage, Express, @trpc/server, grammy, vitest, supertest.
 
@@ -1525,7 +1525,7 @@ Edit `AGENTS.md`. Append the following new section (place it after the existing 
 ```markdown
 ## Production observability
 
-Backend logs from `apps/lambda` (tRPC API) and `apps/bot` (Telegram webhook) flow as structured JSON to Axiom via the Vercel marketplace integration.
+Backend logs from `apps/lambda` (tRPC API) and `apps/bot` (Telegram webhook) flow as structured JSON to Axiom over HTTP. The shared `@repo/logger` package fans every log line out to stdout (so Vercel's built-in log view still works) and to Axiom via the official `@axiomhq/js` client when `AXIOM_TOKEN` + `AXIOM_DATASET` are set on the function. No Vercel marketplace integration or Log Drain required — works on Hobby plans.
 
 ### Agent access — Axiom MCP
 
@@ -1687,7 +1687,7 @@ This kicks off Claude PR review per the standing convention. Address review find
 
 After the PR lands and deploys to prod:
 
-1. Open Vercel dashboard → `banana-split-tma-lambda` → Integrations → Marketplace → install Axiom. Repeat for `banana-split-tma-bot`. The integration auto-injects `AXIOM_TOKEN` + `AXIOM_DATASET` into the function runtime and forwards stdout to Axiom.
+1. Open Vercel dashboard → `banana-split-tma-lambda` → Settings → Environment Variables. Add `AXIOM_TOKEN` (your Axiom personal access token) and `AXIOM_DATASET` (the dataset name) for both Production and Preview. Repeat for `banana-split-tma-bot`. The `@repo/logger` package reads these at runtime and ships logs directly via HTTP using the `@axiomhq/js` client — no Vercel marketplace integration or Log Drain required (Log Drains are Pro-only; this works on Hobby).
 2. In Axiom UI, configure the three monitors:
    - **Auth failures spike**: filter `service = "lambda" and msg = "auth.initData.failed"`, alert if `count() > 20` over 5 min.
    - **Procedure error spike**: filter `service = "lambda" and msg = "trpc.procedure.error" and ['err.code'] != "NOT_FOUND"`, alert if `count() > 50` over 5 min.

@@ -10,7 +10,7 @@ A Telegram Mini App (TMA) for expense tracking and splitting built with modern T
 
 ## Production observability
 
-Backend logs from `apps/lambda` (tRPC API) and `apps/bot` (Telegram webhook) flow as structured JSON to **Axiom** via the Vercel marketplace integration.
+Backend logs from `apps/lambda` (tRPC API) and `apps/bot` (Telegram webhook) flow as structured JSON to **Axiom** over HTTP. The shared `@repo/logger` package fans every log line out to stdout (so Vercel's built-in log view still works) and to Axiom via the official `@axiomhq/js` client when `AXIOM_TOKEN` + `AXIOM_DATASET` are set on the function. No Vercel marketplace integration or Log Drain is required — this works on Hobby plans.
 
 ### Agent access — Axiom MCP
 
@@ -51,7 +51,7 @@ org_id = "<AXIOM_ORG_ID value>"
 
 ### Canonical APL queries
 
-Replace `$AXIOM_DATASET` with the dataset name from your Vercel Axiom integration (the integration injects this into the function runtime; locally it's whichever dataset you provisioned). The MCP `queryApl` tool accepts these directly.
+Replace `$AXIOM_DATASET` with the dataset name configured on the Vercel project (set via Settings → Environment Variables alongside `AXIOM_TOKEN`; locally it's whichever dataset you provisioned). The MCP `queryApl` tool accepts these directly.
 
 **One request's full timeline** — when a user pastes a "Reference: …" id from the error screen:
 

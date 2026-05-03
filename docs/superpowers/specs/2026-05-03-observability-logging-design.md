@@ -2,7 +2,7 @@
 
 ## Summary
 
-Add structured JSON logging to `apps/lambda` and `apps/bot`, route it to Axiom via the Vercel marketplace integration, and instrument the request path so every error carries enough context for an agent to reconstruct the full story from a single `request_id`. Replace ad-hoc `console.*` calls with a shared `pino` logger, add an Express request-context middleware, a tRPC `errorFormatter`, and Telegraf middleware. Surface the request id on the TMA error screen so users can hand it to the agent. Keep environment-specific values (Axiom token, dataset, dashboard URL) in `.envrc`; document only patterns and placeholders in `AGENTS.md`.
+Add structured JSON logging to `apps/lambda` and `apps/bot`, ship it to Axiom directly over HTTP from inside the function (the Vercel marketplace Axiom integration uses Log Drains, which are Pro-only — we're on Hobby), and instrument the request path so every error carries enough context for an agent to reconstruct the full story from a single `request_id`. Replace ad-hoc `console.*` calls with a shared `pino` logger, add an Express request-context middleware, a tRPC `errorFormatter`, and Telegraf middleware. Surface the request id on the TMA error screen so users can hand it to the agent. Keep environment-specific values (Axiom token, dataset, dashboard URL) in `.envrc`; document only patterns and placeholders in `AGENTS.md`.
 
 ## Problem / Background
 
@@ -47,7 +47,7 @@ New shared package. Exports:
 - `withRequestLogger()` Express middleware — logs `req.start` on entry and `req.end` on response finish, with `duration_ms`, `status`, and the request id.
 - `getRequestId()` — pulls the current request id out of async storage. Used by tRPC context.
 
-Dependencies added: `pino`, `pino-std-serializers`. No transport plugins — Vercel's runtime captures stdout and the Axiom integration forwards it.
+Dependencies added: `pino`, `pino-std-serializers`, `@axiomhq/js`. The logger uses `pino.multistream` to fan every line out to stdout (preserves Vercel's built-in log view as a fallback) and to Axiom over HTTP via the `@axiomhq/js` client when `AXIOM_TOKEN` + `AXIOM_DATASET` are present. No worker thread — `axiom.ingest()` queues in-memory and POSTs in the background. The logger also exports `flush()` so handlers can `await` (or `waitUntil`) it before serverless tear-down.
 
 ### Component 2 — Lambda wiring
 
@@ -238,7 +238,7 @@ Per-machine setup, performed once by each developer / agent runner:
 
 Vercel side, performed once by the user after the PR merges:
 
-1. Install Axiom integration from the Vercel marketplace on each project (`banana-split-tma-lambda`, `banana-split-tma-bot`). The integration auto-injects `AXIOM_TOKEN` + `AXIOM_DATASET` into the function runtime and forwards stdout.
+1. Set `AXIOM_TOKEN` + `AXIOM_DATASET` on each project (`banana-split-tma-lambda`, `banana-split-tma-bot`) via Settings → Environment Variables (Production + Preview). The `@repo/logger` package ships logs directly via HTTP using the `@axiomhq/js` client — no Vercel marketplace integration or Log Drain required (Log Drains are Pro-only; this works on Hobby).
 2. Configure the three monitors in the Axiom UI.
 
 ## Testing
