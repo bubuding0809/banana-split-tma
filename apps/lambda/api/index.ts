@@ -147,6 +147,7 @@ router.post(
         {
           db: prisma,
           teleBot: new Telegram(env.TELEGRAM_BOT_TOKEN || ""),
+          log: log.child({ request_id: getRequestId() }),
         },
         { message, targetUserIds, media, createdByTelegramId: null }
       );
