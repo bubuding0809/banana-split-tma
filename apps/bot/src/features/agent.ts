@@ -18,7 +18,6 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
   const runStart = Date.now();
   ctx.log.info(
     {
-      action: "agent.run.start",
       msg_len: userMessage.length,
       has_photo: Boolean(ctx.message?.photo?.length),
       chat_type: ctx.chat.type,
@@ -140,6 +139,9 @@ In a private DM, expenses are usually just for the user, so default the payer an
 IMPORTANT: When formatting tables, ALWAYS include the markdown table header separator row (e.g. |---|---|).
 CRITICAL: When you mention or refer to any user in your text responses, NEVER output their raw numeric Telegram ID. ALWAYS use their @username (if available) so it is clickable. If they do not have a @username, format their name as a markdown link using \`[First Name](tg://user?id=TELEGRAM_ID)\` so they are still clickable.`;
 
+    // Capture stream-start separately from runStart so the first-chunk
+    // latency reflects pure LLM TTFT (not image download + memory setup).
+    const streamStart = Date.now();
     const streamInfo = await bananaAgent.stream(finalMessagePayload, {
       memory: {
         thread: String(ctx.chat.id),
@@ -181,7 +183,7 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
       if (!firstChunkLogged) {
         firstChunkLogged = true;
         ctx.log.info(
-          { latency_ms: Date.now() - runStart },
+          { latency_ms: Date.now() - streamStart },
           "agent.llm.first_chunk"
         );
       }
@@ -221,6 +223,7 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
             tool: chunk.payload.toolName,
             outcome: "error",
             duration_ms: startedAt ? Date.now() - startedAt : undefined,
+            err: chunk.payload.error,
           },
           "agent.tool.end"
         );
