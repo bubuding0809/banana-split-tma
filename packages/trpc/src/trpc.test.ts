@@ -134,8 +134,40 @@ describe("tRPC observability", () => {
     }
   });
 
-  it("logs trpc.procedure.error for INTERNAL_SERVER_ERROR (not skipped)", async () => {
-    const errorSpy = vi.spyOn(trpcLogger, "error");
+  it("logs trpc.procedure.error for INTERNAL_SERVER_ERROR via ctx.log (request-scoped child)", async () => {
+    // The errorFormatter prefers ctx.log (built by createTRPCContext with a
+    // request_id child binding) over the module-level trpcLogger so the
+    // request_id binding doesn't have to be re-derived per call. Spy on
+    // trpcLogger.child so we can capture the request-scoped child and
+    // assert it (not the parent) was used to emit the error event.
+    //
+    // Note: middleware-augmented ctx (auth_type binding added by
+    // protectedProcedure) does NOT propagate to errorFormatter — tRPC's
+    // ctxManager only exposes the original createContext value — so we
+    // can only verify the createTRPCContext-level child here.
+    const childLoggerSpies: Array<{
+      bindings: Record<string, unknown>;
+      errorSpy: ReturnType<typeof vi.fn>;
+    }> = [];
+    const realChild = trpcLogger.child.bind(trpcLogger) as unknown as (
+      ...args: unknown[]
+    ) => typeof trpcLogger;
+    const childSpy = vi.spyOn(trpcLogger, "child").mockImplementation(((
+      ...args: unknown[]
+    ) => {
+      const bindings = (args[0] as Record<string, unknown>) ?? {};
+      const child = realChild(...args);
+      const errorSpy = vi.fn();
+      const realError = child.error.bind(child) as (...a: unknown[]) => unknown;
+      // Wrap so the original transport still fires (test is integration-y).
+      child.error = ((...callArgs: unknown[]) => {
+        errorSpy(...callArgs);
+        return realError(...callArgs);
+      }) as typeof child.error;
+      childLoggerSpies.push({ bindings, errorSpy });
+      return child;
+    }) as unknown as typeof trpcLogger.child);
+    const parentErrorSpy = vi.spyOn(trpcLogger, "error");
 
     try {
       const router = createTRPCRouter({
@@ -170,7 +202,15 @@ describe("tRPC observability", () => {
         .set("authorization", "tma GOOD")
         .expect(500);
 
-      const procErrorCalls = errorSpy.mock.calls.filter(
+      // The child logger built by createTRPCContext binds request_id. Find
+      // the one that was used to emit trpc.procedure.error.
+      const requestChild = childLoggerSpies.find(
+        (c) =>
+          typeof c.bindings.request_id === "string" &&
+          /^[0-9a-f-]{36}$/.test(c.bindings.request_id)
+      );
+      expect(requestChild).toBeDefined();
+      const procErrorCalls = requestChild!.errorSpy.mock.calls.filter(
         (call) => call[1] === "trpc.procedure.error"
       );
       expect(procErrorCalls.length).toBeGreaterThan(0);
@@ -180,8 +220,16 @@ describe("tRPC observability", () => {
       };
       expect(payload.code).toBe("INTERNAL_SERVER_ERROR");
       expect(payload.err.message).toBe("boom");
+
+      // Parent logger should NOT have been called for trpc.procedure.error
+      // — the errorFormatter must prefer the child to inherit request_id.
+      const parentProcErrorCalls = parentErrorSpy.mock.calls.filter(
+        (call) => call[1] === "trpc.procedure.error"
+      );
+      expect(parentProcErrorCalls.length).toBe(0);
     } finally {
-      errorSpy.mockRestore();
+      childSpy.mockRestore();
+      parentErrorSpy.mockRestore();
     }
   });
 });

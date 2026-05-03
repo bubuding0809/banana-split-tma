@@ -94,7 +94,6 @@ const t = initTRPC
     isServer: true,
     errorFormatter({ shape, error, ctx, path }) {
       const requestId = getRequestId();
-      const sessionCtx = ctx as unknown as SessionCtx | undefined;
       // Skip codes that are either expected client errors (NOT_FOUND for
       // new users, BAD_REQUEST for input validation) or already self-logged
       // at warn level by the auth middleware (UNAUTHORIZED). FORBIDDEN is
@@ -102,7 +101,15 @@ const t = initTRPC
       // Re-emitting these at error level would inflate the documented
       // "procedure-error spike" monitor with routine traffic.
       if (!SELF_LOGGED_OR_EXPECTED_CODES.has(error.code)) {
-        trpcLogger.error(
+        type CtxWithLog = SessionCtx & { log?: Logger };
+        const sessionCtx = ctx as unknown as CtxWithLog | undefined;
+        // Prefer the request-scoped child logger built by protectedProcedure
+        // — it already has auth_type, user_id, chat_id bound, so the log line
+        // inherits those without us re-deriving them. Falls back to the
+        // module-level logger for the public-procedure / pre-middleware path
+        // (where user_id / chat_id are still useful as best-effort fields).
+        const logger = sessionCtx?.log ?? trpcLogger;
+        logger.error(
           {
             err: error.cause ?? error,
             code: error.code,
