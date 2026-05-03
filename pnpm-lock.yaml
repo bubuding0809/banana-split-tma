@@ -192,6 +192,9 @@ importers:
       "@repo/categories":
         specifier: workspace:*
         version: link:../../packages/categories
+      "@repo/logger":
+        specifier: workspace:*
+        version: link:../../packages/logger
       "@t3-oss/env-core":
         specifier: ^0.13.8
         version: 0.13.11(typescript@5.8.2)(valibot@1.3.1(typescript@5.8.2))(zod@3.25.76)
