@@ -281,6 +281,7 @@ export const createRecurringScheduleHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to create recurring schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

@@ -133,6 +133,7 @@ export default protectedProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to create expense for recurring template: ${preAwsError instanceof Error ? preAwsError.message : "unknown"}`,
+        cause: preAwsError,
       });
     }
 
@@ -182,6 +183,7 @@ export default protectedProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to create recurring schedule: ${awsError instanceof Error ? awsError.message : "unknown"}`,
+        cause: awsError,
       });
     }
 

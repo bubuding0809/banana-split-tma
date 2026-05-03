@@ -103,6 +103,7 @@ export const deleteExpenseHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to delete expense",
+      cause: error,
     });
   }
 };

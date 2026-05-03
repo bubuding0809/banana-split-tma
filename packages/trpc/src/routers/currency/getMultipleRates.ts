@@ -97,6 +97,7 @@ export const getMultipleRatesHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to get multiple currency rates",
+      cause: error,
     });
   }
 };

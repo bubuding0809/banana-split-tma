@@ -88,6 +88,7 @@ export const sendSettlementNotificationMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send settlement notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

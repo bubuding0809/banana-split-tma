@@ -104,6 +104,7 @@ export const sendCurrencyConversionNotificationMessageHandler = async (
       message: `Failed to send currency conversion notification: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
+      cause: error,
     });
   }
 };

@@ -101,6 +101,7 @@ export const createUserHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create user",
+      cause: error,
     });
   }
 };

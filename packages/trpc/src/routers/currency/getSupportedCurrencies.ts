@@ -83,6 +83,7 @@ export const getSupportedCurrenciesHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to get supported currencies",
+      cause: error,
     });
   }
 };

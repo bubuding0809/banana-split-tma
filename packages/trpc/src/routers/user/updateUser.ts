@@ -89,6 +89,7 @@ export const updateUserHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to update user",
+      cause: error,
     });
   }
 };

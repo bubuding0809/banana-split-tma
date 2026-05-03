@@ -72,6 +72,7 @@ export const attachTelegramMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to attach Telegram message ID to expense",
+      cause: error,
     });
   }
 };

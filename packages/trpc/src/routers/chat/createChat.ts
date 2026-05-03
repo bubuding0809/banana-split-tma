@@ -77,6 +77,7 @@ export const createChatHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create chat",
+      cause: error,
     });
   } finally {
     // Create a default group reminder schedule for the chat

@@ -249,6 +249,7 @@ export const sendExpenseNotificationMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send expense notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

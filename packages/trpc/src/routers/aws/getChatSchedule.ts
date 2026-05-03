@@ -52,6 +52,7 @@ export const getChatScheduleHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to get chat schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

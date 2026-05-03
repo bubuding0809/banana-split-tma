@@ -128,6 +128,7 @@ Requirements:
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "AI service temporarily unavailable",
+          cause: error,
         });
       }
     }
@@ -135,6 +136,7 @@ Requirements:
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to classify expense description",
+      cause: error,
     });
   }
 };

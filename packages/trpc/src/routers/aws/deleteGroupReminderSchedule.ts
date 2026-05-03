@@ -117,6 +117,7 @@ export const deleteGroupReminderScheduleHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to delete group reminder schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

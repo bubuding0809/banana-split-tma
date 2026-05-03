@@ -207,6 +207,7 @@ export const getCurrentRateHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to get current exchange rate",
+      cause: error,
     });
   }
 };

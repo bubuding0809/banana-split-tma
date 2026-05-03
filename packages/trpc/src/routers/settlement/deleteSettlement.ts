@@ -98,6 +98,7 @@ export const deleteSettlementHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to delete settlement",
+      cause: error,
     });
   }
 };

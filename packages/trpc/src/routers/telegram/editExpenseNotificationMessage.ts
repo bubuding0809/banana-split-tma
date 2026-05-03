@@ -125,6 +125,7 @@ export const editExpenseMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to edit expense notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -196,6 +197,7 @@ export const sendExpenseUpdateStandaloneHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send standalone update: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -238,6 +240,7 @@ export const sendExpenseUpdateBumpHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send update bump: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

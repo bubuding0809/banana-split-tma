@@ -215,6 +215,7 @@ export const convertCurrencyBulkHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to convert currency for transactions",
+      cause: error,
     });
   }
 };

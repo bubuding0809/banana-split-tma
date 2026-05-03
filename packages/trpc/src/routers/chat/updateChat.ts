@@ -114,6 +114,7 @@ export const updateChatHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to update chat: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

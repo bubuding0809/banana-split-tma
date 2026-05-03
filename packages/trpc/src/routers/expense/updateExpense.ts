@@ -744,6 +744,7 @@ export const updateExpenseHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to update expense",
+      cause: error,
     });
   }
 };

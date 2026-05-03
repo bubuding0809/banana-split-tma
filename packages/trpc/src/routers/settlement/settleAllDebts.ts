@@ -174,6 +174,7 @@ export const settleAllDebtsHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create bulk settlements",
+      cause: error,
     });
   }
 };

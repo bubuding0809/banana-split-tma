@@ -83,6 +83,7 @@ export const refreshRatesHandler = async (
       message: `Failed to refresh exchange rates: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
+      cause: error,
     });
   }
 };

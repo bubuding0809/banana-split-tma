@@ -59,6 +59,7 @@ export const sendDebtReminderMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send message: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

@@ -158,6 +158,7 @@ export const createSettlementHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create settlement",
+      cause: error,
     });
   }
 };

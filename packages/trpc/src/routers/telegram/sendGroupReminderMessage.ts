@@ -278,6 +278,7 @@ export const sendGroupReminderMessageHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send group reminder message: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
