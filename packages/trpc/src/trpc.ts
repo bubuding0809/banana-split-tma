@@ -14,7 +14,7 @@ import { createLogger, getRequestId, type Logger } from "@repo/logger";
 
 import "telegraf/types"; // Required to ensure types are portable
 
-const trpcLogger = createLogger("lambda");
+export const trpcLogger = createLogger("lambda");
 
 /**
  * 1. CONTEXT
@@ -220,6 +220,14 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
       if (chatApiKey) {
         if (chatApiKey.revokedAt !== null) {
+          trpcLogger.warn(
+            {
+              request_id: getRequestId(),
+              reason: "chat_api_key_revoked",
+              chat_id: chatApiKey.chatId.toString(),
+            },
+            "auth.apiKey.revoked"
+          );
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "API key has been revoked",
@@ -235,6 +243,14 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
         if (userApiKey) {
           if (userApiKey.revokedAt !== null) {
+            trpcLogger.warn(
+              {
+                request_id: getRequestId(),
+                reason: "user_api_key_revoked",
+                user_id: userApiKey.user.id.toString(),
+              },
+              "auth.apiKey.revoked"
+            );
             throw new TRPCError({
               code: "UNAUTHORIZED",
               message: "API key has been revoked",
@@ -248,6 +264,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
             username: userApiKey.user.username || undefined,
           };
         } else {
+          trpcLogger.warn(
+            {
+              request_id: getRequestId(),
+              reason: "invalid_api_key",
+            },
+            "auth.apiKey.invalid"
+          );
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Invalid API key",
@@ -291,9 +314,17 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       user = parseInitData(initData).user ?? null;
       authType = "telegram";
     } catch (error) {
+      trpcLogger.warn(
+        {
+          err: error,
+          request_id: getRequestId(),
+        },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Invalid Telegram authentication",
+        cause: error,
       });
     }
   }
