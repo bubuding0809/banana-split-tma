@@ -300,6 +300,10 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   else if (authorization) {
     const parts = authorization.split(" ");
     if (parts.length !== 2 || parts[0] !== "tma") {
+      trpcLogger.warn(
+        { request_id: getRequestId(), reason: "malformed_auth_format" },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Invalid authorization format. Expected: 'tma <initData>'",
@@ -308,6 +312,10 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
     const initData = parts[1];
     if (!initData) {
+      trpcLogger.warn(
+        { request_id: getRequestId(), reason: "missing_init_data" },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Missing initData in authorization header",
