@@ -153,7 +153,10 @@ router.post(
       );
       res.status(200).json(result);
     } catch (error) {
-      console.error("Admin broadcast failed:", error);
+      log.error(
+        { err: error, request_id: getRequestId() },
+        "admin.broadcast.failed"
+      );
       res.status(500).json({
         error: error instanceof Error ? error.message : "Unknown error",
       });
