@@ -81,6 +81,7 @@ describe("tRPC observability", () => {
     });
 
     const warnSpy = vi.spyOn(trpcLogger, "warn");
+    const errorSpy = vi.spyOn(trpcLogger, "error");
 
     try {
       const router = createTRPCRouter({
@@ -117,8 +118,20 @@ describe("tRPC observability", () => {
       expect(payload.err).toBeInstanceOf(Error);
       expect(payload.err.message).toBe("Init data is expired");
       expect(payload.request_id).toMatch(/^[0-9a-f-]{36}$/);
+
+      // Lock in the cause-propagation contract: the errorFormatter's
+      // trpc.procedure.error log must surface the ORIGINAL error
+      // (via err.cause ?? err), not the wrapped TRPCError. If someone
+      // later removes `cause: error` from the rethrow this fails loudly.
+      const procErrorCalls = errorSpy.mock.calls.filter(
+        (call) => call[1] === "trpc.procedure.error"
+      );
+      expect(procErrorCalls.length).toBeGreaterThan(0);
+      const procPayload = procErrorCalls[0]![0] as { err: Error };
+      expect(procPayload.err.message).toBe("Init data is expired");
     } finally {
       warnSpy.mockRestore();
+      errorSpy.mockRestore();
     }
   });
 });
