@@ -22,6 +22,7 @@ import {
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import {
   createLogger,
+  getRequestId,
   withRequestContext,
   withRequestLogger,
 } from "@repo/logger";
@@ -220,7 +221,7 @@ app.use(
     _next: import("express").NextFunction
   ) => {
     log.error(
-      { err, request_id: res.getHeader("x-request-id"), path: req.path },
+      { err, request_id: getRequestId(), path: req.path },
       "req.unhandled"
     );
     if (!res.headersSent) {

@@ -8,6 +8,7 @@
     "env:pull": "vercel env pull",
     "lint": "eslint . --fix",
     "start": "vercel dev",
+    "test": "vitest run",
     "deploy": "vercel"
   },
   "dependencies": {
