@@ -370,8 +370,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   }
 
   if (authType === "telegram") {
-    console.info(
-      `Authenticated user: ${user?.id} (${user?.username || "no username"})`
+    trpcLogger.info(
+      {
+        request_id: getRequestId(),
+        user_id: user?.id?.toString(),
+        username: user?.username,
+      },
+      "auth.telegram.ok"
     );
   }
 
