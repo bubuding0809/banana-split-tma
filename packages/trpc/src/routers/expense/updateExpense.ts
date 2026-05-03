@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
@@ -371,7 +372,8 @@ const calculateSplits = (
 export const updateExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Assert all users are members of the chat
@@ -616,7 +618,8 @@ export const updateExpenseHandler = async (
                   changedFields,
                   threadId,
                 },
-                teleBot
+                teleBot,
+                log
               );
 
               // Send a small bump reply only when the chat opted in.
@@ -629,7 +632,8 @@ export const updateExpenseHandler = async (
                     updaterName: creator.firstName,
                     threadId,
                   },
-                  teleBot
+                  teleBot,
+                  log
                 );
 
                 // Store the bump message ID for future deletion
@@ -650,9 +654,9 @@ export const updateExpenseHandler = async (
               // future updates don't keep retrying a dead edit. If the
               // chat opted in to bumps, drop a minimal "📝 Expense
               // updated" standalone as a recovery signal.
-              console.error(
-                "Failed to edit expense message, falling back to standalone update:",
-                editError
+              log.error(
+                { err: editError, expense_id: input.expenseId },
+                "telegram.expenseMessage.edit.failed"
               );
               const standaloneId = wantsBump
                 ? await sendExpenseUpdateStandaloneHandler(
@@ -665,7 +669,8 @@ export const updateExpenseHandler = async (
                       updaterName: creator.firstName,
                       threadId,
                     },
-                    teleBot
+                    teleBot,
+                    log
                   )
                 : null;
               await db.expense.update({
@@ -698,7 +703,8 @@ export const updateExpenseHandler = async (
                 updaterName: creator.firstName,
                 threadId,
               },
-              teleBot
+              teleBot,
+              log
             );
             if (standaloneId) {
               await db.expense.update({
@@ -714,9 +720,9 @@ export const updateExpenseHandler = async (
         }
       } catch (notificationError) {
         // Log notification error but don't fail expense update
-        console.error(
-          "Error sending expense update notification:",
-          notificationError
+        log.error(
+          { err: notificationError, expense_id: input.expenseId },
+          "telegram.expenseUpdateNotification.failed"
         );
       }
     }
@@ -758,5 +764,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return updateExpenseHandler(input, ctx.db, ctx.teleBot);
+    return updateExpenseHandler(input, ctx.db, ctx.teleBot, ctx.log);
   });

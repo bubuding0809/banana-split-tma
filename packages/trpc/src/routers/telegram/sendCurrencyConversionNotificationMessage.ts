@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, trpcLogger } from "../../trpc.js";
 import { Telegram } from "telegraf";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
 
@@ -28,7 +29,8 @@ const inputSchema = z.object({
 export const sendCurrencyConversionNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   if (input.chatId === 0) {
     throw new TRPCError({
@@ -93,9 +95,9 @@ export const sendCurrencyConversionNotificationMessageHandler = async (
     });
     return sentMessage.message_id;
   } catch (error) {
-    console.error(
-      "Error sending currency conversion notification message:",
-      error
+    log.error(
+      { err: error },
+      "telegram.currencyConversionNotification.send.failed"
     );
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",

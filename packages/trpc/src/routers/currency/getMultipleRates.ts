@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { getCurrentRateHandler } from "./getCurrentRate.js";
 
 export const inputSchema = z.object({
@@ -24,7 +25,8 @@ export const outputSchema = z.object({
 
 export const getMultipleRatesHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   try {
     const {
@@ -59,7 +61,8 @@ export const getMultipleRatesHandler = async (
               fallbackBaseCurrency,
               autoRefresh,
             },
-            db
+            db,
+            log
           );
 
           rates[targetCurrency] = {
@@ -69,9 +72,13 @@ export const getMultipleRatesHandler = async (
           };
         } catch (error) {
           // Log error but don't fail the entire request
-          console.warn(
-            `Failed to get rate for ${baseCurrency} to ${targetCurrency}:`,
-            error
+          log.warn(
+            {
+              err: error,
+              base_currency: baseCurrency,
+              target_currency: targetCurrency,
+            },
+            "currency.rate.fetch.failed"
           );
           // Skip this currency - don't add to rates object
         }
@@ -108,5 +115,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    return getMultipleRatesHandler(input, ctx.db);
+    return getMultipleRatesHandler(input, ctx.db, ctx.log);
   });

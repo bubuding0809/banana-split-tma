@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { ChatType } from "@dko/database";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
@@ -36,7 +37,8 @@ export const outputSchema = z.object({
 
 export const updateChatHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Check if chat exists
@@ -107,7 +109,7 @@ export const updateChatHandler = async (
     }
 
     // Log the error for debugging
-    console.error("Error updating chat:", error);
+    log.error({ err: error }, "chat.update.failed");
 
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -132,5 +134,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return updateChatHandler(input, ctx.db);
+    return updateChatHandler(input, ctx.db, ctx.log);
   });

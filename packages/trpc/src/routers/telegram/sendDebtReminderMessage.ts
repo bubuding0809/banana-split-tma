@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
@@ -22,7 +23,8 @@ const inputSchema = z.object({
 
 export const sendDebtReminderMessageHandler = async (
   input: z.infer<typeof inputSchema>,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   const formattedAmount = escapeMarkdown(
     formatCurrencyWithCode(input.amount, input.currency),
@@ -53,7 +55,7 @@ export const sendDebtReminderMessageHandler = async (
 
     return sentMessage.message_id;
   } catch (error) {
-    console.error("Error sending debt reminder message:", error);
+    log.error({ err: error }, "telegram.debtReminder.send.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send message: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -65,5 +67,5 @@ export default protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return sendDebtReminderMessageHandler(input, ctx.teleBot);
+    return sendDebtReminderMessageHandler(input, ctx.teleBot, ctx.log);
   });

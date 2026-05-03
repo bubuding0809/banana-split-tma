@@ -2,7 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
 import { Telegram } from "telegraf";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
@@ -26,7 +27,8 @@ export const deleteSettlementHandler = async (
       | "telegram"
       | "agent";
     chatId: bigint | null;
-  }
+  },
+  log: Logger = trpcLogger
 ) => {
   try {
     // Lookup settlement to enforce scope and grab the captured Telegram
@@ -56,11 +58,13 @@ export const deleteSettlementHandler = async (
           Number(settlement.telegramMessageId)
         );
       } catch (telegramError) {
-        console.error(
-          `Failed to delete settlement Telegram notification ${settlement.telegramMessageId} in chat ${settlement.chatId}:`,
-          telegramError instanceof Error
-            ? telegramError.message
-            : String(telegramError)
+        log.error(
+          {
+            err: telegramError,
+            message_id: settlement.telegramMessageId.toString(),
+            chat_id: settlement.chatId.toString(),
+          },
+          "telegram.settlementNotification.delete.failed"
         );
       }
     }
@@ -111,5 +115,11 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteSettlementHandler(input, ctx.db, ctx.teleBot, ctx.session);
+    return deleteSettlementHandler(
+      input,
+      ctx.db,
+      ctx.teleBot,
+      ctx.session,
+      ctx.log
+    );
   });

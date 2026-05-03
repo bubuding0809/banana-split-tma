@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import {
   toNumber,
@@ -52,7 +53,8 @@ export const outputSchema = z.object({
 export const settleAllDebtsHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Validate that sender and receiver are different
@@ -152,9 +154,9 @@ export const settleAllDebtsHandler = async (
           })
         );
       } catch (notificationError) {
-        console.error(
-          "Failed to send bulk settlement notification:",
-          notificationError
+        log.error(
+          { err: notificationError },
+          "telegram.bulkSettlementNotification.failed"
         );
         // Don't throw - settlements succeeded, notification failure is non-critical
       }
@@ -192,5 +194,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return settleAllDebtsHandler(input, ctx.db, ctx.teleBot);
+    return settleAllDebtsHandler(input, ctx.db, ctx.teleBot, ctx.log);
   });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { getSchedulerClient } from "../aws/utils/schedulerClient.js"; // For type-only import
 import {
   getGroupReminderSchedule,
@@ -29,7 +30,8 @@ export const outputSchema = z.object({
 
 export const migrateChatHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   const { oldChatId, newChatId } = input;
 
@@ -194,8 +196,9 @@ export const migrateChatHandler = async (
           process.env.AWS_GROUP_REMINDER_LAMBDA_ARN;
 
         if (!AWS_GROUP_REMINDER_LAMBDA_ARN) {
-          console.error(
-            "AWS_GROUP_REMINDER_LAMBDA_ARN not configured - skipping schedule migration"
+          log.error(
+            { reason: "AWS_GROUP_REMINDER_LAMBDA_ARN not configured" },
+            "schedule.migrate.skipped"
           );
         } else {
           // The new chat may already have a default schedule attached by
@@ -218,18 +221,21 @@ export const migrateChatHandler = async (
             Number(newChatId)
           );
 
-          await createRecurringScheduleHandler({
-            scheduleName: newScheduleName,
-            scheduleExpression: `weekly on ${existingSchedule.dayOfWeek} at ${existingSchedule.time}`,
-            lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
-            payload: { chatId: Number(newChatId) },
-            description:
-              existingSchedule.description ||
-              `Weekly group reminder for chat ${newChatId}`,
-            timezone: existingSchedule.timezone,
-            enabled: existingSchedule.enabled,
-            scheduleGroup: "default",
-          });
+          await createRecurringScheduleHandler(
+            {
+              scheduleName: newScheduleName,
+              scheduleExpression: `weekly on ${existingSchedule.dayOfWeek} at ${existingSchedule.time}`,
+              lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
+              payload: { chatId: Number(newChatId) },
+              description:
+                existingSchedule.description ||
+                `Weekly group reminder for chat ${newChatId}`,
+              timezone: existingSchedule.timezone,
+              enabled: existingSchedule.enabled,
+              scheduleGroup: "default",
+            },
+            log
+          );
 
           schedulesHandled = 1;
           console.log(
@@ -244,9 +250,13 @@ export const migrateChatHandler = async (
       }
     } catch (scheduleError) {
       // Log the error but don't fail the migration
-      console.error(
-        `Failed to migrate schedule during chat migration from ${oldChatId} to ${newChatId}:`,
-        scheduleError
+      log.error(
+        {
+          err: scheduleError,
+          old_chat_id: oldChatId.toString(),
+          new_chat_id: newChatId.toString(),
+        },
+        "schedule.migrate.failed"
       );
     }
 
@@ -263,7 +273,7 @@ export const migrateChatHandler = async (
       throw error;
     }
 
-    console.error("Error migrating chat:", error);
+    log.error({ err: error }, "chat.migrate.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to migrate chat: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -287,5 +297,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return migrateChatHandler(input, ctx.db);
+    return migrateChatHandler(input, ctx.db, ctx.log);
   });

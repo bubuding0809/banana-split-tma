@@ -1,5 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Telegram } from "telegraf";
+import { type Logger } from "@repo/logger";
+import { trpcLogger } from "../../trpc.js";
 
 interface DeleteExpenseMessagesInput {
   chatId: number;
@@ -14,7 +16,8 @@ interface DeleteExpenseMessagesInput {
  */
 export const deleteExpenseMessagesHandler = async (
   input: DeleteExpenseMessagesInput,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ): Promise<{ deletedCount: number; failedCount: number }> => {
   let deletedCount = 0;
   let failedCount = 0;
@@ -48,9 +51,13 @@ export const deleteExpenseMessagesHandler = async (
       deletedCount++;
     } catch (error) {
       failedCount++;
-      console.error(
-        `Failed to delete Telegram message ${messageId} in chat ${input.chatId}:`,
-        error instanceof Error ? error.message : String(error)
+      log.error(
+        {
+          err: error,
+          message_id: messageId,
+          chat_id: input.chatId,
+        },
+        "telegram.expenseMessage.delete.failed"
       );
 
       // Continue with other deletions even if one fails

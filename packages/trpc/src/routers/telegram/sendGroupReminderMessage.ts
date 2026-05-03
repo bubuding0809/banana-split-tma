@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import {
@@ -37,7 +38,8 @@ const outputSchema = z.object({
 export const sendGroupReminderMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   teleBot: Telegram,
-  db: any
+  db: any,
+  log: Logger = trpcLogger
 ) => {
   // Convert string chatId to number for database queries
   let chatIdNumber: number;
@@ -249,7 +251,7 @@ export const sendGroupReminderMessageHandler = async (
       timestamp: new Date(),
     };
   } catch (error) {
-    console.error("Error sending group reminder message:", error);
+    log.error({ err: error }, "telegram.groupReminder.send.failed");
 
     // Handle specific Telegram API errors
     if (error instanceof Error) {
@@ -295,5 +297,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return sendGroupReminderMessageHandler(input, ctx.teleBot, ctx.db);
+    return sendGroupReminderMessageHandler(input, ctx.teleBot, ctx.db, ctx.log);
   });

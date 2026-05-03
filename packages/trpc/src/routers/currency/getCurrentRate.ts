@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { toNumber } from "../../utils/financial.js";
 import { refreshRatesHandler } from "./refreshRates.js";
 import { isCacheExpired } from "../../utils/currencyApi.js";
@@ -85,7 +86,8 @@ export const outputSchema = z.object({
 
 export const getCurrentRateHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { baseCurrency, targetCurrency, fallbackBaseCurrency, autoRefresh } =
@@ -188,7 +190,7 @@ export const getCurrentRateHandler = async (
         }
       } catch (refreshError) {
         // Log refresh error but continue to throw main error
-        console.error("Auto-refresh failed:", refreshError);
+        log.error({ err: refreshError }, "currency.rate.autoRefresh.failed");
       }
     }
 
@@ -223,5 +225,5 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
-    return getCurrentRateHandler(input, ctx.db);
+    return getCurrentRateHandler(input, ctx.db, ctx.log);
   });

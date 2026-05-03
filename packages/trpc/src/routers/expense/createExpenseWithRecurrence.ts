@@ -153,29 +153,29 @@ export default protectedProcedure
         now: new Date(),
         timezone: input.recurrence.timezone,
       });
-      await createRecurringScheduleHandler({
-        scheduleName: template.awsScheduleName,
-        scheduleExpression: cronExpression,
-        lambdaArn: process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN!,
-        payload: {
-          templateId: template.id,
-          occurrenceDate: "<aws.scheduler.scheduled-time>",
+      await createRecurringScheduleHandler(
+        {
+          scheduleName: template.awsScheduleName,
+          scheduleExpression: cronExpression,
+          lambdaArn: process.env.AWS_RECURRING_EXPENSE_LAMBDA_ARN!,
+          payload: {
+            templateId: template.id,
+            occurrenceDate: "<aws.scheduler.scheduled-time>",
+          },
+          description: `Recurring expense ${template.id} for chat ${template.chatId}`,
+          timezone: input.recurrence.timezone,
+          startDate: awsStartDate,
+          endDate: input.recurrence.endDate ?? undefined,
+          enabled: true,
+          scheduleGroup: RECURRING_EXPENSE_SCHEDULE_GROUP,
         },
-        description: `Recurring expense ${template.id} for chat ${template.chatId}`,
-        timezone: input.recurrence.timezone,
-        startDate: awsStartDate,
-        endDate: input.recurrence.endDate ?? undefined,
-        enabled: true,
-        scheduleGroup: RECURRING_EXPENSE_SCHEDULE_GROUP,
-      });
+        ctx.log
+      );
     } catch (awsError) {
       await ctx.db.recurringExpenseTemplate
         .delete({ where: { id: template.id } })
         .catch(() => {});
-      console.error(
-        "AWS schedule create failed; rolled back template",
-        awsError
-      );
+      ctx.log.error({ err: awsError }, "schedule.create.failed");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to create recurring schedule: ${awsError instanceof Error ? awsError.message : "unknown"}`,

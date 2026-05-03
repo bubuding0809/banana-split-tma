@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { Telegram } from "telegraf";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
@@ -25,7 +26,8 @@ const inputSchema = z.object({
 export const sendSettlementNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   // Validate business logic
   if (input.chatId === 0) {
@@ -82,7 +84,7 @@ export const sendSettlementNotificationMessageHandler = async (
 
     return sentMessage.message_id;
   } catch (error) {
-    console.error("Error sending settlement notification message:", error);
+    log.error({ err: error }, "telegram.settlementNotification.send.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send settlement notification: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -97,6 +99,7 @@ export default protectedProcedure
     return sendSettlementNotificationMessageHandler(
       { ...input, force: false },
       ctx.db,
-      ctx.teleBot
+      ctx.teleBot,
+      ctx.log
     );
   });

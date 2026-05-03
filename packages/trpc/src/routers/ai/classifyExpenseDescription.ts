@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
@@ -39,7 +40,8 @@ const classificationResultSchema = z.object({
 });
 
 export const classifyExpenseDescriptionHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const apiKey = "AIzaSyC0Y6vsUlNMemW3x2Tln5jfUjEosNnspBM";
@@ -85,8 +87,11 @@ Requirements:
 
     if (!matchingCategory) {
       // Fallback to the first category if no exact match found
-      console.warn(
-        `AI selected category "${result.object?.selectedCategory ?? "undefined"}" not found in provided categories. Falling back to first category.`
+      log.warn(
+        {
+          selected: result.object?.selectedCategory ?? null,
+        },
+        "ai.classifyExpense.fallback"
       );
       const fallbackCategory = input.categories[0];
       if (!fallbackCategory) {
@@ -111,7 +116,7 @@ Requirements:
       },
     };
   } catch (error) {
-    console.error("Error classifying expense description:", error);
+    log.error({ err: error }, "ai.classifyExpense.failed");
 
     if (error instanceof TRPCError) {
       throw error;
@@ -150,5 +155,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return classifyExpenseDescriptionHandler(input);
+    return classifyExpenseDescriptionHandler(input, ctx.log);
   });
