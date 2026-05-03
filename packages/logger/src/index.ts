@@ -1,5 +1,6 @@
 export {
   createLogger,
+  flush,
   type Service,
   type CreateLoggerOptions,
   type Logger,

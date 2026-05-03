@@ -19,6 +19,8 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@axiomhq/js": "^1.6.0",
+    "@axiomhq/pino": "^1.6.0",
     "pino": "^9.5.0"
   },
   "devDependencies": {
