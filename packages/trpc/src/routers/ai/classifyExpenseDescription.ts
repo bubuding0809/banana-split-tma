@@ -44,11 +44,11 @@ export const classifyExpenseDescriptionHandler = async (
   log: Logger = trpcLogger
 ) => {
   try {
-    const apiKey = "AIzaSyC0Y6vsUlNMemW3x2Tln5jfUjEosNnspBM";
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Google AI API key not configured",
+        message: "GOOGLE_AI_API_KEY not configured",
       });
     }
 

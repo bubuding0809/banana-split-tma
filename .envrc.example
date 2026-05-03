@@ -12,6 +12,9 @@ export BANANA_SPLIT_API_KEY="your_banana_split_api_key_here"
 
 # Gemini Agent
 export GOOGLE_GENERATIVE_AI_API_KEY="your_google_api_key_here"
+# Google AI key used by tRPC ai.classifyExpenseDescription (separate from
+# the agent key above so it can be rotated independently).
+export GOOGLE_AI_API_KEY="your_google_ai_api_key_here"
 export INTERNAL_AGENT_KEY="replace_with_secure_random_string"
 
 # Axiom (production observability)
