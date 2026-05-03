@@ -103,11 +103,14 @@ const t = initTRPC
       if (!SELF_LOGGED_OR_EXPECTED_CODES.has(error.code)) {
         type CtxWithLog = SessionCtx & { log?: Logger };
         const sessionCtx = ctx as unknown as CtxWithLog | undefined;
-        // Prefer the request-scoped child logger built by protectedProcedure
-        // — it already has auth_type, user_id, chat_id bound, so the log line
-        // inherits those without us re-deriving them. Falls back to the
-        // module-level logger for the public-procedure / pre-middleware path
-        // (where user_id / chat_id are still useful as best-effort fields).
+        // Prefer the request-scoped child logger built by createTRPCContext
+        // — it has request_id bound so the log line inherits it without us
+        // re-deriving via getRequestId(). Note: protectedProcedure's
+        // additional bindings (auth_type, user_id, chat_id) do NOT propagate
+        // here — tRPC's ctxManager only exposes the createContext-level
+        // value to errorFormatter. So user_id / chat_id are still re-derived
+        // explicitly below from ctx.session. Falls back to the module-level
+        // logger for transformer/parse errors that fire before context build.
         const logger = sessionCtx?.log ?? trpcLogger;
         logger.error(
           {
