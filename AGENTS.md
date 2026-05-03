@@ -8,6 +8,104 @@ A Telegram Mini App (TMA) for expense tracking and splitting built with modern T
 
 - **Search — always use `mgrep`.** For any search task, invoke the `mgrep` skill instead of the built-in `Grep`, `Glob`, or `WebSearch` tools. Use `mgrep "query"` for local file/code searches and `mgrep --web "query"` for web searches. This applies to ad-hoc shell searches too (e.g. listing processes, scanning logs) — reach for `mgrep` before falling back to `ps | grep`, `find`, etc.
 
+## Production observability
+
+Backend logs from `apps/lambda` (tRPC API) and `apps/bot` (Telegram webhook) flow as structured JSON to **Axiom** over HTTP. The shared `@repo/logger` package fans every log line out to stdout (so Vercel's built-in log view still works) and to Axiom via the official `@axiomhq/js` client when `AXIOM_TOKEN` + `AXIOM_DATASET` are set on the function. No Vercel marketplace integration or Log Drain is required — this works on Hobby plans.
+
+### Agent access — Axiom MCP
+
+Add the Axiom MCP server once per machine. Headless via headers (recommended for SSH / CI / agent runners):
+
+```bash
+claude mcp add --transport http axiom https://mcp.axiom.co/mcp \
+  --header "Authorization: Bearer $AXIOM_TOKEN" \
+  --header "x-axiom-org-id: $AXIOM_ORG_ID"
+```
+
+OAuth alternative (Claude Desktop, local dev with browser):
+
+```bash
+claude mcp add --transport http axiom https://mcp.axiom.co/mcp
+```
+
+`AXIOM_TOKEN` + `AXIOM_ORG_ID` live in `.envrc` (loaded by direnv on `cd`).
+
+### Agent skills — methodology
+
+Install the Axiom skills suite once per machine:
+
+```bash
+npx skills add axiomhq/skills
+```
+
+The **System Reliability Engineering (SRE)** skill is the entry point for incident investigation — load it before reaching for queries blindly.
+
+Create `~/.axiom.toml` with the same token + org id (Skills config lives outside the repo):
+
+```toml
+[deployments.dev]
+url = "https://api.axiom.co"
+token = "<AXIOM_TOKEN value>"
+org_id = "<AXIOM_ORG_ID value>"
+```
+
+### Canonical APL queries
+
+Replace `$AXIOM_DATASET` with the dataset name configured on the Vercel project (set via Settings → Environment Variables alongside `AXIOM_TOKEN`; locally it's whichever dataset you provisioned). The MCP `queryApl` tool accepts these directly.
+
+**One request's full timeline** — when a user pastes a "Reference: …" id from the error screen:
+
+```apl
+['$AXIOM_DATASET']
+| where ['service'] == "lambda" or ['service'] == "bot"
+| where ['request_id'] == "{{REQUEST_ID}}"
+| sort by _time asc
+| project _time, level, msg, ['err.type'], ['err.message'], ['err.code'], procedure, duration_ms, status
+```
+
+**All errors for one chat in the last hour:**
+
+```apl
+['$AXIOM_DATASET']
+| where _time > ago(1h)
+| where ['chat_id'] == "{{CHAT_ID}}"
+| where ['level'] >= 40
+| sort by _time desc
+```
+
+**Auth failures over time:**
+
+```apl
+['$AXIOM_DATASET']
+| where ['msg'] == "auth.initData.failed"
+| summarize count() by bin_auto(_time)
+```
+
+**Slowest procedures p95:**
+
+```apl
+['$AXIOM_DATASET']
+| where ['msg'] == "req.end" and ['service'] == "lambda"
+| summarize p95 = percentile(['duration_ms'], 95) by ['path']
+| sort by p95 desc
+```
+
+### Reference id flow
+
+When a user reports "Something went wrong" in the TMA, the screen shows `Reference: <request_id>` below the error. Paste that id into the canonical timeline query above; the result tells the full story including `err.type` (e.g. `ExpiredError`), the procedure that failed, and any auth-middleware warns from the same request.
+
+### Event-name conventions
+
+Backend log events follow `<surface>.<resource>.<action>.<state>` where possible:
+
+- `auth.initData.failed`, `auth.apiKey.revoked`, `auth.apiKey.invalid`
+- `trpc.procedure.error` (auto-emitted by the errorFormatter for every non-NOT_FOUND tRPC error)
+- `req.start`, `req.end`, `req.unhandled` (Express middleware)
+- `bot.update.start`, `bot.update.end`, `bot.update.unhandled` (per-update grammy middleware), `bot.update.uncaught` (rare pre-middleware error fallback)
+- Domain events: `schedule.groupReminder.create.failed`, `chat.defaultSchedule.create.failed`, `recurringExpense.schedule.create.failed`, `telegram.expenseNotification.failed`, `chat.migrate.failed`, etc.
+
+Filter by `level`: 30 = info (request lifecycle), 40 = warn (recoverable, e.g. auth failures, rate limits), 50 = error (everything else).
+
 ## Frontend Development Guidelines
 
 ### UI Framework & Components

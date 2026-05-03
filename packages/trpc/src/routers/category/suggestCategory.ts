@@ -50,7 +50,10 @@ export default protectedProcedure
     const userId = ctx.session.user?.id;
     const key = `suggest:${String(userId ?? "anon")}`;
     if (!takeToken(key, 20, 60_000)) {
-      console.warn("category.suggest rate limit hit", { userId });
+      ctx.log.warn(
+        { user_id: userId?.toString() },
+        "category.suggest.rateLimited"
+      );
       return { categoryId: null };
     }
     return suggestCategoryHandler(input, ctx.db);

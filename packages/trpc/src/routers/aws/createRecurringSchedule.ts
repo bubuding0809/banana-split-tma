@@ -5,7 +5,8 @@ import {
   CreateScheduleInput,
   GetScheduleCommand,
 } from "@aws-sdk/client-scheduler";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { parseScheduleExpression } from "./utils/scheduleParser.js";
 import {
   assertValidLambdaArn,
@@ -128,7 +129,8 @@ export const outputSchema = z.object({
 });
 
 export const createRecurringScheduleHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const {
@@ -275,10 +277,11 @@ export const createRecurringScheduleHandler = async (
       }
     }
 
-    console.error("Failed to create recurring schedule:", error);
+    log.error({ err: error }, "schedule.recurring.create.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to create recurring schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -296,6 +299,6 @@ export default protectedProcedure
   })
   .input(inputSchema)
   .output(outputSchema)
-  .mutation(async ({ input }) => {
-    return createRecurringScheduleHandler(input);
+  .mutation(async ({ input, ctx }) => {
+    return createRecurringScheduleHandler(input, ctx.log);
   });

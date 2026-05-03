@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@dko/database";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { deleteExpenseMessagesHandler } from "../telegram/deleteExpenseNotificationMessage.js";
 import { Telegram } from "telegraf";
 import { assertChatAccess } from "../../middleware/chatScope.js";
@@ -27,7 +28,8 @@ export const deleteExpenseHandler = async (
       | "telegram"
       | "agent";
     chatId: bigint | null;
-  }
+  },
+  log: Logger = trpcLogger
 ) => {
   try {
     // First, fetch the expense to get Telegram message IDs
@@ -60,13 +62,14 @@ export const deleteExpenseHandler = async (
           telegramMessageId: expense.telegramMessageId,
           telegramUpdateBumpMessageIds: expense.telegramUpdateBumpMessageIds,
         },
-        teleBot
+        teleBot,
+        log
       );
     } catch (telegramError) {
       // Log the error but continue with database deletion
-      console.error(
-        "Error deleting Telegram messages for expense:",
-        telegramError
+      log.error(
+        { err: telegramError, expense_id: input.expenseId },
+        "telegram.expenseMessage.delete.failed"
       );
     }
 
@@ -100,6 +103,7 @@ export const deleteExpenseHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to delete expense",
+      cause: error,
     });
   }
 };
@@ -117,5 +121,11 @@ export default protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
-    return deleteExpenseHandler(input, ctx.db, ctx.teleBot, ctx.session);
+    return deleteExpenseHandler(
+      input,
+      ctx.db,
+      ctx.teleBot,
+      ctx.session,
+      ctx.log
+    );
   });

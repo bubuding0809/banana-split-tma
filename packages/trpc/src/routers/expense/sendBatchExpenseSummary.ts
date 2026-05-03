@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { Telegram } from "telegraf";
 import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { escapeMarkdown } from "../../utils/telegram.js";
 
@@ -153,7 +154,8 @@ export const formatBatchSummaryMessage = (
 export const sendBatchExpenseSummaryHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   const chat = await db.chat.findUnique({
     where: { id: input.chatId },
@@ -267,7 +269,7 @@ export const sendBatchExpenseSummaryHandler = async (
   } catch (err) {
     // Non-fatal: the batch itself already committed; a failed summary
     // notification shouldn't surface as a batch failure.
-    console.error("sendBatchExpenseSummary: teleBot.sendMessage failed", err);
+    log.error({ err }, "telegram.batchExpenseSummary.send.failed");
     return { sent: false, messageId: null };
   }
 };
@@ -294,6 +296,7 @@ export default protectedProcedure
     return sendBatchExpenseSummaryHandler(
       { ...input, actorName },
       ctx.db,
-      ctx.teleBot
+      ctx.teleBot,
+      ctx.log
     );
   });

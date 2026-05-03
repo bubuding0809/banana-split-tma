@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
 import { createGroupReminderScheduleHandler } from "./createGroupReminderSchedule.js";
@@ -165,7 +166,8 @@ export const outputSchema = z.object({
 });
 
 export const updateGroupReminderScheduleHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { chatId, dayOfWeek, time, timezone, description, enabled } = input;
@@ -183,14 +185,17 @@ export const updateGroupReminderScheduleHandler = async (
       // leaving the chat without a schedule. Toggle-on from the settings
       // UI must still work, so create using the toggle's payload plus the
       // same defaults the bot uses on chat join.
-      const created = await createGroupReminderScheduleHandler({
-        chatId: chatId.toString(),
-        dayOfWeek: dayOfWeek ?? "sunday",
-        time: time ?? "9:00pm",
-        timezone: timezone ?? "Asia/Singapore",
-        description,
-        enabled: enabled ?? true,
-      });
+      const created = await createGroupReminderScheduleHandler(
+        {
+          chatId: chatId.toString(),
+          dayOfWeek: dayOfWeek ?? "sunday",
+          time: time ?? "9:00pm",
+          timezone: timezone ?? "Asia/Singapore",
+          description,
+          enabled: enabled ?? true,
+        },
+        log
+      );
 
       return {
         scheduleArn: created.scheduleArn,
@@ -231,16 +236,19 @@ export const updateGroupReminderScheduleHandler = async (
     await deleteGroupReminderSchedule(schedulerClient, chatId);
 
     // Create new schedule with updated configuration
-    const result = await createRecurringScheduleHandler({
-      scheduleName,
-      scheduleExpression,
-      lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
-      payload: lambdaPayload,
-      description: mergedConfig.description,
-      timezone: mergedConfig.timezone,
-      enabled: mergedConfig.enabled,
-      scheduleGroup: "default",
-    });
+    const result = await createRecurringScheduleHandler(
+      {
+        scheduleName,
+        scheduleExpression,
+        lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
+        payload: lambdaPayload,
+        description: mergedConfig.description,
+        timezone: mergedConfig.timezone,
+        enabled: mergedConfig.enabled,
+        scheduleGroup: "default",
+      },
+      log
+    );
 
     // Return domain-specific response
     return {
@@ -266,10 +274,11 @@ export const updateGroupReminderScheduleHandler = async (
     }
 
     // Handle validation and other errors
-    console.error("Failed to update group reminder schedule:", error);
+    log.error({ err: error }, "schedule.update.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to update group reminder schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -289,5 +298,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return updateGroupReminderScheduleHandler(input);
+    return updateGroupReminderScheduleHandler(input, ctx.log);
   });

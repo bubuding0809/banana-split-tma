@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { ChatType } from "@dko/database";
 import { createGroupReminderScheduleHandler } from "../aws/createGroupReminderSchedule.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
@@ -23,7 +24,8 @@ export const outputSchema = z.object({
 
 export const createChatHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Validate chat type
@@ -75,19 +77,23 @@ export const createChatHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create chat",
+      cause: error,
     });
   } finally {
     // Create a default group reminder schedule for the chat
     try {
-      await createGroupReminderScheduleHandler({
-        chatId: input.chatId.toString(),
-        dayOfWeek: "sunday",
-        time: "9:00pm",
-        timezone: "Asia/Singapore",
-        enabled: true,
-      });
+      await createGroupReminderScheduleHandler(
+        {
+          chatId: input.chatId.toString(),
+          dayOfWeek: "sunday",
+          time: "9:00pm",
+          timezone: "Asia/Singapore",
+          enabled: true,
+        },
+        log
+      );
     } catch (error) {
-      console.error("Failed to create group reminder schedule:", error);
+      log.error({ err: error }, "chat.defaultSchedule.create.failed");
     }
   }
 };
@@ -107,5 +113,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return createChatHandler(input, ctx.db);
+    return createChatHandler(input, ctx.db, ctx.log);
   });

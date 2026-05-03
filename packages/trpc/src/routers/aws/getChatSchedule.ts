@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { getGroupReminderSchedule } from "./utils/groupReminderUtils.js";
 import { getSchedulerClient } from "./utils/schedulerClient.js";
@@ -30,7 +31,8 @@ export const outputSchema = z
   .describe("Schedule details (null if no schedule exists)");
 
 export const getChatScheduleHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { chatId } = input;
@@ -46,10 +48,11 @@ export const getChatScheduleHandler = async (
     }
 
     // Handle AWS and other errors
-    console.error("Failed to get chat schedule:", error);
+    log.error({ err: error }, "schedule.get.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to get chat schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -69,5 +72,5 @@ export default protectedProcedure
   .output(outputSchema)
   .query(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return getChatScheduleHandler(input);
+    return getChatScheduleHandler(input, ctx.log);
   });

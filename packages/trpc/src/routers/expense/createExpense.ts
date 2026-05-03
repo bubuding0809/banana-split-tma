@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
@@ -275,7 +276,8 @@ const calculateSplits = (
 export const createExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Assert all users are members of the chat
@@ -475,7 +477,10 @@ export const createExpenseHandler = async (
         }
       } catch (notificationError) {
         // Log notification error but don't fail expense creation
-        console.error("Error sending expense notification:", notificationError);
+        log.error(
+          { err: notificationError },
+          "telegram.expenseNotification.failed"
+        );
       }
     }
 
@@ -522,5 +527,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return createExpenseHandler(input, ctx.db, ctx.teleBot);
+    return createExpenseHandler(input, ctx.db, ctx.teleBot, ctx.log);
   });

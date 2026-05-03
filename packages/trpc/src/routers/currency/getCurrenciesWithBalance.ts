@@ -154,6 +154,7 @@ export const getCurrenciesWithBalanceHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to get currencies with balance",
+      cause: error,
     });
   }
 };

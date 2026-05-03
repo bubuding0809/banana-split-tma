@@ -10,6 +10,13 @@ export SUPABASE_TOKEN="your_supabase_token_here"
 # Banana Split CLI/MCP
 export BANANA_SPLIT_API_KEY="your_banana_split_api_key_here"
 
-# Gemini Agent
+# Gemini (used by trpc.category.suggestCategory + @repo/agent — the
+# @ai-sdk/google client reads this env name by convention)
 export GOOGLE_GENERATIVE_AI_API_KEY="your_google_api_key_here"
 export INTERNAL_AGENT_KEY="replace_with_secure_random_string"
+
+# Axiom (production observability)
+# Generate a personal access token at https://app.axiom.co > Profile > Tokens
+# Find your org id at https://app.axiom.co > Settings > Profile
+export AXIOM_TOKEN="your_axiom_token_here"
+export AXIOM_ORG_ID="your_axiom_org_id_here"

@@ -1,5 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Telegram } from "telegraf";
+import { type Logger } from "@repo/logger";
+import { trpcLogger } from "../../trpc.js";
 import {
   formatExpenseMessage,
   ExpenseParticipant,
@@ -64,7 +66,8 @@ interface SendExpenseUpdateStandaloneInput {
  */
 export const editExpenseMessageHandler = async (
   input: EditExpenseMessageInput,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ): Promise<boolean> => {
   try {
     // Format the updated message using the shared formatter. isUpdate
@@ -118,10 +121,11 @@ export const editExpenseMessageHandler = async (
 
     return true;
   } catch (error) {
-    console.error("Error editing expense notification message:", error);
+    log.error({ err: error }, "telegram.expenseNotification.edit.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to edit expense notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -136,7 +140,8 @@ export const editExpenseMessageHandler = async (
  */
 export const sendExpenseUpdateStandaloneHandler = async (
   input: SendExpenseUpdateStandaloneInput,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ): Promise<number> => {
   try {
     let updaterMention: string;
@@ -188,10 +193,11 @@ export const sendExpenseUpdateStandaloneHandler = async (
 
     return sentMessage.message_id;
   } catch (error) {
-    console.error("Error sending standalone expense update message:", error);
+    log.error({ err: error }, "telegram.expenseUpdateStandalone.send.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send standalone update: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -201,7 +207,8 @@ export const sendExpenseUpdateStandaloneHandler = async (
  */
 export const sendExpenseUpdateBumpHandler = async (
   input: SendExpenseUpdateBumpInput,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ): Promise<number> => {
   try {
     // Create updater mention
@@ -229,10 +236,11 @@ export const sendExpenseUpdateBumpHandler = async (
 
     return sentMessage.message_id;
   } catch (error) {
-    console.error("Error sending expense update bump message:", error);
+    log.error({ err: error }, "telegram.expenseUpdateBump.send.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to send update bump: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };

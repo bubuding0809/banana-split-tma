@@ -10,8 +10,33 @@ import {
 } from "@telegram-apps/init-data-node";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import crypto from "node:crypto";
+import { createLogger, getRequestId, type Logger } from "@repo/logger";
 
 import "telegraf/types"; // Required to ensure types are portable
+
+export const trpcLogger = createLogger("lambda");
+
+// Codes already emitted at warn level by the auth middleware
+// (auth.initData.failed, auth.apiKey.invalid, auth.apiKey.revoked) or that
+// represent expected client errors (NOT_FOUND for new users, BAD_REQUEST for
+// input validation). Re-emitting these at error level would inflate the
+// procedure-error spike monitor with routine traffic.
+//
+// FORBIDDEN is INTENTIONALLY NOT in this set — it's thrown by business-logic
+// access-control checks (chatScope, snapshot share visibility, etc.) which
+// don't self-log, so it must surface as an error event for triage.
+const SELF_LOGGED_OR_EXPECTED_CODES = new Set<string>([
+  "NOT_FOUND",
+  "UNAUTHORIZED",
+  "BAD_REQUEST",
+]);
+
+type SessionCtx = {
+  session?: {
+    user?: { id?: number | bigint };
+    chatId?: bigint | null;
+  };
+};
 
 /**
  * 1. CONTEXT
@@ -31,12 +56,15 @@ const createTRPCContext = ({
 }: Record<string, unknown> & {
   botToken: string;
 }) => {
+  const requestId = getRequestId();
+  const log: Logger = trpcLogger.child({ request_id: requestId });
   return {
     db: prisma as typeof prisma,
     teleBot: new Telegram(botToken),
     request: rest.req,
     response: rest.res,
     info: rest.info,
+    log,
   };
 };
 
@@ -64,6 +92,46 @@ const t = initTRPC
   .create({
     transformer: superjson,
     isServer: true,
+    errorFormatter({ shape, error, ctx, path }) {
+      const requestId = getRequestId();
+      // Skip codes that are either expected client errors (NOT_FOUND for
+      // new users, BAD_REQUEST for input validation) or already self-logged
+      // at warn level by the auth middleware (UNAUTHORIZED). FORBIDDEN is
+      // intentionally NOT skipped — see SELF_LOGGED_OR_EXPECTED_CODES.
+      // Re-emitting these at error level would inflate the documented
+      // "procedure-error spike" monitor with routine traffic.
+      if (!SELF_LOGGED_OR_EXPECTED_CODES.has(error.code)) {
+        type CtxWithLog = SessionCtx & { log?: Logger };
+        const sessionCtx = ctx as unknown as CtxWithLog | undefined;
+        // Prefer the request-scoped child logger built by createTRPCContext
+        // — it has request_id bound so the log line inherits it without us
+        // re-deriving via getRequestId(). Note: protectedProcedure's
+        // additional bindings (auth_type, user_id, chat_id) do NOT propagate
+        // here — tRPC's ctxManager only exposes the createContext-level
+        // value to errorFormatter. So user_id / chat_id are still re-derived
+        // explicitly below from ctx.session. Falls back to the module-level
+        // logger for transformer/parse errors that fire before context build.
+        const logger = sessionCtx?.log ?? trpcLogger;
+        logger.error(
+          {
+            err: error.cause ?? error,
+            code: error.code,
+            procedure: path,
+            request_id: requestId,
+            user_id: sessionCtx?.session?.user?.id?.toString(),
+            chat_id: sessionCtx?.session?.chatId?.toString(),
+          },
+          "trpc.procedure.error"
+        );
+      }
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          requestId,
+        },
+      };
+    },
   });
 
 /**
@@ -186,6 +254,14 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
       if (chatApiKey) {
         if (chatApiKey.revokedAt !== null) {
+          trpcLogger.warn(
+            {
+              request_id: getRequestId(),
+              reason: "chat_api_key_revoked",
+              chat_id: chatApiKey.chatId.toString(),
+            },
+            "auth.apiKey.revoked"
+          );
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "API key has been revoked",
@@ -201,6 +277,14 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
         if (userApiKey) {
           if (userApiKey.revokedAt !== null) {
+            trpcLogger.warn(
+              {
+                request_id: getRequestId(),
+                reason: "user_api_key_revoked",
+                user_id: userApiKey.user.id.toString(),
+              },
+              "auth.apiKey.revoked"
+            );
             throw new TRPCError({
               code: "UNAUTHORIZED",
               message: "API key has been revoked",
@@ -214,6 +298,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
             username: userApiKey.user.username || undefined,
           };
         } else {
+          trpcLogger.warn(
+            {
+              request_id: getRequestId(),
+              reason: "invalid_api_key",
+            },
+            "auth.apiKey.invalid"
+          );
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Invalid API key",
@@ -226,6 +317,10 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   else if (authorization) {
     const parts = authorization.split(" ");
     if (parts.length !== 2 || parts[0] !== "tma") {
+      trpcLogger.warn(
+        { request_id: getRequestId(), reason: "malformed_auth_format" },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Invalid authorization format. Expected: 'tma <initData>'",
@@ -234,6 +329,10 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
     const initData = parts[1];
     if (!initData) {
+      trpcLogger.warn(
+        { request_id: getRequestId(), reason: "missing_init_data" },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Missing initData in authorization header",
@@ -257,9 +356,17 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       user = parseInitData(initData).user ?? null;
       authType = "telegram";
     } catch (error) {
+      trpcLogger.warn(
+        {
+          err: error,
+          request_id: getRequestId(),
+        },
+        "auth.initData.failed"
+      );
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Invalid Telegram authentication",
+        cause: error,
       });
     }
   }
@@ -273,8 +380,13 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   }
 
   if (authType === "telegram") {
-    console.info(
-      `Authenticated user: ${user?.id} (${user?.username || "no username"})`
+    trpcLogger.info(
+      {
+        request_id: getRequestId(),
+        user_id: user?.id?.toString(),
+        username: user?.username,
+      },
+      "auth.telegram.ok"
     );
   }
 
@@ -285,6 +397,11 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         authType,
         chatId,
       },
+      log: ctx.log.child({
+        auth_type: authType,
+        user_id: user?.id?.toString(),
+        chat_id: chatId?.toString(),
+      }),
     },
   });
 });

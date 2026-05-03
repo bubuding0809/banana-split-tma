@@ -68,6 +68,7 @@ export const addMemberHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to add member to chat",
+      cause: error,
     });
   }
 };

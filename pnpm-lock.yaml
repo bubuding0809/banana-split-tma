@@ -192,6 +192,9 @@ importers:
       "@repo/categories":
         specifier: workspace:*
         version: link:../../packages/categories
+      "@repo/logger":
+        specifier: workspace:*
+        version: link:../../packages/logger
       "@t3-oss/env-core":
         specifier: ^0.13.8
         version: 0.13.11(typescript@5.8.2)(valibot@1.3.1(typescript@5.8.2))(zod@3.25.76)
@@ -292,6 +295,9 @@ importers:
       "@dko/trpc":
         specifier: workspace:*
         version: link:../../packages/trpc
+      "@repo/logger":
+        specifier: workspace:*
+        version: link:../../packages/logger
       "@t3-oss/env-core":
         specifier: ^0.13.8
         version: 0.13.11(typescript@5.8.2)(valibot@1.3.1(typescript@5.8.2))(zod@3.25.76)
@@ -301,6 +307,9 @@ importers:
       "@types/cors":
         specifier: ^2.8.17
         version: 2.8.19
+      "@vercel/functions":
+        specifier: ^2.2.12
+        version: 2.2.13(@aws-sdk/credential-provider-web-identity@3.972.28)
       cors:
         specifier: ^2.8.5
         version: 2.8.6
@@ -747,6 +756,43 @@ importers:
         specifier: ^8.26.0
         version: 8.58.0(eslint@9.39.4(jiti@2.6.1))(typescript@5.8.2)
 
+  packages/logger:
+    dependencies:
+      "@axiomhq/js":
+        specifier: ^1.6.0
+        version: 1.6.0
+      pino:
+        specifier: ^9.5.0
+        version: 9.14.0
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      "@types/express":
+        specifier: ^5.0.0
+        version: 5.0.6
+      "@types/node":
+        specifier: ^25.5.0
+        version: 25.5.0
+      "@types/supertest":
+        specifier: ^6.0.0
+        version: 6.0.3
+      express:
+        specifier: ^5.0.0
+        version: 5.2.1
+      supertest:
+        specifier: ^7.0.0
+        version: 7.2.2
+      typescript:
+        specifier: 5.8.2
+        version: 5.8.2
+      vitest:
+        specifier: ^4.0.18
+        version: 4.1.5(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(happy-dom@20.8.9)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/trpc:
     dependencies:
       "@ai-sdk/google":
@@ -764,6 +810,9 @@ importers:
       "@repo/categories":
         specifier: workspace:*
         version: link:../categories
+      "@repo/logger":
+        specifier: workspace:*
+        version: link:../logger
       "@telegram-apps/init-data-node":
         specifier: ^2.0.10
         version: 2.0.10(typescript@5.8.2)
@@ -785,6 +834,9 @@ importers:
       node-telegram-bot-api:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
+      pino:
+        specifier: ^9.5.0
+        version: 9.14.0
       superjson:
         specifier: ^2.2.2
         version: 2.2.6
@@ -807,9 +859,21 @@ importers:
       "@repo/typescript-config":
         specifier: workspace:*
         version: link:../typescript-config
+      "@types/express":
+        specifier: ^5.0.0
+        version: 5.0.6
       "@types/node-telegram-bot-api":
         specifier: ^0.64.9
         version: 0.64.14
+      "@types/supertest":
+        specifier: ^6.0.0
+        version: 6.0.3
+      express:
+        specifier: ^5.0.0
+        version: 5.2.1
+      supertest:
+        specifier: ^7.0.0
+        version: 7.2.2
       vitest:
         specifier: ^3.2.0
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.19.15)(happy-dom@20.8.9)(jiti@2.6.1)(jsdom@29.0.2(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
@@ -1255,6 +1319,13 @@ packages:
         integrity: sha512-iY8yvjE0y651BixKNPgmv1WrQc+GZ142sb0z4gYnChDDY2YqI4P/jsSopBWrKfAt7LOJAkOXt7rC/hms+WclQQ==,
       }
     engines: { node: ">=18.0.0" }
+
+  "@axiomhq/js@1.6.0":
+    resolution:
+      {
+        integrity: sha512-qm0ObduIpI6PJUOYwakH5WV3E7IF0qXE/wh5N1JWGAzxKtCZryk+YwA0aW3lPZSGPQeLHyEzN+9pXsOIjoPiRg==,
+      }
+    engines: { node: ">=20" }
 
   "@babel/code-frame@7.29.0":
     resolution:
@@ -7205,6 +7276,12 @@ packages:
         integrity: sha512-pTVjI73witn+9ILmoJdajHGW2jkSaOzhiFYF1Rd3EQ94kymLqB9PjD9ISg7WaALC7+dCHT0FGe9T2LktLq/3GQ==,
       }
 
+  "@types/supertest@6.0.3":
+    resolution:
+      {
+        integrity: sha512-8WzXq62EXFhJ7QsH3Ocb/iKQ/Ty9ZVWnVzoTKc9tyyFRRF3a74Tk2+TLFgaFFw364Ere+npzHKEJ6ga2LzIL7w==,
+      }
+
   "@types/supertest@7.2.0":
     resolution:
       {
@@ -10824,6 +10901,12 @@ packages:
       picomatch:
         optional: true
 
+  fetch-retry@6.0.0:
+    resolution:
+      {
+        integrity: sha512-BUFj1aMubgib37I3v4q78fYo63Po7t4HUPTpQ6/QE6yK6cIQrP+W43FYToeTEyg5m2Y7eFUtijUuAv/PDlWuag==,
+      }
+
   figures@6.1.0:
     resolution:
       {
@@ -14370,6 +14453,12 @@ packages:
       }
     engines: { node: ">=12" }
 
+  pino-abstract-transport@2.0.0:
+    resolution:
+      {
+        integrity: sha512-F63x5tizV6WCh4R6RHyi2Ml+M70DNRXt/+HANowMflpgGFMAym/VKm6G7ZOQRjqN7XbGxK1Lg9t6ZrtzOaivMw==,
+      }
+
   pino-abstract-transport@3.0.0:
     resolution:
       {
@@ -14393,6 +14482,13 @@ packages:
     resolution:
       {
         integrity: sha512-r34yH/GlQpKZbU1BvFFqOjhISRo1MNx1tWYsYvmj6KIRHSPMT2+yHOEb1SG6NMvRoHRF0a07kCOox/9yakl1vg==,
+      }
+    hasBin: true
+
+  pino@9.14.0:
+    resolution:
+      {
+        integrity: sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==,
       }
     hasBin: true
 
@@ -16437,6 +16533,12 @@ packages:
         integrity: sha512-RVZSIV5IG10Hk3enotrhvz0T9em6cyHBLkH/YAZuKqd8hRkKhSfCGIcP2KUY0EPxndzANBmNllzWPwak+bheSw==,
       }
 
+  thread-stream@3.1.0:
+    resolution:
+      {
+        integrity: sha512-OqyPZ9u96VohAyMfJykzmivOrY2wfMSf3C5TtFJVgN+Hm6aj+voFhlK+kZEIv2FBh1X6Xp3DlnCOfEQ3B2J86A==,
+      }
+
   thread-stream@4.0.0:
     resolution:
       {
@@ -17230,7 +17332,7 @@ packages:
       {
         integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==,
       }
-    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@8.3.2:
@@ -18505,6 +18607,10 @@ snapshots:
       tslib: 2.8.1
 
   "@aws/lambda-invoke-store@0.2.4": {}
+
+  "@axiomhq/js@1.6.0":
+    dependencies:
+      fetch-retry: 6.0.0
 
   "@babel/code-frame@7.29.0":
     dependencies:
@@ -22526,6 +22632,11 @@ snapshots:
       "@types/node": 22.19.15
       form-data: 4.0.5
 
+  "@types/supertest@6.0.3":
+    dependencies:
+      "@types/methods": 1.1.4
+      "@types/superagent": 8.1.9
+
   "@types/supertest@7.2.0":
     dependencies:
       "@types/methods": 1.1.4
@@ -23427,6 +23538,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 6.4.1(@types/node@20.19.37)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  "@vitest/mocker@4.1.5(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))":
+    dependencies:
+      "@vitest/spy": 4.1.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   "@vitest/pretty-format@3.2.4":
     dependencies:
@@ -24406,7 +24525,7 @@ snapshots:
 
   debug@4.1.1:
     dependencies:
-      ms: 2.1.1
+      ms: 2.1.3
 
   debug@4.3.4:
     dependencies:
@@ -25350,6 +25469,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
+  fetch-retry@6.0.0: {}
+
   figures@6.1.0:
     dependencies:
       is-unicode-supported: 2.1.0
@@ -26224,7 +26345,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      "@types/node": 25.5.0
+      "@types/node": 22.19.15
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -27661,6 +27782,10 @@ snapshots:
 
   picomatch@4.0.4: {}
 
+  pino-abstract-transport@2.0.0:
+    dependencies:
+      split2: 4.2.0
+
   pino-abstract-transport@3.0.0:
     dependencies:
       split2: 4.2.0
@@ -27696,6 +27821,20 @@ snapshots:
       safe-stable-stringify: 2.5.0
       sonic-boom: 4.2.1
       thread-stream: 4.0.0
+
+  pino@9.14.0:
+    dependencies:
+      "@pinojs/redact": 0.4.0
+      atomic-sleep: 1.0.0
+      on-exit-leak-free: 2.1.2
+      pino-abstract-transport: 2.0.0
+      pino-std-serializers: 7.1.0
+      process-warning: 5.0.0
+      quick-format-unescaped: 4.0.4
+      real-require: 0.2.0
+      safe-stable-stringify: 2.5.0
+      sonic-boom: 4.2.1
+      thread-stream: 3.1.0
 
   pirates@4.0.7: {}
 
@@ -29152,6 +29291,10 @@ snapshots:
     dependencies:
       any-promise: 1.3.0
 
+  thread-stream@3.1.0:
+    dependencies:
+      real-require: 0.2.0
+
   thread-stream@4.0.0:
     dependencies:
       real-require: 0.2.0
@@ -30047,6 +30190,37 @@ snapshots:
       "@edge-runtime/vm": 3.2.0
       "@opentelemetry/api": 1.9.0
       "@types/node": 20.19.37
+      happy-dom: 20.8.9
+      jsdom: 29.0.2(@noble/hashes@1.8.0)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.5(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(happy-dom@20.8.9)(jsdom@29.0.2(@noble/hashes@1.8.0))(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)):
+    dependencies:
+      "@vitest/expect": 4.1.5
+      "@vitest/mocker": 4.1.5(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
+      "@vitest/pretty-format": 4.1.5
+      "@vitest/runner": 4.1.5
+      "@vitest/snapshot": 4.1.5
+      "@vitest/spy": 4.1.5
+      "@vitest/utils": 4.1.5
+      es-module-lexer: 2.0.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      std-env: 4.0.0
+      tinybench: 2.9.0
+      tinyexec: 1.0.4
+      tinyglobby: 0.2.15
+      tinyrainbow: 3.1.0
+      vite: 6.4.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      "@edge-runtime/vm": 3.2.0
+      "@opentelemetry/api": 1.9.0
+      "@types/node": 25.5.0
       happy-dom: 20.8.9
       jsdom: 29.0.2(@noble/hashes@1.8.0)
     transitivePeerDependencies:

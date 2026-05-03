@@ -163,6 +163,7 @@ export default protectedProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Failed to update schedule: ${awsError instanceof Error ? awsError.message : "unknown"}`,
+          cause: awsError,
         });
       }
     }

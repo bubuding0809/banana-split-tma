@@ -1,4 +1,5 @@
 import type { Telegram } from "telegraf";
+import type { Logger } from "@repo/logger";
 import type { Db } from "../trpc.js";
 import telegramifyMarkdown from "telegramify-markdown";
 import { selectEditMethod, type CurrentKind } from "./broadcastEditMethod.js";
@@ -180,7 +181,7 @@ export async function editDelivery(
 }
 
 export async function resumeSend(
-  ctx: { db: Db; teleBot: Telegram },
+  ctx: { db: Db; teleBot: Telegram; log: Logger },
   broadcastId: string
 ): Promise<{ successCount: number; failCount: number }> {
   const b = await ctx.db.broadcast.findUnique({

@@ -20,6 +20,14 @@ import {
   type BroadcastMedia,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
+import {
+  createLogger,
+  flush,
+  getRequestId,
+  withRequestContext,
+  withRequestLogger,
+} from "@repo/logger";
+import { waitUntil } from "@vercel/functions";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
 import avatarRouter from "./avatar.js";
 import chatPhotoRouter from "./chat-photo.js";
@@ -30,6 +38,25 @@ const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 //* Create an express app
 const app = express();
 app.use(cors());
+
+const log = createLogger("lambda");
+app.use(withRequestContext());
+app.use(withRequestLogger(log));
+
+// After every response finishes, kick a non-blocking flush. waitUntil
+// keeps the function instance alive long enough for the Axiom HTTP POST
+// to land, even after the response went out. waitUntil throws outside
+// the Vercel runtime, so swallow that for local dev.
+app.use((_req, res, next) => {
+  res.on("finish", () => {
+    try {
+      waitUntil(flush());
+    } catch {
+      // Outside Vercel runtime — fine for local dev / tests.
+    }
+  });
+  next();
+});
 
 //* Create a router to handle all API requests
 const router = Router();
@@ -137,12 +164,16 @@ router.post(
         {
           db: prisma,
           teleBot: new Telegram(env.TELEGRAM_BOT_TOKEN || ""),
+          log: log.child({ request_id: getRequestId() }),
         },
         { message, targetUserIds, media, createdByTelegramId: null }
       );
       res.status(200).json(result);
     } catch (error) {
-      console.error("Admin broadcast failed:", error);
+      log.error(
+        { err: error, request_id: getRequestId() },
+        "admin.broadcast.failed"
+      );
       res.status(500).json({
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -202,5 +233,22 @@ app.use("/api", router);
 app.get("/", (_req, res) => {
   res.status(200).json({ message: "Hello from DKO TRPC API" });
 });
+
+app.use(
+  (
+    err: unknown,
+    req: Request,
+    res: Response,
+    _next: import("express").NextFunction
+  ) => {
+    log.error(
+      { err, request_id: getRequestId(), path: req.path },
+      "req.unhandled"
+    );
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 export default app;

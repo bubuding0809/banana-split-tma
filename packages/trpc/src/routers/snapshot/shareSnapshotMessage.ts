@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import {
   escapeMarkdown,
   mentionMarkdown,
@@ -126,7 +127,8 @@ export async function loadSnapshotContext(
   db: Db,
   teleBot: Telegram,
   snapshotId: string,
-  userId: bigint
+  userId: bigint,
+  log: Logger = trpcLogger
 ): Promise<SnapshotContext> {
   const snapshot = await db.expenseSnapshot.findUnique({
     where: { id: snapshotId },
@@ -185,11 +187,12 @@ export async function loadSnapshotContext(
           fallbackBaseCurrency: "USD",
           autoRefresh: true,
         },
-        db
+        db,
+        log
       );
       ratesMap = rateResult.rates;
     } catch (error) {
-      console.warn("Failed to fetch rates for snapshot sharing", error);
+      log.warn({ err: error }, "snapshot.rates.fetch.failed");
     }
   }
 
@@ -607,9 +610,16 @@ export const shareSnapshotMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   teleBot: Telegram,
-  userId: bigint
+  userId: bigint,
+  log: Logger = trpcLogger
 ) => {
-  const ctx = await loadSnapshotContext(db, teleBot, input.snapshotId, userId);
+  const ctx = await loadSnapshotContext(
+    db,
+    teleBot,
+    input.snapshotId,
+    userId,
+    log
+  );
   const { text, replyMarkup } = buildSnapshotMessage(ctx, "cat");
 
   try {
@@ -620,10 +630,11 @@ export const shareSnapshotMessageHandler = async (
     });
     return { success: true };
   } catch (error) {
-    console.error("Error sending snapshot message:", error);
+    log.error({ err: error }, "telegram.snapshotMessage.send.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to send message to Telegram",
+      cause: error,
     });
   }
 };
@@ -642,6 +653,7 @@ export default protectedProcedure
       input,
       ctx.db,
       ctx.teleBot,
-      BigInt(ctx.session.user.id)
+      BigInt(ctx.session.user.id),
+      ctx.log
     );
   });

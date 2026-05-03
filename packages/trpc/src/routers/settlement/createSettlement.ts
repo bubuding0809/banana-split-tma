@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import {
   toNumber,
@@ -45,7 +46,8 @@ export const outputSchema = z.object({
 export const createSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Determine the currency to use
@@ -132,9 +134,9 @@ export const createSettlementHandler = async (
           });
         }
       } catch (notificationError) {
-        console.error(
-          "Failed to send settlement notification:",
-          notificationError
+        log.error(
+          { err: notificationError },
+          "telegram.settlementNotification.failed"
         );
         // Don't throw - settlement succeeded, notification failure is non-critical
       }
@@ -156,6 +158,7 @@ export const createSettlementHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create settlement",
+      cause: error,
     });
   }
 };
@@ -175,5 +178,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return createSettlementHandler(input, ctx.db, ctx.teleBot);
+    return createSettlementHandler(input, ctx.db, ctx.teleBot, ctx.log);
   });

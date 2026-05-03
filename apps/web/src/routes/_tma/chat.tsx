@@ -59,11 +59,17 @@ function ChatIndexRoute() {
   }
 
   // Other errors, show error message
+  const requestId = getUserDataError?.data?.requestId;
   return (
     <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
       <Text className="text-red-500">
         Something went wrong, please try again later.
       </Text>
+      {requestId && (
+        <Caption weight="3" className="text-gray-500">
+          Reference: {requestId}
+        </Caption>
+      )}
     </main>
   );
 }

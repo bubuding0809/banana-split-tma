@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Telegram } from "telegraf";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { toNumber } from "../../utils/financial.js";
 import { getCurrentRateHandler } from "../currency/getCurrentRate.js";
@@ -32,7 +33,8 @@ export const outputSchema = z.object({
 export const convertCurrencyBulkHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Telegram,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { chatId, fromCurrency, toCurrency, userId } = input;
@@ -74,7 +76,8 @@ export const convertCurrencyBulkHandler = async (
         fallbackBaseCurrency: "USD",
         autoRefresh: true,
       },
-      db
+      db,
+      log
     );
 
     const rate = new Decimal(exchangeRate.rate);
@@ -185,14 +188,15 @@ export const convertCurrencyBulkHandler = async (
             force: false,
           },
           db,
-          teleBot
+          teleBot,
+          log
         );
       } catch (notificationError) {
         // Conversion succeeded — don't surface a notification failure
         // back to the user. Log and move on.
-        console.error(
-          "Failed to send currency conversion notification:",
-          notificationError
+        log.error(
+          { err: notificationError },
+          "telegram.currencyConversion.notify.failed"
         );
       }
     }
@@ -211,6 +215,7 @@ export const convertCurrencyBulkHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to convert currency for transactions",
+      cause: error,
     });
   }
 };
@@ -231,5 +236,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return convertCurrencyBulkHandler(input, ctx.db, ctx.teleBot);
+    return convertCurrencyBulkHandler(input, ctx.db, ctx.teleBot, ctx.log);
   });

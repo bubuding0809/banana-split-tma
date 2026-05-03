@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import {
   generateGroupReminderScheduleName,
@@ -42,7 +43,8 @@ export const outputSchema = z.object({
 });
 
 export const deleteGroupReminderScheduleHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { chatId } = input;
@@ -111,10 +113,11 @@ export const deleteGroupReminderScheduleHandler = async (
       }
     }
 
-    console.error("Failed to delete group reminder schedule:", error);
+    log.error({ err: error }, "schedule.groupReminder.delete.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to delete group reminder schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -134,5 +137,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return deleteGroupReminderScheduleHandler(input);
+    return deleteGroupReminderScheduleHandler(input, ctx.log);
   });

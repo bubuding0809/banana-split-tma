@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Backend observability + structured logging</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --muted: #9aa3ad;
+  --accent: #ffd45e;
+  --ok: #4ade80;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --note: #60a5fa;
+  --border: #2a2f37;
+  --panel: #181b20;
+}
+.reveal { font-size: 30px; }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+.reveal h1 { font-size: 1.7em; color: var(--accent); }
+.reveal h2 { font-size: 1.25em; color: var(--accent); margin-bottom: 0.55em; }
+.reveal h3 { font-size: 1em; color: var(--fg); margin-bottom: 0.35em; }
+.reveal section { text-align: left; }
+.reveal section.title { text-align: center; }
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal small { color: var(--muted); font-size: 0.7em; }
+.reveal code { background: #232831; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+.reveal pre { font-size: 0.7em; box-shadow: none; }
+.reveal pre code { padding: 0.8em; max-height: 60vh; }
+.reveal table { font-size: 0.78em; border-collapse: collapse; width: 100%; }
+.reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.reveal table th { background: var(--panel); color: var(--accent); font-weight: 600; }
+.reveal table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7em; font-weight: 600; letter-spacing: 0.02em; margin-right: 4px; vertical-align: middle; }
+.pill.ok   { background: rgba(74,222,128,0.15); color: var(--ok);   border: 1px solid rgba(74,222,128,0.4); }
+.pill.bad  { background: rgba(239,68,68,0.15);  color: var(--bad);  border: 1px solid rgba(239,68,68,0.4); }
+.pill.warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.pill.note { background: rgba(96,165,250,0.15); color: var(--note); border: 1px solid rgba(96,165,250,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px 0; font-size: 0.9em; }
+.card p, .card ul { margin: 0; font-size: 0.82em; }
+.card ul { padding-left: 1.2em; }
+.callout { background: rgba(255,212,94,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 0.88em; margin: 10px 0; }
+.callout.bad { background: rgba(239,68,68,0.08); border-left-color: var(--bad); }
+.callout.note { background: rgba(96,165,250,0.07); border-left-color: var(--note); }
+.muted { color: var(--muted); }
+ul.tight li { margin: 0.2em 0; }
+.bigtitle { font-size: 0.65em; color: var(--muted); margin-top: 8px; }
+.flow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62em; line-height: 1.4; background: var(--panel); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); white-space: pre; overflow-x: auto; }
+
+@media screen and (max-width: 700px) {
+  .reveal { font-size: 32px; }
+  .grid2, .grid3 { grid-template-columns: 1fr; gap: 10px; }
+  .card { padding: 10px 12px; }
+  .card p, .card ul { font-size: 0.9em; }
+  .reveal pre { font-size: 0.78em; }
+  .reveal table { font-size: 0.85em; }
+  .reveal table th, .reveal table td { padding: 6px 8px; }
+  .flow { font-size: 0.7em; padding: 10px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title">
+  <h1>Backend observability + structured logging</h1>
+  <p class="muted">pino → stdout → Axiom · request_id correlation · agent-accessible</p>
+  <p class="bigtitle">Design spec · 2026-05-03</p>
+</section>
+
+<section>
+  <h2>The pain that triggered this</h2>
+  <p>Users hit "Something went wrong" intermittently when opening the TMA. We had a deep link, a chat id, and a timeframe. The investigation still took most of a session.</p>
+  <ul class="tight">
+    <li><span class="pill bad">silent</span> auth middleware catch — no log line on UNAUTHORIZED</li>
+    <li><span class="pill bad">silent</span> <code>getUser</code> catch — Prisma errors swallowed into <code>INTERNAL_SERVER_ERROR</code></li>
+    <li><span class="pill bad">invisible</span> tRPC procedure errors return HTTP 200 — Vercel access logs flag nothing</li>
+    <li><span class="pill bad">missing</span> no <code>errorFormatter</code> on tRPC init — no chance to log centrally</li>
+  </ul>
+  <div class="callout bad">A 5,000-record / 1-hour <code>vercel logs</code> pull returned <strong>zero</strong> error or warning entries. The bug was real, the log surface was empty.</div>
+</section>
+
+<section>
+  <h2>Goals</h2>
+  <ol style="font-size: 0.9em;">
+    <li>Every tRPC procedure error and bot handler error produces exactly one structured log line in production.</li>
+    <li>Every line carries <code>request_id</code> (and <code>user_id</code> / <code>chat_id</code> when known) so an agent can reconstruct one user's session from a single query.</li>
+    <li>An agent in this repo can query prod logs via a documented APL recipe in <code>AGENTS.md</code> + a <code>pnpm logs:trace</code> script. No dashboard hunting.</li>
+    <li>Three Axiom monitors fire on auth-failure spikes, error-code spikes, and p95 latency regressions.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Architecture</h2>
+  <pre class="flow">┌──────────────────────────────────────────────────────────┐
+│  apps/lambda  (Express + tRPC, Vercel Function)          │
+│   ├─ withRequestContext  ─► assigns request_id           │
+│   ├─ withRequestLogger   ─► logs req.start / req.end     │
+│   └─ tRPC adapter                                        │
+│        ├─ errorFormatter ─► logs every procedure error   │
+│        └─ ctx.log        ─► used inside handlers         │
+│                                                          │
+│  apps/bot  (Telegraf, Vercel Function)                   │
+│   └─ telegraf middleware ─► logs every update / error    │
+└─────────────────────────┬────────────────────────────────┘
+                          │ JSON to stdout
+                          ▼
+              ┌─────────────────────────┐
+              │ Vercel runtime          │
+              │ → Axiom marketplace     │
+              │   integration forwards  │
+              └─────────────────────────┘</pre>
+  <p class="muted" style="font-size: 0.7em;">No network code in the app. Axiom outage queues in Vercel; nothing in the request path breaks.</p>
+</section>
+
+<section>
+  <h2>Components</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>1. <code>packages/logger</code></h3>
+      <p>Pino factory + <code>AsyncLocalStorage</code> request context + Express middlewares.</p>
+    </div>
+    <div class="card">
+      <h3>2. Lambda wiring</h3>
+      <p><code>apps/lambda/api/index.ts</code> mounts middlewares before tRPC, error handler last.</p>
+    </div>
+    <div class="card">
+      <h3>3. tRPC <code>errorFormatter</code> + <code>ctx.log</code></h3>
+      <p>Procedure errors logged once with full context. Child logger pre-bound to <code>request_id</code>, <code>procedure</code>, <code>user_id</code>, <code>chat_id</code>.</p>
+    </div>
+    <div class="card">
+      <h3>4. Auth middleware logging</h3>
+      <p>One line per validation failure mode before rethrowing as UNAUTHORIZED.</p>
+    </div>
+    <div class="card">
+      <h3>5. Bot Telegraf middleware</h3>
+      <p>Per-update <code>request_id</code> + <code>bot.catch</code> for unhandled errors.</p>
+    </div>
+    <div class="card">
+      <h3>6. Reference id on TMA error screen</h3>
+      <p>Three-line UX. Users can paste the id back to the agent.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Component 7 — agent access</h2>
+  <p>MCP-only. Headless via headers (default — works over SSH / CI), OAuth as alternative.</p>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li><span class="pill note">mcp · headless</span> <code>claude mcp add --transport http axiom https://mcp.axiom.co/mcp --header "Authorization: Bearer $AXIOM_TOKEN" --header "x-axiom-org-id: $AXIOM_ORG_ID"</code></li>
+    <li><span class="pill note">mcp · oauth</span> Same command without the headers — first call opens a browser. Use on desktop where OAuth is easy.</li>
+    <li><span class="pill note">tools</span> <code>queryApl</code>, <code>listDatasets</code>, <code>getDatasetSchema</code>, <code>getMonitors</code>.</li>
+    <li><span class="pill note">skills</span> <code>npx skills add axiomhq/skills</code> — SRE skill = hypothesis-driven incident investigation methodology.</li>
+    <li><span class="pill note">env</span> <code>AXIOM_TOKEN</code> + <code>AXIOM_ORG_ID</code> in <code>.envrc</code>; same token copied once to <code>~/.axiom.toml</code> for Skills.</li>
+  </ul>
+  <div class="callout note">
+    <strong>Next investigation:</strong> user pastes reference id → agent loads SRE skill → calls <code>mcp__axiom__queryApl</code> with the request-timeline template → sees <code>err.type</code> (e.g. <code>ExpiredError</code>) → targeted fix.
+  </div>
+</section>
+
+<section>
+  <h2>Log schema</h2>
+  <table>
+    <thead><tr><th>Field</th><th>When</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td><code>service</code></td><td>always</td><td><code>"lambda"</code> / <code>"bot"</code></td></tr>
+      <tr><td><code>msg</code></td><td>always</td><td><code>"req.end"</code>, <code>"auth.initData.failed"</code></td></tr>
+      <tr><td><code>request_id</code></td><td>in a request</td><td><code>"01HXY2A…"</code></td></tr>
+      <tr><td><code>procedure</code></td><td>tRPC events</td><td><code>"user.getUser"</code></td></tr>
+      <tr><td><code>user_id</code></td><td>when known</td><td><code>"522695573"</code></td></tr>
+      <tr><td><code>chat_id</code></td><td>when known</td><td><code>"-1003669938174"</code></td></tr>
+      <tr><td><code>err.type</code></td><td>error events</td><td><code>"ExpiredError"</code></td></tr>
+      <tr><td><code>err.code</code></td><td>tRPC errors</td><td><code>"UNAUTHORIZED"</code></td></tr>
+      <tr><td><code>duration_ms</code></td><td><code>req.end</code></td><td><code>142</code></td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="font-size: 0.7em;">Pino does the JSON serialization. <code>pino.stdSerializers.err</code> handles error objects.</p>
+</section>
+
+<section>
+  <h2>Alerting — 3 monitors at launch</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3><span class="pill warn">spike</span> Auth failures</h3>
+      <p><code>level=50</code>, <code>msg="auth.initData.failed"</code>. Alert if &gt; 20 / 5 min.</p>
+    </div>
+    <div class="card">
+      <h3><span class="pill warn">spike</span> Procedure errors</h3>
+      <p><code>err.code != "NOT_FOUND"</code>. Alert if &gt; 50 / 5 min.</p>
+    </div>
+    <div class="card">
+      <h3><span class="pill warn">regression</span> p95 latency</h3>
+      <p><code>p95(duration_ms) &gt; 2000ms</code> for 10 min.</p>
+    </div>
+  </div>
+  <p class="muted" style="font-size: 0.75em;">Configured in Axiom UI after the integration is installed. Notifies email + dev webhook.</p>
+</section>
+
+<section>
+  <h2>Rollout — one PR, three commits</h2>
+  <ol style="font-size: 0.9em;">
+    <li><code>feat(logger): add @dko/logger package</code> — pino, request context, README</li>
+    <li><code>feat(observability): instrument lambda + bot</code> — middlewares, <code>errorFormatter</code>, <code>ctx.log</code>, ~30 <code>console.error</code> rewrites, bot middleware, "Reference: …" UX</li>
+    <li><code>docs: production observability runbook</code> — <code>AGENTS.md</code> section covering MCP install + Axiom Skills install + canonical APL templates</li>
+  </ol>
+  <p style="font-size: 0.85em;">Per-machine setup, once:</p>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li>Generate Axiom token + note org id; export both in <code>.envrc</code>; <code>direnv allow</code></li>
+    <li><code>claude mcp add --transport http axiom https://mcp.axiom.co/mcp --header …</code> (headless) or run without headers for OAuth</li>
+    <li><code>npx skills add axiomhq/skills</code> + create <code>~/.axiom.toml</code> with the same token + org id</li>
+  </ul>
+  <p style="font-size: 0.85em;">Vercel side, post-merge:</p>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li>Install Axiom integration on <code>banana-split-tma-lambda</code> + <code>banana-split-tma-bot</code> (auto-injects token + dataset into the function runtime, forwards stdout)</li>
+    <li>Configure the three monitors in the Axiom UI</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li><span class="pill ok">unit</span> <code>getRequestId()</code> returns context value across awaited callbacks; <code>err</code> serializer keeps <code>type</code> / <code>message</code> / <code>stack</code></li>
+    <li><span class="pill ok">integration</span> bad <code>Authorization</code> header → response includes <code>requestId</code> + one <code>auth.initData.failed</code> line emitted</li>
+    <li><span class="pill ok">integration</span> bot update with thrown handler error logs <code>bot.update.unhandled</code> exactly once</li>
+    <li><span class="pill note">UAT</span> trigger a known-auth-failure path post-deploy; confirm Axiom shows the structured event in &lt; 30s; <code>pnpm logs:trace &lt;id&gt;</code> prints the full timeline</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Out of scope</h2>
+  <ul class="tight" style="font-size: 0.85em;">
+    <li><span class="pill note">v2</span> TMA web frontend client-side error capture</li>
+    <li><span class="pill note">deferred</span> CLI / admin / mcp / video-studio</li>
+    <li><span class="pill note">deferred</span> OpenTelemetry traces, custom dashboards, ESLint ban on <code>console.*</code></li>
+    <li><span class="pill note">deferred</span> Refactoring non-error <code>console.log</code> debug breadcrumbs</li>
+    <li><span class="pill note">followup</span> Bumping <code>validateInitData</code> expiry to 7 days — separate PR after this lands</li>
+  </ul>
+</section>
+
+<section class="title">
+  <h1>Ready for review</h1>
+  <p class="muted" style="font-size: 0.9em;"><code>docs/superpowers/specs/2026-05-03-observability-logging-design.md</code></p>
+  <p class="bigtitle">After approval → writing-plans skill → implementation on a feature branch</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'fade',
+    plugins: [RevealHighlight],
+    width: 960,
+    height: 720,
+    margin: 0.04,
+    minScale: 0.2,
+    maxScale: 2.0,
+  });
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import telegramifyMarkdown from "telegramify-markdown";
 import type { Telegram } from "telegraf";
-import type { Db } from "../trpc.js";
+import { type Logger } from "@repo/logger";
+import { type Db } from "../trpc.js";
 import { withRateLimit } from "./withRateLimit.js";
 import {
   createBroadcastRows,
@@ -46,6 +47,7 @@ export type CreateBroadcastOptions = {
 export type BroadcastContext = {
   db: Db;
   teleBot: Telegram;
+  log: Logger;
 };
 
 export async function createBroadcast(
@@ -141,7 +143,10 @@ export async function createBroadcast(
       successes.push(recipient);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
-      console.error(`Broadcast to ${userId} failed:`, error);
+      ctx.log.error(
+        { err: error, user_id: userId.toString() },
+        "broadcast.delivery.failed"
+      );
       await markDeliveryFailed(ctx.db, deliveryId, msg);
       failures.push({ ...recipient, error: msg });
     }

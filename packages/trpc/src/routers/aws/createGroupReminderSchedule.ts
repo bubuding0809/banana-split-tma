@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { createRecurringScheduleHandler } from "./createRecurringSchedule.js";
 import { getSchedulerClient } from "./utils/schedulerClient.js";
@@ -197,7 +198,8 @@ export const outputSchema = z.object({
 });
 
 export const createGroupReminderScheduleHandler = async (
-  input: z.infer<typeof inputSchema>
+  input: z.infer<typeof inputSchema>,
+  log: Logger = trpcLogger
 ) => {
   try {
     const { chatId, dayOfWeek, time, timezone, description, enabled } = input;
@@ -236,9 +238,9 @@ export const createGroupReminderScheduleHandler = async (
       // If the lookup itself fails (e.g., transient AWS error), fall through
       // to the create path. The create call will produce a more meaningful
       // error if there's a real problem.
-      console.warn(
-        `Schedule existence check failed for chat ${chatId}; proceeding to create:`,
-        lookupError
+      log.warn(
+        { err: lookupError, chat_id: String(chatId) },
+        "schedule.lookup.failed"
       );
     }
 
@@ -257,16 +259,19 @@ export const createGroupReminderScheduleHandler = async (
       `Weekly group reminder for chat ${chatId} every ${dayOfWeek} at ${time} (${timezone})`;
 
     // Call the base createRecurringSchedule handler
-    const result = await createRecurringScheduleHandler({
-      scheduleName,
-      scheduleExpression,
-      lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
-      payload: lambdaPayload,
-      description: finalDescription,
-      timezone,
-      enabled,
-      scheduleGroup: "default", // Use default group for simplicity
-    });
+    const result = await createRecurringScheduleHandler(
+      {
+        scheduleName,
+        scheduleExpression,
+        lambdaArn: AWS_GROUP_REMINDER_LAMBDA_ARN,
+        payload: lambdaPayload,
+        description: finalDescription,
+        timezone,
+        enabled,
+        scheduleGroup: "default", // Use default group for simplicity
+      },
+      log
+    );
 
     // Return domain-specific response
     return {
@@ -292,10 +297,11 @@ export const createGroupReminderScheduleHandler = async (
     }
 
     // Handle validation and other errors
-    console.error("Failed to create group reminder schedule:", error);
+    log.error({ err: error }, "schedule.groupReminder.create.failed");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Failed to create group reminder schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+      cause: error,
     });
   }
 };
@@ -315,5 +321,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, Number(input.chatId));
-    return createGroupReminderScheduleHandler(input);
+    return createGroupReminderScheduleHandler(input, ctx.log);
   });

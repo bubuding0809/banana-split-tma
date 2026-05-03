@@ -8,6 +8,7 @@ import {
   DeleteScheduleCommand,
 } from "@aws-sdk/client-scheduler";
 import { TRPCError } from "@trpc/server";
+import { trpcLogger } from "../../../trpc.js";
 
 export interface GroupReminderScheduleDetails {
   scheduleName: string;
@@ -116,7 +117,10 @@ function parseCronExpression(cronExpression: string): {
       time,
     };
   } catch (error) {
-    console.warn("Failed to parse cron expression:", cronExpression, error);
+    trpcLogger.warn(
+      { err: error, cron_expression: cronExpression },
+      "schedule.cron.parse.failed"
+    );
     return {};
   }
 }
@@ -145,10 +149,9 @@ function parseHumanReadableExpression(expression: string): {
 
     return {};
   } catch (error) {
-    console.warn(
-      "Failed to parse human-readable expression:",
-      expression,
-      error
+    trpcLogger.warn(
+      { err: error, expression },
+      "schedule.expression.parse.failed"
     );
     return {};
   }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Db, protectedProcedure } from "../../trpc.js";
+import { type Logger } from "@repo/logger";
+import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { ChatType } from "@dko/database";
 
@@ -25,7 +26,8 @@ export const outputSchema = z.object({
 
 export const createUserHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log: Logger = trpcLogger
 ) => {
   try {
     // Check if user already exists
@@ -67,13 +69,14 @@ export const createUserHandler = async (
         chatError instanceof Error &&
         chatError.message.includes("Unique constraint failed")
       ) {
-        console.warn(
-          `Personal chat already exists for user ${input.userId}, skipping creation`
+        log.warn(
+          { user_id: input.userId.toString() },
+          "chat.personal.create.skipped"
         );
       } else {
-        console.error(
-          `Failed to create personal chat for user ${input.userId}:`,
-          chatError
+        log.error(
+          { err: chatError, user_id: input.userId.toString() },
+          "chat.personal.create.failed"
         );
       }
     }
@@ -98,6 +101,7 @@ export const createUserHandler = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to create user",
+      cause: error,
     });
   }
 };
@@ -117,5 +121,5 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     assertNotChatScoped(ctx.session);
-    return createUserHandler(input, ctx.db);
+    return createUserHandler(input, ctx.db, ctx.log);
   });

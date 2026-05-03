@@ -51,9 +51,9 @@ export default protectedProcedure
       ) {
         // Already gone; fine.
       } else {
-        console.error(
-          "AWS schedule delete failed (DB cancel succeeded)",
-          awsError
+        ctx.log.error(
+          { err: awsError },
+          "recurringExpense.schedule.delete.failed"
         );
       }
     }
