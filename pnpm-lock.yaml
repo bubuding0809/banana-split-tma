@@ -801,6 +801,9 @@ importers:
       "@repo/categories":
         specifier: workspace:*
         version: link:../categories
+      "@repo/logger":
+        specifier: workspace:*
+        version: link:../logger
       "@telegram-apps/init-data-node":
         specifier: ^2.0.10
         version: 2.0.10(typescript@5.8.2)
@@ -822,6 +825,9 @@ importers:
       node-telegram-bot-api:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
+      pino:
+        specifier: ^9.5.0
+        version: 9.14.0
       superjson:
         specifier: ^2.2.2
         version: 2.2.6
@@ -844,9 +850,21 @@ importers:
       "@repo/typescript-config":
         specifier: workspace:*
         version: link:../typescript-config
+      "@types/express":
+        specifier: ^5.0.0
+        version: 5.0.6
       "@types/node-telegram-bot-api":
         specifier: ^0.64.9
         version: 0.64.14
+      "@types/supertest":
+        specifier: ^6.0.0
+        version: 6.0.3
+      express:
+        specifier: ^5.0.0
+        version: 5.2.1
+      supertest:
+        specifier: ^7.0.0
+        version: 7.2.2
       vitest:
         specifier: ^3.2.0
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.13)(@types/node@22.19.15)(happy-dom@20.8.9)(jiti@2.6.1)(jsdom@29.0.2(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)

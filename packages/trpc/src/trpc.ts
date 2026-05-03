@@ -10,8 +10,11 @@ import {
 } from "@telegram-apps/init-data-node";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import crypto from "node:crypto";
+import { createLogger, getRequestId, type Logger } from "@repo/logger";
 
 import "telegraf/types"; // Required to ensure types are portable
+
+const trpcLogger = createLogger("lambda");
 
 /**
  * 1. CONTEXT
@@ -31,12 +34,15 @@ const createTRPCContext = ({
 }: Record<string, unknown> & {
   botToken: string;
 }) => {
+  const requestId = getRequestId();
+  const log: Logger = trpcLogger.child({ request_id: requestId });
   return {
     db: prisma as typeof prisma,
     teleBot: new Telegram(botToken),
     request: rest.req,
     response: rest.res,
     info: rest.info,
+    log,
   };
 };
 
@@ -64,6 +70,34 @@ const t = initTRPC
   .create({
     transformer: superjson,
     isServer: true,
+    errorFormatter({ shape, error, ctx, path }) {
+      const requestId = getRequestId();
+      // Skip NOT_FOUND — that's expected (e.g., new user). Log everything else.
+      if (error.code !== "NOT_FOUND") {
+        trpcLogger.error(
+          {
+            err: error.cause ?? error,
+            code: error.code,
+            procedure: path,
+            request_id: requestId,
+            user_id: (
+              ctx as Record<string, any> | undefined
+            )?.session?.user?.id?.toString(),
+            chat_id: (
+              ctx as Record<string, any> | undefined
+            )?.session?.chatId?.toString(),
+          },
+          "trpc.procedure.error"
+        );
+      }
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          requestId,
+        },
+      };
+    },
   });
 
 /**
@@ -285,6 +319,11 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         authType,
         chatId,
       },
+      log: ctx.log.child({
+        auth_type: authType,
+        user_id: user?.id?.toString(),
+        chat_id: chatId?.toString(),
+      }),
     },
   });
 });
