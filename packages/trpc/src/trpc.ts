@@ -16,16 +16,18 @@ import "telegraf/types"; // Required to ensure types are portable
 
 export const trpcLogger = createLogger("lambda");
 
-// These codes have explicit warn-level log lines emitted by the
-// auth middleware before rethrow (auth.initData.failed,
-// auth.apiKey.invalid, auth.apiKey.revoked) or are expected client
-// errors (NOT_FOUND for new users, BAD_REQUEST for input validation).
-// Re-emitting them at error level here would inflate the documented
-// "procedure-error spike" monitor (level=50) with routine traffic.
+// Codes already emitted at warn level by the auth middleware
+// (auth.initData.failed, auth.apiKey.invalid, auth.apiKey.revoked) or that
+// represent expected client errors (NOT_FOUND for new users, BAD_REQUEST for
+// input validation). Re-emitting these at error level would inflate the
+// procedure-error spike monitor with routine traffic.
+//
+// FORBIDDEN is INTENTIONALLY NOT in this set — it's thrown by business-logic
+// access-control checks (chatScope, snapshot share visibility, etc.) which
+// don't self-log, so it must surface as an error event for triage.
 const SELF_LOGGED_OR_EXPECTED_CODES = new Set<string>([
   "NOT_FOUND",
   "UNAUTHORIZED",
-  "FORBIDDEN",
   "BAD_REQUEST",
 ]);
 
@@ -95,8 +97,9 @@ const t = initTRPC
       const sessionCtx = ctx as unknown as SessionCtx | undefined;
       // Skip codes that are either expected client errors (NOT_FOUND for
       // new users, BAD_REQUEST for input validation) or already self-logged
-      // at warn level by the auth middleware (UNAUTHORIZED, FORBIDDEN).
-      // Re-emitting them at error level here would inflate the documented
+      // at warn level by the auth middleware (UNAUTHORIZED). FORBIDDEN is
+      // intentionally NOT skipped — see SELF_LOGGED_OR_EXPECTED_CODES.
+      // Re-emitting these at error level would inflate the documented
       // "procedure-error spike" monitor with routine traffic.
       if (!SELF_LOGGED_OR_EXPECTED_CODES.has(error.code)) {
         trpcLogger.error(
