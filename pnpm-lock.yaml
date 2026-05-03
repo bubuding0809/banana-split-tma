@@ -752,9 +752,6 @@ importers:
       pino:
         specifier: ^9.5.0
         version: 9.14.0
-      pino-std-serializers:
-        specifier: ^7.0.0
-        version: 7.1.0
     devDependencies:
       "@repo/eslint-config":
         specifier: workspace:*

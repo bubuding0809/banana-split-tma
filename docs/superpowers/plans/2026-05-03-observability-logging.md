@@ -115,8 +115,7 @@ Write `packages/logger/package.json`:
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "pino": "^9.5.0",
-    "pino-std-serializers": "^7.0.0"
+    "pino": "^9.5.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -213,7 +212,12 @@ describe("createLogger", () => {
       destination: { write: (s) => lines.push(s) },
     });
 
-    class ExpiredError extends Error {}
+    class ExpiredError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = "ExpiredError";
+      }
+    }
     logger.error({ err: new ExpiredError("Init data is expired") }, "auth.failed");
 
     const parsed = JSON.parse(lines[0]!);

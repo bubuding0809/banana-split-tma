@@ -19,8 +19,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "pino": "^9.5.0",
-    "pino-std-serializers": "^7.0.0"
+    "pino": "^9.5.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
