@@ -1,5 +1,6 @@
 import { bot } from "../src/bot.js";
 import { waitUntil } from "@vercel/functions";
+import { flush } from "@repo/logger";
 
 // Vercel Serverless Functions will timeout and return 504 if they exceed this limit.
 // We set it to 60s (maximum for Hobby plan) to allow the LLM time to generate.
@@ -23,6 +24,9 @@ export default async function (req: any, res: any) {
           await bot.init();
         }
         await bot.handleUpdate(req.body);
+        // Ensure the Axiom batch goes out before the serverless instance
+        // is torn down. flush() resolves quickly when the batch is empty.
+        await flush();
       })().catch((err) => {
         console.error("Error handling update in background:", err);
       })

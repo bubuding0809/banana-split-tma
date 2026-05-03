@@ -22,10 +22,12 @@ import {
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
 import {
   createLogger,
+  flush,
   getRequestId,
   withRequestContext,
   withRequestLogger,
 } from "@repo/logger";
+import { waitUntil } from "@vercel/functions";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
 import avatarRouter from "./avatar.js";
 import chatPhotoRouter from "./chat-photo.js";
@@ -40,6 +42,21 @@ app.use(cors());
 const log = createLogger("lambda");
 app.use(withRequestContext());
 app.use(withRequestLogger(log));
+
+// After every response finishes, kick a non-blocking flush. waitUntil
+// keeps the function instance alive long enough for the Axiom HTTP POST
+// to land, even after the response went out. waitUntil throws outside
+// the Vercel runtime, so swallow that for local dev.
+app.use((_req, res, next) => {
+  res.on("finish", () => {
+    try {
+      waitUntil(flush());
+    } catch {
+      // Outside Vercel runtime — fine for local dev / tests.
+    }
+  });
+  next();
+});
 
 //* Create a router to handle all API requests
 const router = Router();
