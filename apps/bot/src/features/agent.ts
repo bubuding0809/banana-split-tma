@@ -15,11 +15,21 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
   }
   if (!userMessage || !ctx.chat || !ctx.from) return;
 
+  const runStart = Date.now();
+  ctx.log.info(
+    {
+      msg_len: userMessage.length,
+      has_photo: Boolean(ctx.message?.photo?.length),
+      chat_type: ctx.chat.type,
+    },
+    "agent.run.start"
+  );
+
   // Reaction is handled by the global reactionsMiddleware. We just need to
   // signal that we're working on it so the chat shows the typing indicator.
   void ctx.api
     .sendChatAction(ctx.chat.id, "typing")
-    .catch((e) => console.warn("[Agent] sendChatAction failed:", e));
+    .catch((err) => ctx.log.warn({ err }, "agent.action.send.failed"));
 
   // Keep a reference to the raw text to preserve @mentions in their original form
   const rawText = ctx.message?.text || ctx.message?.caption || userMessage;
@@ -85,7 +95,8 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
                 },
               ];
             }
-          } catch {
+          } catch (err) {
+            ctx.log.warn({ err }, "agent.image.fetch.failed");
             // If download fails, fall through to text-only message
           }
         }
@@ -128,6 +139,9 @@ In a private DM, expenses are usually just for the user, so default the payer an
 IMPORTANT: When formatting tables, ALWAYS include the markdown table header separator row (e.g. |---|---|).
 CRITICAL: When you mention or refer to any user in your text responses, NEVER output their raw numeric Telegram ID. ALWAYS use their @username (if available) so it is clickable. If they do not have a @username, format their name as a markdown link using \`[First Name](tg://user?id=TELEGRAM_ID)\` so they are still clickable.`;
 
+    // Capture stream-start separately from runStart so the first-chunk
+    // latency reflects pure LLM TTFT (not image download + memory setup).
+    const streamStart = Date.now();
     const streamInfo = await bananaAgent.stream(finalMessagePayload, {
       memory: {
         thread: String(ctx.chat.id),
@@ -156,21 +170,63 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
     const draftId = Math.floor(Math.random() * 1000000000) + 1;
 
     const activeTools = new Set<string>();
+    // Per-tool timer state. Keyed on toolName — assumes a given tool name
+    // doesn't fire concurrently within one stream (mastra dispatches
+    // sequentially). If we ever see overlapping calls we'd switch to a
+    // call-id, but tool-call chunks don't currently expose one.
+    const toolStartedAt = new Map<string, number>();
+    let firstChunkLogged = false;
+    let chunkCount = 0;
 
     for await (const chunk of streamInfo.fullStream) {
+      chunkCount++;
+      if (!firstChunkLogged) {
+        firstChunkLogged = true;
+        ctx.log.info(
+          { latency_ms: Date.now() - streamStart },
+          "agent.llm.first_chunk"
+        );
+      }
+
       if (chunk.type === "text-delta") {
         fullText += chunk.payload.text;
       } else if (chunk.type === "tool-call-input-streaming-start") {
         activeTools.add(chunk.payload.toolName);
-        console.log(`[Agent] 🛠️ Preparing tool: ${chunk.payload.toolName}`);
+        toolStartedAt.set(chunk.payload.toolName, Date.now());
+        ctx.log.info({ tool: chunk.payload.toolName }, "agent.tool.start");
       } else if (chunk.type === "tool-call") {
-        console.log(`[Agent] ⚙️ Executing tool: ${chunk.payload.toolName}`);
+        // Non-streaming tools skip the streaming-start event, so this is
+        // the first signal we get for them. Only set the timer if we
+        // haven't already from streaming-start.
+        if (!toolStartedAt.has(chunk.payload.toolName)) {
+          toolStartedAt.set(chunk.payload.toolName, Date.now());
+          ctx.log.info({ tool: chunk.payload.toolName }, "agent.tool.start");
+        }
       } else if (chunk.type === "tool-result") {
         activeTools.delete(chunk.payload.toolName);
-        console.log(`[Agent] ✅ Finished tool: ${chunk.payload.toolName}`);
+        const startedAt = toolStartedAt.get(chunk.payload.toolName);
+        toolStartedAt.delete(chunk.payload.toolName);
+        ctx.log.info(
+          {
+            tool: chunk.payload.toolName,
+            outcome: "success",
+            duration_ms: startedAt ? Date.now() - startedAt : undefined,
+          },
+          "agent.tool.end"
+        );
       } else if (chunk.type === "tool-error") {
         activeTools.delete(chunk.payload.toolName);
-        console.error(`[Agent] ❌ Tool error: ${chunk.payload.toolName}`);
+        const startedAt = toolStartedAt.get(chunk.payload.toolName);
+        toolStartedAt.delete(chunk.payload.toolName);
+        ctx.log.error(
+          {
+            tool: chunk.payload.toolName,
+            outcome: "error",
+            duration_ms: startedAt ? Date.now() - startedAt : undefined,
+            err: chunk.payload.error,
+          },
+          "agent.tool.end"
+        );
       }
 
       const now = Date.now();
@@ -206,16 +262,16 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
               .sendMessageDraft(ctx.chat.id, draftId, sanitizedText, {
                 parse_mode: "HTML",
               })
-              .catch((e) =>
-                console.error("Edit message error (draft throttle):", e)
+              .catch((err) =>
+                ctx.log.error({ err }, "agent.draft.edit.failed")
               );
           } else {
             // Use standard message editing for group chats
             if (!replyMsg) {
               replyMsg = await ctx
                 .reply(sanitizedText, { parse_mode: "HTML" })
-                .catch((e) => {
-                  console.error("Send initial group message error:", e);
+                .catch((err) => {
+                  ctx.log.error({ err }, "agent.group.send.initial.failed");
                   return null;
                 });
             } else {
@@ -228,7 +284,9 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
                     parse_mode: "HTML",
                   }
                 )
-                .catch((e) => console.error("Edit group message error:", e));
+                .catch((err) =>
+                  ctx.log.error({ err }, "agent.group.edit.failed")
+                );
             }
           }
         }
@@ -273,8 +331,8 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
           // Send the final completed message
           await ctx
             .reply(finalMsg, { parse_mode: "HTML" })
-            .catch((e) =>
-              console.error("Edit message error (final reply):", e)
+            .catch((err) =>
+              ctx.log.error({ err }, "agent.private.final.send.failed")
             );
         } else {
           // Edit the group message to the final state
@@ -283,22 +341,34 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
               .editMessageText(ctx.chat.id, replyMsg.message_id, finalMsg, {
                 parse_mode: "HTML",
               })
-              .catch((e) =>
-                console.error("Edit final group message error:", e)
+              .catch((err) =>
+                ctx.log.error({ err }, "agent.group.final.edit.failed")
               );
           } else {
             // Fallback if no initial streaming message was sent
             await ctx
               .reply(finalMsg, { parse_mode: "HTML" })
-              .catch((e) =>
-                console.error("Send final group message error:", e)
+              .catch((err) =>
+                ctx.log.error({ err }, "agent.group.final.send.failed")
               );
           }
         }
       }
     }
-  } catch (error) {
-    console.error("Agent error:", error);
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - runStart,
+        chunk_count: chunkCount,
+        final_text_len: fullText.length,
+      },
+      "agent.run.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "agent.run.failed"
+    );
     await ctx
       .reply("Sorry, I encountered an error while processing your request.")
       .catch(() => {});
