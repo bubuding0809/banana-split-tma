@@ -29,6 +29,13 @@ const SELF_LOGGED_OR_EXPECTED_CODES = new Set<string>([
   "BAD_REQUEST",
 ]);
 
+type SessionCtx = {
+  session?: {
+    user?: { id?: number | bigint };
+    chatId?: bigint | null;
+  };
+};
+
 /**
  * 1. CONTEXT
  *
@@ -85,6 +92,7 @@ const t = initTRPC
     isServer: true,
     errorFormatter({ shape, error, ctx, path }) {
       const requestId = getRequestId();
+      const sessionCtx = ctx as unknown as SessionCtx | undefined;
       // Skip codes that are either expected client errors (NOT_FOUND for
       // new users, BAD_REQUEST for input validation) or already self-logged
       // at warn level by the auth middleware (UNAUTHORIZED, FORBIDDEN).
@@ -97,12 +105,8 @@ const t = initTRPC
             code: error.code,
             procedure: path,
             request_id: requestId,
-            user_id: (
-              ctx as Record<string, any> | undefined
-            )?.session?.user?.id?.toString(),
-            chat_id: (
-              ctx as Record<string, any> | undefined
-            )?.session?.chatId?.toString(),
+            user_id: sessionCtx?.session?.user?.id?.toString(),
+            chat_id: sessionCtx?.session?.chatId?.toString(),
           },
           "trpc.procedure.error"
         );
