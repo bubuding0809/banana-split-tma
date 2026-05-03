@@ -20,6 +20,11 @@ import {
   type BroadcastMedia,
 } from "@dko/trpc";
 import { createOpenApiExpressMiddleware } from "trpc-to-openapi";
+import {
+  createLogger,
+  withRequestContext,
+  withRequestLogger,
+} from "@repo/logger";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
 import avatarRouter from "./avatar.js";
 import chatPhotoRouter from "./chat-photo.js";
@@ -30,6 +35,10 @@ const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 //* Create an express app
 const app = express();
 app.use(cors());
+
+const log = createLogger("lambda");
+app.use(withRequestContext());
+app.use(withRequestLogger(log));
 
 //* Create a router to handle all API requests
 const router = Router();
@@ -202,5 +211,22 @@ app.use("/api", router);
 app.get("/", (_req, res) => {
   res.status(200).json({ message: "Hello from DKO TRPC API" });
 });
+
+app.use(
+  (
+    err: unknown,
+    req: Request,
+    res: Response,
+    _next: import("express").NextFunction
+  ) => {
+    log.error(
+      { err, request_id: res.getHeader("x-request-id"), path: req.path },
+      "req.unhandled"
+    );
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 export default app;
