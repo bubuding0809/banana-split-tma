@@ -119,18 +119,68 @@ describe("tRPC observability", () => {
       expect(payload.err.message).toBe("Init data is expired");
       expect(payload.request_id).toMatch(/^[0-9a-f-]{36}$/);
 
-      // Lock in the cause-propagation contract: the errorFormatter's
-      // trpc.procedure.error log must surface the ORIGINAL error
-      // (via err.cause ?? err), not the wrapped TRPCError. If someone
-      // later removes `cause: error` from the rethrow this fails loudly.
+      // UNAUTHORIZED is in SELF_LOGGED_OR_EXPECTED_CODES — the auth
+      // middleware already emitted auth.initData.failed at warn above,
+      // so the errorFormatter must NOT re-emit at error level. Re-emitting
+      // would inflate the procedure-error spike monitor with routine
+      // failed-auth traffic.
+      const procErrorCalls = errorSpy.mock.calls.filter(
+        (call) => call[1] === "trpc.procedure.error"
+      );
+      expect(procErrorCalls.length).toBe(0);
+    } finally {
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("logs trpc.procedure.error for INTERNAL_SERVER_ERROR (not skipped)", async () => {
+    const errorSpy = vi.spyOn(trpcLogger, "error");
+
+    try {
+      const router = createTRPCRouter({
+        boom: protectedProcedure.input(z.object({})).query(() => {
+          throw new Error("boom");
+        }),
+      });
+
+      // Make initData validation succeed so we get past auth and into
+      // the handler that throws (which tRPC wraps as INTERNAL_SERVER_ERROR).
+      validateMock.mockImplementation(() => undefined);
+      parseMock.mockImplementation(() => ({
+        user: { id: 42, first_name: "Test" },
+      }));
+
+      const app = express();
+      app.use(withRequestContext());
+      app.use(
+        "/trpc",
+        trpcExpress.createExpressMiddleware({
+          router,
+          createContext: withCreateTRPCContext({
+            TELEGRAM_BOT_TOKEN: "tok",
+          } as Record<string, string>),
+        })
+      );
+
+      // superjson transformer requires the input to be wrapped as
+      // {"json": <value>} on the wire; %7B%22json%22%3A%7B%7D%7D = {"json":{}}.
+      await request(app)
+        .get("/trpc/boom?input=%7B%22json%22%3A%7B%7D%7D")
+        .set("authorization", "tma GOOD")
+        .expect(500);
+
       const procErrorCalls = errorSpy.mock.calls.filter(
         (call) => call[1] === "trpc.procedure.error"
       );
       expect(procErrorCalls.length).toBeGreaterThan(0);
-      const procPayload = procErrorCalls[0]![0] as { err: Error };
-      expect(procPayload.err.message).toBe("Init data is expired");
+      const payload = procErrorCalls[0]![0] as {
+        err: Error;
+        code: string;
+      };
+      expect(payload.code).toBe("INTERNAL_SERVER_ERROR");
+      expect(payload.err.message).toBe("boom");
     } finally {
-      warnSpy.mockRestore();
       errorSpy.mockRestore();
     }
   });

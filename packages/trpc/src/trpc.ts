@@ -16,6 +16,19 @@ import "telegraf/types"; // Required to ensure types are portable
 
 export const trpcLogger = createLogger("lambda");
 
+// These codes have explicit warn-level log lines emitted by the
+// auth middleware before rethrow (auth.initData.failed,
+// auth.apiKey.invalid, auth.apiKey.revoked) or are expected client
+// errors (NOT_FOUND for new users, BAD_REQUEST for input validation).
+// Re-emitting them at error level here would inflate the documented
+// "procedure-error spike" monitor (level=50) with routine traffic.
+const SELF_LOGGED_OR_EXPECTED_CODES = new Set<string>([
+  "NOT_FOUND",
+  "UNAUTHORIZED",
+  "FORBIDDEN",
+  "BAD_REQUEST",
+]);
+
 /**
  * 1. CONTEXT
  *
@@ -72,8 +85,12 @@ const t = initTRPC
     isServer: true,
     errorFormatter({ shape, error, ctx, path }) {
       const requestId = getRequestId();
-      // Skip NOT_FOUND — that's expected (e.g., new user). Log everything else.
-      if (error.code !== "NOT_FOUND") {
+      // Skip codes that are either expected client errors (NOT_FOUND for
+      // new users, BAD_REQUEST for input validation) or already self-logged
+      // at warn level by the auth middleware (UNAUTHORIZED, FORBIDDEN).
+      // Re-emitting them at error level here would inflate the documented
+      // "procedure-error spike" monitor with routine traffic.
+      if (!SELF_LOGGED_OR_EXPECTED_CODES.has(error.code)) {
         trpcLogger.error(
           {
             err: error.cause ?? error,
