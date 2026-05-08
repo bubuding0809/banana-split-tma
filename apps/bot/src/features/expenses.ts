@@ -139,6 +139,19 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
 
   const periodName = LIST_PERIODS[callbackData] || "Unknown";
 
+  // Awaited so the final edit can never race ahead of the loader.
+  try {
+    await ctx.editMessageText(
+      BotMessages.LIST_LOADING.replace(
+        "{period_name}",
+        escapeMarkdownV2(periodName)
+      ),
+      { parse_mode: "MarkdownV2" }
+    );
+  } catch (err) {
+    ctx.log.warn({ err }, "expense.list.loader_edit.failed");
+  }
+
   try {
     const { startDt, endDt } = getPeriodRange(
       callbackData.replace("list_period_", "")

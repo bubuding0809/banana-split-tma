@@ -111,6 +111,7 @@ or
 
   LIST_CHOOSE_PERIOD: "Choose a period",
   LIST_CANCELLED: "Cancelled\\.",
+  LIST_LOADING: "⏳ Fetching expenses for *{period_name}*\\.\\.\\.",
   LIST_EMPTY:
     "No expenses recorded yet\\. Send a message like `12.50 Lunch` to get started\\!",
   LIST_NO_EXPENSES_FOR_PERIOD: "No expenses found for *{period_name}*\\.",
