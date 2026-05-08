@@ -16,6 +16,7 @@ interface LeanExpense {
   amount: number;
   currency: string;
   date: string | Date;
+  categoryId: string | null;
 }
 
 export const expensesFeature = new Composer<BotContext>();
@@ -155,20 +156,21 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
     const formatStart = Date.now();
 
     if (!expenses || expenses.length === 0) {
-      // Empty for the chosen period. Whether the chat has any expenses at
-      // all is no longer something we know here (DB filtered for us); use
-      // the period-specific message — clearer to the user anyway.
-      await ctx.editMessageText(
-        BotMessages.LIST_NO_EXPENSES_FOR_PERIOD.replace(
-          "{period_name}",
-          escapeMarkdownV2(periodName)
-        ),
-        { parse_mode: "MarkdownV2" }
-      );
+      // For "all_time" with no rows, the chat has zero expenses ever — show
+      // the onboarding hint. For any bounded period, show the period-specific
+      // empty message.
+      const isAllTime = !dbStartDt && !dbEndDt;
+      const emptyMessage = isAllTime
+        ? BotMessages.LIST_EMPTY
+        : BotMessages.LIST_NO_EXPENSES_FOR_PERIOD.replace(
+            "{period_name}",
+            escapeMarkdownV2(periodName)
+          );
+      await ctx.editMessageText(emptyMessage, { parse_mode: "MarkdownV2" });
       ctx.log.info(
         {
           duration_ms: Date.now() - runStart,
-          outcome: "empty_for_period",
+          outcome: isAllTime ? "empty" : "empty_for_period",
           filtered_count: 0,
         },
         "expense.list.end"
