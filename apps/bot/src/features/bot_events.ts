@@ -96,39 +96,63 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
 async function runMigration(
   ctx: BotContext,
   oldChatId: number,
-  newChatId: number
+  newChatId: number,
+  direction: "to" | "from"
 ): Promise<void> {
-  const result = await ctx.trpc.chat.migrateChat({ oldChatId, newChatId });
-
-  if (!result.migrated) {
-    // Idempotent no-op: the other side's event already migrated. Stay quiet.
-    return;
-  }
-
-  const chatContext = ChatUtils.createChatContext(newChatId, "supergroup");
-  const url = ChatUtils.createMiniAppUrl(
-    env.MINI_APP_DEEPLINK || "",
-    ctx.me.username,
-    chatContext,
-    "compact"
+  const runStart = Date.now();
+  ctx.log.info(
+    { old_chat_id: oldChatId, new_chat_id: newChatId, direction },
+    "bot_events.chat.migrate.start"
   );
 
-  const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+  try {
+    const result = await ctx.trpc.chat.migrateChat({ oldChatId, newChatId });
 
-  await ctx.api.sendMessage(newChatId, MIGRATION_MESSAGE_GROUP, {
-    reply_markup: keyboard,
-    parse_mode: "MarkdownV2",
-  });
+    if (!result.migrated) {
+      // Idempotent no-op: the other side's event already migrated. Stay quiet.
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "skipped" },
+        "bot_events.chat.migrate.end"
+      );
+      return;
+    }
+
+    const chatContext = ChatUtils.createChatContext(newChatId, "supergroup");
+    const url = ChatUtils.createMiniAppUrl(
+      env.MINI_APP_DEEPLINK || "",
+      ctx.me.username,
+      chatContext,
+      "compact"
+    );
+
+    const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+
+    await ctx.api.sendMessage(newChatId, MIGRATION_MESSAGE_GROUP, {
+      reply_markup: keyboard,
+      parse_mode: "MarkdownV2",
+    });
+
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok" },
+      "bot_events.chat.migrate.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "bot_events.chat.migrate.failed"
+    );
+    throw err;
+  }
 }
 
 botEventsFeature.on("message:migrate_to_chat_id", async (ctx) => {
   const oldChatId = ctx.chat.id;
   const newChatId = ctx.message.migrate_to_chat_id;
-  await runMigration(ctx, oldChatId, newChatId);
+  await runMigration(ctx, oldChatId, newChatId, "to");
 });
 
 botEventsFeature.on("message:migrate_from_chat_id", async (ctx) => {
   const newChatId = ctx.chat.id;
   const oldChatId = ctx.message.migrate_from_chat_id;
-  await runMigration(ctx, oldChatId, newChatId);
+  await runMigration(ctx, oldChatId, newChatId, "from");
 });

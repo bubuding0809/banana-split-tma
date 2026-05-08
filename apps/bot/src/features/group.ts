@@ -12,37 +12,61 @@ groupFeature.command("start", async (ctx, next) => {
   if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
-  if (messageThreadId) {
-    try {
-      await ctx.trpc.chat.updateChat({
-        chatId: ctx.chat.id,
-        threadId: messageThreadId,
-      });
-    } catch {
-      // Silent failure
-    }
-  }
-
-  const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
-  const url = ChatUtils.createMiniAppUrl(
-    env.MINI_APP_DEEPLINK,
-    ctx.me.username,
-    chatContext,
-    "compact"
+  const runStart = Date.now();
+  ctx.log.info(
+    { thread_id: messageThreadId, chat_type: ctx.chat.type },
+    "group.start.start"
   );
 
-  const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
-
-  const pinMessage = await ctx.reply(BotMessages.START_MESSAGE_GROUP, {
-    reply_markup: keyboard,
-    parse_mode: "MarkdownV2",
-    message_thread_id: messageThreadId,
-  });
-
   try {
-    await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
-  } catch {
-    // Ignore if pinning fails
+    if (messageThreadId) {
+      try {
+        await ctx.trpc.chat.updateChat({
+          chatId: ctx.chat.id,
+          threadId: messageThreadId,
+        });
+      } catch (err) {
+        ctx.log.warn(
+          { err, outcome: "fallback" },
+          "group.start.thread_save.failed"
+        );
+      }
+    }
+
+    const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
+    const url = ChatUtils.createMiniAppUrl(
+      env.MINI_APP_DEEPLINK,
+      ctx.me.username,
+      chatContext,
+      "compact"
+    );
+
+    const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+
+    const pinMessage = await ctx.reply(BotMessages.START_MESSAGE_GROUP, {
+      reply_markup: keyboard,
+      parse_mode: "MarkdownV2",
+      message_thread_id: messageThreadId,
+    });
+
+    let pinned = false;
+    try {
+      await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
+      pinned = true;
+    } catch (err) {
+      ctx.log.warn({ err, outcome: "fallback" }, "group.start.pin.failed");
+    }
+
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok", pinned },
+      "group.start.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "group.start.failed"
+    );
+    throw err;
   }
 });
 

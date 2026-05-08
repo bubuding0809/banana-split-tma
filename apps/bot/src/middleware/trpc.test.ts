@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createLogger } from "@repo/logger";
-import { wrapCallerWithLogging } from "./trpc.js";
+import { wrapCallerWithLogging } from "./trpcLogger.js";
 
 type LogLine = Record<string, unknown> & { msg: string };
 

@@ -36,6 +36,12 @@ userFeature.command("start", async (ctx, next) => {
     const groupIdStr = startArg.replace("ADD_MEMBER", "");
     ctx.session.addMemberGroupId = groupIdStr;
 
+    const runStart = Date.now();
+    ctx.log.info(
+      { start_arg: "ADD_MEMBER", group_id: groupIdStr },
+      "user.start.begin"
+    );
+
     let chatTitle = "the group";
     try {
       const chatInfo = await ctx.api.getChat(groupIdStr);
@@ -68,6 +74,10 @@ userFeature.command("start", async (ctx, next) => {
       reply_markup: keyboard,
       parse_mode: "MarkdownV2",
     });
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "add_member_prompt" },
+      "user.start.end"
+    );
     return;
   }
 

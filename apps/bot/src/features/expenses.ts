@@ -151,6 +151,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
     const expenses = await ctx.trpc.expense.getAllExpensesByChat({
       chatId: ctx.chat!.id,
     });
+    const formatStart = Date.now();
 
     if (!expenses || expenses.length === 0) {
       await ctx.editMessageText(BotMessages.LIST_EMPTY, {
@@ -302,6 +303,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
         filtered_count: filtered.length,
         day_count: daySections.length,
         text_len: finalMessage.length,
+        format_duration_ms: formatEnd - formatStart,
       },
       "expense.list.format"
     );
