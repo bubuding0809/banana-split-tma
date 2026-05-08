@@ -244,30 +244,33 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       }
 
       const totalParts = Object.entries(dayTotals).map(
-        ([cur, amt]) => `-${parseFloat(amt.toFixed(10))} ${cur}`
+        ([cur, amt]) =>
+          `\\-${escapeMarkdownV2(parseFloat(amt.toFixed(10)).toString())} ${escapeMarkdownV2(cur)}`
       );
-      const totalStr = totalParts.join(", ");
-
+      const escTotalStr = totalParts.join(", ");
       const escDayLabel = escapeMarkdownV2(dayLabel);
-      const escTotalStr = escapeMarkdownV2(`(${totalStr})`);
 
-      const itemLines = exps.map((exp) => {
+      const itemBranches = exps.map((exp) => {
         const escAmt = escapeMarkdownV2(
           parseFloat(exp.amount.toFixed(10)).toString()
         );
         const escCur = escapeMarkdownV2(exp.currency);
         const escDesc = escapeMarkdownV2(exp.description);
-        return `➖ ${escAmt} ${escCur} — ${escDesc}`;
+        return `${escAmt} ${escCur} — ${escDesc}`;
       });
 
-      daySections.push(
-        `*${escDayLabel}* ${escTotalStr}\n${itemLines.join("\n")}`
-      );
+      const lastIdx = itemBranches.length - 1;
+      const blockLines = [
+        `>📅 *${escDayLabel}* — ${escTotalStr}`,
+        ...itemBranches.map((b, i) => `>${i === lastIdx ? "┗" : "┣"} ${b}`),
+      ];
+
+      daySections.push(blockLines.join("\n"));
     }
 
     const escPeriod = escapeMarkdownV2(periodName);
     let finalMessage =
-      `*Expenses for ${escPeriod}*\n\n` + daySections.join("\n\n");
+      `🧾 *Expenses for ${escPeriod}*\n\n` + daySections.join("\n\n");
 
     const overallTotals: Record<string, number> = {};
     for (const exp of expenses) {
@@ -278,11 +281,18 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
         .toNumber();
     }
 
-    if (Object.keys(overallTotals).length > 0) {
-      const overallTotalParts = Object.entries(overallTotals).map(
-        ([cur, amt]) => escapeMarkdownV2(`-${amt.toFixed(2)} ${cur}`)
-      );
-      finalMessage += `\n*Overall Total*\n${overallTotalParts.join("\n")}`;
+    const overallEntries = Object.entries(overallTotals);
+    if (overallEntries.length > 0) {
+      const overallLastIdx = overallEntries.length - 1;
+      const overallLines = [
+        `>💰 *Overall Total*`,
+        ...overallEntries.map(([cur, amt], i) => {
+          const branch = i === overallLastIdx ? "┗" : "┣";
+          const body = `\\-${escapeMarkdownV2(amt.toFixed(2))} ${escapeMarkdownV2(cur)}`;
+          return `>${branch} ${body}`;
+        }),
+      ];
+      finalMessage += `\n\n${overallLines.join("\n")}`;
     }
 
     const formatEnd = Date.now();
