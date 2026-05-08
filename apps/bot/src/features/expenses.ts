@@ -129,12 +129,19 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
   const callbackData = ctx.callbackQuery.data;
   if (!callbackData) return;
 
+  const runStart = Date.now();
+  ctx.log.info({ period: callbackData }, "expense.list.start");
+
   await ctx.answerCallbackQuery();
 
   if (callbackData === "list_period_cancel") {
     await ctx.editMessageText(BotMessages.LIST_CANCELLED, {
       parse_mode: "MarkdownV2",
     });
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "cancelled" },
+      "expense.list.end"
+    );
     return;
   }
 
@@ -149,6 +156,14 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       await ctx.editMessageText(BotMessages.LIST_EMPTY, {
         parse_mode: "MarkdownV2",
       });
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - runStart,
+          outcome: "empty",
+          total_count: 0,
+        },
+        "expense.list.end"
+      );
       return;
     }
 
@@ -170,6 +185,15 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
           escapeMarkdownV2(periodName)
         ),
         { parse_mode: "MarkdownV2" }
+      );
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - runStart,
+          outcome: "empty_for_period",
+          total_count: expenses.length,
+          filtered_count: 0,
+        },
+        "expense.list.end"
       );
       return;
     }
@@ -272,9 +296,33 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       finalMessage += `\n*Overall Total*\n${overallTotalParts.join("\n")}`;
     }
 
+    const formatEnd = Date.now();
+    ctx.log.info(
+      {
+        filtered_count: filtered.length,
+        day_count: daySections.length,
+        text_len: finalMessage.length,
+      },
+      "expense.list.format"
+    );
+
     await ctx.editMessageText(finalMessage, { parse_mode: "MarkdownV2" });
-  } catch (error) {
-    console.error("Error fetching list:", error);
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - runStart,
+        send_ms: Date.now() - formatEnd,
+        outcome: "ok",
+        total_count: expenses.length,
+        filtered_count: filtered.length,
+      },
+      "expense.list.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "expense.list.failed"
+    );
     await ctx.editMessageText(BotMessages.ERROR_LIST_FAILED);
   }
 });
@@ -296,6 +344,12 @@ expensesFeature.on("message:text", async (ctx, next) => {
     return;
   }
 
+  const runStart = Date.now();
+  ctx.log.info(
+    { amount: parsed.amount, currency: parsed.currency },
+    "expense.create.start"
+  );
+
   await ctx.replyWithChatAction("typing");
 
   try {
@@ -311,6 +365,10 @@ expensesFeature.on("message:text", async (ctx, next) => {
 
     if (!exists) {
       await ctx.reply(BotMessages.ERROR_EXPENSE_NOT_REGISTERED);
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "not_registered" },
+        "expense.create.end"
+      );
       return;
     }
 
@@ -325,6 +383,8 @@ expensesFeature.on("message:text", async (ctx, next) => {
       emoji: string;
       chatId: bigint;
     }[] = [];
+    const classifyStart = Date.now();
+    ctx.log.info({}, "expense.create.ai_classify.start");
     try {
       const chatCategories = await ctx.trpc.category.listByChat({
         chatId: ctx.from.id,
@@ -343,8 +403,19 @@ expensesFeature.on("message:text", async (ctx, next) => {
         model: getAgentModel() as unknown as LanguageModel,
       });
       categoryId = suggestion?.categoryId ?? null;
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - classifyStart,
+          outcome: "ok",
+          category_id: categoryId,
+        },
+        "expense.create.ai_classify.end"
+      );
     } catch (err) {
-      console.warn("bot: category classify failed", err);
+      ctx.log.warn(
+        { err, duration_ms: Date.now() - classifyStart, outcome: "fallback" },
+        "expense.create.ai_classify.end"
+      );
     }
 
     const expense = await ctx.trpc.expense.createExpense({
@@ -421,11 +492,27 @@ expensesFeature.on("message:text", async (ctx, next) => {
         expenseId: expense.id,
         telegramMessageId: sent.message_id,
       });
-    } catch (linkErr) {
-      console.warn("bot: attachTelegramMessage failed", linkErr);
+    } catch (err) {
+      ctx.log.warn(
+        { err, outcome: "fallback" },
+        "expense.create.attach_message.failed"
+      );
     }
-  } catch (error) {
-    console.error("Error creating personal expense:", error);
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - runStart,
+        outcome: "ok",
+        expense_id: expense.id,
+        category_id: categoryId,
+      },
+      "expense.create.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "expense.create.failed"
+    );
     await ctx.reply(BotMessages.ERROR_EXPENSE_CREATE_FAILED);
   }
 });
@@ -433,14 +520,23 @@ expensesFeature.on("message:text", async (ctx, next) => {
 expensesFeature.callbackQuery(/^undo_expense:(.+)$/, async (ctx) => {
   const expenseId = ctx.match[1];
   if (!expenseId) return;
+  const runStart = Date.now();
+  ctx.log.info({ expense_id: expenseId }, "expense.undo.start");
   try {
     await ctx.answerCallbackQuery();
     await ctx.trpc.expense.deleteExpense({ expenseId });
     await ctx.editMessageText(BotMessages.EXPENSE_DELETED, {
       parse_mode: "MarkdownV2",
     });
-  } catch (error) {
-    console.error("Error undoing expense:", error);
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok" },
+      "expense.undo.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart, expense_id: expenseId },
+      "expense.undo.failed"
+    );
     await ctx.editMessageText(BotMessages.ERROR_EXPENSE_DELETE_FAILED);
   }
 });

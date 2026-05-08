@@ -30,7 +30,8 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
     return next();
   }
 
-  console.log(`Bot added to group: ${chat.id}`);
+  const runStart = Date.now();
+  ctx.log.info({ chat_type: chat.type }, "bot_events.chat.add.start");
 
   try {
     let chatPhotoUrl: string | undefined;
@@ -55,8 +56,13 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
       // or: it was just created by migrateChat (migratedFromChatId is set).
       // In both cases skip the welcome — the user has been greeted before,
       // or the migrate handler will deliver its own dedicated message.
-      console.log(
-        `my_chat_member: chat ${chat.id} already exists (migrated=${existingChat.migratedFromChatId !== null}); skipping welcome`
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - runStart,
+          outcome: "skip_existing",
+          migrated: existingChat.migratedFromChatId !== null,
+        },
+        "bot_events.chat.add.end"
       );
       return next();
     }
@@ -73,8 +79,16 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
     await ctx.reply(GROUP_INSTRUCTION, {
       parse_mode: "MarkdownV2",
     });
-  } catch (error) {
-    console.error("Failed to process my_chat_member event:", error);
+
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok" },
+      "bot_events.chat.add.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "bot_events.chat.add.failed"
+    );
     await ctx.reply("❌ Failed to initialize chat");
   }
 });

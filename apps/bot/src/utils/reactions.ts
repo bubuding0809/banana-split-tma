@@ -21,13 +21,14 @@ export async function reactWithFallback(
         e instanceof GrammyError &&
         (e.error_code === 429 || e.error_code === 403)
       ) {
-        console.warn(
-          `[Reaction] react("${emoji}") aborted (${e.error_code}):`,
-          e.description
+        ctx.log.warn(
+          { err: e, emoji, error_code: e.error_code },
+          "bot.reaction.aborted"
         );
         return;
       }
-      console.warn(`[Reaction] react("${emoji}") rejected:`, e);
+      ctx.log.warn({ err: e, emoji }, "bot.reaction.retry");
     }
   }
+  ctx.log.warn({ emojis }, "bot.reaction.failed");
 }

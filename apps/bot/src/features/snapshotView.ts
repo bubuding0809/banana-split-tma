@@ -21,6 +21,8 @@ snapshotViewFeature.on("callback_query:data", async (ctx, next) => {
   // Always answer the callback so the user's tap spinner clears, even
   // if the edit below fails. Non-await on the error path is intentional
   // — we don't want the ack to block on a slow Telegram response.
+  const runStart = Date.now();
+  ctx.log.info({ snapshot_id: snapshotId, view }, "snapshot.view.start");
   try {
     const { text, replyMarkup } = await ctx.trpc.snapshot.renderSnapshotView({
       snapshotId,
@@ -41,6 +43,10 @@ snapshotViewFeature.on("callback_query:data", async (ctx, next) => {
       reply_markup: replyMarkup,
     });
     await ctx.answerCallbackQuery();
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok" },
+      "snapshot.view.end"
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     // "message is not modified" means the user tapped the active view's
@@ -48,9 +54,16 @@ snapshotViewFeature.on("callback_query:data", async (ctx, next) => {
     // Treat it as a silent success.
     if (message.includes("message is not modified")) {
       await ctx.answerCallbackQuery();
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "not_modified" },
+        "snapshot.view.end"
+      );
       return;
     }
-    console.error("Snapshot view switch failed", err);
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "snapshot.view.failed"
+    );
     await ctx.answerCallbackQuery({
       text: "Could not switch view",
       show_alert: false,

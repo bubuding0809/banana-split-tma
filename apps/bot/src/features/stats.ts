@@ -55,12 +55,19 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
     return next();
   }
 
+  const runStart = Date.now();
+  ctx.log.info({ period: data }, "stats.fetch.start");
+
   await ctx.answerCallbackQuery();
 
   if (data === "stats_period_cancel") {
     await ctx.editMessageText(BotMessages.STATS_CANCELLED, {
       parse_mode: "MarkdownV2",
     });
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "cancelled" },
+      "stats.fetch.end"
+    );
     return;
   }
 
@@ -75,6 +82,14 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       await ctx.editMessageText(BotMessages.STATS_EMPTY, {
         parse_mode: "MarkdownV2",
       });
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - runStart,
+          outcome: "empty",
+          total_count: 0,
+        },
+        "stats.fetch.end"
+      );
       return;
     }
 
@@ -97,6 +112,15 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       await ctx.editMessageText(text, {
         parse_mode: "MarkdownV2",
       });
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - runStart,
+          outcome: "empty_for_period",
+          total_count: expenses.length,
+          filtered_count: 0,
+        },
+        "stats.fetch.end"
+      );
       return;
     }
 
@@ -136,8 +160,22 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
     await ctx.editMessageText(lines.join("\n"), {
       parse_mode: "MarkdownV2",
     });
-  } catch (error) {
-    console.error("Error generating stats:", error);
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - runStart,
+        outcome: "ok",
+        total_count: expenses.length,
+        filtered_count: filtered.length,
+        currency_count: Object.keys(byCurrency).length,
+      },
+      "stats.fetch.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "stats.fetch.failed"
+    );
     await ctx.editMessageText(BotMessages.ERROR_STATS_FAILED);
   }
 });
