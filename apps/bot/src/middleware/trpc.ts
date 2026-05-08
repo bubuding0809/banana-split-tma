@@ -1,7 +1,8 @@
 import { Middleware } from "grammy";
-import { BotContext } from "../types.js";
+import { AppCaller, BotContext } from "../types.js";
 import { appRouter, withCreateTRPCContext } from "@dko/trpc";
 import { env } from "../env.js";
+import { wrapCallerWithLogging } from "./trpcLogger.js";
 
 const createContext = withCreateTRPCContext({
   TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN,
@@ -25,6 +26,9 @@ const trpcCtx = createContext({
 const caller = appRouter.createCaller(trpcCtx);
 
 export const trpcMiddleware: Middleware<BotContext> = async (ctx, next) => {
-  ctx.trpc = caller;
+  // Per-request wrap so each call inherits the request_id / chat_id /
+  // user_id baked into ctx.log by loggerMiddleware. The Proxy is lazy —
+  // creating it costs effectively nothing.
+  ctx.trpc = wrapCallerWithLogging(caller, ctx.log) as AppCaller;
   await next();
 };

@@ -12,37 +12,61 @@ groupFeature.command("start", async (ctx, next) => {
   if (ctx.chat.type === "private") return next();
   const messageThreadId = ctx.message?.message_thread_id;
 
-  if (messageThreadId) {
-    try {
-      await ctx.trpc.chat.updateChat({
-        chatId: ctx.chat.id,
-        threadId: messageThreadId,
-      });
-    } catch {
-      // Silent failure
-    }
-  }
-
-  const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
-  const url = ChatUtils.createMiniAppUrl(
-    env.MINI_APP_DEEPLINK,
-    ctx.me.username,
-    chatContext,
-    "compact"
+  const runStart = Date.now();
+  ctx.log.info(
+    { thread_id: messageThreadId, chat_type: ctx.chat.type },
+    "group.start.start"
   );
 
-  const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
-
-  const pinMessage = await ctx.reply(BotMessages.START_MESSAGE_GROUP, {
-    reply_markup: keyboard,
-    parse_mode: "MarkdownV2",
-    message_thread_id: messageThreadId,
-  });
-
   try {
-    await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
-  } catch {
-    // Ignore if pinning fails
+    if (messageThreadId) {
+      try {
+        await ctx.trpc.chat.updateChat({
+          chatId: ctx.chat.id,
+          threadId: messageThreadId,
+        });
+      } catch (err) {
+        ctx.log.warn(
+          { err, outcome: "fallback" },
+          "group.start.thread_save.failed"
+        );
+      }
+    }
+
+    const chatContext = ChatUtils.createChatContext(ctx.chat.id, ctx.chat.type);
+    const url = ChatUtils.createMiniAppUrl(
+      env.MINI_APP_DEEPLINK,
+      ctx.me.username,
+      chatContext,
+      "compact"
+    );
+
+    const keyboard = new InlineKeyboard().url("🍌 Banana Splitz", url);
+
+    const pinMessage = await ctx.reply(BotMessages.START_MESSAGE_GROUP, {
+      reply_markup: keyboard,
+      parse_mode: "MarkdownV2",
+      message_thread_id: messageThreadId,
+    });
+
+    let pinned = false;
+    try {
+      await ctx.api.pinChatMessage(ctx.chat.id, pinMessage.message_id);
+      pinned = true;
+    } catch (err) {
+      ctx.log.warn({ err, outcome: "fallback" }, "group.start.pin.failed");
+    }
+
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok", pinned },
+      "group.start.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "group.start.failed"
+    );
+    throw err;
   }
 });
 
@@ -88,6 +112,8 @@ groupFeature.command("set_topic", async (ctx, next) => {
     });
   }
 
+  const topicStart = Date.now();
+  ctx.log.info({ thread_id: messageThreadId }, "group.topic.start");
   try {
     await ctx.trpc.chat.updateChat({
       chatId: ctx.chat.id,
@@ -96,8 +122,15 @@ groupFeature.command("set_topic", async (ctx, next) => {
     await ctx.reply(BotMessages.SUCCESS_TOPIC_SET, {
       message_thread_id: messageThreadId,
     });
-  } catch (error) {
-    console.error("Error setting topic:", error);
+    ctx.log.info(
+      { duration_ms: Date.now() - topicStart, outcome: "ok" },
+      "group.topic.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - topicStart },
+      "group.topic.failed"
+    );
     await ctx.reply(BotMessages.ERROR_TOPIC_SET_FAILED, {
       message_thread_id: messageThreadId,
     });
@@ -115,6 +148,8 @@ groupFeature.command("summary", async (ctx) => {
     message_thread_id: messageThreadId,
   });
 
+  const summaryStart = Date.now();
+  ctx.log.info({ thread_id: messageThreadId }, "group.summary.start");
   try {
     const result = await ctx.trpc.telegram.sendGroupReminderMessage({
       chatId: ctx.chat.id.toString(),
@@ -134,9 +169,30 @@ groupFeature.command("summary", async (ctx) => {
       await ctx.reply(reasonMessage, {
         message_thread_id: messageThreadId,
       });
+      ctx.log.info(
+        {
+          duration_ms: Date.now() - summaryStart,
+          outcome: "skipped",
+          reason: result.reason,
+        },
+        "group.summary.end"
+      );
+      return;
     }
-  } catch (error) {
-    console.error("Error generating summary:", error);
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - summaryStart,
+        outcome: "ok",
+        message_id: result.messageId,
+      },
+      "group.summary.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - summaryStart },
+      "group.summary.failed"
+    );
     try {
       await ctx.api.deleteMessage(ctx.chat.id, progressMessage.message_id);
     } catch {

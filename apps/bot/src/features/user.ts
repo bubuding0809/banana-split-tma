@@ -36,14 +36,23 @@ userFeature.command("start", async (ctx, next) => {
     const groupIdStr = startArg.replace("ADD_MEMBER", "");
     ctx.session.addMemberGroupId = groupIdStr;
 
+    const runStart = Date.now();
+    ctx.log.info(
+      { start_arg: "ADD_MEMBER", group_id: groupIdStr },
+      "user.start.begin"
+    );
+
     let chatTitle = "the group";
     try {
       const chatInfo = await ctx.api.getChat(groupIdStr);
       if ("title" in chatInfo) {
         chatTitle = chatInfo.title || "the group";
       }
-    } catch {
-      console.error("Could not fetch chat info for", groupIdStr);
+    } catch (err) {
+      ctx.log.error(
+        { err, group_id: groupIdStr },
+        "user.start.add_member_chat_fetch.failed"
+      );
     }
 
     const keyboard = new Keyboard()
@@ -65,6 +74,10 @@ userFeature.command("start", async (ctx, next) => {
       reply_markup: keyboard,
       parse_mode: "MarkdownV2",
     });
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "add_member_prompt" },
+      "user.start.end"
+    );
     return;
   }
 
@@ -73,6 +86,9 @@ userFeature.command("start", async (ctx, next) => {
   const loaderMessage = await ctx.reply(BotMessages.START_LOADER_MESSAGE, {
     message_thread_id: ctx.message?.message_thread_id,
   });
+
+  const runStart = Date.now();
+  ctx.log.info({ start_arg: startArg || null }, "user.start.begin");
 
   try {
     let exists = false;
@@ -93,6 +109,13 @@ userFeature.command("start", async (ctx, next) => {
           ctx.chat.id,
           loaderMessage.message_id,
           BotMessages.START_MESSAGE_GROUP_REGISTER
+        );
+        ctx.log.info(
+          {
+            duration_ms: Date.now() - runStart,
+            outcome: "existing_register",
+          },
+          "user.start.end"
         );
         return;
       }
@@ -117,6 +140,10 @@ userFeature.command("start", async (ctx, next) => {
           reply_markup: keyboard,
         }
       );
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "existing" },
+        "user.start.end"
+      );
       return;
     }
 
@@ -134,6 +161,10 @@ userFeature.command("start", async (ctx, next) => {
         ctx.chat.id,
         loaderMessage.message_id,
         BotMessages.START_MESSAGE_GROUP_REGISTER
+      );
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "created_register" },
+        "user.start.end"
       );
       return;
     }
@@ -158,8 +189,16 @@ userFeature.command("start", async (ctx, next) => {
         reply_markup: keyboard,
       }
     );
-  } catch (error) {
-    console.error("Error in start command:", error);
+
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "created" },
+      "user.start.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "user.start.failed"
+    );
     await ctx.api.editMessageText(
       ctx.chat.id,
       loaderMessage.message_id,
@@ -206,6 +245,12 @@ userFeature.on("message:users_shared", async (ctx, next) => {
     return next();
   }
 
+  const runStart = Date.now();
+  ctx.log.info(
+    { user_count: ctx.message.users_shared.users.length },
+    "user.add_member.start"
+  );
+
   const groupIdStr = ctx.session.addMemberGroupId;
   if (!groupIdStr) {
     await ctx.reply(
@@ -224,11 +269,10 @@ userFeature.on("message:users_shared", async (ctx, next) => {
   try {
     requesterMember = await ctx.api.getChatMember(groupIdStr, ctx.from!.id);
   } catch (err) {
-    console.warn("Membership guard: getChatMember failed", {
-      groupIdStr,
-      userId: ctx.from!.id,
-      err,
-    });
+    ctx.log.warn(
+      { err, group_id: groupIdStr },
+      "user.add_member.membership_guard.failed"
+    );
     ctx.session.addMemberGroupId = undefined;
     await ctx.reply(BotMessages.ADD_MEMBER_NOT_A_MEMBER, {
       reply_markup: { remove_keyboard: true },
@@ -280,10 +324,10 @@ userFeature.on("message:users_shared", async (ctx, next) => {
       miniAppCommand
     );
   } catch (err) {
-    console.warn("Failed to build mini-app URL — likely corrupted session", {
-      groupIdStr,
-      err,
-    });
+    ctx.log.warn(
+      { err, group_id: groupIdStr },
+      "user.add_member.miniapp_url.failed"
+    );
     ctx.session.addMemberGroupId = undefined;
     await ctx.reply(
       "Session expired. Please start the add member process again.",
@@ -336,7 +380,10 @@ userFeature.on("message:users_shared", async (ctx, next) => {
       if ((err as { code?: string })?.code === "CONFLICT") {
         conflictList.push(record);
       } else {
-        console.error("Failed to add member", user.user_id, err);
+        ctx.log.error(
+          { err, target_user_id: user.user_id },
+          "user.add_member.add.failed"
+        );
         realFailureList.push(record);
       }
     }
@@ -420,10 +467,20 @@ userFeature.on("message:users_shared", async (ctx, next) => {
         ),
       });
     } catch (err) {
-      console.warn("Failed to send group summary message", {
-        groupIdStr,
-        err,
-      });
+      ctx.log.warn(
+        { err, group_id: groupIdStr },
+        "user.add_member.group_post.failed"
+      );
     }
   }
+
+  ctx.log.info(
+    {
+      duration_ms: Date.now() - runStart,
+      success_count: successList.length,
+      conflict_count: conflictList.length,
+      failure_count: realFailureList.length,
+    },
+    "user.add_member.end"
+  );
 });
