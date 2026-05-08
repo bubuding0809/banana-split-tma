@@ -1,5 +1,6 @@
 import getExpenseByChat from "./getExpenseByChat.js";
 import getAllExpensesByChat from "./getAllExpensesByChat.js";
+import listByChatLean from "./listByChatLean.js";
 import getExpenseDetails from "./getExpenseDetails.js";
 import createExpense from "./createExpense.js";
 import createExpenseWithRecurrence from "./createExpenseWithRecurrence.js";
@@ -16,6 +17,7 @@ import { recurringRouter } from "./recurring/index.js";
 export const expenseRouter = createTRPCRouter({
   getExpenseByChat,
   getAllExpensesByChat,
+  listByChatLean,
   getExpenseDetails,
   createExpense,
   createExpenseWithRecurrence,

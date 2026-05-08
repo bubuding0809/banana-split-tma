@@ -10,21 +10,13 @@ import { getAgentModel } from "@repo/agent";
 import { encodeV1DeepLink, formatDateLabel } from "@dko/trpc";
 import type { LanguageModel } from "ai";
 
-interface Expense {
+interface LeanExpense {
   id: number;
   description: string;
   amount: number;
   currency: string;
   date: string | Date;
-  creatorId: number;
-  payerId: number;
-  chatId: number;
-  shares: {
-    id: number;
-    expenseId: number;
-    userId: number;
-    amount: number;
-  }[];
+  categoryId: string | null;
 }
 
 export const expensesFeature = new Composer<BotContext>();
@@ -148,50 +140,37 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
   const periodName = LIST_PERIODS[callbackData] || "Unknown";
 
   try {
-    const expenses = await ctx.trpc.expense.getAllExpensesByChat({
-      chatId: ctx.chat!.id,
-    });
-    const formatStart = Date.now();
-
-    if (!expenses || expenses.length === 0) {
-      await ctx.editMessageText(BotMessages.LIST_EMPTY, {
-        parse_mode: "MarkdownV2",
-      });
-      ctx.log.info(
-        {
-          duration_ms: Date.now() - runStart,
-          outcome: "empty",
-          total_count: 0,
-        },
-        "expense.list.end"
-      );
-      return;
-    }
-
     const { startDt, endDt } = getPeriodRange(
       callbackData.replace("list_period_", "")
     );
+    // Push the period filter to the DB. Skip start filter when it's epoch-0
+    // ("all_time") so we don't add a no-op where clause to the query.
+    const dbStartDt = startDt && startDt.getTime() > 0 ? startDt : undefined;
+    const dbEndDt = endDt ?? undefined;
 
-    const filtered = expenses.filter((exp: Expense) => {
-      const expDt = new Date(exp.date);
-      if (startDt && expDt < startDt) return false;
-      if (endDt && expDt >= endDt) return false;
-      return true;
-    });
+    const expenses = (await ctx.trpc.expense.listByChatLean({
+      chatId: ctx.chat!.id,
+      startDt: dbStartDt,
+      endDt: dbEndDt,
+    })) as LeanExpense[];
+    const formatStart = Date.now();
 
-    if (filtered.length === 0) {
-      await ctx.editMessageText(
-        BotMessages.LIST_NO_EXPENSES_FOR_PERIOD.replace(
-          "{period_name}",
-          escapeMarkdownV2(periodName)
-        ),
-        { parse_mode: "MarkdownV2" }
-      );
+    if (!expenses || expenses.length === 0) {
+      // For "all_time" with no rows, the chat has zero expenses ever — show
+      // the onboarding hint. For any bounded period, show the period-specific
+      // empty message.
+      const isAllTime = !dbStartDt && !dbEndDt;
+      const emptyMessage = isAllTime
+        ? BotMessages.LIST_EMPTY
+        : BotMessages.LIST_NO_EXPENSES_FOR_PERIOD.replace(
+            "{period_name}",
+            escapeMarkdownV2(periodName)
+          );
+      await ctx.editMessageText(emptyMessage, { parse_mode: "MarkdownV2" });
       ctx.log.info(
         {
           duration_ms: Date.now() - runStart,
-          outcome: "empty_for_period",
-          total_count: expenses.length,
+          outcome: isAllTime ? "empty" : "empty_for_period",
           filtered_count: 0,
         },
         "expense.list.end"
@@ -199,16 +178,12 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       return;
     }
 
-    // Sort descending
-    filtered.sort(
-      (a: Expense, b: Expense) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    const days: Record<string, typeof filtered> = {};
+    // DB returned rows ordered by date desc already; no in-memory filter
+    // or sort needed.
+    const days: Record<string, LeanExpense[]> = {};
     const dayDates: Record<string, Date> = {};
 
-    for (const exp of filtered) {
+    for (const exp of expenses) {
       const expDt = new Date(exp.date);
       const dayKey = `${expDt.getFullYear()}-${String(expDt.getMonth() + 1).padStart(2, "0")}-${String(expDt.getDate()).padStart(2, "0")}`;
       if (!days[dayKey]) {
@@ -263,7 +238,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       const escDayLabel = escapeMarkdownV2(dayLabel);
       const escTotalStr = escapeMarkdownV2(`(${totalStr})`);
 
-      const itemLines = exps.map((exp: Expense) => {
+      const itemLines = exps.map((exp) => {
         const escAmt = escapeMarkdownV2(
           parseFloat(exp.amount.toFixed(10)).toString()
         );
@@ -282,7 +257,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       `*Expenses for ${escPeriod}*\n\n` + daySections.join("\n\n");
 
     const overallTotals: Record<string, number> = {};
-    for (const exp of filtered) {
+    for (const exp of expenses) {
       overallTotals[exp.currency] = new Decimal(
         overallTotals[exp.currency] || 0
       )
@@ -300,7 +275,7 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
     const formatEnd = Date.now();
     ctx.log.info(
       {
-        filtered_count: filtered.length,
+        filtered_count: expenses.length,
         day_count: daySections.length,
         text_len: finalMessage.length,
         format_duration_ms: formatEnd - formatStart,
@@ -315,8 +290,11 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
         duration_ms: Date.now() - runStart,
         send_ms: Date.now() - formatEnd,
         outcome: "ok",
+        // DB now does the filtering, so the row count returned IS the
+        // filtered count. Keep both fields populated identically for
+        // backwards-compat with existing Axiom queries.
         total_count: expenses.length,
-        filtered_count: filtered.length,
+        filtered_count: expenses.length,
       },
       "expense.list.end"
     );
