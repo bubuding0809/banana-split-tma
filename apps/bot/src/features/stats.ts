@@ -3,6 +3,7 @@ import { BotContext } from "../types.js";
 import { BotMessages } from "./messages.js";
 import { escapeMarkdownV2 } from "../utils/markdown.js";
 import { Decimal } from "decimal.js";
+import { resolveCategory } from "@repo/categories";
 
 export const statsFeature = new Composer<BotContext>();
 
@@ -42,12 +43,14 @@ statsFeature.command("stats", async (ctx, next) => {
 
 import { getPeriodRange } from "../utils/date.js";
 
-// Just typing what trpc returns for the frontend stats array
 interface StatsExpense {
   currency: string;
   amount: number;
   date: Date | string;
+  categoryId: string | null;
 }
+
+const UNCATEGORIZED_KEY = "__uncategorized__";
 
 statsFeature.on("callback_query:data", async (ctx, next) => {
   const data = ctx.callbackQuery.data;
@@ -74,49 +77,60 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
   const periodName = STATS_PERIODS[data] || "Unknown";
 
   try {
-    const expenses = await ctx.trpc.expense.getAllExpensesByChat({
-      chatId: ctx.chat?.id || 0,
-    });
-
-    if (!expenses || expenses.length === 0) {
-      await ctx.editMessageText(BotMessages.STATS_EMPTY, {
-        parse_mode: "MarkdownV2",
-      });
-      ctx.log.info(
-        {
-          duration_ms: Date.now() - runStart,
-          outcome: "empty",
-          total_count: 0,
-        },
-        "stats.fetch.end"
+    // Awaited so the final edit can never race ahead of the loader.
+    try {
+      await ctx.editMessageText(
+        BotMessages.STATS_LOADING.replace(
+          "{period_name}",
+          escapeMarkdownV2(periodName)
+        ),
+        { parse_mode: "MarkdownV2" }
       );
-      return;
+    } catch (err) {
+      ctx.log.warn({ err }, "stats.fetch.loader_edit.failed");
     }
 
-    const { startDt, endDt } = getPeriodRange(
-      data.replace("stats_period_", "")
-    );
+    const periodKey = data.replace("stats_period_", "");
+    const { startDt, endDt } = getPeriodRange(periodKey);
+    const isAllTime = periodKey === "all_time";
 
-    const filtered = expenses.filter((exp: StatsExpense) => {
-      const expDt = new Date(exp.date);
-      if (startDt && expDt < startDt) return false;
-      if (endDt && expDt >= endDt) return false;
-      return true;
-    });
+    const chatId = ctx.chat?.id || 0;
+    const [filtered, chatCategoryList] = await Promise.all([
+      ctx.trpc.expense.listByChatLean({
+        chatId,
+        ...(isAllTime
+          ? {}
+          : {
+              ...(startDt ? { startDt } : {}),
+              ...(endDt ? { endDt } : {}),
+            }),
+      }) as Promise<StatsExpense[]>,
+      ctx.trpc.category.listByChat({ chatId }),
+    ]);
+
+    const chatRows = chatCategoryList.items
+      .filter((c) => c.kind === "custom")
+      .map((c) => ({
+        id: c.id.replace(/^chat:/, ""),
+        emoji: c.emoji,
+        title: c.title,
+        chatId: BigInt(chatId),
+      }));
 
     if (filtered.length === 0) {
-      const text = BotMessages.STATS_NO_EXPENSES_FOR_PERIOD.replace(
-        "{period_name}",
-        escapeMarkdownV2(periodName)
-      );
-      await ctx.editMessageText(text, {
+      const emptyMessage = isAllTime
+        ? BotMessages.STATS_EMPTY
+        : BotMessages.STATS_NO_EXPENSES_FOR_PERIOD.replace(
+            "{period_name}",
+            escapeMarkdownV2(periodName)
+          );
+      await ctx.editMessageText(emptyMessage, {
         parse_mode: "MarkdownV2",
       });
       ctx.log.info(
         {
           duration_ms: Date.now() - runStart,
-          outcome: "empty_for_period",
-          total_count: expenses.length,
+          outcome: isAllTime ? "empty" : "empty_for_period",
           filtered_count: 0,
         },
         "stats.fetch.end"
@@ -124,7 +138,7 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       return;
     }
 
-    // Group by currency
+    // Group by currency, then by category within currency.
     const byCurrency: Record<string, StatsExpense[]> = {};
     for (const exp of filtered) {
       const exps = byCurrency[exp.currency] || [];
@@ -138,21 +152,50 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
     for (const [currency, exps] of Object.entries(byCurrency)) {
       const escCurrency = escapeMarkdownV2(currency);
       let curTotal = new Decimal(0);
+      const byCategory: Record<string, Decimal> = {};
       for (const exp of exps) {
         curTotal = curTotal.plus(exp.amount);
+        const key = exp.categoryId ?? UNCATEGORIZED_KEY;
+        byCategory[key] = (byCategory[key] ?? new Decimal(0)).plus(exp.amount);
       }
       const formattedTotal = parseFloat(curTotal.toFixed(10)).toFixed(2);
       const escCurTotal = escapeMarkdownV2(formattedTotal);
 
-      currencySections.push(
-        `*${escCurrency}*\nTotal: ${escCurTotal} ${escCurrency}`
+      const sortedCategories = Object.entries(byCategory).sort(([, a], [, b]) =>
+        b.comparedTo(a)
       );
+
+      const branches = sortedCategories.map(([key, amount]) => {
+        let emoji = "❓";
+        let title = "Uncategorized";
+        if (key !== UNCATEGORIZED_KEY) {
+          const resolved = resolveCategory(key, chatRows);
+          if (resolved) {
+            emoji = resolved.emoji;
+            title = resolved.title;
+          }
+        }
+        const pct = curTotal.isZero()
+          ? 0
+          : amount.dividedBy(curTotal).times(100).toNumber();
+        const formattedAmount = parseFloat(amount.toFixed(10)).toFixed(2);
+        return `${emoji} ${escapeMarkdownV2(title)} — ${escapeMarkdownV2(formattedAmount)} \\(${pct.toFixed(0)}%\\)`;
+      });
+
+      // Tree style matches sendBatchExpenseSummary / formatExpenseMessage:
+      // every line is a blockquote (`>`), header has no branch glyph,
+      // category rows use ┣, Total closes with ┗.
+      const blockLines = [
+        `>📊 *${escCurrency}*`,
+        ...branches.map((b) => `>┣ ${b}`),
+        `>┗ *Total* — ${escCurTotal} ${escCurrency}`,
+      ];
+
+      currencySections.push(blockLines.join("\n"));
     }
 
     const lines = [
-      `*Statistics for ${escPeriod}*`,
-      "",
-      `*➖ Expenses*`,
+      `📊 *Statistics for ${escPeriod}*`,
       "",
       currencySections.join("\n\n"),
     ];
@@ -165,7 +208,6 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       {
         duration_ms: Date.now() - runStart,
         outcome: "ok",
-        total_count: expenses.length,
         filtered_count: filtered.length,
         currency_count: Object.keys(byCurrency).length,
       },
