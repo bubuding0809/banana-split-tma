@@ -93,6 +93,177 @@ const LIST_PERIODS: Record<string, string> = {
   list_period_cancel: "Cancel",
 };
 
+const LIST_PAGE_CHAR_BUDGET = 3800;
+const LIST_PAGE_HARD_LIMIT = 4080;
+
+function buildDaySections(expenses: LeanExpense[]): string[] {
+  const days: Record<string, LeanExpense[]> = {};
+  const dayDates: Record<string, Date> = {};
+  for (const exp of expenses) {
+    const expDt = new Date(exp.date);
+    const dayKey = `${expDt.getFullYear()}-${String(expDt.getMonth() + 1).padStart(2, "0")}-${String(expDt.getDate()).padStart(2, "0")}`;
+    if (!days[dayKey]) {
+      days[dayKey] = [];
+      dayDates[dayKey] = expDt;
+    }
+    days[dayKey]!.push(exp);
+  }
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  const daySections: string[] = [];
+  for (const [dayKey, exps] of Object.entries(days)) {
+    const dt = dayDates[dayKey];
+    if (!dt) continue;
+    const dayLabel = `${dt.getDate()} ${monthNames[dt.getMonth()]} ${dt.getFullYear()}, ${dayNames[dt.getDay()]}`;
+
+    const dayTotals: Record<string, number> = {};
+    for (const exp of exps) {
+      dayTotals[exp.currency] = new Decimal(dayTotals[exp.currency] || 0)
+        .plus(exp.amount)
+        .toNumber();
+    }
+
+    const totalParts = Object.entries(dayTotals).map(
+      ([cur, amt]) =>
+        `\\-${escapeMarkdownV2(parseFloat(amt.toFixed(10)).toString())} ${escapeMarkdownV2(cur)}`
+    );
+    const escTotalStr = totalParts.join(", ");
+    const escDayLabel = escapeMarkdownV2(dayLabel);
+
+    const itemBranches = exps.map((exp) => {
+      const escAmt = escapeMarkdownV2(
+        parseFloat(exp.amount.toFixed(10)).toString()
+      );
+      const escCur = escapeMarkdownV2(exp.currency);
+      const escDesc = escapeMarkdownV2(exp.description);
+      return `${escAmt} ${escCur} — ${escDesc}`;
+    });
+
+    const lastIdx = itemBranches.length - 1;
+    const blockLines = [
+      `>📅 *${escDayLabel}* — ${escTotalStr}`,
+      ...itemBranches.map((b, i) => `>${i === lastIdx ? "┗" : "┣"} ${b}`),
+    ];
+    daySections.push(blockLines.join("\n"));
+  }
+  return daySections;
+}
+
+function buildOverallTotalBlock(expenses: LeanExpense[]): string {
+  const overallTotals: Record<string, number> = {};
+  for (const exp of expenses) {
+    overallTotals[exp.currency] = new Decimal(overallTotals[exp.currency] || 0)
+      .plus(exp.amount)
+      .toNumber();
+  }
+  const entries = Object.entries(overallTotals);
+  if (entries.length === 0) return "";
+  const lastIdx = entries.length - 1;
+  const lines = [
+    `>💰 *Overall Total*`,
+    ...entries.map(([cur, amt], i) => {
+      const branch = i === lastIdx ? "┗" : "┣";
+      return `>${branch} \\-${escapeMarkdownV2(amt.toFixed(2))} ${escapeMarkdownV2(cur)}`;
+    }),
+  ];
+  return lines.join("\n");
+}
+
+function buildExpenseListPages(
+  expenses: LeanExpense[],
+  periodName: string
+): string[] {
+  const sections = buildDaySections(expenses);
+  const overallBlock = buildOverallTotalBlock(expenses);
+  const escPeriod = escapeMarkdownV2(periodName);
+
+  const chunks: string[][] = [[]];
+  let currentLen = 0;
+  const headerReserve = 80;
+
+  for (const section of sections) {
+    const sectionLen = section.length + 2;
+    const lastChunk = chunks[chunks.length - 1]!;
+    if (lastChunk.length === 0) {
+      lastChunk.push(section);
+      currentLen = sectionLen;
+    } else if (
+      currentLen + sectionLen + headerReserve >
+      LIST_PAGE_CHAR_BUDGET
+    ) {
+      chunks.push([section]);
+      currentLen = sectionLen;
+    } else {
+      lastChunk.push(section);
+      currentLen += sectionLen;
+    }
+  }
+
+  if (overallBlock) {
+    const last = chunks[chunks.length - 1]!;
+    const lastLen = last.join("\n\n").length + headerReserve;
+    if (lastLen + overallBlock.length + 2 > LIST_PAGE_CHAR_BUDGET) {
+      chunks.push([]);
+    }
+  }
+
+  const totalPages = chunks.length;
+  return chunks.map((sectionList, idx) => {
+    const header =
+      totalPages === 1
+        ? `🧾 *Expenses for ${escPeriod}*\n\n`
+        : `🧾 *Expenses for ${escPeriod}* \\(Page ${idx + 1} of ${totalPages}\\)\n\n`;
+    const body = sectionList.join("\n\n");
+    const isLast = idx === totalPages - 1;
+    let text = header + body;
+    if (isLast && overallBlock) text += `\n\n${overallBlock}`;
+    if (text.length > LIST_PAGE_HARD_LIMIT) {
+      text = text.slice(0, LIST_PAGE_HARD_LIMIT - 16) + "\n\\.\\.\\.truncated";
+    }
+    return text;
+  });
+}
+
+function buildListPageKeyboard(
+  periodKey: string,
+  pageIdx: number,
+  totalPages: number
+): InlineKeyboard | undefined {
+  if (totalPages <= 1) return undefined;
+  const kb = new InlineKeyboard();
+  if (pageIdx > 0) {
+    kb.text("◀ Prev", `list_page_${periodKey}_${pageIdx - 1}`);
+  }
+  kb.text(`${pageIdx + 1}/${totalPages}`, "list_page_noop");
+  if (pageIdx < totalPages - 1) {
+    kb.text("Next ▶", `list_page_${periodKey}_${pageIdx + 1}`);
+  }
+  return kb;
+}
+
 expensesFeature.command("list", async (ctx, next) => {
   if (ctx.chat.type !== "private") return next();
   await ctx.replyWithChatAction("typing");
@@ -191,131 +362,32 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       return;
     }
 
-    // DB returned rows ordered by date desc already; no in-memory filter
-    // or sort needed.
-    const days: Record<string, LeanExpense[]> = {};
-    const dayDates: Record<string, Date> = {};
-
-    for (const exp of expenses) {
-      const expDt = new Date(exp.date);
-      const dayKey = `${expDt.getFullYear()}-${String(expDt.getMonth() + 1).padStart(2, "0")}-${String(expDt.getDate()).padStart(2, "0")}`;
-      if (!days[dayKey]) {
-        days[dayKey] = [];
-        dayDates[dayKey] = expDt;
-      }
-      days[dayKey].push(exp);
-    }
-
-    const daySections: string[] = [];
-    for (const [dayKey, exps] of Object.entries(days)) {
-      const dt = dayDates[dayKey];
-      if (!dt) continue;
-
-      const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const dayLabel = `${dt.getDate()} ${monthNames[dt.getMonth()]} ${dt.getFullYear()}, ${dayNames[dt.getDay()]}`;
-
-      const dayTotals: Record<string, number> = {};
-      for (const exp of exps) {
-        dayTotals[exp.currency] = new Decimal(dayTotals[exp.currency] || 0)
-          .plus(exp.amount)
-          .toNumber();
-      }
-
-      const totalParts = Object.entries(dayTotals).map(
-        ([cur, amt]) =>
-          `\\-${escapeMarkdownV2(parseFloat(amt.toFixed(10)).toString())} ${escapeMarkdownV2(cur)}`
-      );
-      const escTotalStr = totalParts.join(", ");
-      const escDayLabel = escapeMarkdownV2(dayLabel);
-
-      const itemBranches = exps.map((exp) => {
-        const escAmt = escapeMarkdownV2(
-          parseFloat(exp.amount.toFixed(10)).toString()
-        );
-        const escCur = escapeMarkdownV2(exp.currency);
-        const escDesc = escapeMarkdownV2(exp.description);
-        return `${escAmt} ${escCur} — ${escDesc}`;
-      });
-
-      const lastIdx = itemBranches.length - 1;
-      const blockLines = [
-        `>📅 *${escDayLabel}* — ${escTotalStr}`,
-        ...itemBranches.map((b, i) => `>${i === lastIdx ? "┗" : "┣"} ${b}`),
-      ];
-
-      daySections.push(blockLines.join("\n"));
-    }
-
-    const escPeriod = escapeMarkdownV2(periodName);
-    let finalMessage =
-      `🧾 *Expenses for ${escPeriod}*\n\n` + daySections.join("\n\n");
-
-    const overallTotals: Record<string, number> = {};
-    for (const exp of expenses) {
-      overallTotals[exp.currency] = new Decimal(
-        overallTotals[exp.currency] || 0
-      )
-        .plus(exp.amount)
-        .toNumber();
-    }
-
-    const overallEntries = Object.entries(overallTotals);
-    if (overallEntries.length > 0) {
-      const overallLastIdx = overallEntries.length - 1;
-      const overallLines = [
-        `>💰 *Overall Total*`,
-        ...overallEntries.map(([cur, amt], i) => {
-          const branch = i === overallLastIdx ? "┗" : "┣";
-          const body = `\\-${escapeMarkdownV2(amt.toFixed(2))} ${escapeMarkdownV2(cur)}`;
-          return `>${branch} ${body}`;
-        }),
-      ];
-      finalMessage += `\n\n${overallLines.join("\n")}`;
-    }
+    const pages = buildExpenseListPages(expenses, periodName);
+    const periodKey = callbackData.replace("list_period_", "");
+    const firstPage = pages[0]!;
+    const keyboard = buildListPageKeyboard(periodKey, 0, pages.length);
 
     const formatEnd = Date.now();
     ctx.log.info(
       {
         filtered_count: expenses.length,
-        day_count: daySections.length,
-        text_len: finalMessage.length,
+        text_len: firstPage.length,
+        total_count: pages.length,
         format_duration_ms: formatEnd - formatStart,
       },
       "expense.list.format"
     );
 
-    await ctx.editMessageText(finalMessage, { parse_mode: "MarkdownV2" });
+    await ctx.editMessageText(firstPage, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
 
     ctx.log.info(
       {
         duration_ms: Date.now() - runStart,
         send_ms: Date.now() - formatEnd,
         outcome: "ok",
-        // DB now does the filtering, so the row count returned IS the
-        // filtered count. Keep both fields populated identically for
-        // backwards-compat with existing Axiom queries.
         total_count: expenses.length,
         filtered_count: expenses.length,
       },
@@ -327,6 +399,82 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
       "expense.list.failed"
     );
     await ctx.editMessageText(BotMessages.ERROR_LIST_FAILED);
+  }
+});
+
+expensesFeature.callbackQuery(/^list_page_/, async (ctx) => {
+  const callbackData = ctx.callbackQuery.data;
+  if (!callbackData) return;
+
+  if (callbackData === "list_page_noop") {
+    await ctx.answerCallbackQuery();
+    return;
+  }
+
+  const runStart = Date.now();
+  await ctx.answerCallbackQuery();
+
+  const rest = callbackData.replace("list_page_", "");
+  const lastUnderscore = rest.lastIndexOf("_");
+  if (lastUnderscore === -1) return;
+  const periodKey = rest.substring(0, lastUnderscore);
+  const pageIdx = parseInt(rest.substring(lastUnderscore + 1), 10);
+  if (isNaN(pageIdx) || pageIdx < 0) return;
+
+  const periodName = LIST_PERIODS[`list_period_${periodKey}`] || "Unknown";
+  ctx.log.info({ period: periodKey, page: pageIdx }, "expense.list.page.start");
+
+  try {
+    const { startDt, endDt } = getPeriodRange(periodKey);
+    const dbStartDt = startDt && startDt.getTime() > 0 ? startDt : undefined;
+    const dbEndDt = endDt ?? undefined;
+
+    const expenses = (await ctx.trpc.expense.listByChatLean({
+      chatId: ctx.chat!.id,
+      startDt: dbStartDt,
+      endDt: dbEndDt,
+    })) as LeanExpense[];
+
+    if (!expenses || expenses.length === 0) {
+      await ctx.editMessageText(BotMessages.LIST_EMPTY, {
+        parse_mode: "MarkdownV2",
+      });
+      ctx.log.info(
+        { duration_ms: Date.now() - runStart, outcome: "empty" },
+        "expense.list.page.end"
+      );
+      return;
+    }
+
+    const pages = buildExpenseListPages(expenses, periodName);
+    const safePageIdx = Math.min(Math.max(pageIdx, 0), pages.length - 1);
+    const pageText = pages[safePageIdx]!;
+    const keyboard = buildListPageKeyboard(
+      periodKey,
+      safePageIdx,
+      pages.length
+    );
+
+    await ctx.editMessageText(pageText, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
+
+    ctx.log.info(
+      {
+        duration_ms: Date.now() - runStart,
+        page: safePageIdx,
+        total_count: pages.length,
+        filtered_count: expenses.length,
+        outcome: "ok",
+      },
+      "expense.list.page.end"
+    );
+  } catch (err) {
+    ctx.log.error(
+      { err, duration_ms: Date.now() - runStart },
+      "expense.list.page.failed"
+    );
   }
 });
 
