@@ -161,39 +161,41 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       const formattedTotal = parseFloat(curTotal.toFixed(10)).toFixed(2);
       const escCurTotal = escapeMarkdownV2(formattedTotal);
 
-      const categoryLines = Object.entries(byCategory)
-        .sort(([, a], [, b]) => b.comparedTo(a))
-        .map(([key, amount]) => {
-          let emoji = "❓";
-          let title = "Uncategorized";
-          if (key !== UNCATEGORIZED_KEY) {
-            const resolved = resolveCategory(key, chatRows);
-            if (resolved) {
-              emoji = resolved.emoji;
-              title = resolved.title;
-            }
-          }
-          const pct = curTotal.isZero()
-            ? 0
-            : amount.dividedBy(curTotal).times(100).toNumber();
-          const formattedAmount = parseFloat(amount.toFixed(10)).toFixed(2);
-          return `> ${emoji} ${escapeMarkdownV2(title)} — ${escapeMarkdownV2(formattedAmount)} \\(${pct.toFixed(0)}%\\)`;
-        });
-
-      currencySections.push(
-        [
-          `*${escCurrency}*`,
-          ...categoryLines,
-          "",
-          `Total: ${escCurTotal} ${escCurrency}`,
-        ].join("\n")
+      const sortedCategories = Object.entries(byCategory).sort(([, a], [, b]) =>
+        b.comparedTo(a)
       );
+
+      const branches = sortedCategories.map(([key, amount]) => {
+        let emoji = "❓";
+        let title = "Uncategorized";
+        if (key !== UNCATEGORIZED_KEY) {
+          const resolved = resolveCategory(key, chatRows);
+          if (resolved) {
+            emoji = resolved.emoji;
+            title = resolved.title;
+          }
+        }
+        const pct = curTotal.isZero()
+          ? 0
+          : amount.dividedBy(curTotal).times(100).toNumber();
+        const formattedAmount = parseFloat(amount.toFixed(10)).toFixed(2);
+        return `${emoji} ${escapeMarkdownV2(title)} — ${escapeMarkdownV2(formattedAmount)} \\(${pct.toFixed(0)}%\\)`;
+      });
+
+      // Tree style matches sendBatchExpenseSummary / formatExpenseMessage:
+      // every line is a blockquote (`>`), header has no branch glyph,
+      // category rows use ┣, Total closes with ┗.
+      const blockLines = [
+        `>📊 *${escCurrency}*`,
+        ...branches.map((b) => `>┣ ${b}`),
+        `>┗ *Total* — ${escCurTotal} ${escCurrency}`,
+      ];
+
+      currencySections.push(blockLines.join("\n"));
     }
 
     const lines = [
-      `*Statistics for ${escPeriod}*`,
-      "",
-      `*➖ Expenses*`,
+      `📊 *Statistics for ${escPeriod}*`,
       "",
       currencySections.join("\n\n"),
     ];
