@@ -475,6 +475,11 @@ expensesFeature.callbackQuery(/^list_page_/, async (ctx) => {
       { err, duration_ms: Date.now() - runStart },
       "expense.list.page.failed"
     );
+    try {
+      await ctx.editMessageText(BotMessages.ERROR_LIST_FAILED);
+    } catch (editErr) {
+      ctx.log.warn({ err: editErr }, "expense.list.page.error_edit.failed");
+    }
   }
 });
 
