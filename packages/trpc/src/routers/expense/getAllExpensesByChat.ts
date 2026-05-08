@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
+import type { Logger } from "@repo/logger";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -8,8 +9,10 @@ const inputSchema = z.object({
 
 export const getAllExpensesByChatHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  log?: Logger
 ) => {
+  const dbStart = Date.now();
   const expenses = await db.expense.findMany({
     where: {
       chatId: input.chatId,
@@ -23,7 +26,20 @@ export const getAllExpensesByChatHandler = async (
       date: "desc",
     },
   });
-  return expenses.map((expense) => {
+  const dbEnd = Date.now();
+  log?.info(
+    {
+      procedure_internal: "expense.getAllExpensesByChat",
+      step: "findMany",
+      duration_ms: dbEnd - dbStart,
+      row_count: expenses.length,
+      chat_id: input.chatId,
+    },
+    "trpc.internal.timing"
+  );
+
+  const transformStart = Date.now();
+  const result = expenses.map((expense) => {
     // Drop Prisma-level BigInt fields the client doesn't consume —
     // superjson preserves bigint all the way through, and React 19's
     // component-render tracing crashes on any bigint it walks in props.
@@ -45,6 +61,16 @@ export const getAllExpensesByChatHandler = async (
       })),
     };
   });
+  log?.info(
+    {
+      procedure_internal: "expense.getAllExpensesByChat",
+      step: "transform",
+      duration_ms: Date.now() - transformStart,
+      row_count: result.length,
+    },
+    "trpc.internal.timing"
+  );
+  return result;
 };
 
 export default protectedProcedure
@@ -59,6 +85,16 @@ export default protectedProcedure
   .input(inputSchema)
   .output(z.any())
   .query(async ({ input, ctx }) => {
+    const accessStart = Date.now();
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return getAllExpensesByChatHandler(input, ctx.db);
+    ctx.log.info(
+      {
+        procedure_internal: "expense.getAllExpensesByChat",
+        step: "access_check",
+        duration_ms: Date.now() - accessStart,
+        auth_type: ctx.session.authType,
+      },
+      "trpc.internal.timing"
+    );
+    return getAllExpensesByChatHandler(input, ctx.db, ctx.log);
   });
