@@ -5,6 +5,6 @@ export const config: VercelConfig = {
     deploymentEnabled: false,
   },
   ignoreCommand: "npx turbo-ignore",
-  regions: ["fra1"],
+  regions: ["sin1"],
   rewrites: [routes.rewrite("/(.*)", "/api/webhook")],
 };
