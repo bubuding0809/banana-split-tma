@@ -139,6 +139,24 @@ expensesFeature.callbackQuery(/^list_period_/, async (ctx) => {
 
   const periodName = LIST_PERIODS[callbackData] || "Unknown";
 
+  // Replace the period picker with a loader the moment the user taps. The
+  // tRPC + Telegram-edit roundtrip after this is ~700-1200ms; without an
+  // immediate edit, the original "Choose a period" message stays visible
+  // and the UI feels frozen. Awaited (rather than fire-and-forget) so it
+  // can never race and overwrite the final result edit. Errors are
+  // logged but non-fatal — the final edit will still try to land.
+  try {
+    await ctx.editMessageText(
+      BotMessages.LIST_LOADING.replace(
+        "{period_name}",
+        escapeMarkdownV2(periodName)
+      ),
+      { parse_mode: "MarkdownV2" }
+    );
+  } catch (err) {
+    ctx.log.warn({ err }, "expense.list.loader_edit.failed");
+  }
+
   try {
     const { startDt, endDt } = getPeriodRange(
       callbackData.replace("list_period_", "")
