@@ -74,49 +74,47 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
   const periodName = STATS_PERIODS[data] || "Unknown";
 
   try {
-    const expenses = await ctx.trpc.expense.getAllExpensesByChat({
-      chatId: ctx.chat?.id || 0,
-    });
-
-    if (!expenses || expenses.length === 0) {
-      await ctx.editMessageText(BotMessages.STATS_EMPTY, {
-        parse_mode: "MarkdownV2",
-      });
-      ctx.log.info(
-        {
-          duration_ms: Date.now() - runStart,
-          outcome: "empty",
-          total_count: 0,
-        },
-        "stats.fetch.end"
+    // Awaited so the final edit can never race ahead of the loader.
+    try {
+      await ctx.editMessageText(
+        BotMessages.STATS_LOADING.replace(
+          "{period_name}",
+          escapeMarkdownV2(periodName)
+        ),
+        { parse_mode: "MarkdownV2" }
       );
-      return;
+    } catch (err) {
+      ctx.log.warn({ err }, "stats.fetch.loader_edit.failed");
     }
 
-    const { startDt, endDt } = getPeriodRange(
-      data.replace("stats_period_", "")
-    );
+    const periodKey = data.replace("stats_period_", "");
+    const { startDt, endDt } = getPeriodRange(periodKey);
+    const isAllTime = periodKey === "all_time";
 
-    const filtered = expenses.filter((exp: StatsExpense) => {
-      const expDt = new Date(exp.date);
-      if (startDt && expDt < startDt) return false;
-      if (endDt && expDt >= endDt) return false;
-      return true;
+    const filtered = await ctx.trpc.expense.listByChatLean({
+      chatId: ctx.chat?.id || 0,
+      ...(isAllTime
+        ? {}
+        : {
+            ...(startDt ? { startDt } : {}),
+            ...(endDt ? { endDt } : {}),
+          }),
     });
 
     if (filtered.length === 0) {
-      const text = BotMessages.STATS_NO_EXPENSES_FOR_PERIOD.replace(
-        "{period_name}",
-        escapeMarkdownV2(periodName)
-      );
-      await ctx.editMessageText(text, {
+      const emptyMessage = isAllTime
+        ? BotMessages.STATS_EMPTY
+        : BotMessages.STATS_NO_EXPENSES_FOR_PERIOD.replace(
+            "{period_name}",
+            escapeMarkdownV2(periodName)
+          );
+      await ctx.editMessageText(emptyMessage, {
         parse_mode: "MarkdownV2",
       });
       ctx.log.info(
         {
           duration_ms: Date.now() - runStart,
-          outcome: "empty_for_period",
-          total_count: expenses.length,
+          outcome: isAllTime ? "empty" : "empty_for_period",
           filtered_count: 0,
         },
         "stats.fetch.end"
@@ -165,7 +163,6 @@ statsFeature.on("callback_query:data", async (ctx, next) => {
       {
         duration_ms: Date.now() - runStart,
         outcome: "ok",
-        total_count: expenses.length,
         filtered_count: filtered.length,
         currency_count: Object.keys(byCurrency).length,
       },

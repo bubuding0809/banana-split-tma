@@ -12,6 +12,7 @@ export const BotMessages = {
   ADD_MEMBER_GROUP_SUMMARY:
     "✅ *New members added* by {adder_mention}\n\nMembers\n{member_list}",
   STATS_CHOOSE_PERIOD: "📊 Choose a period for statistics:",
+  STATS_LOADING: "⏳ Crunching numbers for *{period_name}*\\.\\.\\.",
   STATS_CANCELLED: "❌ Statistics cancelled\\.",
   ERROR_STATS_FAILED: "❌ Failed to generate statistics\\.",
   STATS_EMPTY: "No expenses recorded yet\\.",
