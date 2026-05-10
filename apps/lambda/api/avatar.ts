@@ -5,19 +5,31 @@ import {
   validate as validateInitData,
   parse as parseInitData,
 } from "@telegram-apps/init-data-node";
+import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
 import { redactBotToken } from "./_redact.js";
 
 const router = Router();
 const teleBot = new Telegram(env.TELEGRAM_BOT_TOKEN);
+const log = createLogger("lambda");
 
 router.get("/:userId", async (req: Request, res: Response) => {
+  const targetIdRaw = String(req.params.userId);
   // 1. Auth — TMA initData (header OR query string for <img>)
   const headerAuth = req.header("authorization");
   const initData =
     (headerAuth?.startsWith("tma ") ? headerAuth.slice(4) : null) ??
     (typeof req.query.auth === "string" ? req.query.auth : null);
   if (!initData) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "missing_init_data",
+        endpoint: "avatar",
+        target_id: targetIdRaw,
+      },
+      "auth.initData.failed"
+    );
     return res.status(401).end();
   }
   let callerId: number;
@@ -25,15 +37,34 @@ router.get("/:userId", async (req: Request, res: Response) => {
     validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
     const parsed = parseInitData(initData);
     if (!parsed.user?.id) {
+      log.warn(
+        {
+          request_id: getRequestId(),
+          reason: "init_data_no_user",
+          endpoint: "avatar",
+          target_id: targetIdRaw,
+        },
+        "auth.initData.failed"
+      );
       return res.status(401).end();
     }
     callerId = parsed.user.id;
-  } catch {
+  } catch (err) {
+    log.warn(
+      {
+        err,
+        request_id: getRequestId(),
+        reason: "init_data_invalid",
+        endpoint: "avatar",
+        target_id: targetIdRaw,
+      },
+      "auth.initData.failed"
+    );
     return res.status(401).end();
   }
 
   // 2. Authz — caller and target share a chat (self-lookup is always allowed)
-  const targetId = BigInt(String(req.params.userId));
+  const targetId = BigInt(targetIdRaw);
   if (BigInt(callerId) !== targetId) {
     const shared = await prisma.chat.findFirst({
       where: {
@@ -43,6 +74,16 @@ router.get("/:userId", async (req: Request, res: Response) => {
       select: { id: true },
     });
     if (!shared) {
+      log.warn(
+        {
+          request_id: getRequestId(),
+          reason: "no_shared_chat",
+          endpoint: "avatar",
+          caller_id: callerId.toString(),
+          target_id: targetId.toString(),
+        },
+        "authz.forbidden"
+      );
       return res.status(403).end();
     }
   }

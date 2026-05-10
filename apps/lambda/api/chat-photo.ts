@@ -5,19 +5,31 @@ import {
   validate as validateInitData,
   parse as parseInitData,
 } from "@telegram-apps/init-data-node";
+import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
 import { redactBotToken } from "./_redact.js";
 
 const router = Router();
 const teleBot = new Telegram(env.TELEGRAM_BOT_TOKEN);
+const log = createLogger("lambda");
 
 router.get("/:chatId", async (req: Request, res: Response) => {
+  const chatIdRaw = String(req.params.chatId);
   // 1. Auth — TMA initData (header OR query string)
   const headerAuth = req.header("authorization");
   const initData =
     (headerAuth?.startsWith("tma ") ? headerAuth.slice(4) : null) ??
     (typeof req.query.auth === "string" ? req.query.auth : null);
   if (!initData) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "missing_init_data",
+        endpoint: "chat-photo",
+        chat_id: chatIdRaw,
+      },
+      "auth.initData.failed"
+    );
     return res.status(401).end();
   }
   let callerId: number;
@@ -25,15 +37,34 @@ router.get("/:chatId", async (req: Request, res: Response) => {
     validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
     const parsed = parseInitData(initData);
     if (!parsed.user?.id) {
+      log.warn(
+        {
+          request_id: getRequestId(),
+          reason: "init_data_no_user",
+          endpoint: "chat-photo",
+          chat_id: chatIdRaw,
+        },
+        "auth.initData.failed"
+      );
       return res.status(401).end();
     }
     callerId = parsed.user.id;
-  } catch {
+  } catch (err) {
+    log.warn(
+      {
+        err,
+        request_id: getRequestId(),
+        reason: "init_data_invalid",
+        endpoint: "chat-photo",
+        chat_id: chatIdRaw,
+      },
+      "auth.initData.failed"
+    );
     return res.status(401).end();
   }
 
   // 2. Authz — caller is a member of the chat (no self-bypass)
-  const chatId = BigInt(String(req.params.chatId));
+  const chatId = BigInt(chatIdRaw);
   const member = await prisma.chat.findFirst({
     where: {
       id: chatId,
@@ -42,6 +73,16 @@ router.get("/:chatId", async (req: Request, res: Response) => {
     select: { id: true },
   });
   if (!member) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "not_chat_member",
+        endpoint: "chat-photo",
+        caller_id: callerId.toString(),
+        chat_id: chatId.toString(),
+      },
+      "authz.forbidden"
+    );
     return res.status(403).end();
   }
 
