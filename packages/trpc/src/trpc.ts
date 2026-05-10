@@ -198,6 +198,15 @@ export const protectedProcedure = t.procedure.use(
             throw new Error("Invalid user ID format");
           }
         } catch (e) {
+          trpcLogger.warn(
+            {
+              err: e,
+              request_id: getRequestId(),
+              reason: "agent_invalid_id_format",
+              procedure: path,
+            },
+            "auth.agent.failed"
+          );
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid agent user or chat ID format",
