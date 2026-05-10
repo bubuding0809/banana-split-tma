@@ -98,6 +98,16 @@ router.post(
   upload.single("file"),
   async (req: Request, res: Response) => {
     if (!isAuthorizedAdmin(req)) {
+      log.warn(
+        {
+          request_id: getRequestId(),
+          reason: req.header("x-api-key")
+            ? "admin_api_key_mismatch"
+            : "admin_missing_api_key",
+          endpoint: "admin/broadcast",
+        },
+        "auth.admin.failed"
+      );
       res.status(401).json({ error: "Invalid or missing API Key" });
       return;
     }

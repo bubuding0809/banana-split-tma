@@ -6,7 +6,10 @@ import {
   tzMidnightForInstant,
   verifyRecurringExpenseSignature,
 } from "@dko/trpc";
+import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
+
+const log = createLogger("lambda");
 
 /**
  * Webhook hit by the external RecurringExpenseLambda each time an EventBridge
@@ -38,6 +41,17 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
   };
 
   if (!sig || !templateId || !occurrenceDate) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "missing_signature_or_fields",
+        endpoint: "recurring-expense-tick",
+        has_sig: !!sig,
+        has_template_id: !!templateId,
+        has_occurrence_date: !!occurrenceDate,
+      },
+      "auth.webhook.failed"
+    );
     return res.status(401).json({ error: "missing signature or fields" });
   }
 
@@ -52,6 +66,15 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
       env.RECURRING_EXPENSE_WEBHOOK_SECRET
     )
   ) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "bad_signature",
+        endpoint: "recurring-expense-tick",
+        template_id: templateId,
+      },
+      "auth.webhook.failed"
+    );
     return res.status(401).json({ error: "bad signature" });
   }
 
@@ -62,6 +85,16 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
     Number.isNaN(occurrenceMs) ||
     Math.abs(Date.now() - occurrenceMs) > FRESHNESS_WINDOW_MS
   ) {
+    log.warn(
+      {
+        request_id: getRequestId(),
+        reason: "stale_or_invalid_occurrence_date",
+        endpoint: "recurring-expense-tick",
+        template_id: templateId,
+        occurrence_date: occurrenceDate,
+      },
+      "auth.webhook.failed"
+    );
     return res.status(401).json({ error: "stale or invalid occurrenceDate" });
   }
 
