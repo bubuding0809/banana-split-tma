@@ -55,6 +55,8 @@ export const sendGroupReminderMessageHandler = async (
     });
   }
 
+  log.info({ chat_id: chatIdNumber }, "telegram.groupReminder.send.start");
+
   // Parallel fetch of initial data for better performance
   const [chat, currenciesWithBalance, members] = await Promise.all([
     getChatHandler({ chatId: chatIdNumber }, db),
@@ -66,6 +68,10 @@ export const sendGroupReminderMessageHandler = async (
   ]);
 
   if (!chat) {
+    log.warn(
+      { chat_id: chatIdNumber, reason: "chat_not_found_in_db" },
+      "telegram.groupReminder.send.skipped"
+    );
     throw new TRPCError({
       code: "NOT_FOUND",
       message: `Chat not found: ${input.chatId}`,
@@ -73,6 +79,14 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   if (currenciesWithBalance.length === 0) {
+    log.info(
+      {
+        chat_id: chatIdNumber,
+        reason: "no_currencies_with_balance",
+        member_count: members?.length ?? 0,
+      },
+      "telegram.groupReminder.send.skipped"
+    );
     return {
       messageId: null,
       success: true,
@@ -82,6 +96,14 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   if (!members || members.length === 0) {
+    log.info(
+      {
+        chat_id: chatIdNumber,
+        reason: "no_members",
+        currency_count: currenciesWithBalance.length,
+      },
+      "telegram.groupReminder.send.skipped"
+    );
     return {
       messageId: null,
       success: true,
@@ -138,6 +160,16 @@ export const sendGroupReminderMessageHandler = async (
   }
 
   if (debtSummary.length === 0) {
+    log.info(
+      {
+        chat_id: chatIdNumber,
+        reason: "no_outstanding_debts",
+        member_count: members.length,
+        currency_count: currenciesWithBalance.length,
+        debt_simplification: chat.debtSimplificationEnabled,
+      },
+      "telegram.groupReminder.send.skipped"
+    );
     return {
       messageId: null,
       success: true,
@@ -245,13 +277,27 @@ export const sendGroupReminderMessageHandler = async (
       }
     );
 
+    log.info(
+      {
+        chat_id: chatIdNumber,
+        message_id: sentMessage.message_id,
+        debtor_count: debtsByDebtor.size,
+        currency_count: currenciesWithBalance.length,
+        debt_simplification: chat.debtSimplificationEnabled,
+      },
+      "telegram.groupReminder.send.success"
+    );
+
     return {
       messageId: sentMessage.message_id,
       success: true,
       timestamp: new Date(),
     };
   } catch (error) {
-    log.error({ err: error }, "telegram.groupReminder.send.failed");
+    log.error(
+      { err: error, chat_id: chatIdNumber },
+      "telegram.groupReminder.send.failed"
+    );
 
     // Handle specific Telegram API errors
     if (error instanceof Error) {
