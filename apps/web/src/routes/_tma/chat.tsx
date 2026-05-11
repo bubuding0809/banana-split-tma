@@ -1,10 +1,11 @@
+import { useEffect } from "react";
 import NewUserPage from "@/components/features/Chat/NewUserPage";
 import RequestPhoneNumberPage from "@/components/features/User/RequestPhoneNumberPage";
 import { useStartParams } from "@/hooks";
 import { trpc } from "@/utils/trpc";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { initData, useSignal } from "@telegram-apps/sdk-react";
-import { Caption, Spinner, Text } from "@telegram-apps/telegram-ui";
+import { Button, Caption, Spinner, Text } from "@telegram-apps/telegram-ui";
 
 export const Route = createFileRoute("/_tma/chat")({
   component: ChatIndexRoute,
@@ -21,6 +22,8 @@ function ChatIndexRoute() {
     status: getUserDataStatus,
     error: getUserDataError,
     data: userData,
+    refetch: refetchUser,
+    isFetching: isRefetchingUser,
   } = trpc.user.getUser.useQuery(
     {
       userId,
@@ -33,6 +36,23 @@ function ChatIndexRoute() {
   trpc.chat.getChat.usePrefetchQuery({
     chatId,
   });
+
+  // WebView lifecycle: Telegram can pause/restart the WebView during launch
+  // (drag, rotate, swipe-to-close partials), dropping in-flight requests
+  // between the CORS preflight and the actual GET. When visibility returns,
+  // auto-refetch any failed user query so the user doesn't have to tap Try
+  // again themselves in the common case.
+  useEffect(() => {
+    if (getUserDataStatus !== "error") return;
+    if (getUserDataError?.data?.code === "NOT_FOUND") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refetchUser();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [getUserDataStatus, getUserDataError?.data?.code, refetchUser]);
 
   if (getUserDataStatus === "pending") {
     return (
@@ -58,18 +78,42 @@ function ChatIndexRoute() {
     return <NewUserPage />;
   }
 
-  // Other errors, show error message
+  // No `data.code` on the error means we never got a structured server
+  // response — fetch was aborted, network dropped, or the WebView lost the
+  // request after the CORS preflight. Treat as transient and prompt to retry
+  // rather than as a hard server failure.
+  const isTransport = !getUserDataError?.data?.code;
   const requestId = getUserDataError?.data?.requestId;
+
   return (
-    <main className="flex h-[80vh] flex-col items-center justify-center gap-2.5 pb-4">
-      <Text className="text-red-500">
-        Something went wrong, please try again later.
-      </Text>
-      {requestId && (
-        <Caption weight="3" className="text-gray-500">
-          Reference: {requestId}
-        </Caption>
+    <main className="flex h-[80vh] flex-col items-center justify-center gap-3 px-6 pb-4 text-center">
+      {isTransport ? (
+        <>
+          <Text>🌐 Connection hiccup</Text>
+          <Caption weight="3" className="text-gray-500">
+            Couldn't reach our servers. Tap below to try again.
+          </Caption>
+        </>
+      ) : (
+        <>
+          <Text className="text-red-500">
+            Something went wrong, please try again later.
+          </Text>
+          {requestId && (
+            <Caption weight="3" className="text-gray-500">
+              Reference: {requestId}
+            </Caption>
+          )}
+        </>
       )}
+      <Button
+        size="m"
+        mode="filled"
+        loading={isRefetchingUser}
+        onClick={() => void refetchUser()}
+      >
+        Try again
+      </Button>
     </main>
   );
 }
