@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DB ↔ AWS scheduler reconciliation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --muted: #9aa3ad;
+  --accent: #ffd45e;
+  --ok: #4ade80;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --note: #60a5fa;
+  --border: #2a2f37;
+  --panel: #181b20;
+}
+.reveal { font-size: 30px; }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+.reveal h1 { font-size: 1.7em; color: var(--accent); }
+.reveal h2 { font-size: 1.25em; color: var(--accent); margin-bottom: 0.55em; }
+.reveal h3 { font-size: 1em; color: var(--fg); margin-bottom: 0.35em; }
+.reveal section { text-align: left; }
+.reveal section.title { text-align: center; }
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal small { color: var(--muted); font-size: 0.7em; }
+.reveal code { background: #232831; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+.reveal pre { font-size: 0.7em; box-shadow: none; }
+.reveal pre code { padding: 0.8em; max-height: 60vh; }
+.reveal table { font-size: 0.72em; border-collapse: collapse; width: 100%; }
+.reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+.reveal table th { background: var(--panel); color: var(--accent); font-weight: 600; }
+.reveal table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7em; font-weight: 600; letter-spacing: 0.02em; margin-right: 4px; vertical-align: middle; }
+.pill.ok   { background: rgba(74,222,128,0.15); color: var(--ok);   border: 1px solid rgba(74,222,128,0.4); }
+.pill.bad  { background: rgba(239,68,68,0.15);  color: var(--bad);  border: 1px solid rgba(239,68,68,0.4); }
+.pill.warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.pill.note { background: rgba(96,165,250,0.15); color: var(--note); border: 1px solid rgba(96,165,250,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px 0; font-size: 0.9em; }
+.card p, .card ul { margin: 0; font-size: 0.82em; }
+.card ul { padding-left: 1.2em; }
+.callout { background: rgba(255,212,94,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 0.88em; margin: 10px 0; }
+.callout.bad { background: rgba(239,68,68,0.08); border-left-color: var(--bad); }
+.callout.note { background: rgba(96,165,250,0.07); border-left-color: var(--note); }
+.muted { color: var(--muted); }
+ul.tight li { margin: 0.2em 0; }
+.bigtitle { font-size: 0.65em; color: var(--muted); margin-top: 8px; }
+.flow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62em; line-height: 1.4; background: var(--panel); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); white-space: pre; overflow-x: auto; }
+
+@media screen and (max-width: 700px) {
+  .reveal { font-size: 32px; }
+  .grid2, .grid3 { grid-template-columns: 1fr; gap: 10px; }
+  .card { padding: 10px 12px; }
+  .card p, .card ul { font-size: 0.9em; }
+  .reveal pre { font-size: 0.78em; }
+  .reveal table { font-size: 0.82em; }
+  .reveal table th, .reveal table td { padding: 6px 8px; }
+  .flow { font-size: 0.7em; padding: 10px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title">
+  <h1>DB ↔ AWS scheduler reconciliation</h1>
+  <p class="muted">Weekly diff · self-heal missing schedules · log orphans &amp; drift</p>
+  <p class="bigtitle">Design spec · 2026-05-11 · group-reminder pipeline</p>
+</section>
+
+<section>
+  <h2>The bug that triggered this</h2>
+  <p>Group "LADS 2026" (<code>-1003625813655</code>) had been in the DB since 2026-02-20. It never received a Sunday 9pm SGT summary — <strong>twelve weeks</strong> in a row, silently skipped.</p>
+  <ul class="tight">
+    <li><span class="pill bad">root</span> EventBridge schedule <code>group-reminder-1003625813655</code> never existed in AWS</li>
+    <li><span class="pill bad">silent</span> <code>createChat</code>'s <code>finally</code> block catches and swallows the failure</li>
+    <li><span class="pill warn">reactive</span> PR #262's toggle-on upsert only fires when a member opens settings — too late for LADS 2026</li>
+    <li><span class="pill note">found</span> only because someone opened settings on 2026-05-11 — already missed Sunday</li>
+  </ul>
+  <div class="callout bad">No Axiom event. No Vercel error log. No DB indicator. The chat exists; the schedule doesn't; the bot never fires.</div>
+</section>
+
+<section>
+  <h2>Live cross-check (2026-05-11)</h2>
+  <table>
+    <tr><th>Bucket</th><th>Count</th><th>Notes</th></tr>
+    <tr><td>DB group/supergroup chats</td><td>100</td><td>source of truth</td></tr>
+    <tr><td>AWS schedules total</td><td>230</td><td>224 enabled, 6 disabled</td></tr>
+    <tr><td>Missing (DB chat, no schedule)</td><td>0</td><td>LADS 2026 just self-healed</td></tr>
+    <tr><td>Orphan (schedule, no DB chat)</td><td>130</td><td>migration leftovers + dev/test chats</td></tr>
+    <tr><td>Present + correct defaults</td><td>100</td><td>happy path</td></tr>
+  </table>
+  <div class="callout note">PR #262 backfilled 143 schedules on 2026-04-26 because the settings page loads on every TMA open. The reactive band-aid works for active users; it doesn't help inactive ones.</div>
+</section>
+
+<section>
+  <h2>Goals</h2>
+  <ol style="font-size: 0.9em;">
+    <li>Every DB chat has an EventBridge schedule <strong>before</strong> the next Sunday 21:00 SGT fire window — even if <code>createChat</code> silently failed.</li>
+    <li>Each run emits one summary event (<code>reconciliation.run.complete</code>) with bucket counts + per-chat events for anything weird.</li>
+    <li>Diff logic is pure — unit-testable without AWS or DB mocks.</li>
+    <li>Orphans and drift are <strong>logged only</strong>. Deletion / repair needs human review.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Architecture</h2>
+  <pre class="flow">┌──────────────────────────────────────────────────────────┐
+│  Vercel cron: Saturday 09:00 SGT (01:00 UTC)             │
+│   GET /api/cron/reconcile-group-reminders                │
+│                                                          │
+│   ┌─ db.chat.findMany({ type: group|supergroup })        │
+│   ├─ ListSchedules (paginated, NextToken loop)           │
+│   ├─ GetSchedule per result (parallel batches of 10)     │
+│   │                                                      │
+│   ├─ reconcileSchedules(chats, schedules, expectedArn)   │
+│   │     └─► { missing[], orphan[], drift[], ok[] }       │
+│   │                                                      │
+│   ├─ for missing: createGroupReminderScheduleHandler()   │
+│   │     → reconciliation.schedule.created                │
+│   ├─ for orphan:  log warn (no mutation)                 │
+│   ├─ for drift:   log warn (no mutation)                 │
+│   └─ reconciliation.run.complete                         │
+└──────────────────────────────────────────────────────────┘
+                          │
+                          ▼  pino → Axiom (existing logger)
+              ┌─────────────────────────┐
+              │ Monitor:                │
+              │  create_failed &gt; 0      │
+              │  OR run.complete absent │
+              └─────────────────────────┘</pre>
+</section>
+
+<section>
+  <h2>The three buckets</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3><span class="pill bad">missing</span></h3>
+      <p>DB chat exists, no schedule.</p>
+      <p><strong>Action:</strong> auto-create with <code>createChat</code> defaults (Sun 21:00, SGT, enabled).</p>
+      <p>Event: <code>reconciliation.schedule.created</code></p>
+    </div>
+    <div class="card">
+      <h3><span class="pill warn">orphan</span></h3>
+      <p>Schedule exists, no DB chat.</p>
+      <p><strong>Action:</strong> log only. Most are group→supergroup migration leftovers.</p>
+      <p>Event: <code>reconciliation.schedule.orphaned</code></p>
+    </div>
+    <div class="card">
+      <h3><span class="pill note">drift</span></h3>
+      <p>Disabled, wrong cron, wrong tz, or wrong ARN.</p>
+      <p><strong>Action:</strong> log only. Most drift is user-intentional.</p>
+      <p>Event: <code>reconciliation.schedule.drift</code></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Pure diff function</h2>
+  <pre><code class="language-ts">export function reconcileSchedules(
+  chats: { id: bigint; type: ChatType }[],
+  schedules: {
+    name: string; state: "ENABLED" | "DISABLED";
+    scheduleExpression: string; timezone: string; targetArn?: string;
+  }[],
+  expectedArn: string,
+): {
+  missing: { chatId: string }[];
+  orphan:  { scheduleName: string }[];
+  drift:   { chatId: string; scheduleName: string;
+             reasons: ("disabled"|"wrong_cron"|"wrong_tz"|"wrong_arn")[] }[];
+  ok:      { chatId: string }[];
+}</code></pre>
+  <p class="muted" style="font-size: 0.8em;">No AWS client. No DB client. No logger. Pass two lists, get four buckets. Eight unit-test cases cover the matrix.</p>
+</section>
+
+<section>
+  <h2>Cadence — why Saturday 09:00 SGT</h2>
+  <table>
+    <tr><th>Cadence</th><th>Pro</th><th>Con</th><th>Verdict</th></tr>
+    <tr><td>Daily</td><td>fastest detect</td><td>7× cost for a weekly problem</td><td><span class="pill bad">overkill</span></td></tr>
+    <tr><td>Twice/week</td><td>double-coverage</td><td>first run wasted</td><td><span class="pill bad">no</span></td></tr>
+    <tr><td><strong>Sat 09:00 SGT</strong></td><td>~36h before fire</td><td>silent cron miss → 1 wk skip</td><td><span class="pill ok">chosen</span></td></tr>
+    <tr><td>Sun morning</td><td>just-in-time</td><td>users notice first if both miss</td><td><span class="pill bad">too tight</span></td></tr>
+  </table>
+  <div class="callout">Axiom monitor on missing <code>reconciliation.run.complete</code> catches a silent cron failure with most of Saturday to re-run.</div>
+</section>
+
+<section>
+  <h2>Hosting — Vercel cron, not new Lambda</h2>
+  <table>
+    <tr><th>Factor</th><th>Vercel cron</th><th>New Lambda</th></tr>
+    <tr><td>Ops surface</td><td>1 route + 1 vercel.json line</td><td>lambda + schedule + IAM + pipeline</td></tr>
+    <tr><td>DB access</td><td>Prisma already wired</td><td>new pool, new env</td></tr>
+    <tr><td>AWS SDK</td><td>same access keys as <code>packages/trpc/aws/*</code></td><td>native IAM role (cleaner)</td></tr>
+    <tr><td>Log surface</td><td>shared <code>@repo/logger</code> → Axiom</td><td>separate forwarding</td></tr>
+    <tr><td>Cost</td><td>included</td><td>cents/mo</td></tr>
+  </table>
+  <p class="muted" style="font-size: 0.82em;">tRPC's <code>aws/*</code> handlers already make Scheduler calls from Vercel. A Lambda would duplicate that wiring for ~zero win.</p>
+</section>
+
+<section>
+  <h2>Pagination — <code>ListSchedules</code> caps at 100</h2>
+  <p>Live env has 230 schedules; we always paginate.</p>
+  <pre><code class="language-ts">async function listAllGroupReminderSchedules() {
+  const all = [];
+  let nextToken: string | undefined;
+  do {
+    const resp = await client.send(new ListSchedulesCommand({
+      GroupName: "default",
+      NamePrefix: "group-reminder-",
+      MaxResults: 100,
+      NextToken: nextToken,
+    }));
+    for (const s of resp.Schedules ?? []) {
+      all.push(await fetchScheduleDetails(client, s.Name!));
+    }
+    nextToken = resp.NextToken;
+  } while (nextToken);
+  return all;
+}</code></pre>
+  <p class="muted" style="font-size: 0.82em;"><code>ListSchedules</code> returns summary only — need <code>GetSchedule</code> per item for cron/tz/ARN. Batch in parallel chunks of 10.</p>
+</section>
+
+<section>
+  <h2>One-off orphan cleanup — lands first</h2>
+  <p>The recurring job assumes the orphan list is small. Without cleanup, every Saturday run spams 130 <code>reconciliation.schedule.orphaned</code> warns for cases already triaged.</p>
+  <ul class="tight" style="font-size: 0.9em;">
+    <li><span class="pill note">script</span> <code>apps/admin/scripts/reconcile-orphans-oneoff.ts</code></li>
+    <li>Parses chatId from each <code>group-reminder-N</code> name, checks both ± candidates against <code>chat</code> table</li>
+    <li>Cross-references the supergroup migration log (<code>migratedFromId</code>) to classify as <code>migration_leftover</code> / <code>dev_test</code> / <code>unknown</code></li>
+    <li>Emits CSV with recommendation; operator reviews; <code>--apply</code> deletes only the agreed rows</li>
+    <li><span class="pill ok">human-in-loop</span> one-shot drain, not a recurring auto-delete</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Observability — 7 events, 1 monitor</h2>
+  <table>
+    <tr><th>Event</th><th>Lvl</th><th>When</th></tr>
+    <tr><td><code>reconciliation.run.start</code></td><td>info</td><td>top of run</td></tr>
+    <tr><td><code>reconciliation.run.complete</code></td><td>info</td><td>end of run · counts</td></tr>
+    <tr><td><code>reconciliation.run.failed</code></td><td>error</td><td>top-level catch</td></tr>
+    <tr><td><code>reconciliation.schedule.created</code></td><td>info</td><td>per missing healed</td></tr>
+    <tr><td><code>reconciliation.schedule.create.failed</code></td><td>error</td><td>per failed heal</td></tr>
+    <tr><td><code>reconciliation.schedule.orphaned</code></td><td>warn</td><td>per orphan</td></tr>
+    <tr><td><code>reconciliation.schedule.drift</code></td><td>warn</td><td>per drifter</td></tr>
+  </table>
+  <div class="callout">One monitor, two conditions: <code>create_failed &gt; 0</code> OR no <code>run.complete</code> by Sat 10:00 SGT.</div>
+</section>
+
+<section>
+  <h2>Failure modes</h2>
+  <ul class="tight" style="font-size: 0.88em;">
+    <li><span class="pill bad">list fails mid-pagination</span> top-catch logs <code>run.failed</code>; skip create pass; re-run manually. Don't double-create on a partial list.</li>
+    <li><span class="pill warn">one createSchedule fails</span> log <code>create.failed</code>, loop continues. Chat stays missing until next run or settings-toggle.</li>
+    <li><span class="pill warn">one getSchedule fails</span> skip that one; drift detection deferred. Log <code>get.failed</code>.</li>
+    <li><span class="pill bad">route times out</span> Axiom monitor fires on missing <code>run.complete</code>. Operator re-runs.</li>
+    <li><span class="pill note">retry policy</span> none in-route. SDK already retries individual calls; full-run retry would mask sustained outages.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Test plan</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Unit</h3>
+      <ul>
+        <li>8 cases on <code>reconcileSchedules</code></li>
+        <li>Pure inputs, no mocks</li>
+        <li>Group/supergroup id collision case</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Integration</h3>
+      <ul>
+        <li><code>aws-sdk-client-mock</code> for SchedulerClient</li>
+        <li>3 chats / 1 schedule → 2 creates</li>
+        <li>0 chats / 2 schedules → 2 orphans</li>
+        <li>List throws → run.failed, 500</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout note"><strong>Dry-run pre-merge:</strong> <code>x-dry-run: 1</code> header skips creates, logs counts only. Operator runs once against prod data; confirms diff matches manual cross-check.</div>
+</section>
+
+<section>
+  <h2>Rollout — 2 PRs</h2>
+  <ol style="font-size: 0.9em;">
+    <li><strong>chore(aws): one-off orphan schedule cleanup</strong>
+      <ul class="tight"><li>script + CSV review + manual <code>--apply</code></li><li>drains the 130 backlog</li></ul></li>
+    <li><strong>feat(aws): weekly db↔scheduler reconciliation cron</strong>
+      <ul class="tight">
+        <li>pure diff + unit tests</li>
+        <li>route handler + integration tests</li>
+        <li><code>vercel.json</code> cron entry · Sat 01:00 UTC</li>
+        <li><code>CRON_SECRET</code> env in Vercel; <code>scheduler:ListSchedules</code> on IAM role</li>
+        <li>dry-run executed against prod data before merge</li>
+        <li>Axiom monitor configured in UI</li>
+      </ul></li>
+  </ol>
+</section>
+
+<section>
+  <h2>Out of scope (explicit)</h2>
+  <ul class="tight" style="font-size: 0.88em;">
+    <li><span class="pill note">deferred</span> Auto-delete of orphans on subsequent runs</li>
+    <li><span class="pill note">deferred</span> Auto-fix of drift — user-intentional in most cases</li>
+    <li><span class="pill note">deferred</span> Per-user / non-group schedules</li>
+    <li><span class="pill note">deferred</span> Ad-hoc <code>/reconcile</code> admin bot command</li>
+    <li><span class="pill note">deferred</span> Backfilling missed Sunday summaries — those are gone, no retro-fire</li>
+    <li><span class="pill note">unchanged</span> <code>createChat</code>-finally and toggle-side upsert both stay — recon is defense in depth</li>
+  </ul>
+</section>
+
+<section class="title">
+  <h1>Ready for review</h1>
+  <p class="muted" style="font-size: 0.9em;"><code>docs/superpowers/specs/2026-05-11-group-reminder-reconciliation-design.md</code></p>
+  <p class="bigtitle">After approval → orphan cleanup PR first → recon cron PR second</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'fade',
+    plugins: [RevealHighlight],
+    width: 960,
+    height: 720,
+    margin: 0.04,
+    minScale: 0.2,
+    maxScale: 2.0,
+  });
+</script>
+</body>
+</html>

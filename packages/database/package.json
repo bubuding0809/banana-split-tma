@@ -17,6 +17,7 @@
     "db:deploy": "dotenv -e .env.production -- prisma migrate deploy",
     "dev": "tsc --watch --preserveWatchOutput",
     "backfill:personal-chats": "npx tsx scripts/backfill-personal-chats.ts",
+    "cleanup:orphan-reminder-schedules": "npx tsx scripts/cleanup-orphan-reminder-schedules.ts",
     "build": "prisma generate && tsc"
   },
   "keywords": [],
@@ -29,6 +30,7 @@
     "dotenv-cli": "^8.0.0"
   },
   "dependencies": {
+    "@aws-sdk/client-scheduler": "^3.873.0",
     "@prisma/client": "^6.5.0",
     "prisma": "^6.5.0"
   }

@@ -700,6 +700,9 @@ importers:
 
   packages/database:
     dependencies:
+      "@aws-sdk/client-scheduler":
+        specifier: ^3.873.0
+        version: 3.1021.0
       "@prisma/client":
         specifier: ^6.5.0
         version: 6.19.2(prisma@6.19.2(typescript@5.8.2))(typescript@5.8.2)
