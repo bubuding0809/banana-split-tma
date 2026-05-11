@@ -45,6 +45,11 @@ function ChatIndexRoute() {
   useEffect(() => {
     if (getUserDataStatus !== "error") return;
     if (getUserDataError?.data?.code === "NOT_FOUND") return;
+    // Expired initData won't recover via refetch — only a fresh WebView
+    // launch can mint new initData. Skip the listener so we don't waste a
+    // silent round-trip on every visibility flip while the user reads the
+    // "session expired" message.
+    if (getUserDataError?.data?.initDataExpired) return;
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         void refetchUser();
