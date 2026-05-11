@@ -16,6 +16,7 @@ const { validateMock, parseMock } = vi.hoisted(() => {
 vi.mock("@telegram-apps/init-data-node", () => ({
   validate: validateMock,
   parse: parseMock,
+  isExpiredError: () => false,
 }));
 
 vi.mock("@dko/database", () => ({

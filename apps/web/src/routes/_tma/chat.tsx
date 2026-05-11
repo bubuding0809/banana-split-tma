@@ -78,16 +78,30 @@ function ChatIndexRoute() {
     return <NewUserPage />;
   }
 
+  const errorData = getUserDataError?.data as
+    | { code?: string; requestId?: string; initDataExpired?: boolean }
+    | undefined;
+  // Server told us the Telegram initData expired. Retrying with the same
+  // expired data won't help — only a fresh WebView launch (force-close +
+  // reopen from the bot) can mint new initData. Don't show Try again.
+  const isExpired = errorData?.initDataExpired === true;
   // No `data.code` on the error means we never got a structured server
   // response — fetch was aborted, network dropped, or the WebView lost the
   // request after the CORS preflight. Treat as transient and prompt to retry
   // rather than as a hard server failure.
-  const isTransport = !getUserDataError?.data?.code;
-  const requestId = getUserDataError?.data?.requestId;
+  const isTransport = !errorData?.code;
+  const requestId = errorData?.requestId;
 
   return (
     <main className="flex h-[80vh] flex-col items-center justify-center gap-3 px-6 pb-4 text-center">
-      {isTransport ? (
+      {isExpired ? (
+        <>
+          <Text>⏳ Session expired</Text>
+          <Caption weight="3" className="text-gray-500">
+            Please close this Mini App and reopen it from the bot.
+          </Caption>
+        </>
+      ) : isTransport ? (
         <>
           <Text>🌐 Connection hiccup</Text>
           <Caption weight="3" className="text-gray-500">
@@ -106,14 +120,16 @@ function ChatIndexRoute() {
           )}
         </>
       )}
-      <Button
-        size="m"
-        mode="filled"
-        loading={isRefetchingUser}
-        onClick={() => void refetchUser()}
-      >
-        Try again
-      </Button>
+      {!isExpired && (
+        <Button
+          size="m"
+          mode="filled"
+          loading={isRefetchingUser}
+          onClick={() => void refetchUser()}
+        >
+          Try again
+        </Button>
+      )}
     </main>
   );
 }

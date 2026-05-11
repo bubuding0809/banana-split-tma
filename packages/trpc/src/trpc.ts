@@ -6,8 +6,18 @@ import { Telegram } from "telegraf";
 import {
   validate as validateInitData,
   parse as parseInitData,
+  isExpiredError,
   User as TelegramUser,
 } from "@telegram-apps/init-data-node";
+
+// 7 days. Default is 24h; we extend so that a TMA cached open by Telegram
+// across a weekend doesn't keep failing on stale-but-otherwise-valid initData.
+// Telegram only re-mints initData on a fresh WebView launch (force-close +
+// reopen), so a tight TTL turns a normal usage pattern into a "Something went
+// wrong" wall. The replay-window cost is acceptable for this app's threat
+// model — initData only crosses HTTPS, the bot token (HMAC key) never leaves
+// the server, and we don't move money on the auth_date timestamp.
+const INIT_DATA_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import crypto from "node:crypto";
 import { createLogger, getRequestId, type Logger } from "@repo/logger";
@@ -124,11 +134,17 @@ const t = initTRPC
           "trpc.procedure.error"
         );
       }
+      // Surface expired-initData specifically so the client can render a
+      // "session expired — close and reopen" message instead of a generic
+      // retry path. Retrying with the same expired initData would just fail
+      // again — only a fresh Telegram WebView launch can mint new initData.
+      const initDataExpired = isExpiredError(error.cause);
       return {
         ...shape,
         data: {
           ...shape.data,
           requestId,
+          ...(initDataExpired && { initDataExpired: true }),
         },
       };
     },
@@ -258,7 +274,9 @@ export const protectedProcedure = t.procedure.use(
             const botToken = process.env.TELEGRAM_BOT_TOKEN;
             if (botToken) {
               try {
-                validateInitData(parts[1], botToken);
+                validateInitData(parts[1], botToken, {
+                  expiresIn: INIT_DATA_EXPIRES_IN_SECONDS,
+                });
                 user = parseInitData(parts[1]).user ?? null;
               } catch {
                 // Ignore - API key is the primary auth method
@@ -388,23 +406,28 @@ export const protectedProcedure = t.procedure.use(
         if (!botToken) {
           throw new Error("Bot token is required but not available");
         }
-        validateInitData(initData, botToken);
+        validateInitData(initData, botToken, {
+          expiresIn: INIT_DATA_EXPIRES_IN_SECONDS,
+        });
 
         user = parseInitData(initData).user ?? null;
         authType = "telegram";
       } catch (error) {
+        const expired = isExpiredError(error);
         trpcLogger.warn(
           {
             err: error,
             request_id: getRequestId(),
-            reason: "init_data_invalid",
+            reason: expired ? "init_data_expired" : "init_data_invalid",
             procedure: path,
           },
           "auth.initData.failed"
         );
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Invalid Telegram authentication",
+          message: expired
+            ? "Telegram session expired"
+            : "Invalid Telegram authentication",
           cause: error,
         });
       }
