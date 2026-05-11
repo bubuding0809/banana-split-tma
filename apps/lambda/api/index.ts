@@ -29,6 +29,7 @@ import {
 } from "@repo/logger";
 import { waitUntil } from "@vercel/functions";
 import recurringExpenseTickRouter from "./recurring-expense-tick.js";
+import reconcileGroupRemindersRouter from "./reconcile-group-reminders.js";
 import avatarRouter from "./avatar.js";
 import chatPhotoRouter from "./chat-photo.js";
 
@@ -197,7 +198,8 @@ router.post(
 router.use(
   "/internal",
   express.json({ limit: "1mb" }),
-  recurringExpenseTickRouter
+  recurringExpenseTickRouter,
+  reconcileGroupRemindersRouter
 );
 
 router.use("/avatar", avatarRouter);
