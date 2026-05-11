@@ -16,8 +16,8 @@
     "db:migrate": "prisma migrate dev --skip-generate",
     "db:deploy": "dotenv -e .env.production -- prisma migrate deploy",
     "dev": "tsc --watch --preserveWatchOutput",
-    "backfill:personal-chats": "npx tsx scripts/backfill-personal-chats.ts",
-    "cleanup:orphan-reminder-schedules": "npx tsx scripts/cleanup-orphan-reminder-schedules.ts",
+    "backfill:personal-chats": "tsx scripts/backfill-personal-chats.ts",
+    "cleanup:orphan-reminder-schedules": "tsx scripts/cleanup-orphan-reminder-schedules.ts",
     "build": "prisma generate && tsc"
   },
   "keywords": [],
@@ -27,7 +27,8 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.13.10",
-    "dotenv-cli": "^8.0.0"
+    "dotenv-cli": "^8.0.0",
+    "tsx": "^4.7.2"
   },
   "dependencies": {
     "@aws-sdk/client-scheduler": "^3.873.0",
