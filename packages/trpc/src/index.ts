@@ -37,6 +37,20 @@ export type {
 } from "./services/broadcast.js";
 
 export { createExpenseHandler } from "./routers/expense/createExpense.js";
+export { createGroupReminderScheduleHandler } from "./routers/aws/createGroupReminderSchedule.js";
+export {
+  reconcileSchedules,
+  DEFAULT_EXPECTED_SCHEDULE,
+} from "./routers/aws/utils/reconcileSchedules.js";
+export type {
+  AwsSchedule,
+  DbChat,
+  DriftReason,
+  ExpectedDefaults,
+  ReconciliationResult,
+} from "./routers/aws/utils/reconcileSchedules.js";
+export { getSchedulerClient } from "./routers/aws/utils/schedulerClient.js";
+export { generateGroupReminderScheduleName } from "./routers/aws/utils/groupReminderUtils.js";
 export { formatRecurrenceSummary } from "./routers/aws/utils/recurrenceSummary.js";
 export type { RecurrenceSummaryInput } from "./routers/aws/utils/recurrenceSummary.js";
 export {

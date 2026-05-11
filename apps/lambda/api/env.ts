@@ -34,6 +34,15 @@ export const env = createEnv({
     RECURRING_EXPENSE_WEBHOOK_SECRET: z
       .string()
       .min(32, "RECURRING_EXPENSE_WEBHOOK_SECRET must be at least 32 chars"),
+    // Bearer secret Vercel cron attaches to /api/internal/reconcile-group-reminders.
+    // Generate with `openssl rand -hex 32` and add to Vercel project env.
+    CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 chars"),
+    // Same env var the recurring-expense lambda + group-reminder lambda use.
+    // The recon cron creates schedules whose Target.Arn equals this, and
+    // compares existing schedules against this for the `wrong_arn` drift check.
+    AWS_GROUP_REMINDER_LAMBDA_ARN: z
+      .string()
+      .min(1, "AWS_GROUP_REMINDER_LAMBDA_ARN is required for the recon cron"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

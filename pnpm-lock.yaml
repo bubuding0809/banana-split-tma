@@ -289,6 +289,9 @@ importers:
 
   apps/lambda:
     dependencies:
+      "@aws-sdk/client-scheduler":
+        specifier: ^3.873.0
+        version: 3.1021.0
       "@dko/database":
         specifier: workspace:^
         version: link:../../packages/database

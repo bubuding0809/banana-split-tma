@@ -8,6 +8,9 @@ const { validateMock, parseMock, getUserProfilePhotosMock, getFileLinkMock } =
     process.env.API_KEY = "test-api-key";
     process.env.INTERNAL_AGENT_KEY = "test-internal-agent-key";
     process.env.RECURRING_EXPENSE_WEBHOOK_SECRET = "x".repeat(64);
+    process.env.CRON_SECRET = "c".repeat(64);
+    process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
+      "arn:aws:lambda:ap-southeast-1:000000000000:function:GroupReminderLambda";
     return {
       validateMock: vi.fn(),
       parseMock: vi.fn(),

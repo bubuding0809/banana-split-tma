@@ -12,6 +12,7 @@
     "deploy": "vercel"
   },
   "dependencies": {
+    "@aws-sdk/client-scheduler": "^3.873.0",
     "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
     "@repo/logger": "workspace:*",
