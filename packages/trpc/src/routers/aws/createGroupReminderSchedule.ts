@@ -258,6 +258,20 @@ export const createGroupReminderScheduleHandler = async (
       description ||
       `Weekly group reminder for chat ${chatId} every ${dayOfWeek} at ${time} (${timezone})`;
 
+    log.info(
+      {
+        chat_id: chatId,
+        schedule_name: scheduleName,
+        description: finalDescription,
+        description_source: description ? "input" : "fallback",
+        day_of_week: dayOfWeek,
+        time,
+        timezone,
+        enabled,
+      },
+      "schedule.groupReminder.create.attempt"
+    );
+
     // Call the base createRecurringSchedule handler
     const result = await createRecurringScheduleHandler(
       {
