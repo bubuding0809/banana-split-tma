@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Latency optimization hunt · Axiom dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --muted: #9aa3ad;
+  --accent: #ffd45e;
+  --ok: #4ade80;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --note: #60a5fa;
+  --border: #2a2f37;
+  --panel: #181b20;
+}
+.reveal { font-size: 30px; }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+.reveal h1 { font-size: 1.7em; color: var(--accent); }
+.reveal h2 { font-size: 1.25em; color: var(--accent); margin-bottom: 0.55em; }
+.reveal h3 { font-size: 1em; color: var(--fg); margin-bottom: 0.35em; }
+.reveal section { text-align: left; }
+.reveal section.title { text-align: center; }
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal small { color: var(--muted); font-size: 0.7em; }
+.reveal code { background: #232831; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+.reveal pre { font-size: 0.7em; box-shadow: none; }
+.reveal pre code { padding: 0.8em; max-height: 60vh; }
+.reveal table { font-size: 0.72em; border-collapse: collapse; width: 100%; }
+.reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+.reveal table th { background: var(--panel); color: var(--accent); font-weight: 600; }
+.reveal table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7em; font-weight: 600; letter-spacing: 0.02em; margin-right: 4px; vertical-align: middle; }
+.pill.ok   { background: rgba(74,222,128,0.15); color: var(--ok);   border: 1px solid rgba(74,222,128,0.4); }
+.pill.bad  { background: rgba(239,68,68,0.15);  color: var(--bad);  border: 1px solid rgba(239,68,68,0.4); }
+.pill.warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.pill.note { background: rgba(96,165,250,0.15); color: var(--note); border: 1px solid rgba(96,165,250,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px 0; font-size: 0.9em; }
+.card p, .card ul { margin: 0; font-size: 0.82em; }
+.card ul { padding-left: 1.2em; }
+.callout { background: rgba(255,212,94,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 0.88em; margin: 10px 0; }
+.callout.bad { background: rgba(239,68,68,0.08); border-left-color: var(--bad); }
+.callout.note { background: rgba(96,165,250,0.07); border-left-color: var(--note); }
+.muted { color: var(--muted); }
+ul.tight li { margin: 0.2em 0; }
+.bigtitle { font-size: 0.65em; color: var(--muted); margin-top: 8px; }
+.flow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62em; line-height: 1.4; background: var(--panel); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); white-space: pre; overflow-x: auto; }
+.mock { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.65em; }
+.mock .row { display: grid; gap: 6px; margin-bottom: 6px; }
+.mock .row.r2 { grid-template-columns: 1fr 1fr; }
+.mock .row.r1 { grid-template-columns: 1fr; }
+.mock .tile { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 70px; }
+.mock .tile.tall { min-height: 110px; }
+.mock .tile-label { color: var(--muted); font-size: 0.85em; }
+
+@media screen and (max-width: 700px) {
+  .reveal { font-size: 32px; }
+  .grid2, .grid3 { grid-template-columns: 1fr; gap: 10px; }
+  .card { padding: 10px 12px; }
+  .card p, .card ul { font-size: 0.9em; }
+  .reveal pre { font-size: 0.78em; }
+  .reveal table { font-size: 0.82em; }
+  .reveal table th, .reveal table td { padding: 6px 8px; }
+  .flow { font-size: 0.7em; padding: 10px 12px; }
+  .mock .row.r2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title">
+  <h1>Latency optimization hunt</h1>
+  <p class="muted">"If I had an hour to make something faster, what should I work on?"</p>
+  <p class="bigtitle">Design spec · 2026-05-12 · bananasplitz dataset</p>
+</section>
+
+<section>
+  <h2>What this board answers</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>One question</h3>
+      <p>Which codepaths have the worst tail latency right now? Sorted top-N, drill-downs for HTTP routes and tRPC procedures, agent internals broken out.</p>
+    </div>
+    <div class="card">
+      <h3>Not this board</h3>
+      <ul class="tight">
+        <li>Regression alerting</li>
+        <li>SLO budgets</li>
+        <li>Aggregate time-spent (count × avg)</li>
+        <li>Heatmaps</li>
+      </ul>
+    </div>
+  </div>
+  <p class="callout note">Optimization hunt, not health watch. Health board (<code>cf6d7568-…</code>) already covers errors.</p>
+</section>
+
+<section>
+  <h2>Data already exists</h2>
+  <table>
+    <thead><tr><th>Field</th><th>Events / 7d</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td><code>duration_ms</code></td><td>4,200</td><td>every <code>*.end</code> log: <code>req.end</code>, <code>bot.update.end</code>, <code>trpc.call.end</code>, <code>agent.run.end</code>, <code>agent.tool.end</code></td></tr>
+      <tr><td><code>latency_ms</code></td><td>10</td><td>only <code>agent.llm.first_chunk</code> — LLM TTFB</td></tr>
+      <tr><td><code>path</code></td><td>2,496</td><td>on <code>req.end</code> — HTTP route</td></tr>
+      <tr><td><code>procedure</code></td><td>111 (on <code>trpc.call.end</code>)</td><td><code>trpc.internal.timing</code> missing tag — future fix</td></tr>
+      <tr><td><code>tool</code></td><td>6</td><td>on <code>agent.tool.end</code> — directional only</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:10px;">Zero new instrumentation. Pure read.</p>
+</section>
+
+<section>
+  <h2>Layout — 4 sections</h2>
+  <div class="mock">
+    <div class="row r2">
+      <div class="tile tall"><div class="tile-label">Top 10 slowest msg by p95</div></div>
+      <div class="tile tall"><div class="tile-label">Top 10 slowest msg by p99</div></div>
+    </div>
+    <div class="row r2">
+      <div class="tile tall"><div class="tile-label">Slowest HTTP routes (by path)</div></div>
+      <div class="tile tall"><div class="tile-label">Slowest tRPC procedures</div></div>
+    </div>
+    <div class="row r2">
+      <div class="tile tall"><div class="tile-label">Slowest agent tools</div></div>
+      <div class="tile tall"><div class="tile-label">LLM TTFB p95 (stat)</div></div>
+    </div>
+    <div class="row r1">
+      <div class="tile tall"><div class="tile-label">Top-5 msg p95 over time</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Headline leaderboard query</h2>
+  <div class="flow">['bananasplitz']
+| where isnotnull(duration_ms) and isnotempty(msg)
+| summarize
+    count = count(),
+    p50_ms = percentile(duration_ms, 50),
+    p95_ms = percentile(duration_ms, 95),
+    p99_ms = percentile(duration_ms, 99)
+    by msg
+| where count &gt;= 5
+| top 10 by p95_ms desc</div>
+  <p>Twin panel sorts by <code>p99_ms desc</code> instead — surfaces tails the p95 panel hides.</p>
+</section>
+
+<section>
+  <h2>HTTP / tRPC drill-downs</h2>
+  <h3>By route</h3>
+  <div class="flow">['bananasplitz']
+| where msg == "req.end" and isnotnull(duration_ms) and isnotempty(path)
+| summarize count = count(), p50_ms = percentile(duration_ms, 50),
+            p95_ms = percentile(duration_ms, 95), p99_ms = percentile(duration_ms, 99)
+    by path
+| where count &gt;= 5
+| top 10 by p95_ms desc</div>
+  <h3 style="margin-top:14px;">By tRPC procedure</h3>
+  <div class="flow">['bananasplitz']
+| where msg == "trpc.call.end" and isnotnull(duration_ms) and isnotempty(procedure)
+| summarize count = count(), p50_ms = percentile(duration_ms, 50),
+            p95_ms = percentile(duration_ms, 95), p99_ms = percentile(duration_ms, 99)
+    by procedure
+| where count &gt;= 5
+| top 10 by p95_ms desc</div>
+</section>
+
+<section>
+  <h2>Agent internals</h2>
+  <h3>Tool calls</h3>
+  <div class="flow">['bananasplitz']
+| where msg == "agent.tool.end" and isnotnull(duration_ms) and isnotempty(tool)
+| summarize count = count(), p50_ms = percentile(duration_ms, 50),
+            p95_ms = percentile(duration_ms, 95), p99_ms = percentile(duration_ms, 99)
+    by tool
+| top 10 by p95_ms desc</div>
+  <p class="muted">No <code>count &gt;= 5</code> filter — agent-tool data is sparse. Read with volume in mind.</p>
+  <h3 style="margin-top:14px;">LLM TTFB</h3>
+  <div class="flow">['bananasplitz']
+| where msg == "agent.llm.first_chunk" and isnotnull(latency_ms)
+| summarize p95_ms = percentile(latency_ms, 95)</div>
+</section>
+
+<section>
+  <h2>p95 over time</h2>
+  <div class="flow">['bananasplitz']
+| where isnotnull(duration_ms) and msg in (
+    "&lt;msg-1&gt;", "&lt;msg-2&gt;", "&lt;msg-3&gt;", "&lt;msg-4&gt;", "&lt;msg-5&gt;"
+  )
+| summarize p95_ms = percentile(duration_ms, 95) by bin_auto(_time), msg</div>
+  <p class="callout">APL has no clean "top-N then time-series" pattern. The top-5 msg list is hard-coded at build time from a 7-day inspection. ~30-second manual refresh every couple weeks if rankings shift.</p>
+</section>
+
+<section>
+  <h2>Edge cases</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Sparse windows</h3>
+      <p>Leaderboards filter <code>count &gt;= 5</code>. At 15m window, panels may be near-empty — that's correct, not a bug.</p>
+    </div>
+    <div class="card">
+      <h3>Batched tRPC paths</h3>
+      <p>Comma-joined paths bucket separately. Different perf profile — correct grouping.</p>
+    </div>
+    <div class="card">
+      <h3>Missing <code>procedure</code> tag</h3>
+      <p><code>trpc.internal.timing</code> has empty <code>procedure</code> on 428 events — excluded from drill-down. Future fix to the log line.</p>
+    </div>
+    <div class="card">
+      <h3>Agent tools tiny</h3>
+      <p>6 events / 7d. Directional only until traffic grows.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <ul class="tight">
+    <li>Open at 24h, confirm all panels render</li>
+    <li>Each leaderboard APL standalone matches dashboard ordering</li>
+    <li>Spot-check one HTTP path's p95 against ad-hoc query</li>
+    <li>Section 4 lines map to the 5 named codepaths</li>
+    <li>Re-render cleanly at 7d</li>
+  </ul>
+</section>
+
+<section>
+  <h2>What we deliberately deferred</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>v2 panels</h3>
+      <ul class="tight">
+        <li>Heatmaps per codepath</li>
+        <li>Aggregate time-spent leaderboard</li>
+        <li>SLO budgets + colors</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Wiring</h3>
+      <ul class="tight">
+        <li>Fix <code>trpc.internal.timing</code> procedure tag</li>
+        <li>Monitors on p95 regression</li>
+        <li>Deploy annotations</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="title">
+  <h2 style="color: var(--accent);">Ready to plan</h2>
+  <p class="muted">Spec at <code>docs/superpowers/specs/2026-05-12-axiom-latency-optimization-design.md</code></p>
+  <p class="muted">Next: writing-plans → createDashboard via MCP</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  width: 960,
+  height: 720,
+  margin: 0.06,
+  plugins: [ RevealHighlight ]
+});
+</script>
+</body>
+</html>
