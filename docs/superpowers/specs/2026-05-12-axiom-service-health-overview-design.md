@@ -250,9 +250,14 @@ Once this is in use and the team confirms it's the right shape, add:
 | Dashboard fetched back with 13 charts | all charts and layout match payload |
 | Agent error rate signal present (7d) | 10.64% (5/47) — would render red |
 
-### Traffic-delta caveat
+### Traffic-delta pills removed at build time
 
-The `Δ7d` pills compare the dashboard's current window (auto-applied by Axiom) against a fixed 24h slice ending 7d ago. Accurate when the window is 24h (the default). At 15m or 7d the comparison degrades to "current window vs the 24h slot 7d ago" — still a signal but mislabeled. Revisit if we change the default window.
+The four `Δ7d` pills were dropped from the live dashboard. Two reasons:
+
+1. **`toscalar()` is unsupported in Axiom APL** — the spec's `let cur/prev … toscalar(prev)` pattern fails at query time with `function 'toscalar' not found`.
+2. **Even with a single-pass `countif(_time between …)` rewrite, the dashboard's global time-range filter clips out the 7-day-ago window**, so the comparison can't be done inside a Statistic chart at a 24h default window.
+
+Traffic-anomaly detection ("volume dropped to zero") is a better fit for an Axiom Monitor with a baseline rule than for a dashboard pill, so we defer it to that channel. Filed as future work below.
 
 ### Threshold rules
 
