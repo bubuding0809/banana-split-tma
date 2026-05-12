@@ -31,20 +31,22 @@ Every chart computes a `surface` column via `extend`, used as the primary groupi
 
 | Match | Surface |
 | --- | --- |
-| `service == "bot"` | `bot` |
-| `service == "lambda"` and `action startswith "agent."` | `agent` |
-| `service == "lambda"` and (`procedure != ""` or `action == "trpc.call.start"`) | `trpc` |
-| anything else | `lambda` |
+| `service == "bot"` and `msg startswith "agent."` | `agent` |
+| `service == "bot"` (else) | `bot` |
+| `service == "lambda"` and (`procedure != ""` or `msg startswith "trpc."`) | `trpc` |
+| anything else (i.e. `service == "lambda"` rest) | `lambda` |
 
 `lambda` is the catch-all so nothing gets dropped. Spot-check the distribution after the board is live — if a meaningful chunk lands in `lambda` that should be `trpc` or `agent`, refine the rules.
+
+**Field-semantics note:** in this dataset the *event name* (what an engineer might call the "action") lives in pino's `msg` field, not the literal `action` field. The `action` field is reserved for user-supplied Telegram input (commands like `/list`, button payloads like `list_period_current_month`, free-text replies). Every chart in this spec uses `msg`. The `agent` codepath runs inside the bot service (it's the LLM tool-call loop triggered by Telegram messages), not in the lambda — hence the `service == "bot"` qualifier on the agent rule.
 
 APL snippet, reused everywhere:
 
 ```kusto
 | extend surface = case(
+    service == "bot" and msg startswith "agent.", "agent",
     service == "bot", "bot",
-    service == "lambda" and action startswith "agent.", "agent",
-    service == "lambda" and (isnotempty(procedure) or action == "trpc.call.start"), "trpc",
+    service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
     "lambda"
   )
 ```
@@ -61,10 +63,15 @@ Eight Statistic charts, two per surface (error-rate pill + traffic-delta pill).
 
 ```kusto
 ['bananasplitz']
-| extend surface = case(...)
-| where surface == "bot"   // one per surface
+| extend surface = case(
+    service == "bot" and msg startswith "agent.", "agent",
+    service == "bot", "bot",
+    service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+    "lambda"
+  )
+| where surface == "bot"   // one per surface: bot | lambda | trpc | agent
 | summarize total = count(), errors = countif(level >= 50)
-| extend rate = iff(total == 0, 0.0, 100.0 * errors / total)
+| extend rate = iff(total == 0, 0.0, 100.0 * errors / toreal(total))
 | project rate
 ```
 
@@ -72,22 +79,35 @@ Threshold rules: green `< 1`, yellow `>= 1`, red `>= 5`. Display as `XX.X%`. Emp
 
 **Per-surface traffic-delta pill** (4×, w=1 each, compact)
 
+Axiom dashboards bind the chart query to the dashboard time-range automatically, so `cur` is unfiltered on `_time` and gets the current window applied by the dashboard runtime. `prev` hard-codes the 24h slice ending 7d ago — accurate when the dashboard window is 24h (the default). At other windows the comparison degrades but still gives a signal.
+
 ```kusto
 let cur = ['bananasplitz']
-  | extend surface = case(...)
+  | extend surface = case(
+      service == "bot" and msg startswith "agent.", "agent",
+      service == "bot", "bot",
+      service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+      "lambda"
+    )
   | where surface == "bot"
   | summarize n = count();
 let prev = ['bananasplitz']
-  | extend surface = case(...)
+  | where _time between (ago(8d) .. ago(7d))
+  | extend surface = case(
+      service == "bot" and msg startswith "agent.", "agent",
+      service == "bot", "bot",
+      service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+      "lambda"
+    )
   | where surface == "bot"
-  | where _time between (ago(7d + <window>) .. ago(7d))
   | summarize n = count();
-cur | extend prev_n = toscalar(prev)
-   | extend delta_pct = iff(prev_n == 0, real(null), 100.0 * (n - prev_n) / prev_n)
-   | project delta_pct
+cur
+| extend prev_n = toscalar(prev)
+| extend delta_pct = iff(prev_n == 0, real(null), 100.0 * (n - prev_n) / toreal(prev_n))
+| project delta_pct
 ```
 
-`<window>` is bound to the dashboard's selected range — Axiom expands this via `$__interval` / time-range variable; final APL adjusted at build time. Threshold rules: green within ±25, yellow ±25–50, red `> ±50`. Null (no prior traffic) displays as `—`.
+Threshold rules: green within ±25, yellow ±25–50, red `> ±50`. Null (no prior traffic) displays as `—`.
 
 ### Row 2 — Time-series (h=5)
 
@@ -95,7 +115,12 @@ cur | extend prev_n = toscalar(prev)
 
 ```kusto
 ['bananasplitz']
-| extend surface = case(...)
+| extend surface = case(
+    service == "bot" and msg startswith "agent.", "agent",
+    service == "bot", "bot",
+    service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+    "lambda"
+  )
 | summarize count() by bin_auto(_time), surface
 ```
 
@@ -103,35 +128,42 @@ cur | extend prev_n = toscalar(prev)
 
 ```kusto
 ['bananasplitz']
-| extend surface = case(...)
+| extend surface = case(
+    service == "bot" and msg startswith "agent.", "agent",
+    service == "bot", "bot",
+    service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+    "lambda"
+  )
 | summarize total = count(), errors = countif(level >= 50) by bin_auto(_time), surface
-| extend rate = iff(total == 0, 0.0, 100.0 * errors / total)
+| extend rate = iff(total == 0, 0.0, 100.0 * errors / toreal(total))
 | project _time, surface, rate
 ```
 
 ### Row 3 — Top-N breakdowns (h=5)
 
-**Top erroring actions** (left, w=6, horizontal bar)
+**Top erroring events** (left, w=6, table or bar by count)
 
 ```kusto
 ['bananasplitz']
-| where level >= 50 and isnotempty(action)
-| summarize count() by action
+| where level >= 50 and isnotempty(msg)
+| summarize count() by msg
 | top 10 by count_
 ```
 
-**Lambda action-prefix breakdown over time** (right, w=6, stacked bar)
+**Lambda msg-prefix breakdown over time** (right, w=6, stacked bar). HTTP plumbing (`auth.*`, `req.*`) excluded so the chart highlights real codepath activity.
 
 ```kusto
 ['bananasplitz']
-| where service == "lambda" and isnotempty(action)
+| where service == "lambda" and isnotempty(msg)
 | extend prefix = case(
-    action startswith "agent.", "agent",
-    action startswith "expense.", "expense",
-    action startswith "group.", "group",
-    action startswith "reconciliation.", "reconciliation",
+    msg startswith "auth.", "auth",
+    msg startswith "req.", "req",
+    msg startswith "trpc.", "trpc",
+    msg startswith "reconciliation.", "reconciliation",
+    msg startswith "telegram.", "telegram",
     "other"
   )
+| where prefix !in ("auth", "req")
 | summarize count() by bin_auto(_time), prefix
 ```
 
@@ -141,9 +173,14 @@ LogStream chart.
 
 ```kusto
 ['bananasplitz']
-| extend surface = case(...)
+| extend surface = case(
+    service == "bot" and msg startswith "agent.", "agent",
+    service == "bot", "bot",
+    service == "lambda" and (isnotempty(procedure) or msg startswith "trpc."), "trpc",
+    "lambda"
+  )
 | where level >= 50
-| project _time, surface, action, ['err.message'], chat_id, request_id, ['err.code']
+| project _time, surface, msg, ['err.message'], chat_id, request_id, ['err.code']
 | sort by _time desc
 | take 100
 ```
