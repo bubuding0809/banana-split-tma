@@ -224,3 +224,36 @@ Once this is in use and the team confirms it's the right shape, add:
 - Axiom Monitors firing on pill thresholds (e.g. error-rate red for >5m → Telegram alert).
 - Per-procedure tRPC drill-down board.
 - p95 / p99 latency board.
+
+## Build notes (2026-05-12)
+
+- **Dashboard UID:** `cf6d7568-a152-4aa1-8ee1-57ecfc4ee04c`
+- **Dashboard short ID:** `Kg7QuBMxJjH2cSnLHD`
+- **Owner:** `X-AXIOM-EVERYONE` (visible to all org members)
+- **Refresh:** 60s · **Default window:** 24h
+- **Created via:** `mcp__axiom__createDashboard` on 2026-05-12
+
+### Pre-flight probe findings (Task 1)
+
+1. `service` field holds only `bot` and `lambda` (no other values seen in 7d). 2,583 bot / 11,514 lambda events.
+2. **The "action" name lives in `msg`, not `action`.** The literal `action` field carries user-supplied Telegram input — `/list`, `LOL`, button payloads. The pino `msg` parameter (e.g. `agent.group.final.edit.failed`, `trpc.procedure.error`) is the engineering event name. All charts use `msg`.
+3. **`agent.*` events run on the bot service, not the lambda.** The agent is the LLM tool-call loop inside the Telegram handler, not a separate lambda. Surface rule: `service == "bot" AND msg startswith "agent."`.
+4. **`procedure` is set on bot too** (222 events) — bot calling internal tRPC during command handling. The `trpc` surface stays narrow (lambda-side only) so the bot's internal tRPC stays in the `bot` surface, matching the deploy-unit triage model.
+5. **Lambda catch-all is dominated by `auth.*` (TMA initData) and `req.*` (HTTP plumbing).** The `Lambda msg-prefix` chart filters these out so real codepath activity (reconciliation, telegram sends, schedule attempts) is visible.
+
+### Smoke test (Task 6)
+
+| Check | Result |
+| --- | --- |
+| Surface sums equal total (24h) | 523 + 266 + 30 + 3 = 822 = total |
+| Catch-all `lambda` surface sensible | auth/req noise + reconciliation/telegram/schedule events |
+| Dashboard fetched back with 13 charts | all charts and layout match payload |
+| Agent error rate signal present (7d) | 10.64% (5/47) — would render red |
+
+### Traffic-delta caveat
+
+The `Δ7d` pills compare the dashboard's current window (auto-applied by Axiom) against a fixed 24h slice ending 7d ago. Accurate when the window is 24h (the default). At 15m or 7d the comparison degrades to "current window vs the 24h slot 7d ago" — still a signal but mislabeled. Revisit if we change the default window.
+
+### Threshold rules
+
+The spec calls for color thresholds on pills (green/yellow/red). The Axiom MCP `createDashboard` schema doesn't expose a `thresholds` field on Statistic charts, so colors must be configured manually in the Axiom UI per chart. Day-one acceptable since the numeric values are clear; revisit if we add Monitors that need the same thresholds machine-readable.
