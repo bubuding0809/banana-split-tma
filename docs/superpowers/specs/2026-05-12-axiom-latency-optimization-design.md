@@ -199,3 +199,51 @@ After creation:
 - Fix the `trpc.internal.timing` log line to populate `procedure`.
 - Axiom Monitors firing on p95 regression (e.g. `agent.run.end` p95 doubles vs trailing 7d).
 - Deploy annotations on Section 4.
+
+## Build notes (2026-05-12)
+
+- **Dashboard UID:** `50189c25-5a21-4d91-b329-bb05077ba3a1`
+- **Dashboard short ID:** `XndBaUat6rbE7lcvfq`
+- **Dashboard URL:** https://app.axiom.co/bananasplitz-vlrx/dashboards/XndBaUat6rbE7lcvfq
+- **Owner:** `X-AXIOM-EVERYONE`
+- **Refresh:** 60s · **Default window:** 24h
+- **Created via:** `mcp__axiom__createDashboard` on 2026-05-12
+
+### Section 4 top-5 msg list (picked at build time)
+
+From the 7d p95 leaderboard. Refresh when rankings shift meaningfully (~quarterly review).
+
+| # | msg | p95 (ms) | events (7d) |
+| --- | --- | --- | --- |
+| 1 | `agent.run.end` | 27,224 | 10 |
+| 2 | `agent.tool.end` | 9,244 | 6 |
+| 3 | `expense.create.end` | 3,320 | 14 |
+| 4 | `expense.list.end` | 3,063 | 19 |
+| 5 | `stats.fetch.end` | 2,790 | 6 |
+
+### Headline findings at build time
+
+The dashboard surfaces real optimization targets immediately:
+
+- **Agent loop is the dominant slow path** — `agent.run.end` p95 = **27.2s**, end-user wait time for AI-handled messages.
+- **LLM time-to-first-chunk = 14.1s p95** — half of agent.run.end is just waiting for the first LLM token. Cuts here flow directly into agent.run.end.
+- **`createExpenseTool` p95 = 9.2s** — by far the slowest agent tool (3 events). Likely opportunity to parallelize internal tRPC calls or trim LLM-side reasoning.
+- **`expense.getAllExpensesByChat` p95 = 2.5s** for the tRPC procedure — slow read in the expense flow.
+- **HTTP top-paths are mostly Telegram webhook delivery to specific chat IDs** (`/-1001395831833` etc.). Not actionable — these are webhook-framework routes. Telegram group-reminder send sits at 1.3s p95 (218 events) — actionable.
+
+### Smoke test
+
+| Check | Result |
+| --- | --- |
+| 7 charts in dashboard | ✅ |
+| Round-trip APL clean | ✅ |
+| Each panel matches probe queries (Task 1) | ✅ — leaderboard ordering identical |
+| Top-5 hardcoded list matches Section 1 ranking | ✅ |
+| LLM TTFB stat returns finite number | ✅ 14,144 ms |
+
+### Known caveats
+
+- LLM TTFB has very low volume (10 events / 7d). The stat reads `—` at short windows.
+- Agent tools panel is directional only at current traffic levels (3-6 events per tool).
+- Section 4 msg list is static — refresh when leaderboard rankings shift, or once a quarter.
+- `trpc.internal.timing` excluded from the procedure drill-down (`procedure` field empty on 428 events; future fix to the log line).
