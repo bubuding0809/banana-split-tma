@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
+import { uuidToNumericId } from "@dko/trpc/src/utils/counterpartyDeepLink";
+
 import { UserPage } from "@/components/features";
 import { useStartParams } from "@/hooks";
 
@@ -64,9 +66,7 @@ function RouteComponent() {
     // auto-open the sheet.
     if (startParams.entity_type === "c" && startParams.chat_type === "p") {
       sessionStorage.setItem(consumedKey, "true");
-      const numericId = BigInt(
-        "0x" + startParams.entity_id.replace(/-/g, "")
-      ).toString();
+      const numericId = uuidToNumericId(startParams.entity_id).toString();
       void navigate({
         to: "/chat",
         search: {

@@ -99,15 +99,30 @@ export async function nudgeCounterpartyHandler(
   // Build the inline button URL — recipient is the counterparty (who
   // we're nudging); we want their TMA to land on the People sheet for
   // the caller (the creditor they need to pay).
-  const botUsername = await deps.getBotUsername();
-  const payload = buildCounterpartyDeepLinkPayload(
-    args.counterpartyUserId,
-    args.callerId
-  );
-  const url = buildMiniAppUrl(botUsername, payload);
-  const replyMarkup: InlineKb = {
-    inline_keyboard: [[{ text: "💁 Open Balances", url }]],
-  };
+  // Wrapped in try/catch: a getMe() failure must not forfeit the 24h
+  // rate-limit token that's already been consumed above. Mirrors the
+  // pattern in settleAllWithUser.
+  let replyMarkup: InlineKb | undefined;
+  try {
+    const botUsername = await deps.getBotUsername();
+    const payload = buildCounterpartyDeepLinkPayload(
+      args.counterpartyUserId,
+      args.callerId
+    );
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: "💁 Open Balances",
+            url: buildMiniAppUrl(botUsername, payload),
+          },
+        ],
+      ],
+    };
+  } catch {
+    // bot getMe failure → ship the caption without a button rather
+    // than re-throw and waste the rate-limit token.
+  }
 
   await deps.sendDm(args.counterpartyUserId, caption, replyMarkup);
   return { ok: true as const };
