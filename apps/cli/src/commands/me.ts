@@ -54,4 +54,29 @@ export const meCommands: Command[] = [
       );
     },
   },
+
+  {
+    name: "list-counterparty-balances",
+    description:
+      "List per-counterparty balance totals across all groups, in chosen base currency.",
+    agentGuidance:
+      "Use this to answer 'how much do I owe / am I owed per person across all groups?' in one call. Returns aggregated net balances grouped by counterparty, converted to a single base currency. Does not work with chat-scoped API keys.",
+    examples: [
+      "banana me list-counterparty-balances",
+      "banana me list-counterparty-balances --base SGD",
+    ],
+    options: {
+      base: {
+        type: "string",
+        description:
+          "ISO 4217 base currency (defaults to your stored baseCurrency)",
+      },
+    },
+    execute: (opts, trpc) =>
+      run("list-counterparty-balances", async () =>
+        trpc.expenseShare.getMyCounterpartyBalances.query(
+          opts.base ? { baseCurrency: String(opts.base) } : {}
+        )
+      ),
+  },
 ];
