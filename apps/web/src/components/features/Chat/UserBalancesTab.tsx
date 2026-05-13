@@ -9,11 +9,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
-import {
-  hapticFeedback,
-  themeParams,
-  useSignal,
-} from "@telegram-apps/sdk-react";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { cn } from "@/utils/cn";
 import { trpc } from "@/utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
@@ -29,7 +25,6 @@ interface Props {
 
 export default function UserBalancesTab({ initialBaseCurrency }: Props) {
   const [openUserId, setOpenUserId] = useState<number | null>(null);
-  const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
 
   const q = trpc.expenseShare.getMyCounterpartyBalances.useQuery({
     baseCurrency: initialBaseCurrency,
@@ -57,6 +52,9 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
     const fullName = [c.firstName, c.lastName].filter(Boolean).join(" ");
     const subhead =
       c.totalBaseNet < 0 ? `You owe ${fullName}` : `${fullName} owes you`;
+    // Net total only — bucket breakdown lives in the drill-in sheet.
+    // Mixed-direction buckets within one counterparty would be misleading
+    // here (e.g. user is net-owed by X but owes X in one specific chat).
     return (
       <Cell
         key={c.userId}
@@ -68,32 +66,12 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
           setOpenUserId(c.userId);
         }}
       >
-        <div className="flex flex-col">
-          {c.groups.map((g) => (
-            <div
-              key={`${g.chatId}-${g.currency}`}
-              className="relative flex gap-x-1"
-            >
-              <span className="z-10 size-6">
-                {currencyMap.get(g.currency)?.flagEmoji ?? "🌍"}
-              </span>
-              <div className="flex gap-x-1">
-                <Text className={cn(getBalanceColorClass(g.nativeNet))}>
-                  {formatCurrencyWithCode(Math.abs(g.nativeNet), g.currency)}
-                </Text>
-                {g.currency !== initialBaseCurrency && (
-                  <Caption style={{ color: tSubtitleColor }}>
-                    or{" "}
-                    {formatCurrencyWithCode(
-                      Math.abs(g.baseNet),
-                      initialBaseCurrency
-                    )}
-                  </Caption>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <Text className={cn(getBalanceColorClass(c.totalBaseNet))}>
+          {formatCurrencyWithCode(
+            Math.abs(c.totalBaseNet),
+            initialBaseCurrency
+          )}
+        </Text>
       </Cell>
     );
   };
