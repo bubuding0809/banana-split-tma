@@ -60,15 +60,17 @@ describe("buildSettleNotificationCaption", () => {
     expect(codeBlock).toBeTruthy();
     const tree = codeBlock![1];
 
-    // Bali Trip is not the last chat — uses ├─ at chat level
-    // and │  for child indentation
-    expect(tree).toContain("├─ Bali Trip");
-    expect(tree).toContain("│  ├─ $40.00");
-    expect(tree).toContain("│  └─ AU$30.00");
+    const NBSP = " "; // U+00A0 — survives iOS pre-block leading-space collapse
 
-    // Roommates is the last chat — uses └─ and "   " for child indent
+    // Bali Trip is not the last chat — uses ├─ at chat level
+    // and │ + NBSP×2 for child indentation
+    expect(tree).toContain("├─ Bali Trip");
+    expect(tree).toContain(`│${NBSP}${NBSP}├─ $40.00`);
+    expect(tree).toContain(`│${NBSP}${NBSP}└─ AU$30.00`);
+
+    // Roommates is the last chat — uses └─ and NBSP×3 for child indent
     expect(tree).toContain("└─ Roommates");
-    expect(tree).toContain("   └─ CN¥100.00");
+    expect(tree).toContain(`${NBSP}${NBSP}${NBSP}└─ CN¥100.00`);
   });
 
   it("shows base-currency conversion only for foreign currencies", () => {
@@ -105,7 +107,7 @@ describe("buildNudgeCaption", () => {
     const text = buildNudgeCaption(sample);
     const rendered = unescape(text);
 
-    expect(rendered).toContain("🔔 *Settlement Reminder*");
+    expect(rendered).toContain("🔔 *Debt Reminder*");
     expect(rendered).toContain("You owe Bubu");
     expect(rendered).toContain("S$99.42");
     expect(rendered).toContain("across 2 groups");

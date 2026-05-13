@@ -51,11 +51,17 @@ function buildTreeBlock(s: CrossGroupSummary): string {
     }
   }
 
+  // U+00A0 (non-breaking space). Telegram iOS collapses runs of ASCII
+  // leading spaces inside ```pre``` blocks, so a 3-space indent for the
+  // last chat's children would render at column 0. NBSP is preserved.
+  const NBSP = " ";
   const lines: string[] = [];
   byChat.forEach((chat, ci) => {
     const isLastChat = ci === byChat.length - 1;
     const chatPrefix = isLastChat ? "└─" : "├─";
-    const childIndent = isLastChat ? "   " : "│  ";
+    const childIndent = isLastChat
+      ? `${NBSP}${NBSP}${NBSP}`
+      : `│${NBSP}${NBSP}`;
     lines.push(`${chatPrefix} ${chat.chatTitle}`);
     chat.buckets.forEach((b, bi) => {
       const isLastBucket = bi === chat.buckets.length - 1;
@@ -92,7 +98,7 @@ export function buildNudgeCaption(s: CrossGroupSummary): string {
   const n = countChats(s.groups);
   const groupWord = n === 1 ? "group" : "groups";
   return [
-    "🔔 *Settlement Reminder*",
+    "🔔 *Debt Reminder*",
     "",
     `You owe ${escapeMd(s.senderName)} ≈ ${escapeMd(total)} across ${n} ${groupWord}`,
     "",
