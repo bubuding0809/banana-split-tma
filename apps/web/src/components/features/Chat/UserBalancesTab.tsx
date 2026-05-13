@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { Cell, Section, Spinner } from "@telegram-apps/telegram-ui";
+import {
+  Avatar,
+  Caption,
+  Cell,
+  Section,
+  Skeleton,
+  Text,
+  Title,
+} from "@telegram-apps/telegram-ui";
 import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { trpc } from "@/utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import CurrencySelectionModal from "@/components/ui/CurrencySelectionModal";
-import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
 import {
   getCurrencyDecimalDigits,
   getCurrencySymbol,
 } from "@dko/trpc/src/utils/currencyApi";
+import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
 
 function fmt(n: number, ccy: string): string {
   const sign = n >= 0 ? "+" : "−";
@@ -21,106 +28,127 @@ interface Props {
   userId: number;
 }
 
-export default function UserBalancesTab({
-  initialBaseCurrency,
-  userId,
-}: Props) {
-  const [base, setBase] = useState(initialBaseCurrency);
-  const [pickerOpen, setPickerOpen] = useState(false);
+export default function UserBalancesTab({ initialBaseCurrency }: Props) {
   const [openUserId, setOpenUserId] = useState<number | null>(null);
 
   const q = trpc.expenseShare.getMyCounterpartyBalances.useQuery({
-    baseCurrency: base,
+    baseCurrency: initialBaseCurrency,
   });
 
-  if (q.isLoading) return <Spinner size="m" />;
-  if (q.isError)
-    return (
-      <Section>
-        <Cell>Failed to load balances. Pull to refresh.</Cell>
-      </Section>
-    );
+  const data = q.data;
+  const counterparties = data?.counterparties ?? [];
 
-  const data = q.data!;
-  const totalOwed = data.counterparties
-    .filter((c) => c.totalBaseNet > 0)
-    .reduce((acc, c) => acc + c.totalBaseNet, 0);
-  const totalOwes = data.counterparties
-    .filter((c) => c.totalBaseNet < 0)
-    .reduce((acc, c) => acc + Math.abs(c.totalBaseNet), 0);
+  const youOwe = counterparties.filter((c) => c.totalBaseNet < 0);
+  const owesYou = counterparties.filter((c) => c.totalBaseNet > 0);
 
   const open =
     openUserId !== null
-      ? (data.counterparties.find((c) => c.userId === openUserId) ?? null)
+      ? (counterparties.find((c) => c.userId === openUserId) ?? null)
       : null;
 
-  return (
-    <>
-      <Section
-        header={`Net across all groups · ${base}`}
-        footer={
-          <span
-            className="cursor-pointer underline"
-            onClick={() => {
-              hapticFeedback.selectionChanged.ifAvailable();
-              setPickerOpen(true);
-            }}
+  const renderRow = (c: (typeof counterparties)[number]) => {
+    const fullName = [c.firstName, c.lastName].filter(Boolean).join(" ");
+    const groupsText =
+      c.groups.length === 1
+        ? c.groups[0].chatTitle
+        : `${c.groups.length} groups`;
+    return (
+      <Cell
+        key={c.userId}
+        before={<ChatMemberAvatar userId={c.userId} size={40} />}
+        subtitle={groupsText}
+        after={
+          <Text
+            className={c.totalBaseNet > 0 ? "text-green-500" : "text-red-500"}
           >
-            Change base currency
-          </span>
+            {fmt(c.totalBaseNet, initialBaseCurrency)}
+          </Text>
         }
+        onClick={() => {
+          hapticFeedback.impactOccurred.ifAvailable("light");
+          setOpenUserId(c.userId);
+        }}
       >
-        <Cell after={fmt(totalOwed, base)}>Owed to you</Cell>
-        <Cell after={fmt(-totalOwes, base)}>You owe</Cell>
-      </Section>
+        {fullName}
+      </Cell>
+    );
+  };
 
-      <Section header="People">
-        {data.counterparties.length === 0 ? (
-          <Cell>No outstanding balances across any group.</Cell>
-        ) : (
-          data.counterparties.map((c) => {
-            const fullName = [c.firstName, c.lastName]
-              .filter(Boolean)
-              .join(" ");
-            const groupsText =
-              c.groups.length === 1
-                ? c.groups[0].chatTitle
-                : `${c.groups.length} groups`;
-            return (
-              <Cell
-                key={c.userId}
-                before={<ChatMemberAvatar userId={c.userId} size={40} />}
-                subtitle={groupsText}
-                after={fmt(c.totalBaseNet, base)}
-                onClick={() => {
-                  hapticFeedback.impactOccurred.ifAvailable("light");
-                  setOpenUserId(c.userId);
-                }}
-              >
-                {fullName}
-              </Cell>
-            );
-          })
+  const skeletonRows = Array.from({ length: 2 }).map((_, i) => (
+    <Cell
+      key={`skeleton-${i}`}
+      before={<Avatar size={40} />}
+      after={
+        <Skeleton visible>
+          <Text>Loading...</Text>
+        </Skeleton>
+      }
+      subhead={
+        <Skeleton visible>
+          <Text>Loading...</Text>
+        </Skeleton>
+      }
+    >
+      <Skeleton visible>
+        <Text>Loading...</Text>
+      </Skeleton>
+    </Cell>
+  ));
+
+  return (
+    <section className="pb-24">
+      <div className="mt-4 flex flex-col gap-2 px-4">
+        <Section
+          header={
+            <Title weight="2" className="px-1 py-2" level="3">
+              🚨 You owe
+            </Title>
+          }
+        >
+          {q.isLoading ? skeletonRows : null}
+          {!q.isLoading && youOwe.map(renderRow)}
+          {!q.isLoading && youOwe.length === 0 ? (
+            <div className="flex h-16 items-center justify-center">
+              <Caption className="text-center text-gray-500" weight="1">
+                🔥 You are all settled
+              </Caption>
+            </div>
+          ) : null}
+        </Section>
+
+        <Section
+          header={
+            <Title weight="2" className="px-1 py-2" level="3">
+              🤑 Owes you
+            </Title>
+          }
+        >
+          {q.isLoading ? skeletonRows : null}
+          {!q.isLoading && owesYou.map(renderRow)}
+          {!q.isLoading && owesYou.length === 0 ? (
+            <div className="flex h-16 items-center justify-center">
+              <Caption className="text-center text-gray-500" weight="1">
+                💁 No one owes you
+              </Caption>
+            </div>
+          ) : null}
+        </Section>
+
+        {q.isError && (
+          <Section>
+            <Cell>Failed to load balances. Pull to refresh.</Cell>
+          </Section>
         )}
-      </Section>
-
-      <CurrencySelectionModal
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        selectedCurrency={base}
-        userId={userId}
-        onCurrencySelect={(code) => setBase(code)}
-        footerMessage="Session override — your saved base currency in Settings is unchanged."
-      />
+      </div>
 
       <CounterpartyBalanceSheet
         open={open !== null}
         counterparty={open}
-        baseCurrency={data.baseCurrency}
-        ratesAsOf={data.ratesAsOf}
+        baseCurrency={data?.baseCurrency ?? initialBaseCurrency}
+        ratesAsOf={data?.ratesAsOf ?? null}
         onOpenChange={(o) => !o && setOpenUserId(null)}
         onAfterMutate={() => q.refetch()}
       />
-    </>
+    </section>
   );
 }
