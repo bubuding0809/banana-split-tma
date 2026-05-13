@@ -4,6 +4,13 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-13
+
+### Added
+
+- feat: `me list-counterparty-balances` — cross-group totals per person, converted to a single base currency (user-level API key only)
+- feat: `me settle-all-with` — clear every shared balance with one user in one transaction; writes one `Settlement` row per non-zero (chat, currency) bucket in native currency (user-level API key only)
+
 ## [0.14.0] - 2026-04-30
 
 ### Added
