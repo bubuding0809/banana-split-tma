@@ -1,27 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Avatar,
   Caption,
   Cell,
+  Navigation,
   Section,
   Skeleton,
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
-import { hapticFeedback } from "@telegram-apps/sdk-react";
+import {
+  hapticFeedback,
+  themeParams,
+  useSignal,
+} from "@telegram-apps/sdk-react";
+import { cn } from "@/utils/cn";
 import { trpc } from "@/utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import {
-  getCurrencyDecimalDigits,
-  getCurrencySymbol,
-} from "@dko/trpc/src/utils/currencyApi";
+  formatCurrencyWithCode,
+  getBalanceColorClass,
+} from "@/utils/financial";
 import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
-
-function fmt(n: number, ccy: string): string {
-  const sign = n >= 0 ? "+" : "−";
-  const abs = Math.abs(n).toFixed(getCurrencyDecimalDigits(ccy));
-  return `${sign} ${getCurrencySymbol(ccy)}${abs}`;
-}
 
 interface Props {
   initialBaseCurrency: string;
@@ -29,16 +29,24 @@ interface Props {
 
 export default function UserBalancesTab({ initialBaseCurrency }: Props) {
   const [openUserId, setOpenUserId] = useState<number | null>(null);
+  const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
 
   const q = trpc.expenseShare.getMyCounterpartyBalances.useQuery({
     baseCurrency: initialBaseCurrency,
   });
+  const { data: supportedCurrencies } =
+    trpc.currency.getSupportedCurrencies.useQuery({});
 
-  const data = q.data;
-  const counterparties = data?.counterparties ?? [];
+  const currencyMap = useMemo(() => {
+    if (!supportedCurrencies) return new Map();
+    return new Map(supportedCurrencies.map((c) => [c.code, c] as const));
+  }, [supportedCurrencies]);
 
-  const youOwe = counterparties.filter((c) => c.totalBaseNet < 0);
-  const owesYou = counterparties.filter((c) => c.totalBaseNet > 0);
+  const counterparties = q.data?.counterparties ?? [];
+  // totalBaseNet < 0 → user owes them → "Debts" section
+  // totalBaseNet > 0 → they owe user → "Collectables" section
+  const debts = counterparties.filter((c) => c.totalBaseNet < 0);
+  const collectables = counterparties.filter((c) => c.totalBaseNet > 0);
 
   const open =
     openUserId !== null
@@ -47,28 +55,45 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
 
   const renderRow = (c: (typeof counterparties)[number]) => {
     const fullName = [c.firstName, c.lastName].filter(Boolean).join(" ");
-    const groupsText =
-      c.groups.length === 1
-        ? c.groups[0].chatTitle
-        : `${c.groups.length} groups`;
+    const subhead =
+      c.totalBaseNet < 0 ? `You owe ${fullName}` : `${fullName} owes you`;
     return (
       <Cell
         key={c.userId}
         before={<ChatMemberAvatar userId={c.userId} size={40} />}
-        subtitle={groupsText}
-        after={
-          <Text
-            className={c.totalBaseNet > 0 ? "text-green-500" : "text-red-500"}
-          >
-            {fmt(c.totalBaseNet, initialBaseCurrency)}
-          </Text>
-        }
+        subhead={subhead}
+        after={<Navigation></Navigation>}
         onClick={() => {
           hapticFeedback.impactOccurred.ifAvailable("light");
           setOpenUserId(c.userId);
         }}
       >
-        {fullName}
+        <div className="flex flex-col">
+          {c.groups.map((g) => (
+            <div
+              key={`${g.chatId}-${g.currency}`}
+              className="relative flex gap-x-1"
+            >
+              <span className="z-10 size-6">
+                {currencyMap.get(g.currency)?.flagEmoji ?? "🌍"}
+              </span>
+              <div className="flex gap-x-1">
+                <Text className={cn(getBalanceColorClass(g.nativeNet))}>
+                  {formatCurrencyWithCode(Math.abs(g.nativeNet), g.currency)}
+                </Text>
+                {g.currency !== initialBaseCurrency && (
+                  <Caption style={{ color: tSubtitleColor }}>
+                    or{" "}
+                    {formatCurrencyWithCode(
+                      Math.abs(g.baseNet),
+                      initialBaseCurrency
+                    )}
+                  </Caption>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </Cell>
     );
   };
@@ -100,37 +125,41 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
         <Section
           header={
             <Title weight="2" className="px-1 py-2" level="3">
-              🚨 You owe
+              🚨 Debts
             </Title>
           }
         >
-          {q.isLoading ? skeletonRows : null}
-          {!q.isLoading && !q.isError && youOwe.map(renderRow)}
-          {!q.isLoading && !q.isError && youOwe.length === 0 ? (
+          {q.isLoading ? skeletonRows : []}
+          {!q.isLoading && !q.isError ? debts.map(renderRow) : []}
+          {!q.isLoading && !q.isError && debts.length === 0 ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 🔥 You are all settled
               </Caption>
             </div>
-          ) : null}
+          ) : (
+            []
+          )}
         </Section>
 
         <Section
           header={
             <Title weight="2" className="px-1 py-2" level="3">
-              🤑 Owes you
+              🤑 Collectables
             </Title>
           }
         >
-          {q.isLoading ? skeletonRows : null}
-          {!q.isLoading && !q.isError && owesYou.map(renderRow)}
-          {!q.isLoading && !q.isError && owesYou.length === 0 ? (
+          {q.isLoading ? skeletonRows : []}
+          {!q.isLoading && !q.isError ? collectables.map(renderRow) : []}
+          {!q.isLoading && !q.isError && collectables.length === 0 ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 💁 No one owes you
               </Caption>
             </div>
-          ) : null}
+          ) : (
+            []
+          )}
         </Section>
 
         {q.isError && (
@@ -143,8 +172,8 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
       <CounterpartyBalanceSheet
         open={open !== null}
         counterparty={open}
-        baseCurrency={data?.baseCurrency ?? initialBaseCurrency}
-        ratesAsOf={data?.ratesAsOf ?? null}
+        baseCurrency={q.data?.baseCurrency ?? initialBaseCurrency}
+        currencyMap={currencyMap}
         onOpenChange={(o) => !o && setOpenUserId(null)}
         onAfterMutate={() => q.refetch()}
       />
