@@ -253,10 +253,17 @@ export function CounterpartyBalanceSheet({
             subhead={subhead}
             after={
               <Info type="text" subtitle="Total">
-                {formatCurrencyWithCode(
-                  Math.abs(counterparty.totalBaseNet),
-                  baseCurrency
-                )}
+                <Text
+                  weight="2"
+                  className={cn(
+                    getBalanceColorClass(counterparty.totalBaseNet)
+                  )}
+                >
+                  {formatCurrencyWithCode(
+                    Math.abs(counterparty.totalBaseNet),
+                    baseCurrency
+                  )}
+                </Text>
               </Info>
             }
           >
@@ -279,10 +286,8 @@ export function CounterpartyBalanceSheet({
                         <span className="text-base">
                           {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
                         </span>
-                        <Text
-                          weight="2"
-                          className={cn(getBalanceColorClass(c.nativeNet))}
-                        >
+                        <Text className={cn(getBalanceColorClass(c.nativeNet))}>
+                          {c.nativeNet >= 0 ? "+ " : "− "}
                           {formatCurrencyWithCode(
                             Math.abs(c.nativeNet),
                             c.currency

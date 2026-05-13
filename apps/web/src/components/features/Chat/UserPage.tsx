@@ -279,7 +279,7 @@ const UserPage = () => {
               <div className="flex items-center justify-center gap-1">
                 <Users size={16} />
                 <Text weight={selectedTab === "groups" ? "2" : "3"}>
-                  Groups
+                  People
                 </Text>
               </div>
             </TabsList.Item>
