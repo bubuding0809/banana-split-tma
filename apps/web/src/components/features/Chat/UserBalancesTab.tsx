@@ -25,7 +25,6 @@ function fmt(n: number, ccy: string): string {
 
 interface Props {
   initialBaseCurrency: string;
-  userId: number;
 }
 
 export default function UserBalancesTab({ initialBaseCurrency }: Props) {
@@ -106,8 +105,8 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
           }
         >
           {q.isLoading ? skeletonRows : null}
-          {!q.isLoading && youOwe.map(renderRow)}
-          {!q.isLoading && youOwe.length === 0 ? (
+          {!q.isLoading && !q.isError && youOwe.map(renderRow)}
+          {!q.isLoading && !q.isError && youOwe.length === 0 ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 🔥 You are all settled
@@ -124,8 +123,8 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
           }
         >
           {q.isLoading ? skeletonRows : null}
-          {!q.isLoading && owesYou.map(renderRow)}
-          {!q.isLoading && owesYou.length === 0 ? (
+          {!q.isLoading && !q.isError && owesYou.map(renderRow)}
+          {!q.isLoading && !q.isError && owesYou.length === 0 ? (
             <div className="flex h-16 items-center justify-center">
               <Caption className="text-center text-gray-500" weight="1">
                 💁 No one owes you
