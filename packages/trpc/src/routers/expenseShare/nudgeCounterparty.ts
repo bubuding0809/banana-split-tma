@@ -6,6 +6,7 @@ import { getMyCounterpartyBalancesHandler } from "./getMyCounterpartyBalances.js
 import { buildNudgeCaption } from "../../services/crossGroupDmTemplates.js";
 import { createBroadcast } from "../../services/broadcast.js";
 import { takeToken } from "../../utils/rateLimit.js";
+import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
 
 const NUDGE_WINDOW_MS = 86_400_000; // 24h
 
@@ -68,11 +69,15 @@ export async function nudgeCounterpartyHandler(
     senderName,
     baseCurrency: fresh.baseCurrency,
     totalBaseAbs: cp.totalBaseNet,
-    groups: cp.groups.map((g) => ({
-      chatTitle: g.chatTitle,
-      currency: g.currency,
-      nativeAbs: Math.abs(g.nativeNet),
-    })),
+    groups: cp.groups
+      .filter((g) => Math.abs(g.nativeNet) > FINANCIAL_THRESHOLDS.DISPLAY)
+      .map((g) => ({
+        chatId: g.chatId,
+        chatTitle: g.chatTitle,
+        currency: g.currency,
+        nativeAbs: Math.abs(g.nativeNet),
+        baseAbs: Math.abs(g.baseNet),
+      })),
   });
 
   await deps.sendDm(args.counterpartyUserId, caption);

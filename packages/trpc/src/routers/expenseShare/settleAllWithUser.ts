@@ -79,11 +79,17 @@ export async function settleAllWithUserHandler(
       senderName: senderName || "Someone",
       baseCurrency: fresh.baseCurrency,
       totalBaseAbs: Math.abs(cp.totalBaseNet),
-      groups: cp.groups.map((g) => ({
-        chatTitle: g.chatTitle,
-        currency: g.currency,
-        nativeAbs: Math.abs(g.nativeNet),
-      })),
+      // Mirror the settlement-write filter so the tree only shows buckets
+      // that were actually settled (not sub-threshold "all zeroed" lies).
+      groups: cp.groups
+        .filter((g) => Math.abs(g.nativeNet) > FINANCIAL_THRESHOLDS.DISPLAY)
+        .map((g) => ({
+          chatId: g.chatId,
+          chatTitle: g.chatTitle,
+          currency: g.currency,
+          nativeAbs: Math.abs(g.nativeNet),
+          baseAbs: Math.abs(g.baseNet),
+        })),
     });
     try {
       await deps.sendDm(args.counterpartyUserId, caption);
