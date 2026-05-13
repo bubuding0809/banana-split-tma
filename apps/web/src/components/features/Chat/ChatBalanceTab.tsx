@@ -74,7 +74,6 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
             updatedAt: new Date(),
             phoneNumber: null,
             phoneNumberRequested: false,
-            baseCurrency: debtorMember.baseCurrency ?? "SGD",
           });
         }
       } else if (debt.fromUserId === userId) {
@@ -92,7 +91,6 @@ const ChatBalanceTab = ({ chatId, isSimplified }: ChatBalanceTabProps) => {
             updatedAt: new Date(),
             phoneNumber: null,
             phoneNumberRequested: false,
-            baseCurrency: creditorMember.baseCurrency ?? "SGD",
           });
         }
       }
