@@ -314,10 +314,7 @@ const UserPage = () => {
           }}
         >
           {selectedTab === "groups" && meData && (
-            <UserBalancesTab
-              initialBaseCurrency={meData.baseCurrency}
-              userId={userId}
-            />
+            <UserBalancesTab initialBaseCurrency={meData.baseCurrency} />
           )}
           {selectedTab === "personal" && (
             <ChatTransactionTab
