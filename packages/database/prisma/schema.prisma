@@ -54,6 +54,7 @@ model User {
   username              String?
   phoneNumber           String?
   phoneNumberRequested  Boolean           @default(false)
+  baseCurrency          String            @default("SGD")
   chats                 Chat[]
   createdExpenses       Expense[]         @relation("Creator")
   paidExpenses          Expense[]         @relation("Payer")

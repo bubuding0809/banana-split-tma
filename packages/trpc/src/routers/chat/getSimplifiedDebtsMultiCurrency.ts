@@ -41,6 +41,7 @@ const outputSchema = z.object({
       username: z.string().nullable(),
       firstName: z.string().nullable(),
       lastName: z.string().nullable(),
+      baseCurrency: z.string(),
     })
   ),
 });
@@ -212,6 +213,7 @@ export const getSimplifiedDebtsMultiCurrencyHandler = async (
     username: member.username,
     firstName: member.firstName,
     lastName: member.lastName,
+    baseCurrency: member.baseCurrency,
   }));
 
   return {
