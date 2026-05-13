@@ -125,4 +125,17 @@ describe("getMyCounterpartyBalancesHandler", () => {
     expect(result.baseCurrency).toBe("USD");
     expect(deps.fetchRates).toHaveBeenCalledWith("USD");
   });
+
+  it("drops counterparties whose User row no longer exists", async () => {
+    // Only Bob (300) is returned from findMany; Sean (200) has vanished
+    (mockDb.user.findMany as any).mockResolvedValue([
+      { id: BigInt(300), firstName: "Bob", lastName: null },
+    ]);
+    const result = await getMyCounterpartyBalancesHandler(
+      { callerId: caller, baseCurrency: "SGD" },
+      mockDb,
+      deps
+    );
+    expect(result.counterparties.map((c) => c.userId)).toEqual([300]);
+  });
 });

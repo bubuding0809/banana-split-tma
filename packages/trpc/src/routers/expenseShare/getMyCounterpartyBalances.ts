@@ -135,18 +135,24 @@ export async function getMyCounterpartyBalancesHandler(
   );
   const hasBotMap = new Map(hasBotPairs);
 
+  // Drop any uid that has no matching User row (deleted between the
+  // cross-chat fetch and findMany). Settle/nudge downstream would otherwise
+  // try to write against a non-existent userId.
   const counterparties: Output["counterparties"] = userIds
-    .map((uid) => {
+    .flatMap((uid) => {
       const u = userMap.get(uid);
+      if (!u) return [];
       const entry = byUser.get(uid)!;
-      return {
-        userId: uid,
-        firstName: u?.firstName ?? "Unknown",
-        lastName: u?.lastName ?? null,
-        hasStartedBot: hasBotMap.get(uid) ?? false,
-        totalBaseNet: entry.total,
-        groups: entry.groups,
-      };
+      return [
+        {
+          userId: uid,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          hasStartedBot: hasBotMap.get(uid) ?? false,
+          totalBaseNet: entry.total,
+          groups: entry.groups,
+        },
+      ];
     })
     .sort((a, b) => Math.abs(b.totalBaseNet) - Math.abs(a.totalBaseNet));
 
