@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   Caption,
   Cell,
@@ -87,6 +87,29 @@ export function CounterpartyBalanceSheet({
   const isOwedToUser = (counterparty?.totalBaseNet ?? 0) > 0;
   const isDebtor = !!counterparty && !isOwedToUser; // caller owes counterparty
   const canNudge = !!counterparty && isOwedToUser && counterparty.hasStartedBot;
+
+  // Group buckets by chatId — one breakdown cell per chat with currencies
+  // stacked right-aligned underneath (receipt-style).
+  const byChat = useMemo(() => {
+    if (!counterparty) return [];
+    const m = new Map<
+      number,
+      { chatId: number; chatTitle: string; currencies: Group[] }
+    >();
+    for (const g of counterparty.groups) {
+      const entry = m.get(g.chatId);
+      if (entry) {
+        entry.currencies.push(g);
+      } else {
+        m.set(g.chatId, {
+          chatId: g.chatId,
+          chatTitle: g.chatTitle,
+          currencies: [g],
+        });
+      }
+    }
+    return Array.from(m.values());
+  }, [counterparty]);
 
   // Phone lookup for PayNow QR + Copy Phone No. (only used in debtor direction)
   const { data: counterpartyUser } = trpc.user.getUser.useQuery(
@@ -242,27 +265,45 @@ export function CounterpartyBalanceSheet({
         </Section>
 
         <Section header="Breakdown">
-          {counterparty.groups.map((g) => (
+          {byChat.map((chat) => (
             <Cell
-              key={`${g.chatId}-${g.currency}`}
-              before={
-                <span className="text-2xl">
-                  {currencyMap.get(g.currency)?.flagEmoji ?? "🌍"}
-                </span>
+              key={chat.chatId}
+              after={
+                <div className="flex flex-col items-end gap-0.5">
+                  {chat.currencies.map((c) => (
+                    <div
+                      key={c.currency}
+                      className="flex flex-col items-end gap-0.5"
+                    >
+                      <div className="flex items-center gap-x-1">
+                        <span className="text-base">
+                          {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
+                        </span>
+                        <Text
+                          weight="2"
+                          className={cn(getBalanceColorClass(c.nativeNet))}
+                        >
+                          {formatCurrencyWithCode(
+                            Math.abs(c.nativeNet),
+                            c.currency
+                          )}
+                        </Text>
+                      </div>
+                      {c.currency !== baseCurrency && (
+                        <Caption style={{ color: tSubtitleColor }}>
+                          or{" "}
+                          {formatCurrencyWithCode(
+                            Math.abs(c.baseNet),
+                            baseCurrency
+                          )}
+                        </Caption>
+                      )}
+                    </div>
+                  ))}
+                </div>
               }
-              subhead={g.chatTitle}
             >
-              <div className="flex gap-x-1">
-                <Text className={cn(getBalanceColorClass(g.nativeNet))}>
-                  {formatCurrencyWithCode(Math.abs(g.nativeNet), g.currency)}
-                </Text>
-                {g.currency !== baseCurrency && (
-                  <Caption style={{ color: tSubtitleColor }}>
-                    or{" "}
-                    {formatCurrencyWithCode(Math.abs(g.baseNet), baseCurrency)}
-                  </Caption>
-                )}
-              </div>
+              {chat.chatTitle}
             </Cell>
           ))}
         </Section>
