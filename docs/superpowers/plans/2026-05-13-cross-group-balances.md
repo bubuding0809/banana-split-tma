@@ -26,9 +26,10 @@
 - `packages/trpc/src/routers/expenseShare/nudgeCounterparty.ts`
 - `packages/trpc/src/routers/expenseShare/nudgeCounterparty.spec.ts`
 - `packages/trpc/src/services/crossGroupDmTemplates.ts` — pure functions returning the markdown caption for settle / nudge DMs.
-- `apps/web/src/components/features/Settings/BaseCurrencyField.tsx`
-- `apps/web/src/components/features/Chat/BaseCurrencyPicker.tsx`
-- `apps/web/src/components/features/Chat/CounterpartyBalanceSheet.tsx`
+- `apps/web/src/components/features/Settings/BaseCurrencyField.tsx` (wraps existing `CurrencySelectionModal`)
+- `apps/web/src/components/features/Chat/CounterpartyBalanceSheet.tsx` (mirrors `RemoveMemberSheet` pattern)
+
+> The in-view base-currency switcher is **not** a new component — it reuses `CurrencySelectionModal` directly inside `UserBalancesTab`.
 
 **Modified:**
 - `packages/database/prisma/schema.prisma` — add `User.baseCurrency`.
@@ -1465,128 +1466,147 @@ git commit -m "feat(cli): me settle-all-with + version bump + skill/CHANGELOG"
 
 ---
 
+## Web tasks — house rules
+
+All web tasks must mirror existing patterns. Do not write inline `<div style>`, raw `<select>`, `window.confirm`, or `alert`. Reach for these existing components instead:
+
+| Need | Use | Example file |
+|------|-----|--------------|
+| Currency picker | `CurrencySelectionModal` | `apps/web/src/components/ui/CurrencySelectionModal.tsx` |
+| User avatar | `ChatMemberAvatar` | `apps/web/src/components/ui/ChatMemberAvatar.tsx` |
+| List row of a person | `Cell` with `before={<ChatMemberAvatar>}` | `apps/web/src/components/features/Settings/MemberRow.tsx` |
+| Bottom sheet | `<Modal open onOpenChange header={<Modal.Header>…}>` | `apps/web/src/components/features/Expense/RecurrencePickerSheet.tsx`, `apps/web/src/components/features/Category/CategoryPickerSheet.tsx` |
+| Confirm + execute destructive action | Sheet pattern with mutation + haptics | `apps/web/src/components/features/Settings/RemoveMemberSheet.tsx` |
+| Toast / inline error | `popup.open.ifAvailable({ message })` from `@telegram-apps/sdk-react` | `apps/web/src/components/features/Chat/ToReceiveModal.tsx:84-124` |
+| Haptics | `hapticFeedback.notificationOccurred("success" / "error")` and `impactOccurred("medium")` | many — RemoveMemberSheet, MemberRow |
+| tRPC | `import { trpc } from "@/utils/trpc"` and `trpc.useUtils()` | `apps/web/src/components/features/Chat/ToReceiveModal.tsx:3, 42` |
+| Tailwind for layout | `className="flex items-center justify-between"` etc. | RecurrencePickerSheet, CategoryPickerSheet |
+
+Confirm component names + props by reading the example file before writing. If something is named slightly differently in the current repo, use the actual name — don't invent.
+
+---
+
 ## Task 11: Web — `BaseCurrencyField` in Settings
 
 **Files:**
 - Create: `apps/web/src/components/features/Settings/BaseCurrencyField.tsx`
-- Modify: settings parent (locate via: `mgrep search "settings page personal" --limit 5` — likely `apps/web/src/components/features/Settings/SettingsPage.tsx` or similar; render the new field there)
+- Modify: settings parent — locate via `mgrep search "Section header settings page" --limit 5` then read 1–2 file matches; the new field renders alongside existing user-preference fields.
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Read references**
+
+```bash
+cat apps/web/src/components/ui/CurrencySelectionModal.tsx | head -80
+cat apps/web/src/components/features/Settings/CurrencySubPage.tsx 2>/dev/null | head -120
+```
+
+Confirm `CurrencySelectionModal` props (`open`, `onOpenChange`, `selectedCurrency`, `onCurrencySelect`, `userId?`, optional `featuredCurrencies`, `showRecentlyUsed`). Confirm how `CurrencySubPage` (or whichever page renders it today) opens the modal from a `Cell`.
+
+- [ ] **Step 2: Implement**
 
 `apps/web/src/components/features/Settings/BaseCurrencyField.tsx`:
 
 ```tsx
-import { Section, Cell } from "@telegram-apps/telegram-ui";
-import { trpc } from "@/lib/trpc"; // adjust import to project's tRPC client
-import { CURRENCY_DATABASE } from "@dko/trpc/utils/currencyApi"; // or barrel export
 import { useState } from "react";
+import { Section, Cell } from "@telegram-apps/telegram-ui";
+import { hapticFeedback, popup } from "@telegram-apps/sdk-react";
+import { CurrencySelectionModal } from "@/components/ui/CurrencySelectionModal";
+import { getCurrencyName, getCurrencySymbol } from "@dko/trpc/utils/currencyApi";
+import { trpc } from "@/utils/trpc";
 
 interface Props {
-  currentValue: string;
   userId: number;
+  currentBaseCurrency: string;
 }
 
-const ALL = Object.values(CURRENCY_DATABASE).sort((a, b) => a.code.localeCompare(b.code));
+export function BaseCurrencyField({ userId, currentBaseCurrency }: Props) {
+  const [open, setOpen] = useState(false);
+  const utils = trpc.useUtils();
+  const update = trpc.user.updateUser.useMutation({
+    onSuccess: () => {
+      hapticFeedback.notificationOccurred.ifAvailable("success");
+      utils.user.invalidate();
+    },
+    onError: (e) => {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      popup.open.ifAvailable({ message: e.message });
+    },
+  });
 
-export function BaseCurrencyField({ currentValue, userId }: Props) {
-  const [value, setValue] = useState(currentValue);
-  const update = trpc.user.updateUser.useMutation();
+  const subtitle = `${getCurrencySymbol(currentBaseCurrency)} · ${getCurrencyName(currentBaseCurrency)}`;
 
   return (
-    <Section header="Base currency" footer="Used to net cross-group balances on the Balances tab.">
-      <Cell
-        Component="label"
-        after={
-          <select
-            value={value}
-            onChange={async (e) => {
-              const next = e.target.value;
-              setValue(next);
-              try {
-                await update.mutateAsync({ userId, baseCurrency: next });
-              } catch {
-                setValue(currentValue); // revert on failure
-              }
-            }}
-          >
-            {ALL.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.flag} {c.code} — {c.name}
-              </option>
-            ))}
-          </select>
-        }
+    <>
+      <Section
+        header="Base currency"
+        footer="Used to net cross-group balances on the Balances tab."
       >
-        Currency
-      </Cell>
-    </Section>
+        <Cell subtitle={subtitle} onClick={() => setOpen(true)}>
+          {currentBaseCurrency}
+        </Cell>
+      </Section>
+
+      <CurrencySelectionModal
+        open={open}
+        onOpenChange={setOpen}
+        selectedCurrency={currentBaseCurrency}
+        userId={userId}
+        onCurrencySelect={(code) =>
+          update.mutate({ userId, baseCurrency: code })
+        }
+      />
+    </>
   );
 }
 ```
 
-- [ ] **Step 2: Render in settings parent**
+> Verify the import path for `CurrencySelectionModal` — adjust the `@/` alias to the project's actual one (likely `@/components/ui/CurrencySelectionModal` or `~/components/ui/CurrencySelectionModal`). Same for `@/utils/trpc`.
 
-Locate the settings page and render `<BaseCurrencyField currentValue={user.baseCurrency} userId={Number(user.id)} />`. The user object should already be in scope from the page's existing user query.
+- [ ] **Step 3: Render in settings parent**
 
-- [ ] **Step 3: Manual smoke**
+In the user-settings page (the screen that already renders things like name / language), add `<BaseCurrencyField userId={Number(user.id)} currentBaseCurrency={user.baseCurrency} />`. The `user` object should already be in scope from the page's existing `trpc.user.*` query — confirm the field name (`baseCurrency`) is on whatever shape it returns; if not, extend that query's `select` to include `baseCurrency: true`.
 
-Open the TMA → Settings → see the field. Change the value → reopen the page → expect the value to persist.
+- [ ] **Step 4: Manual smoke**
 
-- [ ] **Step 4: Commit**
+Open TMA → Settings → see the field. Tap → currency modal opens → pick → field subtitle updates and persists across reloads.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/components/features/Settings/BaseCurrencyField.tsx \
-        apps/web/src/components/features/Settings/SettingsPage.tsx  # or actual parent
+        apps/web/src/components/features/Settings/<actual-parent>.tsx
 git commit -m "feat(web): BaseCurrencyField in Settings"
 ```
 
 ---
 
-## Task 12: Web — replace `UserBalancesTab` + inline `BaseCurrencyPicker`
+## Task 12: Web — replace `UserBalancesTab` with the cross-group list
 
 **Files:**
-- Create: `apps/web/src/components/features/Chat/BaseCurrencyPicker.tsx`
 - Modify: `apps/web/src/components/features/Chat/UserBalancesTab.tsx`
 
-- [ ] **Step 1: Implement picker**
+- [ ] **Step 1: Read references**
 
-`apps/web/src/components/features/Chat/BaseCurrencyPicker.tsx`:
-
-```tsx
-import { CURRENCY_DATABASE } from "@dko/trpc/utils/currencyApi";
-
-const ALL = Object.values(CURRENCY_DATABASE).sort((a, b) => a.code.localeCompare(b.code));
-
-interface Props {
-  value: string;
-  onChange: (next: string) => void;
-}
-
-export function BaseCurrencyPicker({ value, onChange }: Props) {
-  return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 12, opacity: 0.7 }}>Base</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {ALL.map((c) => (
-          <option key={c.code} value={c.code}>{c.code}</option>
-        ))}
-      </select>
-    </label>
-  );
-}
+```bash
+cat apps/web/src/components/features/Settings/MemberRow.tsx
+cat apps/web/src/components/features/Settings/MembersSubPage.tsx | sed -n '90,130p'
+cat apps/web/src/components/ui/ChatMemberAvatar.tsx | head -50
 ```
 
-- [ ] **Step 2: Rewrite `UserBalancesTab`**
+Confirm `Cell` slot APIs (`before`, `subtitle`, `after`, `onClick`) and `ChatMemberAvatar({ userId, size })`.
 
-`apps/web/src/components/features/Chat/UserBalancesTab.tsx` — replace the placeholder:
+- [ ] **Step 2: Implement (no inline CSS — Tailwind + telegram-ui)**
+
+`apps/web/src/components/features/Chat/UserBalancesTab.tsx`:
 
 ```tsx
 import { useState } from "react";
 import { Cell, Section, Spinner } from "@telegram-apps/telegram-ui";
-import { trpc } from "@/lib/trpc";
-import { BaseCurrencyPicker } from "./BaseCurrencyPicker";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
+import { trpc } from "@/utils/trpc";
+import { ChatMemberAvatar } from "@/components/ui/ChatMemberAvatar";
+import { CurrencySelectionModal } from "@/components/ui/CurrencySelectionModal";
 import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
-import { getCurrencySymbol, getCurrencyDecimalDigits } from "@dko/trpc/utils/currencyApi";
+import { getCurrencyDecimalDigits, getCurrencySymbol } from "@dko/trpc/utils/currencyApi";
 
 function fmt(n: number, ccy: string): string {
   const sign = n >= 0 ? "+" : "−";
@@ -1594,14 +1614,20 @@ function fmt(n: number, ccy: string): string {
   return `${sign} ${getCurrencySymbol(ccy)}${abs}`;
 }
 
-export function UserBalancesTab({ initialBaseCurrency }: { initialBaseCurrency: string }) {
+interface Props {
+  initialBaseCurrency: string;
+  userId: number;
+}
+
+export function UserBalancesTab({ initialBaseCurrency, userId }: Props) {
   const [base, setBase] = useState(initialBaseCurrency);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [openUserId, setOpenUserId] = useState<number | null>(null);
 
   const q = trpc.expenseShare.getMyCounterpartyBalances.useQuery({ baseCurrency: base });
 
   if (q.isLoading) return <Spinner size="m" />;
-  if (q.isError) return <p>Failed to load balances. Try again.</p>;
+  if (q.isError) return <Section><Cell>Failed to load balances. Pull to refresh.</Cell></Section>;
 
   const data = q.data!;
   const totalOwed = data.counterparties
@@ -1616,13 +1642,21 @@ export function UserBalancesTab({ initialBaseCurrency }: { initialBaseCurrency: 
     : null;
 
   return (
-    <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong>Balances</strong>
-        <BaseCurrencyPicker value={base} onChange={setBase} />
-      </div>
-
-      <Section header={`Net across all groups`}>
+    <>
+      <Section
+        header={`Net across all groups · ${base}`}
+        footer={
+          <span
+            className="cursor-pointer underline"
+            onClick={() => {
+              hapticFeedback.selectionChanged.ifAvailable();
+              setPickerOpen(true);
+            }}
+          >
+            Change base currency
+          </span>
+        }
+      >
         <Cell after={fmt(totalOwed, base)}>Owed to you</Cell>
         <Cell after={fmt(-totalOwes, base)}>You owe</Cell>
       </Section>
@@ -1639,9 +1673,13 @@ export function UserBalancesTab({ initialBaseCurrency }: { initialBaseCurrency: 
             return (
               <Cell
                 key={c.userId}
+                before={<ChatMemberAvatar userId={c.userId} size={40} />}
                 subtitle={groupsText}
                 after={fmt(c.totalBaseNet, base)}
-                onClick={() => setOpenUserId(c.userId)}
+                onClick={() => {
+                  hapticFeedback.impactOccurred.ifAvailable("light");
+                  setOpenUserId(c.userId);
+                }}
               >
                 {fullName}
               </Cell>
@@ -1649,6 +1687,15 @@ export function UserBalancesTab({ initialBaseCurrency }: { initialBaseCurrency: 
           })
         )}
       </Section>
+
+      <CurrencySelectionModal
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        selectedCurrency={base}
+        userId={userId}
+        onCurrencySelect={(code) => setBase(code)}
+        footerMessage="Session override — your saved base currency in Settings is unchanged."
+      />
 
       <CounterpartyBalanceSheet
         open={open !== null}
@@ -1658,40 +1705,52 @@ export function UserBalancesTab({ initialBaseCurrency }: { initialBaseCurrency: 
         onOpenChange={(o) => !o && setOpenUserId(null)}
         onAfterMutate={() => q.refetch()}
       />
-    </div>
+    </>
   );
 }
 ```
 
-> **`initialBaseCurrency` prop:** if the parent (`chat.index.tsx`) doesn't currently pass the user's stored baseCurrency, source it from the user's profile query already used elsewhere on that screen, or from a `useQuery(trpc.user.me)` if one exists. Default to `"SGD"` if unavailable.
+> **`initialBaseCurrency` + `userId` props:** wire from the parent (`chat.index.tsx` — the personal-chat tab host). It already loads the current user; pass `user.baseCurrency` and `Number(user.id)`. If the parent's user query doesn't return `baseCurrency`, extend its `select`. Default base to `"SGD"` only if absolutely unavailable.
 
 - [ ] **Step 3: Manual smoke**
 
-Open TMA in personal chat, switch to Groups tab → expect rendered list (or empty state).
+Open TMA in personal chat → Groups tab → list renders. Tap "Change base currency" → CurrencySelectionModal opens → pick another → totals re-fetch in new currency.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/web/src/components/features/Chat/UserBalancesTab.tsx \
-        apps/web/src/components/features/Chat/BaseCurrencyPicker.tsx
-git commit -m "feat(web): cross-group balances list view + base currency picker"
+git add apps/web/src/components/features/Chat/UserBalancesTab.tsx
+git commit -m "feat(web): cross-group balances list — Cell + ChatMemberAvatar + CurrencySelectionModal"
 ```
 
 ---
 
 ## Task 13: Web — `CounterpartyBalanceSheet`
 
+Mirror the `RemoveMemberSheet` pattern: a `Modal` whose body is a `Section` of detail rows + a row of `Button`s. Use `popup.open.ifAvailable` for the confirm dialog and for error surfacing — never `window.confirm` or `alert`. Use haptics on key transitions.
+
 **Files:**
 - Create: `apps/web/src/components/features/Chat/CounterpartyBalanceSheet.tsx`
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Read references**
+
+```bash
+cat apps/web/src/components/features/Settings/RemoveMemberSheet.tsx | sed -n '40,200p'
+cat apps/web/src/components/features/Chat/ToReceiveModal.tsx | sed -n '70,140p'
+```
+
+Confirm: how `Modal.Header` is composed; how the action buttons are arranged; how `popup.open.ifAvailable({ title?, message, buttons })` returns the chosen button id; how mutations use `onSuccess` / `onError` haptics.
+
+- [ ] **Step 2: Implement**
 
 `apps/web/src/components/features/Chat/CounterpartyBalanceSheet.tsx`:
 
 ```tsx
-import { Modal, Section, Cell, Button, Title } from "@telegram-apps/telegram-ui";
-import { trpc } from "@/lib/trpc";
-import { getCurrencySymbol, getCurrencyDecimalDigits } from "@dko/trpc/utils/currencyApi";
+import { Modal, Section, Cell, Button } from "@telegram-apps/telegram-ui";
+import { hapticFeedback, popup } from "@telegram-apps/sdk-react";
+import { trpc } from "@/utils/trpc";
+import { ChatMemberAvatar } from "@/components/ui/ChatMemberAvatar";
+import { getCurrencyDecimalDigits, getCurrencySymbol } from "@dko/trpc/utils/currencyApi";
 
 interface Group {
   chatId: number;
@@ -1718,22 +1777,37 @@ interface Props {
   onAfterMutate: () => void;
 }
 
-function fmtNative(n: number, ccy: string): string {
+function fmt(n: number, ccy: string): string {
   const sign = n >= 0 ? "+" : "−";
   const abs = Math.abs(n).toFixed(getCurrencyDecimalDigits(ccy));
   return `${sign}${getCurrencySymbol(ccy)}${abs}`;
-}
-function fmtBase(n: number, ccy: string): string {
-  const sign = n >= 0 ? "+" : "−";
-  const abs = Math.abs(n).toFixed(getCurrencyDecimalDigits(ccy));
-  return `${sign} ${getCurrencySymbol(ccy)}${abs}`;
 }
 
 export function CounterpartyBalanceSheet({
   open, counterparty, baseCurrency, ratesAsOf, onOpenChange, onAfterMutate,
 }: Props) {
-  const settle = trpc.expenseShare.settleAllWithUser.useMutation();
-  const nudge = trpc.expenseShare.nudgeCounterparty.useMutation();
+  const settle = trpc.expenseShare.settleAllWithUser.useMutation({
+    onSuccess: () => {
+      hapticFeedback.notificationOccurred.ifAvailable("success");
+      onAfterMutate();
+      onOpenChange(false);
+    },
+    onError: (e) => {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      popup.open.ifAvailable({ message: e.message ?? "Settle failed" });
+    },
+  });
+
+  const nudge = trpc.expenseShare.nudgeCounterparty.useMutation({
+    onSuccess: () => {
+      hapticFeedback.notificationOccurred.ifAvailable("success");
+      popup.open.ifAvailable({ message: "Reminder sent." });
+    },
+    onError: (e) => {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      popup.open.ifAvailable({ message: e.message ?? "Nudge failed" });
+    },
+  });
 
   if (!counterparty) {
     return <Modal open={open} onOpenChange={onOpenChange}><div /></Modal>;
@@ -1742,78 +1816,96 @@ export function CounterpartyBalanceSheet({
   const fullName = [counterparty.firstName, counterparty.lastName].filter(Boolean).join(" ");
   const isOwedToUser = counterparty.totalBaseNet > 0;
   const headline = isOwedToUser
-    ? `${fullName} owes you ≈ ${fmtBase(counterparty.totalBaseNet, baseCurrency)}`
-    : `You owe ${fullName} ≈ ${fmtBase(counterparty.totalBaseNet, baseCurrency)}`;
+    ? `${fullName} owes you ≈ ${fmt(counterparty.totalBaseNet, baseCurrency)}`
+    : `You owe ${fullName} ≈ ${fmt(counterparty.totalBaseNet, baseCurrency)}`;
+
+  const onSettleClick = async () => {
+    hapticFeedback.impactOccurred.ifAvailable("medium");
+    const choice = await popup.open.ifAvailable({
+      title: "Mark all settled?",
+      message: `This will write ${counterparty.groups.length} settlement record(s) in native currency, zeroing your balance with ${fullName} across all shared groups.`,
+      buttons: [
+        { id: "confirm", type: "destructive", text: "Settle all" },
+        { id: "cancel", type: "cancel" },
+      ],
+    });
+    if (choice === "confirm") {
+      settle.mutate({ counterpartyUserId: counterparty.userId });
+    }
+  };
+
+  const onNudgeClick = () => {
+    hapticFeedback.impactOccurred.ifAvailable("light");
+    nudge.mutate({ counterpartyUserId: counterparty.userId });
+  };
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange}>
-      <Title weight="2">{headline}</Title>
-
-      <Section>
-        {counterparty.groups.map((g) => (
-          <Cell
-            key={`${g.chatId}-${g.currency}`}
-            subtitle={g.chatTitle}
-            after={`${fmtNative(g.nativeNet, g.currency)}  ≈ ${fmtBase(g.baseNet, baseCurrency)}`}
-          >
-            {g.currency}
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      header={<Modal.Header>{headline}</Modal.Header>}
+    >
+      <div className="max-h-[75vh] overflow-y-auto">
+        <Section>
+          <Cell before={<ChatMemberAvatar userId={counterparty.userId} size={40} />}>
+            {fullName}
           </Cell>
-        ))}
-        {ratesAsOf && (
-          <Cell subhead={`Rate as of ${ratesAsOf.toLocaleString()}`}> </Cell>
-        )}
-      </Section>
+        </Section>
 
-      <div style={{ display: "flex", gap: 8, padding: 12 }}>
-        <Button
-          stretched
-          mode="bezeled"
-          disabled={!counterparty.hasStartedBot || nudge.isPending || !isOwedToUser}
-          onClick={async () => {
-            try {
-              await nudge.mutateAsync({ counterpartyUserId: counterparty.userId });
-            } catch (e: any) {
-              alert(e?.message ?? "Nudge failed");
-            }
-          }}
-        >
-          {nudge.isPending ? "Nudging…" : "Nudge"}
-        </Button>
-        <Button
-          stretched
-          mode="filled"
-          disabled={settle.isPending}
-          onClick={async () => {
-            const ok = window.confirm(`Mark all settled with ${fullName}?`);
-            if (!ok) return;
-            try {
-              await settle.mutateAsync({ counterpartyUserId: counterparty.userId });
-              onAfterMutate();
-              onOpenChange(false);
-            } catch (e: any) {
-              alert(e?.message ?? "Settle failed");
-            }
-          }}
-        >
-          {settle.isPending ? "Settling…" : "Mark all settled"}
-        </Button>
+        <Section header="Per-group breakdown">
+          {counterparty.groups.map((g) => (
+            <Cell
+              key={`${g.chatId}-${g.currency}`}
+              subtitle={g.chatTitle}
+              after={`${fmt(g.nativeNet, g.currency)} ≈ ${fmt(g.baseNet, baseCurrency)}`}
+            >
+              {g.currency}
+            </Cell>
+          ))}
+          {ratesAsOf && (
+            <Cell subhead={`Rates as of ${ratesAsOf.toLocaleString()}`}> </Cell>
+          )}
+        </Section>
+
+        <div className="flex gap-2 p-3">
+          <Button
+            stretched
+            size="l"
+            mode="bezeled"
+            disabled={!counterparty.hasStartedBot || nudge.isPending || !isOwedToUser}
+            onClick={onNudgeClick}
+          >
+            {nudge.isPending ? "Nudging…" : "Nudge"}
+          </Button>
+          <Button
+            stretched
+            size="l"
+            mode="filled"
+            disabled={settle.isPending}
+            onClick={onSettleClick}
+          >
+            {settle.isPending ? "Settling…" : "Mark all settled"}
+          </Button>
+        </div>
       </div>
     </Modal>
   );
 }
 ```
 
-> **`window.confirm`** is a placeholder — replace with the project's existing confirm-dialog component if one is in use (search `mgrep search "confirm dialog modal" --limit 5`). Same for `alert` → use the project's toast / snackbar.
+> **`popup.open.ifAvailable` return shape:** verify it resolves to the chosen button `id` (or `undefined`/`null` on dismiss). Adjust the equality check accordingly. If the project uses a wrapper around `popup` (e.g. `apps/web/src/utils/popup.ts`), use the wrapper.
+>
+> **`Modal.Header` composition:** if the project's modals use a different header pattern (e.g. a custom `<SheetHeader>` component), mirror it — see `RecurrencePickerSheet.tsx:216-271`.
 
-- [ ] **Step 2: Manual smoke**
+- [ ] **Step 3: Manual smoke**
 
-Open TMA → Groups tab → click a counterparty → expect sheet with breakdown. Buttons render in correct enabled/disabled state.
+Tap a counterparty → sheet opens. Buttons disable correctly when (i) sheet is loading, (ii) counterparty hasn't started bot (Nudge), (iii) caller is not net-owed (Nudge). Tap Settle → `popup` confirm appears → confirm → mutation fires → success haptic → sheet closes → list refetches.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/components/features/Chat/CounterpartyBalanceSheet.tsx
-git commit -m "feat(web): CounterpartyBalanceSheet with settle + nudge"
+git commit -m "feat(web): CounterpartyBalanceSheet with settle + nudge (Modal + popup)"
 ```
 
 ---
@@ -1877,7 +1969,11 @@ After both tracks pass, comment on the PR with `@claude` and the merge-readiness
 - **`User.photoUrl`** referenced in Task 5 — confirm before commit; if absent, drop from `select` and the `output` schema.
 - **`ctx.teleBot` / `ctx.log`** referenced in Tasks 7 + 8 — confirm names in `packages/trpc/src/context.ts` before commit; substitute if different.
 - **`createBroadcast` signature** in Tasks 7 + 8 — verified shape: `(ctx, opts)` with `targetUserIds: bigint[]`. If options field is named differently (e.g. `userIds`, `to`), adjust the call sites — do not invent a new abstraction.
-- **`@dko/trpc/utils/currencyApi` import path** in Tasks 11–13 — confirm the package exports the util via barrel; if not, expose `CURRENCY_DATABASE`, `getCurrencySymbol`, `getCurrencyDecimalDigits` from the package's public index, or copy the small constants into a `packages/ui` shared module.
+- **`@dko/trpc/utils/currencyApi` import path** in Tasks 11–13 — confirm the package exports the util via barrel; if not, expose `CURRENCY_DATABASE`, `getCurrencySymbol`, `getCurrencyName`, `getCurrencyDecimalDigits` from the package's public index, or import from wherever `CurrencySelectionModal` already pulls these from in `apps/web/`.
+
+- **`@/utils/trpc` and `@/components/...` import aliases** in Tasks 11–13 — these match the existing pattern in `apps/web/src/components/features/Chat/ToReceiveModal.tsx`. Verify the project's tsconfig path alias before changing.
+
+- **`popup.open.ifAvailable` return shape** in Task 13 — verify whether it returns the chosen button `id` directly, or an event-shaped object. Adjust the equality check accordingly. Mirror whatever `RemoveMemberSheet` or another existing destructive-confirm uses.
 - **Settings parent file** in Task 11 — locate via `mgrep search "BaseCurrencyField parent settings page" --limit 5` once the field exists, or by `grep -r "Section.*Settings" apps/web/src/components/features/Settings | head`.
 - **Alert / window.confirm** in Task 13 — replace with project's idiomatic dialog/toast components before commit if they exist.
 
