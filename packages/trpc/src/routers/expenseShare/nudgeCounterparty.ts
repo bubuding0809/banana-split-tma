@@ -4,9 +4,17 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { getMyCounterpartyBalancesHandler } from "./getMyCounterpartyBalances.js";
 import { buildNudgeCaption } from "../../services/crossGroupDmTemplates.js";
-import { createBroadcast } from "../../services/broadcast.js";
 import { takeToken } from "../../utils/rateLimit.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
+import {
+  buildCounterpartyDeepLinkPayload,
+  buildMiniAppUrl,
+} from "../../utils/counterpartyDeepLink.js";
+
+// Structural inline-keyboard type (matches Telegram Bot API).
+export type InlineKb = {
+  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+};
 
 const NUDGE_WINDOW_MS = 86_400_000; // 24h
 
@@ -15,8 +23,16 @@ const outputSchema = z.object({ ok: z.literal(true) });
 
 export interface Deps {
   getCounterpartyBalances: typeof getMyCounterpartyBalancesHandler;
-  sendDm: (userId: number, caption: string) => Promise<void>;
+  sendDm: (
+    userId: number,
+    caption: string,
+    replyMarkup?: InlineKb
+  ) => Promise<void>;
   takeToken: (key: string, limit: number, windowMs: number) => boolean;
+  // Bot username used to build t.me deep-link URLs. Fetched once per
+  // request from ctx.teleBot.getMe(); injected here so unit tests can
+  // stub it without a network call.
+  getBotUsername: () => Promise<string>;
 }
 
 export async function nudgeCounterpartyHandler(
@@ -80,7 +96,35 @@ export async function nudgeCounterpartyHandler(
       })),
   });
 
-  await deps.sendDm(args.counterpartyUserId, caption);
+  // Build the inline button URL — recipient is the counterparty (who
+  // we're nudging); we want their TMA to land on the People sheet for
+  // the caller (the creditor they need to pay).
+  // Wrapped in try/catch: a getMe() failure must not forfeit the 24h
+  // rate-limit token that's already been consumed above. Mirrors the
+  // pattern in settleAllWithUser.
+  let replyMarkup: InlineKb | undefined;
+  try {
+    const botUsername = await deps.getBotUsername();
+    const payload = buildCounterpartyDeepLinkPayload(
+      args.counterpartyUserId,
+      args.callerId
+    );
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: "💁 Open Balances",
+            url: buildMiniAppUrl(botUsername, payload),
+          },
+        ],
+      ],
+    };
+  } catch {
+    // bot getMe failure → ship the caption without a button rather
+    // than re-throw and waste the rate-limit token.
+  }
+
+  await deps.sendDm(args.counterpartyUserId, caption, replyMarkup);
   return { ok: true as const };
 }
 
@@ -96,15 +140,23 @@ export default protectedProcedure
       });
     }
     const callerId = Number(ctx.session.user.id);
-    const sendDm = async (userId: number, caption: string) => {
-      await createBroadcast(
-        { db: ctx.db, teleBot: ctx.teleBot, log: ctx.log },
-        {
-          message: caption,
-          targetUserIds: [userId],
-          createdByTelegramId: BigInt(callerId),
-        }
-      );
+    const sendDm = async (
+      userId: number,
+      caption: string,
+      replyMarkup?: InlineKb
+    ) => {
+      await ctx.teleBot.sendMessage(userId, caption, {
+        parse_mode: "MarkdownV2",
+        link_preview_options: { is_disabled: true },
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      });
+    };
+    let cachedBotUsername: string | undefined;
+    const getBotUsername = async () => {
+      if (cachedBotUsername) return cachedBotUsername;
+      const me = await ctx.teleBot.getMe();
+      cachedBotUsername = me.username;
+      return cachedBotUsername;
     };
     return nudgeCounterpartyHandler(
       {
@@ -116,6 +168,7 @@ export default protectedProcedure
         getCounterpartyBalances: getMyCounterpartyBalancesHandler,
         sendDm,
         takeToken,
+        getBotUsername,
       }
     );
   });

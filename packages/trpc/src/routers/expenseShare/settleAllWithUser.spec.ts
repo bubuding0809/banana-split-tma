@@ -13,6 +13,7 @@ const mockDb = {
 const deps = {
   getCounterpartyBalances: vi.fn(),
   sendDm: vi.fn(),
+  getBotUsername: vi.fn().mockResolvedValue("BananaSplitzStgBot"),
 };
 
 beforeEach(() => {
@@ -24,6 +25,7 @@ beforeEach(() => {
     firstName: "Bubu",
     lastName: null,
   });
+  deps.getBotUsername.mockResolvedValue("BananaSplitzStgBot");
 });
 
 describe("settleAllWithUserHandler", () => {
@@ -148,7 +150,19 @@ describe("settleAllWithUserHandler", () => {
     );
     expect(deps.sendDm).toHaveBeenCalledWith(
       200,
-      expect.stringContaining("Bubu")
+      expect.stringContaining("Bubu"),
+      expect.objectContaining({
+        inline_keyboard: [
+          [
+            expect.objectContaining({
+              text: "📊 View Balances",
+              url: expect.stringMatching(
+                /^https:\/\/t\.me\/BananaSplitzStgBot\?startapp=v1_p_/
+              ),
+            }),
+          ],
+        ],
+      })
     );
   });
 

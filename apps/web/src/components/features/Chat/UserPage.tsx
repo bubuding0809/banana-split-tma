@@ -32,7 +32,11 @@ const routeApi = getRouteApi("/_tma/chat/");
 
 const UserPage = () => {
   // * Hooks =======================================================================================
-  const { selectedTab, categoryFilters = [] } = routeApi.useSearch();
+  const {
+    selectedTab,
+    categoryFilters = [],
+    openCounterpartyId,
+  } = routeApi.useSearch();
   const tabNavigate = routeApi.useNavigate();
   const navigate = useNavigate();
   const tUserData = useSignal(initData.user);
@@ -314,7 +318,10 @@ const UserPage = () => {
           }}
         >
           {selectedTab === "groups" && meData && (
-            <UserBalancesTab initialBaseCurrency={meData.baseCurrency} />
+            <UserBalancesTab
+              initialBaseCurrency={meData.baseCurrency}
+              autoOpenCounterpartyId={openCounterpartyId}
+            />
           )}
           {selectedTab === "personal" && (
             <ChatTransactionTab

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Avatar,
   Caption,
@@ -21,10 +21,21 @@ import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
 
 interface Props {
   initialBaseCurrency: string;
+  /**
+   * When set (via the cross-group DM deep link), auto-opens the
+   * CounterpartyBalanceSheet for this user once the counterparty list
+   * has loaded. Consumed once per session so a back-navigation doesn't
+   * re-open the sheet.
+   */
+  autoOpenCounterpartyId?: string;
 }
 
-export default function UserBalancesTab({ initialBaseCurrency }: Props) {
+export default function UserBalancesTab({
+  initialBaseCurrency,
+  autoOpenCounterpartyId,
+}: Props) {
   const [openUserId, setOpenUserId] = useState<number | null>(null);
+  const autoOpenConsumed = useRef(false);
 
   const q = trpc.expenseShare.getMyCounterpartyBalances.useQuery({
     baseCurrency: initialBaseCurrency,
@@ -38,6 +49,21 @@ export default function UserBalancesTab({ initialBaseCurrency }: Props) {
   }, [supportedCurrencies]);
 
   const counterparties = q.data?.counterparties ?? [];
+
+  // Auto-open sheet from cross-group DM deep link.
+  useEffect(() => {
+    if (autoOpenConsumed.current) return;
+    if (!autoOpenCounterpartyId) return;
+    if (!q.data) return; // wait for list to load before deciding
+    const target = Number(autoOpenCounterpartyId);
+    if (!Number.isFinite(target)) {
+      autoOpenConsumed.current = true;
+      return;
+    }
+    const hit = counterparties.find((c) => c.userId === target);
+    if (hit) setOpenUserId(target);
+    autoOpenConsumed.current = true;
+  }, [autoOpenCounterpartyId, counterparties, q.data]);
   // totalBaseNet < 0 → user owes them → "Debts" section
   // totalBaseNet > 0 → they owe user → "Collectables" section
   const debts = counterparties.filter((c) => c.totalBaseNet < 0);

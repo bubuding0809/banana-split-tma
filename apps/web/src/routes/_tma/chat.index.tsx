@@ -3,12 +3,17 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
+import { uuidToNumericId } from "@dko/trpc/src/utils/counterpartyDeepLink";
+
 import { UserPage } from "@/components/features";
 import { useStartParams } from "@/hooks";
 
 const searchSchema = z.object({
   selectedTab: z.enum(["groups", "personal"]).catch("personal"),
   selectedExpense: z.string().optional(),
+  // Set by the cross-group deep link consumer below. UserBalancesTab
+  // reads this to auto-open the CounterpartyBalanceSheet on land.
+  openCounterpartyId: z.string().optional(),
   showPayments: z.boolean().catch(true),
   relatedOnly: z.boolean().catch(true),
   sortBy: z.enum(["date", "createdAt"]).catch("date"),
@@ -49,6 +54,24 @@ function RouteComponent() {
         search: {
           selectedTab: "personal",
           selectedExpense: startParams.entity_id,
+        },
+        replace: true,
+      });
+    }
+
+    // Cross-group counterparty deep link: nudge / settle DM buttons land
+    // here with entity_type "c" + entity_id encoded as a fake UUID (see
+    // packages/trpc/src/utils/counterpartyDeepLink.ts). Decode back to
+    // numeric userId and stash on the URL so UserBalancesTab can
+    // auto-open the sheet.
+    if (startParams.entity_type === "c" && startParams.chat_type === "p") {
+      sessionStorage.setItem(consumedKey, "true");
+      const numericId = uuidToNumericId(startParams.entity_id).toString();
+      void navigate({
+        to: "/chat",
+        search: {
+          selectedTab: "groups",
+          openCounterpartyId: numericId,
         },
         replace: true,
       });

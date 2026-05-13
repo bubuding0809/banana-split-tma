@@ -4,8 +4,12 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { getMyCounterpartyBalancesHandler } from "./getMyCounterpartyBalances.js";
 import { buildSettleNotificationCaption } from "../../services/crossGroupDmTemplates.js";
-import { createBroadcast } from "../../services/broadcast.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
+import {
+  buildCounterpartyDeepLinkPayload,
+  buildMiniAppUrl,
+} from "../../utils/counterpartyDeepLink.js";
+import type { InlineKb } from "./nudgeCounterparty.js";
 
 const inputSchema = z.object({
   counterpartyUserId: z.number(),
@@ -19,7 +23,12 @@ const outputSchema = z.object({
 
 export interface Deps {
   getCounterpartyBalances: typeof getMyCounterpartyBalancesHandler;
-  sendDm: (userId: number, caption: string) => Promise<void>;
+  sendDm: (
+    userId: number,
+    caption: string,
+    replyMarkup?: InlineKb
+  ) => Promise<void>;
+  getBotUsername: () => Promise<string>;
 }
 
 export async function settleAllWithUserHandler(
@@ -91,8 +100,34 @@ export async function settleAllWithUserHandler(
           baseAbs: Math.abs(g.baseNet),
         })),
     });
+    // Inline button → recipient's TMA, opens caller's sheet so they can
+    // verify the settlement landed correctly. After settle, caller will
+    // be filtered out of the recipient's People list (zero balance) so
+    // the sheet auto-open silently no-ops — they just see the updated
+    // list.
+    let replyMarkup: InlineKb | undefined;
     try {
-      await deps.sendDm(args.counterpartyUserId, caption);
+      const botUsername = await deps.getBotUsername();
+      const payload = buildCounterpartyDeepLinkPayload(
+        args.counterpartyUserId,
+        args.callerId
+      );
+      replyMarkup = {
+        inline_keyboard: [
+          [
+            {
+              text: "📊 View Balances",
+              url: buildMiniAppUrl(botUsername, payload),
+            },
+          ],
+        ],
+      };
+    } catch {
+      // bot getMe failure → ship the caption without a button
+    }
+
+    try {
+      await deps.sendDm(args.counterpartyUserId, caption, replyMarkup);
     } catch (e) {
       console.warn("[settleAllWithUser] DM failed:", e);
     }
@@ -117,15 +152,23 @@ export default protectedProcedure
       });
     }
     const callerId = Number(ctx.session.user.id);
-    const sendDm = async (userId: number, caption: string) => {
-      await createBroadcast(
-        { db: ctx.db, teleBot: ctx.teleBot, log: ctx.log },
-        {
-          message: caption,
-          targetUserIds: [userId],
-          createdByTelegramId: BigInt(callerId),
-        }
-      );
+    const sendDm = async (
+      userId: number,
+      caption: string,
+      replyMarkup?: InlineKb
+    ) => {
+      await ctx.teleBot.sendMessage(userId, caption, {
+        parse_mode: "MarkdownV2",
+        link_preview_options: { is_disabled: true },
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      });
+    };
+    let cachedBotUsername: string | undefined;
+    const getBotUsername = async () => {
+      if (cachedBotUsername) return cachedBotUsername;
+      const me = await ctx.teleBot.getMe();
+      cachedBotUsername = me.username;
+      return cachedBotUsername;
     };
     return settleAllWithUserHandler(
       {
@@ -136,6 +179,7 @@ export default protectedProcedure
       {
         getCounterpartyBalances: getMyCounterpartyBalancesHandler,
         sendDm,
+        getBotUsername,
       }
     );
   });
