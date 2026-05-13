@@ -37,14 +37,17 @@ export const updateUserHandler = async (
   try {
     // Validate baseCurrency eagerly (before DB lookup) so direct handler
     // calls also get the validation without needing the inputSchema refine.
-    if (
-      input.baseCurrency !== undefined &&
-      !(input.baseCurrency.toUpperCase() in CURRENCY_DATABASE)
-    ) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Unknown baseCurrency",
-      });
+    // Normalise to uppercase here so callers that bypass Zod's transform
+    // (tests, internal callers) still persist a consistent value.
+    let normalisedCurrency: string | undefined;
+    if (input.baseCurrency !== undefined) {
+      normalisedCurrency = input.baseCurrency.toUpperCase();
+      if (!(normalisedCurrency in CURRENCY_DATABASE)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Unknown baseCurrency",
+        });
+      }
     }
 
     // Check if user exists
@@ -84,8 +87,8 @@ export const updateUserHandler = async (
     if (input.phoneNumberRequested !== undefined) {
       updateData.phoneNumberRequested = input.phoneNumberRequested;
     }
-    if (input.baseCurrency !== undefined) {
-      updateData.baseCurrency = input.baseCurrency;
+    if (normalisedCurrency !== undefined) {
+      updateData.baseCurrency = normalisedCurrency;
     }
 
     const updatedUser = await db.user.update({

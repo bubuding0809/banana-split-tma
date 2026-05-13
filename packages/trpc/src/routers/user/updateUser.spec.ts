@@ -22,7 +22,7 @@ describe("updateUserHandler — baseCurrency", () => {
       baseCurrency: "USD",
     });
 
-    await updateUserHandler(
+    const result = await updateUserHandler(
       { userId: BigInt(100), baseCurrency: "USD" },
       mockDb
     );
@@ -30,8 +30,28 @@ describe("updateUserHandler — baseCurrency", () => {
     expect(mockDb.user.update).toHaveBeenCalledWith({
       where: { id: BigInt(100) },
       data: { baseCurrency: "USD" },
-      select: expect.any(Object),
+      select: expect.objectContaining({ baseCurrency: true }),
     });
+    expect(result.baseCurrency).toBe("USD");
+  });
+
+  it("normalises lowercase currency to uppercase before persisting", async () => {
+    (mockDb.user.findUnique as any).mockResolvedValue({ id: BigInt(100) });
+    (mockDb.user.update as any).mockResolvedValue({
+      id: BigInt(100),
+      firstName: "Bubu",
+      lastName: null,
+      baseCurrency: "USD",
+    });
+
+    await updateUserHandler(
+      { userId: BigInt(100), baseCurrency: "usd" },
+      mockDb
+    );
+
+    expect(mockDb.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { baseCurrency: "USD" } })
+    );
   });
 
   it("rejects unknown currency code", async () => {
