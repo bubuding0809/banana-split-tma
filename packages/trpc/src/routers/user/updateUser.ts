@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
+import { CURRENCY_DATABASE } from "../../utils/currencyApi.js";
 
 export const inputSchema = z.object({
   userId: z.number().transform((val) => BigInt(val)),
@@ -10,6 +11,11 @@ export const inputSchema = z.object({
   username: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
   phoneNumberRequested: z.boolean().optional(),
+  baseCurrency: z
+    .string()
+    .toUpperCase()
+    .refine((c) => c in CURRENCY_DATABASE, { message: "Unknown baseCurrency" })
+    .optional(),
 });
 
 export const outputSchema = z.object({
@@ -19,6 +25,7 @@ export const outputSchema = z.object({
   username: z.string().nullable(),
   phoneNumber: z.string().nullable(),
   phoneNumberRequested: z.boolean(),
+  baseCurrency: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -28,6 +35,21 @@ export const updateUserHandler = async (
   db: Db
 ) => {
   try {
+    // Validate baseCurrency eagerly (before DB lookup) so direct handler
+    // calls also get the validation without needing the inputSchema refine.
+    // Normalise to uppercase here so callers that bypass Zod's transform
+    // (tests, internal callers) still persist a consistent value.
+    let normalisedCurrency: string | undefined;
+    if (input.baseCurrency !== undefined) {
+      normalisedCurrency = input.baseCurrency.toUpperCase();
+      if (!(normalisedCurrency in CURRENCY_DATABASE)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Unknown baseCurrency",
+        });
+      }
+    }
+
     // Check if user exists
     const existingUser = await db.user.findUnique({
       where: { id: input.userId },
@@ -47,6 +69,7 @@ export const updateUserHandler = async (
       username?: string | null;
       phoneNumber?: string | null;
       phoneNumberRequested?: boolean;
+      baseCurrency?: string;
     } = {};
 
     if (input.firstName !== undefined) {
@@ -64,6 +87,9 @@ export const updateUserHandler = async (
     if (input.phoneNumberRequested !== undefined) {
       updateData.phoneNumberRequested = input.phoneNumberRequested;
     }
+    if (normalisedCurrency !== undefined) {
+      updateData.baseCurrency = normalisedCurrency;
+    }
 
     const updatedUser = await db.user.update({
       where: { id: input.userId },
@@ -75,6 +101,7 @@ export const updateUserHandler = async (
         username: true,
         phoneNumber: true,
         phoneNumberRequested: true,
+        baseCurrency: true,
         createdAt: true,
         updatedAt: true,
       },

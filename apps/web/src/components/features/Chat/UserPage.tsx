@@ -73,6 +73,10 @@ const UserPage = () => {
       { chatId: userId },
       { enabled: userId > 0 }
     );
+  const { data: meData } = trpc.user.getUser.useQuery(
+    { userId },
+    { enabled: userId > 0 }
+  );
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -309,7 +313,12 @@ const UserPage = () => {
             height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
           }}
         >
-          {selectedTab === "groups" && <UserBalancesTab />}
+          {selectedTab === "groups" && meData && (
+            <UserBalancesTab
+              initialBaseCurrency={meData.baseCurrency}
+              userId={userId}
+            />
+          )}
           {selectedTab === "personal" && (
             <ChatTransactionTab
               ref={chatTransactionTabRef}
