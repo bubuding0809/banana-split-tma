@@ -22,6 +22,7 @@ import {
   formatCurrencyWithCode,
   getBalanceColorClass,
 } from "@/utils/financial";
+import PayNowQR from "./PayNowQR";
 
 interface Group {
   chatId: number;
@@ -84,7 +85,15 @@ export function CounterpartyBalanceSheet({
   });
 
   const isOwedToUser = (counterparty?.totalBaseNet ?? 0) > 0;
+  const isDebtor = !!counterparty && !isOwedToUser; // caller owes counterparty
   const canNudge = !!counterparty && isOwedToUser && counterparty.hasStartedBot;
+
+  // Phone lookup for PayNow QR + Copy Phone No. (only used in debtor direction)
+  const { data: counterpartyUser } = trpc.user.getUser.useQuery(
+    { userId: counterparty?.userId ?? 0 },
+    { enabled: open && isDebtor }
+  );
+  const counterpartyPhone = counterpartyUser?.phoneNumber ?? null;
 
   const handleSettle = useCallback(async () => {
     if (!counterparty) return;
@@ -108,6 +117,31 @@ export function CounterpartyBalanceSheet({
     nudge.mutate({ counterpartyUserId: counterparty.userId });
   }, [counterparty, nudge]);
 
+  const handleCopyPhone = useCallback(async () => {
+    if (!counterpartyPhone) return;
+    hapticFeedback.impactOccurred.ifAvailable("light");
+    try {
+      await navigator.clipboard.writeText(counterpartyPhone);
+      hapticFeedback.notificationOccurred.ifAvailable("success");
+      secondaryButton.setParams.ifAvailable({
+        text: "✅ Copied",
+        isEnabled: false,
+      });
+      setTimeout(() => {
+        secondaryButton.setParams.ifAvailable({
+          text: "Copy Phone No. 📲",
+          isEnabled: true,
+          isLoaderVisible: false,
+        });
+      }, 500);
+    } catch (e) {
+      hapticFeedback.notificationOccurred.ifAvailable("error");
+      popup.open.ifAvailable({
+        message: "Failed to copy number to clipboard. Please try again.",
+      });
+    }
+  }, [counterpartyPhone]);
+
   // mainButton — Settle All ✅
   useEffect(() => {
     if (!open || !counterparty) return;
@@ -125,26 +159,43 @@ export function CounterpartyBalanceSheet({
     return () => off?.();
   }, [open, counterparty, handleSettle]);
 
-  // secondaryButton — Nudge 👋 (only when the counterparty owes us + has started bot)
+  // secondaryButton — direction-dependent:
+  //   debtor (user owes) + counterparty has phone → "Copy Phone No. 📲"
+  //   creditor (user is owed) + counterparty started bot → "Nudge 👋"
+  const showCopyPhone = !!(open && isDebtor && counterpartyPhone);
+  const showNudge = !!(open && canNudge);
+
   useEffect(() => {
-    if (!open || !canNudge) return;
-    secondaryButton.setParams.ifAvailable({
-      isVisible: true,
-      isEnabled: true,
-      text: "Nudge 👋",
-    });
+    if (showCopyPhone) {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: true,
+        isEnabled: true,
+        text: "Copy Phone No. 📲",
+      });
+    } else if (showNudge) {
+      secondaryButton.setParams.ifAvailable({
+        isVisible: true,
+        isEnabled: true,
+        text: "Nudge 👋",
+      });
+    }
     return () =>
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
-  }, [open, canNudge]);
+  }, [showCopyPhone, showNudge]);
 
   useEffect(() => {
-    if (!open || !canNudge) return;
-    const off = secondaryButton.onClick.ifAvailable(handleNudge);
-    return () => off?.();
-  }, [open, canNudge, handleNudge]);
+    if (showCopyPhone) {
+      const off = secondaryButton.onClick.ifAvailable(handleCopyPhone);
+      return () => off?.();
+    }
+    if (showNudge) {
+      const off = secondaryButton.onClick.ifAvailable(handleNudge);
+      return () => off?.();
+    }
+  }, [showCopyPhone, showNudge, handleCopyPhone, handleNudge]);
 
   if (!counterparty) {
     return (
@@ -157,9 +208,14 @@ export function CounterpartyBalanceSheet({
   const fullName = [counterparty.firstName, counterparty.lastName]
     .filter(Boolean)
     .join(" ");
-  const isDebtor = !isOwedToUser; // caller owes counterparty
   const subhead = isDebtor ? "You owe" : `${counterparty.firstName} owes`;
   const body = isDebtor ? fullName : "You";
+  const totalBaseAbs = Math.abs(counterparty.totalBaseNet);
+  const showQr =
+    isDebtor &&
+    !!counterpartyPhone &&
+    baseCurrency === "SGD" &&
+    totalBaseAbs > 0;
 
   return (
     <Modal
@@ -210,6 +266,16 @@ export function CounterpartyBalanceSheet({
             </Cell>
           ))}
         </Section>
+
+        {showQr && counterpartyPhone && (
+          <div className="mt-4">
+            <PayNowQR
+              phoneNumber={counterpartyPhone}
+              amount={totalBaseAbs}
+              merchantName={counterparty.firstName}
+            />
+          </div>
+        )}
       </div>
     </Modal>
   );
