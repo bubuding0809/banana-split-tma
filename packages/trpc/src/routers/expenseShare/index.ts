@@ -5,6 +5,7 @@ import getMySpendByMonth from "./getMySpendByMonth.js";
 import getNetShare from "./getNetShare.js";
 import getTotalBorrowed from "./getTotalBorrowed.js";
 import getTotalLent from "./getTotalLent.js";
+import settleAllWithUser from "./settleAllWithUser.js";
 
 export const expenseShareRouter = createTRPCRouter({
   getMyBalancesAcrossChats,
@@ -13,4 +14,5 @@ export const expenseShareRouter = createTRPCRouter({
   getNetShare,
   getTotalBorrowed,
   getTotalLent,
+  settleAllWithUser,
 });
