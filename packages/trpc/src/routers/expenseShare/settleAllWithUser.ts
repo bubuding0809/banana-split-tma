@@ -80,9 +80,11 @@ export async function settleAllWithUserHandler(
       baseCurrency: fresh.baseCurrency,
       totalBaseAbs: Math.abs(cp.totalBaseNet),
       groups: cp.groups.map((g) => ({
+        chatId: g.chatId,
         chatTitle: g.chatTitle,
         currency: g.currency,
         nativeAbs: Math.abs(g.nativeNet),
+        baseAbs: Math.abs(g.baseNet),
       })),
     });
     try {

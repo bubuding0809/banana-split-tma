@@ -69,9 +69,11 @@ export async function nudgeCounterpartyHandler(
     baseCurrency: fresh.baseCurrency,
     totalBaseAbs: cp.totalBaseNet,
     groups: cp.groups.map((g) => ({
+      chatId: g.chatId,
       chatTitle: g.chatTitle,
       currency: g.currency,
       nativeAbs: Math.abs(g.nativeNet),
+      baseAbs: Math.abs(g.baseNet),
     })),
   });
 
