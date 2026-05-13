@@ -313,9 +313,9 @@ const UserPage = () => {
             height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
           }}
         >
-          {selectedTab === "groups" && (
+          {selectedTab === "groups" && meData && (
             <UserBalancesTab
-              initialBaseCurrency={meData?.baseCurrency ?? "SGD"}
+              initialBaseCurrency={meData.baseCurrency}
               userId={userId}
             />
           )}

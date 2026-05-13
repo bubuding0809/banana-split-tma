@@ -62,7 +62,7 @@ export default function UserBalancesTab({
           <span
             className="cursor-pointer underline"
             onClick={() => {
-              hapticFeedback.selectionChanged();
+              hapticFeedback.selectionChanged.ifAvailable();
               setPickerOpen(true);
             }}
           >
@@ -93,7 +93,7 @@ export default function UserBalancesTab({
                 subtitle={groupsText}
                 after={fmt(c.totalBaseNet, base)}
                 onClick={() => {
-                  hapticFeedback.impactOccurred("light");
+                  hapticFeedback.impactOccurred.ifAvailable("light");
                   setOpenUserId(c.userId);
                 }}
               >

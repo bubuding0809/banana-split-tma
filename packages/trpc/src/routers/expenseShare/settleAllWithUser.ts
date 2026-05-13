@@ -5,6 +5,7 @@ import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { getMyCounterpartyBalancesHandler } from "./getMyCounterpartyBalances.js";
 import { buildSettleNotificationCaption } from "../../services/crossGroupDmTemplates.js";
 import { createBroadcast } from "../../services/broadcast.js";
+import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
 
 const inputSchema = z.object({
   counterpartyUserId: z.number(),
@@ -44,7 +45,7 @@ export async function settleAllWithUserHandler(
   let settledCount = 0;
   await db.$transaction(async (tx) => {
     for (const g of cp.groups) {
-      if (Math.abs(g.nativeNet) === 0) continue;
+      if (Math.abs(g.nativeNet) <= FINANCIAL_THRESHOLDS.DISPLAY) continue;
       // Positive nativeNet => counterparty owes caller (caller is creditor).
       // Negative nativeNet => caller owes counterparty.
       const debtorIsCaller = g.nativeNet < 0;
