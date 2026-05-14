@@ -224,6 +224,10 @@ export function CounterpartyBalanceSheet({
   const showCopyPhone = !!(open && isDebtor && counterpartyPhone);
   const showNudge = !!(open && canNudge);
 
+  // Visibility / enabled / pending — only fires on the booleans that
+  // actually change those flags. cooldownRemainingMs is intentionally
+  // NOT in the deps so the 1Hz countdown tick doesn't bounce the
+  // button (cleanup hide → re-show flicker).
   useEffect(() => {
     if (showCopyPhone) {
       secondaryButton.setParams.ifAvailable({
@@ -233,14 +237,13 @@ export function CounterpartyBalanceSheet({
         text: "Copy Phone No. 📲",
       });
     } else if (showNudge) {
-      const text = isCoolingDown
-        ? `Nudge again in ${formatCountdown(cooldownRemainingMs)}`
-        : "Nudge 👋";
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: !nudge.isPending && !isCoolingDown,
         isLoaderVisible: nudge.isPending,
-        text,
+        text: isCoolingDown
+          ? `Nudge again in ${formatCountdown(cooldownRemainingMs)}`
+          : "Nudge 👋",
       });
     }
     return () =>
@@ -249,13 +252,17 @@ export function CounterpartyBalanceSheet({
         isEnabled: false,
         isLoaderVisible: false,
       });
-  }, [
-    showCopyPhone,
-    showNudge,
-    nudge.isPending,
-    isCoolingDown,
-    cooldownRemainingMs,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCopyPhone, showNudge, nudge.isPending, isCoolingDown]);
+
+  // Live text-only tick while cooling down. Imperative — never runs
+  // the visibility cleanup, so no flicker.
+  useEffect(() => {
+    if (!showNudge || !isCoolingDown) return;
+    secondaryButton.setParams.ifAvailable({
+      text: `Nudge again in ${formatCountdown(cooldownRemainingMs)}`,
+    });
+  }, [showNudge, isCoolingDown, cooldownRemainingMs]);
 
   useEffect(() => {
     if (showCopyPhone) {

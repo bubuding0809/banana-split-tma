@@ -8,7 +8,8 @@ const mockDb = { user: { findUnique: vi.fn() } } as unknown as PrismaClient;
 const deps = {
   getCounterpartyBalances: vi.fn(),
   sendDm: vi.fn(),
-  takeToken: vi.fn(),
+  getReceiverCooldownUntil: vi.fn(),
+  recordNudgeFor: vi.fn(),
   getBotUsername: vi.fn().mockResolvedValue("BananaSplitzStgBot"),
 };
 
@@ -21,6 +22,7 @@ const owedFresh = {
       firstName: "Sean",
       lastName: null,
       hasStartedBot: true,
+      nudgeCooldownUntil: null,
       totalBaseNet: 99.42,
       groups: [
         {
@@ -45,8 +47,8 @@ beforeEach(() => {
 });
 
 describe("nudgeCounterpartyHandler", () => {
-  it("rate-limits when token bucket refuses", async () => {
-    deps.takeToken.mockReturnValue(false);
+  it("rate-limits when receiver is within an existing cooldown", async () => {
+    deps.getReceiverCooldownUntil.mockResolvedValue(Date.now() + 1000);
     await expect(
       nudgeCounterpartyHandler(
         { callerId: caller, counterpartyUserId: 200 },
@@ -55,10 +57,11 @@ describe("nudgeCounterpartyHandler", () => {
       )
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
     expect(deps.sendDm).not.toHaveBeenCalled();
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
   });
 
   it("rejects when caller is not net-owed by counterparty", async () => {
-    deps.takeToken.mockReturnValue(true);
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
     deps.getCounterpartyBalances.mockResolvedValue({
       baseCurrency: "SGD",
       ratesAsOf: new Date(),
@@ -71,10 +74,11 @@ describe("nudgeCounterpartyHandler", () => {
         deps
       )
     ).rejects.toThrow(/nothing.*nudge/i);
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
   });
 
   it("rejects when counterparty has not started the bot", async () => {
-    deps.takeToken.mockReturnValue(true);
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
     deps.getCounterpartyBalances.mockResolvedValue({
       baseCurrency: "SGD",
       ratesAsOf: new Date(),
@@ -89,17 +93,20 @@ describe("nudgeCounterpartyHandler", () => {
         deps
       )
     ).rejects.toThrow(/bot/i);
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
   });
 
-  it("sends DM and consumes token on happy path", async () => {
-    deps.takeToken.mockReturnValue(true);
+  it("sends DM, records nudge, and returns the cooldown on happy path", async () => {
+    const expectedExpiry = Date.now() + 86_400_000;
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
+    deps.recordNudgeFor.mockResolvedValue(expectedExpiry);
     deps.getCounterpartyBalances.mockResolvedValue(owedFresh);
-    await nudgeCounterpartyHandler(
+    const result = await nudgeCounterpartyHandler(
       { callerId: caller, counterpartyUserId: 200 },
       mockDb,
       deps
     );
-    expect(deps.takeToken).toHaveBeenCalledWith("nudge:100:200", 1, 86400000);
+    expect(deps.getReceiverCooldownUntil).toHaveBeenCalledWith(200);
     expect(deps.sendDm).toHaveBeenCalledWith(
       200,
       expect.stringContaining("Bubu"),
@@ -116,5 +123,7 @@ describe("nudgeCounterpartyHandler", () => {
         ],
       })
     );
+    expect(deps.recordNudgeFor).toHaveBeenCalledWith(200);
+    expect(result.nudgeCooldownUntil).toBe(expectedExpiry);
   });
 });

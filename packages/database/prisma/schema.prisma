@@ -68,6 +68,22 @@ model User {
   createdApiKeys        ChatApiKey[]
   userApiKeys           UserApiKey[]
   createdChatCategories ChatCategory[]
+  sentNudges            Nudge[]           @relation("NudgeSender")
+  receivedNudges        Nudge[]           @relation("NudgeReceiver")
+}
+
+/// One row per cross-group nudge sent. Used as the durable backing
+/// store for the 24h rate limit (in-memory rate limiter doesn't survive
+/// serverless container restarts).
+model Nudge {
+  id         String   @id @default(uuid())
+  sender     User     @relation("NudgeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   BigInt
+  receiver   User     @relation("NudgeReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId BigInt
+  sentAt     DateTime @default(now())
+
+  @@index([senderId, receiverId, sentAt])
 }
 
 enum SplitMode {

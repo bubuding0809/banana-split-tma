@@ -4,19 +4,17 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { getMyCounterpartyBalancesHandler } from "./getMyCounterpartyBalances.js";
 import { buildNudgeCaption } from "../../services/crossGroupDmTemplates.js";
-import { takeToken } from "../../utils/rateLimit.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
 import {
   buildCounterpartyDeepLinkPayload,
   buildMiniAppUrl,
 } from "../../utils/counterpartyDeepLink.js";
+import { getNudgeCooldowns, recordNudge } from "../../utils/nudgeCooldown.js";
 
 // Structural inline-keyboard type (matches Telegram Bot API).
 export type InlineKb = {
   inline_keyboard: Array<Array<{ text: string; url: string }>>;
 };
-
-const NUDGE_WINDOW_MS = 86_400_000; // 24h
 
 const inputSchema = z.object({ counterpartyUserId: z.number() });
 const outputSchema = z.object({
@@ -32,7 +30,11 @@ export interface Deps {
     caption: string,
     replyMarkup?: InlineKb
   ) => Promise<void>;
-  takeToken: (key: string, limit: number, windowMs: number) => boolean;
+  // DB-backed cooldown: returns existing expiry (ms epoch) for this
+  // sender→receiver pair if within the 24h window, null otherwise.
+  getReceiverCooldownUntil: (receiverId: number) => Promise<number | null>;
+  // DB-backed insert: records a nudge and returns the new expiry.
+  recordNudgeFor: (receiverId: number) => Promise<number>;
   // Bot username used to build t.me deep-link URLs. Fetched once per
   // request from ctx.teleBot.getMe(); injected here so unit tests can
   // stub it without a network call.
@@ -44,13 +46,10 @@ export async function nudgeCounterpartyHandler(
   db: Db,
   deps: Deps
 ): Promise<z.infer<typeof outputSchema>> {
-  if (
-    !deps.takeToken(
-      `nudge:${args.callerId}:${args.counterpartyUserId}`,
-      1,
-      NUDGE_WINDOW_MS
-    )
-  ) {
+  const existingCooldown = await deps.getReceiverCooldownUntil(
+    args.counterpartyUserId
+  );
+  if (existingCooldown !== null) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "You have already nudged this user in the last 24 hours",
@@ -129,10 +128,13 @@ export async function nudgeCounterpartyHandler(
   }
 
   await deps.sendDm(args.counterpartyUserId, caption, replyMarkup);
-  return {
-    ok: true as const,
-    nudgeCooldownUntil: Date.now() + NUDGE_WINDOW_MS,
-  };
+  // Persist the cooldown so it survives serverless container restarts.
+  // Inserts AFTER the DM ships so a Telegram delivery failure doesn't
+  // burn the user's 24h window. (Race window: if the DM somehow
+  // succeeds twice in flight we'd insert twice — harmless, both pairs
+  // satisfy the same cooldown query.)
+  const nudgeCooldownUntil = await deps.recordNudgeFor(args.counterpartyUserId);
+  return { ok: true as const, nudgeCooldownUntil };
 }
 
 export default protectedProcedure
@@ -174,7 +176,12 @@ export default protectedProcedure
       {
         getCounterpartyBalances: getMyCounterpartyBalancesHandler,
         sendDm,
-        takeToken,
+        getReceiverCooldownUntil: async (receiverId) => {
+          const m = await getNudgeCooldowns(ctx.db, callerId, [receiverId]);
+          return m.get(receiverId) ?? null;
+        },
+        recordNudgeFor: (receiverId) =>
+          recordNudge(ctx.db, callerId, receiverId),
         getBotUsername,
       }
     );
