@@ -83,6 +83,8 @@ export function CounterpartyBalanceSheet({
 }: Props) {
   const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
   const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
   const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
   // Optimistic cooldown override for the just-nudged case (server's
@@ -269,12 +271,15 @@ export function CounterpartyBalanceSheet({
         text: isCoolingDown
           ? `⏳ ${formatHms(cooldownRemainingMs)}`
           : "Nudge 👋",
-        ...(isCoolingDown
-          ? {
-              backgroundColor: tSecondaryBgColor as `#${string}` | undefined,
-              textColor: tSubtitleColor as `#${string}` | undefined,
-            }
-          : {}),
+        // Always pass colours — setParams is a patch and omitted keys
+        // stick at their previous value, so the cooldown→ready
+        // transition needs the explicit reset to default button theme.
+        backgroundColor: (isCoolingDown ? tSecondaryBgColor : tButtonColor) as
+          | `#${string}`
+          | undefined,
+        textColor: (isCoolingDown ? tSubtitleColor : tButtonTextColor) as
+          | `#${string}`
+          | undefined,
       });
     }
     return () =>
@@ -291,6 +296,8 @@ export function CounterpartyBalanceSheet({
     isCoolingDown,
     tSecondaryBgColor,
     tSubtitleColor,
+    tButtonColor,
+    tButtonTextColor,
   ]);
 
   // Live text-only tick while cooling down. Imperative — never runs
