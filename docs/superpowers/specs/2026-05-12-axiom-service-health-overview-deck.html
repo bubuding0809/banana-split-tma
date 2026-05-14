@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Service health overview · Axiom dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --muted: #9aa3ad;
+  --accent: #ffd45e;
+  --ok: #4ade80;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --note: #60a5fa;
+  --border: #2a2f37;
+  --panel: #181b20;
+}
+.reveal { font-size: 30px; }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+.reveal h1 { font-size: 1.7em; color: var(--accent); }
+.reveal h2 { font-size: 1.25em; color: var(--accent); margin-bottom: 0.55em; }
+.reveal h3 { font-size: 1em; color: var(--fg); margin-bottom: 0.35em; }
+.reveal section { text-align: left; }
+.reveal section.title { text-align: center; }
+.reveal p, .reveal li { line-height: 1.45; }
+.reveal small { color: var(--muted); font-size: 0.7em; }
+.reveal code { background: #232831; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
+.reveal pre { font-size: 0.7em; box-shadow: none; }
+.reveal pre code { padding: 0.8em; max-height: 60vh; }
+.reveal table { font-size: 0.72em; border-collapse: collapse; width: 100%; }
+.reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+.reveal table th { background: var(--panel); color: var(--accent); font-weight: 600; }
+.reveal table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.7em; font-weight: 600; letter-spacing: 0.02em; margin-right: 4px; vertical-align: middle; }
+.pill.ok   { background: rgba(74,222,128,0.15); color: var(--ok);   border: 1px solid rgba(74,222,128,0.4); }
+.pill.bad  { background: rgba(239,68,68,0.15);  color: var(--bad);  border: 1px solid rgba(239,68,68,0.4); }
+.pill.warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.pill.note { background: rgba(96,165,250,0.15); color: var(--note); border: 1px solid rgba(96,165,250,0.4); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px 0; font-size: 0.9em; }
+.card p, .card ul { margin: 0; font-size: 0.82em; }
+.card ul { padding-left: 1.2em; }
+.callout { background: rgba(255,212,94,0.07); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 0.88em; margin: 10px 0; }
+.callout.bad { background: rgba(239,68,68,0.08); border-left-color: var(--bad); }
+.callout.note { background: rgba(96,165,250,0.07); border-left-color: var(--note); }
+.muted { color: var(--muted); }
+ul.tight li { margin: 0.2em 0; }
+.bigtitle { font-size: 0.65em; color: var(--muted); margin-top: 8px; }
+.flow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62em; line-height: 1.4; background: var(--panel); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); white-space: pre; overflow-x: auto; }
+.mock { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.65em; }
+.mock .row { display: grid; gap: 6px; margin-bottom: 6px; }
+.mock .row.r1 { grid-template-columns: repeat(4, 1fr); }
+.mock .row.r2 { grid-template-columns: 1fr 1fr; }
+.mock .row.r3 { grid-template-columns: 1fr 1fr; }
+.mock .row.r4 { grid-template-columns: 1fr; }
+.mock .tile { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 36px; }
+.mock .tile.tall { min-height: 90px; }
+.mock .tile.taller { min-height: 110px; }
+.mock .tile-label { color: var(--muted); font-size: 0.85em; }
+.mock .tile-num { color: var(--accent); font-size: 1.4em; font-weight: 600; }
+
+@media screen and (max-width: 700px) {
+  .reveal { font-size: 32px; }
+  .grid2, .grid3, .grid4 { grid-template-columns: 1fr; gap: 10px; }
+  .card { padding: 10px 12px; }
+  .card p, .card ul { font-size: 0.9em; }
+  .reveal pre { font-size: 0.78em; }
+  .reveal table { font-size: 0.82em; }
+  .reveal table th, .reveal table td { padding: 6px 8px; }
+  .flow { font-size: 0.7em; padding: 10px 12px; }
+  .mock .row.r1 { grid-template-columns: 1fr 1fr; }
+  .mock .row.r2, .mock .row.r3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title">
+  <h1>Service health overview</h1>
+  <p class="muted">Day-one Axiom board for operational triage and morning glance</p>
+  <p class="bigtitle">Design spec · 2026-05-12 · bananasplitz dataset</p>
+</section>
+
+<section>
+  <h2>Why this board</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Today</h3>
+      <ul class="tight">
+        <li>One Axiom dataset: <code>bananasplitz</code></li>
+        <li>One dashboard: <em>Group reminder reconciliation</em></li>
+        <li>Covers the weekly self-heal cron — nothing else</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Gap</h3>
+      <ul class="tight">
+        <li>No bot health view</li>
+        <li>No tRPC error / latency view</li>
+        <li>No "is anything on fire" glance</li>
+      </ul>
+    </div>
+  </div>
+  <p class="callout note">Goal: one board that reads cleanly at any time window — 15m for triage, 24h for morning, 7d for trend.</p>
+</section>
+
+<section>
+  <h2>Surfaces (the grouping axis)</h2>
+  <p>Every chart derives a <code>surface</code> column. Four surfaces, evaluated in order:</p>
+  <table>
+    <thead><tr><th>Match</th><th>Surface</th></tr></thead>
+    <tbody>
+      <tr><td><code>service == "bot"</code></td><td><span class="pill note">bot</span></td></tr>
+      <tr><td><code>service == "lambda"</code> AND <code>action startswith "agent."</code></td><td><span class="pill note">agent</span></td></tr>
+      <tr><td><code>service == "lambda"</code> AND (<code>procedure != ""</code> OR <code>action == "trpc.call.start"</code>)</td><td><span class="pill note">trpc</span></td></tr>
+      <tr><td>everything else</td><td><span class="pill note">lambda</span> (catch-all)</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:10px;">After live, spot-check the catch-all distribution and refine if needed.</p>
+</section>
+
+<section>
+  <h2>Layout — 4 rows, 12-col grid</h2>
+  <div class="mock">
+    <div class="row r1">
+      <div class="tile"><div class="tile-label">bot · err %</div><div class="tile-num">0.4%</div></div>
+      <div class="tile"><div class="tile-label">lambda · err %</div><div class="tile-num">0.0%</div></div>
+      <div class="tile"><div class="tile-label">trpc · err %</div><div class="tile-num">1.2%</div></div>
+      <div class="tile"><div class="tile-label">agent · err %</div><div class="tile-num">0.0%</div></div>
+    </div>
+    <div class="row r1">
+      <div class="tile"><div class="tile-label">bot · Δ7d</div><div class="tile-num">+8%</div></div>
+      <div class="tile"><div class="tile-label">lambda · Δ7d</div><div class="tile-num">-3%</div></div>
+      <div class="tile"><div class="tile-label">trpc · Δ7d</div><div class="tile-num">+22%</div></div>
+      <div class="tile"><div class="tile-label">agent · Δ7d</div><div class="tile-num">—</div></div>
+    </div>
+    <div class="row r2">
+      <div class="tile tall"><div class="tile-label">Volume by surface — stacked area</div></div>
+      <div class="tile tall"><div class="tile-label">Error rate % by surface — line</div></div>
+    </div>
+    <div class="row r3">
+      <div class="tile tall"><div class="tile-label">Top erroring actions — horizontal bar</div></div>
+      <div class="tile tall"><div class="tile-label">Lambda action-prefix — stacked bar</div></div>
+    </div>
+    <div class="row r4">
+      <div class="tile taller"><div class="tile-label">Fatal log tail — level &gt;= 50, last 100</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Headline pills</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Error rate</h3>
+      <p><span class="pill ok">green</span> &lt; 1%</p>
+      <p><span class="pill warn">yellow</span> 1–5%</p>
+      <p><span class="pill bad">red</span> ≥ 5%</p>
+    </div>
+    <div class="card">
+      <h3>Traffic Δ vs 7d ago</h3>
+      <p><span class="pill ok">green</span> within ±25%</p>
+      <p><span class="pill warn">yellow</span> ±25–50%</p>
+      <p><span class="pill bad">red</span> &gt; ±50%</p>
+      <p class="muted">Null prior traffic → <code>—</code></p>
+    </div>
+  </div>
+  <p class="callout">Catches both failure modes: error spikes (rate) <em>and</em> silent failures where traffic drops to zero (delta).</p>
+</section>
+
+<section>
+  <h2>Reused APL: surface derivation</h2>
+  <div class="flow">| extend surface = case(
+    service == "bot", "bot",
+    service == "lambda" and action startswith "agent.", "agent",
+    service == "lambda" and (isnotempty(procedure) or action == "trpc.call.start"), "trpc",
+    "lambda"
+  )</div>
+  <p class="muted">Repeated across 7 charts. Acceptable day-one duplication; can promote to a saved query later.</p>
+</section>
+
+<section>
+  <h2>Headline pill query</h2>
+  <div class="flow">['bananasplitz']
+| extend surface = case(...)
+| where surface == "bot"
+| summarize total = count(), errors = countif(level &gt;= 50)
+| extend rate = iff(total == 0, 0.0, 100.0 * errors / total)
+| project rate</div>
+  <p>Four copies of this, one per surface. Threshold rules on the Statistic chart drive color.</p>
+</section>
+
+<section>
+  <h2>Time-series queries</h2>
+  <h3>Volume</h3>
+  <div class="flow">['bananasplitz']
+| extend surface = case(...)
+| summarize count() by bin_auto(_time), surface</div>
+  <h3 style="margin-top:14px;">Error rate %</h3>
+  <div class="flow">['bananasplitz']
+| extend surface = case(...)
+| summarize total = count(), errors = countif(level &gt;= 50) by bin_auto(_time), surface
+| extend rate = iff(total == 0, 0.0, 100.0 * errors / total)
+| project _time, surface, rate</div>
+</section>
+
+<section>
+  <h2>Top-N breakdowns</h2>
+  <h3>Top erroring actions</h3>
+  <div class="flow">['bananasplitz']
+| where level &gt;= 50 and isnotempty(action)
+| summarize count() by action
+| top 10 by count_</div>
+  <h3 style="margin-top:14px;">Lambda action-prefix over time</h3>
+  <div class="flow">['bananasplitz']
+| where service == "lambda" and isnotempty(action)
+| extend prefix = case(
+    action startswith "agent.", "agent",
+    action startswith "expense.", "expense",
+    action startswith "group.", "group",
+    action startswith "reconciliation.", "reconciliation",
+    "other"
+  )
+| summarize count() by bin_auto(_time), prefix</div>
+</section>
+
+<section>
+  <h2>Fatal log tail</h2>
+  <div class="flow">['bananasplitz']
+| extend surface = case(...)
+| where level &gt;= 50
+| project _time, surface, action, ['err.message'], chat_id, request_id, ['err.code']
+| sort by _time desc
+| take 100</div>
+  <p class="muted">LogStream chart. Click any row to jump into Axiom's explorer with the request_id pre-filtered.</p>
+</section>
+
+<section>
+  <h2>Edge cases</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Empty window</h3>
+      <p><code>iff(total == 0, 0, …)</code> in every Statistic — no NaN ever.</p>
+    </div>
+    <div class="card">
+      <h3>No prior traffic</h3>
+      <p>Delta displays <code>—</code>, not <code>Infinity</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Surface miscategorization</h3>
+      <p><span class="pill note">lambda</span> is the catch-all. Probe its <code>action</code> distribution post-launch.</p>
+    </div>
+    <div class="card">
+      <h3>Time-window flexibility</h3>
+      <p><code>bin_auto</code> on every time-series — reads at 15m, 24h, and 7d.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <ul class="tight">
+    <li>Open at default 24h, confirm all panels render</li>
+    <li>Per-surface: explorer query matches pill exactly</li>
+    <li>Sum of surface volumes == total event count (no double-count)</li>
+    <li>Re-render cleanly at 15m and 7d</li>
+    <li>Pick a known error window, confirm pill + tail + top-actions all reflect it</li>
+  </ul>
+</section>
+
+<section>
+  <h2>What we deliberately deferred</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Future boards</h3>
+      <ul class="tight">
+        <li>Group-reminder runtime (sends, send_ms, pin failures)</li>
+        <li>Per-procedure tRPC drill-down</li>
+        <li>Latency / p95 board</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Wiring later</h3>
+      <ul class="tight">
+        <li>Deploy markers (emit <code>deploy.complete</code> from GH Actions)</li>
+        <li>Axiom Monitors on pill thresholds</li>
+        <li>Alert → Telegram self-DM</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="title">
+  <h2 style="color: var(--accent);">Ready to plan</h2>
+  <p class="muted">Spec at <code>docs/superpowers/specs/2026-05-12-axiom-service-health-overview-design.md</code></p>
+  <p class="muted">Next: writing-plans → createDashboard via MCP</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  width: 960,
+  height: 720,
+  margin: 0.06,
+  plugins: [ RevealHighlight ]
+});
+</script>
+</body>
+</html>
