@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Caption,
   Cell,
   Info,
   Modal,
   Section,
+  Snackbar,
   Text,
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
   mainButton,
-  popup,
   secondaryButton,
   themeParams,
   useSignal,
@@ -58,6 +58,8 @@ export function CounterpartyBalanceSheet({
   onAfterMutate,
 }: Props) {
   const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
+  const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
+  const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
 
   const settle = trpc.expenseShare.settleAllWithUser.useMutation({
     onSuccess: () => {
@@ -67,20 +69,18 @@ export function CounterpartyBalanceSheet({
     },
     onError: (e) => {
       hapticFeedback.notificationOccurred.ifAvailable("error");
-      popup.open.ifAvailable({
-        message: `Failed to settle debts: ${e.message}`,
-      });
+      showSnackbar(`Failed to settle: ${e.message}`);
     },
   });
 
   const nudge = trpc.expenseShare.nudgeCounterparty.useMutation({
     onSuccess: () => {
       hapticFeedback.notificationOccurred.ifAvailable("success");
-      popup.open.ifAvailable({ message: "Reminder sent." });
+      showSnackbar("Reminder sent 👋");
     },
     onError: (e) => {
       hapticFeedback.notificationOccurred.ifAvailable("error");
-      popup.open.ifAvailable({ message: e.message ?? "Nudge failed" });
+      showSnackbar(e.message ?? "Nudge failed");
     },
   });
 
@@ -118,20 +118,12 @@ export function CounterpartyBalanceSheet({
   );
   const counterpartyPhone = counterpartyUser?.phoneNumber ?? null;
 
-  const handleSettle = useCallback(async () => {
+  // Native button loading state is driven by a useEffect that mirrors
+  // the mutation's isPending — see below. Handlers just kick off the
+  // mutation; haptic + snackbar are handled by mutation callbacks.
+  const handleSettle = useCallback(() => {
     if (!counterparty) return;
-    mainButton.setParams.ifAvailable({
-      isLoaderVisible: true,
-      isEnabled: false,
-    });
-    try {
-      await settle.mutateAsync({ counterpartyUserId: counterparty.userId });
-    } finally {
-      mainButton.setParams.ifAvailable({
-        isLoaderVisible: false,
-        isEnabled: true,
-      });
-    }
+    settle.mutate({ counterpartyUserId: counterparty.userId });
   }, [counterparty, settle]);
 
   const handleNudge = useCallback(() => {
@@ -146,35 +138,28 @@ export function CounterpartyBalanceSheet({
     try {
       await navigator.clipboard.writeText(counterpartyPhone);
       hapticFeedback.notificationOccurred.ifAvailable("success");
-      secondaryButton.setParams.ifAvailable({
-        text: "✅ Copied",
-        isEnabled: false,
-      });
-      setTimeout(() => {
-        secondaryButton.setParams.ifAvailable({
-          text: "Copy Phone No. 📲",
-          isEnabled: true,
-          isLoaderVisible: false,
-        });
-      }, 500);
-    } catch (e) {
+      showSnackbar("Phone number copied 📲");
+    } catch {
       hapticFeedback.notificationOccurred.ifAvailable("error");
-      popup.open.ifAvailable({
-        message: "Failed to copy number to clipboard. Please try again.",
-      });
+      showSnackbar("Failed to copy number");
     }
-  }, [counterpartyPhone]);
+  }, [counterpartyPhone, showSnackbar]);
 
-  // mainButton — Settle All ✅
+  // mainButton — Settle All ✅; loader + disabled mirror settle.isPending
   useEffect(() => {
     if (!open || !counterparty) return;
     mainButton.setParams.ifAvailable({
       isVisible: true,
-      isEnabled: true,
+      isEnabled: !settle.isPending,
+      isLoaderVisible: settle.isPending,
       text: "Settle All ✅",
     });
-    return () => mainButton.setParams.ifAvailable({ isVisible: false });
-  }, [open, counterparty]);
+    return () =>
+      mainButton.setParams.ifAvailable({
+        isVisible: false,
+        isLoaderVisible: false,
+      });
+  }, [open, counterparty, settle.isPending]);
 
   useEffect(() => {
     if (!open || !counterparty) return;
@@ -193,12 +178,14 @@ export function CounterpartyBalanceSheet({
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
         isEnabled: true,
+        isLoaderVisible: false,
         text: "Copy Phone No. 📲",
       });
     } else if (showNudge) {
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
-        isEnabled: true,
+        isEnabled: !nudge.isPending,
+        isLoaderVisible: nudge.isPending,
         text: "Nudge 👋",
       });
     }
@@ -206,8 +193,9 @@ export function CounterpartyBalanceSheet({
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
+        isLoaderVisible: false,
       });
-  }, [showCopyPhone, showNudge]);
+  }, [showCopyPhone, showNudge, nudge.isPending]);
 
   useEffect(() => {
     if (showCopyPhone) {
@@ -321,6 +309,12 @@ export function CounterpartyBalanceSheet({
               merchantName={counterparty.firstName}
             />
           </div>
+        )}
+
+        {snackbar && (
+          <Snackbar duration={3000} onClose={() => setSnackbar(null)}>
+            {snackbar.text}
+          </Snackbar>
         )}
       </div>
     </Modal>
