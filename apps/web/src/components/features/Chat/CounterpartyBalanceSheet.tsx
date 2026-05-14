@@ -36,8 +36,22 @@ interface Counterparty {
   firstName: string;
   lastName: string | null;
   hasStartedBot: boolean;
+  /** epoch ms — null when caller can nudge right now */
+  nudgeCooldownUntil: number | null;
   totalBaseNet: number;
   groups: Group[];
+}
+
+// Compact human-readable countdown — "23h 47m", "47m", "30s".
+function formatCountdown(remainingMs: number): string {
+  if (remainingMs <= 0) return "0s";
+  const totalSec = Math.floor(remainingMs / 1000);
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
 }
 
 interface Props {
@@ -60,6 +74,30 @@ export function CounterpartyBalanceSheet({
   const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
   const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
   const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
+  // Optimistic cooldown override for the just-nudged case (server's
+  // counterparty.nudgeCooldownUntil only updates on next refetch).
+  const [optimisticCooldown, setOptimisticCooldown] = useState<number | null>(
+    null
+  );
+  // Tick once per second so the countdown re-renders when active.
+  const [, setNow] = useState(Date.now());
+  const cooldownUntil = useMemo(() => {
+    const fromServer = counterparty?.nudgeCooldownUntil ?? null;
+    if (optimisticCooldown && fromServer)
+      return Math.max(optimisticCooldown, fromServer);
+    return optimisticCooldown ?? fromServer;
+  }, [optimisticCooldown, counterparty?.nudgeCooldownUntil]);
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    if (cooldownUntil <= Date.now()) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+  // Reset the optimistic value when the sheet closes or counterparty
+  // switches — server value is authoritative on reopen.
+  useEffect(() => {
+    if (!open) setOptimisticCooldown(null);
+  }, [open, counterparty?.userId]);
 
   const settle = trpc.expenseShare.settleAllWithUser.useMutation({
     onSuccess: () => {
@@ -74,9 +112,10 @@ export function CounterpartyBalanceSheet({
   });
 
   const nudge = trpc.expenseShare.nudgeCounterparty.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       hapticFeedback.notificationOccurred.ifAvailable("success");
       showSnackbar("Reminder sent 👋");
+      setOptimisticCooldown(data.nudgeCooldownUntil);
     },
     onError: (e) => {
       hapticFeedback.notificationOccurred.ifAvailable("error");
@@ -87,6 +126,11 @@ export function CounterpartyBalanceSheet({
   const isOwedToUser = (counterparty?.totalBaseNet ?? 0) > 0;
   const isDebtor = !!counterparty && !isOwedToUser; // caller owes counterparty
   const canNudge = !!counterparty && isOwedToUser && counterparty.hasStartedBot;
+  const cooldownRemainingMs =
+    cooldownUntil && cooldownUntil > Date.now()
+      ? cooldownUntil - Date.now()
+      : 0;
+  const isCoolingDown = cooldownRemainingMs > 0;
 
   // Group buckets by chatId — one breakdown cell per chat with currencies
   // stacked right-aligned underneath (receipt-style).
@@ -182,11 +226,14 @@ export function CounterpartyBalanceSheet({
         text: "Copy Phone No. 📲",
       });
     } else if (showNudge) {
+      const text = isCoolingDown
+        ? `Nudge again in ${formatCountdown(cooldownRemainingMs)}`
+        : "Nudge 👋";
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
-        isEnabled: !nudge.isPending,
+        isEnabled: !nudge.isPending && !isCoolingDown,
         isLoaderVisible: nudge.isPending,
-        text: "Nudge 👋",
+        text,
       });
     }
     return () =>
@@ -195,7 +242,13 @@ export function CounterpartyBalanceSheet({
         isEnabled: false,
         isLoaderVisible: false,
       });
-  }, [showCopyPhone, showNudge, nudge.isPending]);
+  }, [
+    showCopyPhone,
+    showNudge,
+    nudge.isPending,
+    isCoolingDown,
+    cooldownRemainingMs,
+  ]);
 
   useEffect(() => {
     if (showCopyPhone) {
