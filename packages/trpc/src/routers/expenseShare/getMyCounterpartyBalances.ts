@@ -10,7 +10,7 @@ import {
 import { convertNativeToBase } from "../../utils/currencyConversion.js";
 import { hasUserStartedBot } from "../../utils/hasUserStartedBot.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
-import { peekTokenResetAt } from "../../utils/rateLimit.js";
+import { getNudgeCooldowns } from "../../utils/nudgeCooldown.js";
 
 const inputSchema = z.object({
   baseCurrency: z
@@ -134,10 +134,15 @@ export async function getMyCounterpartyBalancesHandler(
   });
   const userMap = new Map(users.map((u) => [Number(u.id), u]));
 
-  // Resolve hasStartedBot in parallel
-  const hasBotPairs = await Promise.all(
-    userIds.map(async (uid) => [uid, await hasUserStartedBot(uid, db)] as const)
-  );
+  // Resolve hasStartedBot in parallel + nudge cooldowns in one batch
+  const [hasBotPairs, nudgeCooldownMap] = await Promise.all([
+    Promise.all(
+      userIds.map(
+        async (uid) => [uid, await hasUserStartedBot(uid, db)] as const
+      )
+    ),
+    getNudgeCooldowns(db, args.callerId, userIds),
+  ]);
   const hasBotMap = new Map(hasBotPairs);
 
   // Drop any uid that has no matching User row (deleted between the
@@ -154,13 +159,7 @@ export async function getMyCounterpartyBalancesHandler(
           firstName: u.firstName,
           lastName: u.lastName,
           hasStartedBot: hasBotMap.get(uid) ?? false,
-          // Same key shape used by nudgeCounterparty's takeToken call.
-          // Limit = 1 per 24h, so peek with limit=1 to ask "is the
-          // bucket spent right now?".
-          nudgeCooldownUntil: peekTokenResetAt(
-            `nudge:${args.callerId}:${uid}`,
-            1
-          ),
+          nudgeCooldownUntil: nudgeCooldownMap.get(uid) ?? null,
           totalBaseNet: entry.total,
           groups: entry.groups,
         },

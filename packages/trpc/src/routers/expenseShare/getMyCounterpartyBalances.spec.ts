@@ -38,6 +38,10 @@ const ratesByBase = {
 const mockDb = {
   user: { findUnique: vi.fn(), findMany: vi.fn() },
   chat: { findUnique: vi.fn() },
+  // nudge.findMany is called by getNudgeCooldowns; default to "no
+  // active cooldown for any counterparty" so the tests stay focused
+  // on the balance-aggregation logic.
+  nudge: { findMany: vi.fn().mockResolvedValue([]) },
 } as unknown as PrismaClient;
 
 const deps = {
@@ -53,6 +57,7 @@ describe("getMyCounterpartyBalancesHandler", () => {
       async (base: string) => ratesByBase[base as "USD" | "SGD"]
     );
     (mockDb.user.findUnique as any).mockResolvedValue({ baseCurrency: "SGD" });
+    (mockDb.nudge.findMany as any).mockResolvedValue([]);
     (mockDb.user.findMany as any).mockResolvedValue([
       { id: BigInt(200), firstName: "Sean", lastName: null },
       { id: BigInt(300), firstName: "Bob", lastName: null },
