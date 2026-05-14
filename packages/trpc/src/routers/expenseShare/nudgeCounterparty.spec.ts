@@ -1,0 +1,129 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { PrismaClient } from "@dko/database";
+import { nudgeCounterpartyHandler } from "./nudgeCounterparty.js";
+
+const caller = 100;
+const mockDb = { user: { findUnique: vi.fn() } } as unknown as PrismaClient;
+
+const deps = {
+  getCounterpartyBalances: vi.fn(),
+  sendDm: vi.fn(),
+  getReceiverCooldownUntil: vi.fn(),
+  recordNudgeFor: vi.fn(),
+  getBotUsername: vi.fn().mockResolvedValue("BananaSplitzStgBot"),
+};
+
+const owedFresh = {
+  baseCurrency: "SGD",
+  ratesAsOf: new Date(),
+  counterparties: [
+    {
+      userId: 200,
+      firstName: "Sean",
+      lastName: null,
+      hasStartedBot: true,
+      nudgeCooldownUntil: null,
+      totalBaseNet: 99.42,
+      groups: [
+        {
+          chatId: 1,
+          chatTitle: "Bali",
+          currency: "USD",
+          nativeNet: 40,
+          baseNet: 54.2,
+        },
+      ],
+    },
+  ],
+};
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  (mockDb.user.findUnique as any).mockResolvedValue({
+    firstName: "Bubu",
+    lastName: null,
+  });
+  deps.getBotUsername.mockResolvedValue("BananaSplitzStgBot");
+});
+
+describe("nudgeCounterpartyHandler", () => {
+  it("rate-limits when receiver is within an existing cooldown", async () => {
+    deps.getReceiverCooldownUntil.mockResolvedValue(Date.now() + 1000);
+    await expect(
+      nudgeCounterpartyHandler(
+        { callerId: caller, counterpartyUserId: 200 },
+        mockDb,
+        deps
+      )
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    expect(deps.sendDm).not.toHaveBeenCalled();
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
+  });
+
+  it("rejects when caller is not net-owed by counterparty", async () => {
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
+    deps.getCounterpartyBalances.mockResolvedValue({
+      baseCurrency: "SGD",
+      ratesAsOf: new Date(),
+      counterparties: [{ ...owedFresh.counterparties[0], totalBaseNet: -10 }],
+    });
+    await expect(
+      nudgeCounterpartyHandler(
+        { callerId: caller, counterpartyUserId: 200 },
+        mockDb,
+        deps
+      )
+    ).rejects.toThrow(/nothing.*nudge/i);
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
+  });
+
+  it("rejects when counterparty has not started the bot", async () => {
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
+    deps.getCounterpartyBalances.mockResolvedValue({
+      baseCurrency: "SGD",
+      ratesAsOf: new Date(),
+      counterparties: [
+        { ...owedFresh.counterparties[0], hasStartedBot: false },
+      ],
+    });
+    await expect(
+      nudgeCounterpartyHandler(
+        { callerId: caller, counterpartyUserId: 200 },
+        mockDb,
+        deps
+      )
+    ).rejects.toThrow(/bot/i);
+    expect(deps.recordNudgeFor).not.toHaveBeenCalled();
+  });
+
+  it("sends DM, records nudge, and returns the cooldown on happy path", async () => {
+    const expectedExpiry = Date.now() + 86_400_000;
+    deps.getReceiverCooldownUntil.mockResolvedValue(null);
+    deps.recordNudgeFor.mockResolvedValue(expectedExpiry);
+    deps.getCounterpartyBalances.mockResolvedValue(owedFresh);
+    const result = await nudgeCounterpartyHandler(
+      { callerId: caller, counterpartyUserId: 200 },
+      mockDb,
+      deps
+    );
+    expect(deps.getReceiverCooldownUntil).toHaveBeenCalledWith(200);
+    expect(deps.sendDm).toHaveBeenCalledWith(
+      200,
+      expect.stringContaining("Bubu"),
+      expect.objectContaining({
+        inline_keyboard: [
+          [
+            expect.objectContaining({
+              text: "💁 Open Balances",
+              url: expect.stringMatching(
+                /^https:\/\/t\.me\/BananaSplitzStgBot\?startapp=v1_p_/
+              ),
+            }),
+          ],
+        ],
+      })
+    );
+    expect(deps.recordNudgeFor).toHaveBeenCalledWith(200);
+    expect(result.nudgeCooldownUntil).toBe(expectedExpiry);
+  });
+});

@@ -1,5 +1,5 @@
 # Run lint-staged for formatting
-npx lint-staged
+npx lint-staged --allow-empty
 
 # Run linting on all projects (with potential auto-fix)
 pnpm run lint

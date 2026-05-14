@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=960, initial-scale=1">
+<title>Cross-Group Balances — Design</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+<style>
+  :root { --pos:#4ade80; --neg:#f87171; --warn:#fbbf24; --muted:#9ca3af; --card:#18181b; --line:#2a2a2c; }
+  .reveal { font-size: 30px; }
+  .reveal h1, .reveal h2, .reveal h3 { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .reveal h2 { font-size: 1.6em; margin-bottom: 0.6em; }
+  .reveal h3 { font-size: 1.1em; color: #c8c8cd; }
+  .reveal p { line-height: 1.45; }
+  .reveal ul { display: block; }
+  .reveal li { margin: 0.25em 0; }
+  .pill {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 0.55em; font-weight: 600; vertical-align: middle;
+    margin-right: 4px;
+  }
+  .pill.ok { background:#163b29; color: var(--pos); }
+  .pill.bad { background:#3b1616; color: var(--neg); }
+  .pill.warn { background:#3b2d10; color: var(--warn); }
+  .pill.note { background:#1f2a37; color:#93c5fd; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+  .card {
+    background: var(--card); border:1px solid var(--line);
+    border-radius: 14px; padding: 14px 16px; font-size: 0.7em;
+    text-align: left;
+  }
+  .card h4 { margin: 0 0 6px; font-size: 0.95em; color:#e8e8ea; }
+  .card p { margin: 4px 0; font-size: 0.95em; color:#cfcfd3; line-height: 1.4; }
+  .mock {
+    background:#0f0f10; border:1px solid var(--line); border-radius:14px;
+    padding:12px; font-size: 0.55em; text-align:left; color:#e8e8ea;
+  }
+  .mock .row { display:flex; justify-content:space-between; padding:6px 4px; border-bottom:1px dashed var(--line); }
+  .mock .row:last-child { border-bottom:none; }
+  .mock .summary { background:linear-gradient(135deg,#1f2933,#111418); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .mock .label { color: var(--muted); font-size: 0.85em; text-transform: uppercase; letter-spacing:.5px; }
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--neg); font-weight: 600; }
+  .muted { color: var(--muted); }
+  pre { font-size: 0.55em !important; }
+  code { font-size: 0.95em; }
+  .reveal table { font-size: 0.65em; }
+  .reveal table th { background:#1f2933; color:#e8e8ea; padding: 8px 10px; }
+  .reveal table td { padding: 6px 10px; border-top: 1px solid var(--line); }
+  .footnote { color: var(--muted); font-size: 0.55em; margin-top: 10px; }
+  @media (max-width: 700px) {
+    .reveal { font-size: 24px; }
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <h1 style="font-size:1.4em;">Cross-Group Balances</h1>
+  <p class="muted">Person-first view in the personal-chat TMA</p>
+  <p style="margin-top:1.5em;">
+    <span class="pill note">Design · 2026-05-13</span>
+    <span class="pill warn">v1 spec</span>
+  </p>
+  <p class="footnote">bubu (@bubuding0809)</p>
+</section>
+
+<section>
+  <h2>The problem</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>Today</h4>
+      <p>Balances live inside each group. 5 groups = 5 places to check.</p>
+      <p>Author manages it via CLI + an agent. <span class="pill bad">not portable</span></p>
+      <p>Personal-chat "Groups" tab is a stub: <code>UserBalancesTab.tsx</code></p>
+    </div>
+    <div class="card">
+      <h4>What users want</h4>
+      <p>"How much does <b>this person</b> owe me, total, across every group we share?"</p>
+      <p>"One transfer to clear it all."</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Goals · non-goals</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>v1 goals</h4>
+      <ul>
+        <li>One signed number per counterparty in user's base currency</li>
+        <li>Drill-down per (group, currency)</li>
+        <li>One-tap full settle, native currency, all buckets</li>
+        <li>Nudge via bot DM · settle notification via bot DM</li>
+        <li>CLI parity</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Not in v1</h4>
+      <ul>
+        <li>Partial settle (per-group screens still do this)</li>
+        <li><code>CrossGroupSettlement</code> parent record</li>
+        <li>Rate snapshots — conversion is <b>live</b></li>
+        <li>External-payment notes</li>
+        <li>Bulk multi-counterparty settle</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Mental model</h2>
+  <div class="grid2">
+    <div>
+      <p>Top-level list = <b>people</b> with non-zero open balance across all shared groups.</p>
+      <p>Each row = one signed amount in user's base currency.</p>
+      <p>Tap row → bottom sheet with per-(group, currency) breakdown + actions.</p>
+      <p class="footnote">Sorted by |totalBaseNet| desc. Empty state when no balances.</p>
+    </div>
+    <div class="mock">
+      <div class="summary">
+        <div class="label">Net across all groups</div>
+        <div class="row"><span class="pos">+ S$182.50 owed to you</span></div>
+        <div class="row"><span class="neg">− S$ 45.00 you owe</span></div>
+      </div>
+      <div class="row"><span>Sean · 3 groups</span><span class="pos">+S$99.42 ▸</span></div>
+      <div class="row"><span>Alice · 2 groups</span><span class="pos">+S$83.08 ▸</span></div>
+      <div class="row"><span>Charlie · Bali Trip</span><span class="neg">−S$45.00 ▸</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Counterparty sheet</h2>
+  <div class="grid2">
+    <div class="mock">
+      <div class="label">Sean owes you ≈ S$99.42</div>
+      <div class="row"><span>Bali Trip · $40.00 USD</span><span class="pos">≈ S$54.20</span></div>
+      <div class="row"><span>Dinner Club · A$30.00</span><span class="pos">≈ S$26.30</span></div>
+      <div class="row"><span>Roommates · ¥100.00</span><span class="pos">≈ S$18.92</span></div>
+      <div class="row muted"><span>Rate as of 2026-05-13 14:22</span></div>
+      <div class="row"><span><span class="pill note">Nudge Sean</span></span><span><span class="pill ok">Mark all settled</span></span></div>
+    </div>
+    <div class="card">
+      <h4>Behaviour</h4>
+      <p>Each line keeps its <b>own direction</b> — Sean can owe in Bali but you can owe in Dinner. Aggregate is the net.</p>
+      <p><b>Settle confirm</b> recomputes the SGD total at tap time (live rate may have shifted vs. when the sheet opened).</p>
+      <p><b>Nudge</b> disabled if counterparty hasn't started the bot, or within 24h cooldown.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Data model</h2>
+  <p>One schema change. No new tables.</p>
+  <pre><code class="hljs prisma">model User {
+  // …existing fields
+  baseCurrency String @default("SGD") // ISO 4217
+}</code></pre>
+  <ul>
+    <li>Default backfilled in migration</li>
+    <li>Validated against existing <code>CURRENCY_DATABASE</code></li>
+    <li><code>Settlement</code> rows stay per-chat, native currency — no parent</li>
+  </ul>
+</section>
+
+<section>
+  <h2>FX — reuse existing</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>Already in repo</h4>
+      <ul>
+        <li><code>currencyApi.ts</code> · fxratesapi.com</li>
+        <li><code>fetchExchangeRates</code> · <code>getExchangeRate</code> (USD pivot)</li>
+        <li><code>currency.getMultipleRates</code> tRPC router with TTL cache</li>
+        <li><code>CURRENCY_DATABASE</code> · symbols, decimals, validation</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>How we use it</h4>
+      <p>New balances procedure calls <code>getMultipleRates</code> <b>once per request</b>, then converts all (chat, currency) buckets in memory.</p>
+      <p>TTL inherited from <code>CURRENCY_CACHE_TTL</code>.</p>
+      <p><span class="pill ok">No new FX util</span></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>tRPC procedures</h2>
+  <table>
+    <thead><tr><th>Procedure</th><th>Input</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>getMyCounterpartyBalances</code></td>
+        <td>{ baseCurrency? }</td>
+        <td>counterparties[] with groups[], totalBaseNet</td>
+      </tr>
+      <tr>
+        <td><code>settleAllWithUser</code></td>
+        <td>{ counterpartyUserId }</td>
+        <td>post-settle balance (empty)</td>
+      </tr>
+      <tr>
+        <td><code>nudgeCounterparty</code></td>
+        <td>{ counterpartyUserId }</td>
+        <td>ok / errors</td>
+      </tr>
+      <tr>
+        <td><code>updateBaseCurrency</code></td>
+        <td>{ baseCurrency }</td>
+        <td>updated user</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="footnote">All wrap or extend existing utilities. <code>getMyBalancesAcrossChats</code> + <code>debtSimplificationEnabled</code> handled inside.</p>
+</section>
+
+<section>
+  <h2>Settle flow</h2>
+  <ol style="font-size: 0.8em;">
+    <li>Recompute balance from DB inside transaction (never trust client).</li>
+    <li>For each non-zero (chatId, currency) bucket → one <code>Settlement</code> row in native currency, correct direction.</li>
+    <li>Best-effort bot DM to counterparty:
+      <pre><code>"Bubu just settled with you across 3 groups.
+Approx S$99.42. Bali: $40.00 USD · Dinner: A$30.00 · Roommates: ¥100.00."</code></pre>
+    </li>
+    <li>Return refreshed (zero) balance.</li>
+  </ol>
+  <p class="footnote"><span class="pill ok">per-group ledgers stay perfectly accurate</span> — settlement is always in native amount.</p>
+</section>
+
+<section>
+  <h2>Nudge flow</h2>
+  <ol style="font-size: 0.8em;">
+    <li>Rate-limit check: Redis key <code>nudge:&lt;a&gt;:&lt;b&gt;</code> · TTL 86400s. <span class="pill warn">24h</span></li>
+    <li>Recompute live balance. Bail if caller not net-owed.</li>
+    <li>Best-effort bot DM to debtor:
+      <pre><code>"Bubu is awaiting settlement.
+You owe ≈ S$99.42 across 3 groups."</code></pre>
+    </li>
+    <li>If debtor hasn't started bot → <code>COUNTERPARTY_BOT_NOT_STARTED</code> (UI pre-disables button).</li>
+    <li>Set Redis key with 24h TTL on success.</li>
+  </ol>
+  <p class="footnote">Nudge is UI-only — intentionally not exposed via CLI.</p>
+</section>
+
+<section>
+  <h2>CLI parity</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>New commands · <code>apps/cli/src/commands/me.ts</code></h4>
+      <ul>
+        <li><code>me list-counterparty-balances [--base SGD]</code></li>
+        <li><code>me settle-all-with --user &lt;id&gt; [--yes]</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>CLI change discipline</h4>
+      <ul>
+        <li>version bump in <code>apps/cli/package.json</code></li>
+        <li>SKILL.md updated with both commands</li>
+        <li>CHANGELOG entry</li>
+        <li>All in the same commit — gated by PR check</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Edge cases</h2>
+  <table>
+    <tbody>
+      <tr><td>FX API down, no cache</td><td>native amounts only · banner</td></tr>
+      <tr><td>Mixed direction (owe + owed same person)</td><td>each bucket settles in its real direction</td></tr>
+      <tr><td>Counterparty hasn't started bot</td><td>nudge disabled · settle DM silently skipped</td></tr>
+      <tr><td>Rate moves between sheet open and confirm</td><td>recompute at confirm; native settlement unaffected</td></tr>
+      <tr><td>Concurrent expense before settle</td><td>tx recomputes from DB — always correct</td></tr>
+      <tr><td>Currency not in DB</td><td>omit from sum, inline warning</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Acceptance</h2>
+  <ul>
+    <li>3+ groups, mixed currencies → one row per counterparty, signed SGD total, sorted by magnitude.</li>
+    <li>Tap → per-(group, currency) breakdown + rate timestamp.</li>
+    <li>Mark all settled → one <code>Settlement</code> per non-zero bucket, native, correct direction, counterparty disappears.</li>
+    <li>Counterparty receives one bot DM summarizing.</li>
+    <li>Nudge sends DM · 2nd within 24h returns rate-limit + button shows countdown.</li>
+    <li>Base currency persists across sessions; in-view picker is a session override.</li>
+    <li>CLI parity verified.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Open questions · next</h2>
+  <ul>
+    <li><b>Tab label</b> — keep "Groups" or rename "Balances"? — decide during impl review.</li>
+  </ul>
+  <p style="margin-top: 1.5em;"><span class="pill ok">Spec ready</span> → implementation plan next.</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true, slideNumber: 'c/t', controls: true, progress: true,
+    width: 960, height: 720, margin: 0.04,
+    plugins: [ RevealHighlight ]
+  });
+</script>
+</body>
+</html>

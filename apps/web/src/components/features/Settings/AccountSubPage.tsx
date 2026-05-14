@@ -19,6 +19,7 @@ import {
 import { Phone, X } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { useRequestContact } from "@/hooks";
+import BaseCurrencyField from "./BaseCurrencyField";
 import IconSquare from "./IconSquare";
 
 interface AccountSubPageProps {
@@ -153,6 +154,13 @@ export default function AccountSubPage({ chatId }: AccountSubPageProps) {
           </ButtonCell>
         )}
       </Section>
+
+      {userId !== 0 && userData?.baseCurrency && (
+        <BaseCurrencyField
+          userId={userId}
+          currentBaseCurrency={userData.baseCurrency}
+        />
+      )}
 
       {!isSupported && !userData?.phoneNumber && (
         <Section>

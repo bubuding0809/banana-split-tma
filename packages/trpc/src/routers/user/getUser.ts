@@ -12,6 +12,7 @@ export const outputSchema = z.object({
   username: z.string().nullable(),
   phoneNumber: z.string().nullable(),
   phoneNumberRequested: z.boolean(),
+  baseCurrency: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

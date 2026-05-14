@@ -5,14 +5,14 @@ import { decodeV1DeepLink } from "@dko/trpc/src/utils/deepLinkProtocol";
 const startParamSchema = z.object({
   chat_id: z.union([z.number(), z.string()]).optional(),
   chat_type: z.string().optional(),
-  entity_type: z.enum(["s", "e", "p"]).optional(),
+  entity_type: z.enum(["s", "e", "p", "c"]).optional(),
   entity_id: z.string().uuid().optional(),
 });
 
 export type StartParams = {
   chat_id?: number;
   chat_type?: string;
-  entity_type?: "s" | "e" | "p";
+  entity_type?: "s" | "e" | "p" | "c";
   entity_id?: string;
 };
 

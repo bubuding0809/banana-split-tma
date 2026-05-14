@@ -32,7 +32,11 @@ const routeApi = getRouteApi("/_tma/chat/");
 
 const UserPage = () => {
   // * Hooks =======================================================================================
-  const { selectedTab, categoryFilters = [] } = routeApi.useSearch();
+  const {
+    selectedTab,
+    categoryFilters = [],
+    openCounterpartyId,
+  } = routeApi.useSearch();
   const tabNavigate = routeApi.useNavigate();
   const navigate = useNavigate();
   const tUserData = useSignal(initData.user);
@@ -73,6 +77,10 @@ const UserPage = () => {
       { chatId: userId },
       { enabled: userId > 0 }
     );
+  const { data: meData } = trpc.user.getUser.useQuery(
+    { userId },
+    { enabled: userId > 0 }
+  );
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -275,7 +283,7 @@ const UserPage = () => {
               <div className="flex items-center justify-center gap-1">
                 <Users size={16} />
                 <Text weight={selectedTab === "groups" ? "2" : "3"}>
-                  Groups
+                  People
                 </Text>
               </div>
             </TabsList.Item>
@@ -309,7 +317,12 @@ const UserPage = () => {
             height: `calc(100vh - ${headerRefReal.current?.offsetHeight ?? 0}px - ${tabListRef.current?.offsetHeight ?? 0}px)`,
           }}
         >
-          {selectedTab === "groups" && <UserBalancesTab />}
+          {selectedTab === "groups" && meData && (
+            <UserBalancesTab
+              initialBaseCurrency={meData.baseCurrency}
+              autoOpenCounterpartyId={openCounterpartyId}
+            />
+          )}
           {selectedTab === "personal" && (
             <ChatTransactionTab
               ref={chatTransactionTabRef}
