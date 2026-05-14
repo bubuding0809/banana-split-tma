@@ -20,6 +20,7 @@ const outputSchema = z.array(
     updatedAt: z.date(),
     phoneNumber: z.string().nullable(),
     phoneNumberRequested: z.boolean(),
+    baseCurrency: z.string(),
     balances: z.array(
       z.object({
         currency: z.string(),
