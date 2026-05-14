@@ -42,16 +42,26 @@ interface Counterparty {
   groups: Group[];
 }
 
-// Compact human-readable countdown — "23h 47m", "47m", "30s".
-function formatCountdown(remainingMs: number): string {
-  if (remainingMs <= 0) return "0s";
+// HH:MM:SS clock — used for the live countdown on the secondary button.
+function formatHms(remainingMs: number): string {
+  if (remainingMs <= 0) return "00:00:00";
   const totalSec = Math.floor(remainingMs / 1000);
   const hours = Math.floor(totalSec / 3600);
   const minutes = Math.floor((totalSec % 3600) / 60);
   const seconds = totalSec % 60;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${seconds}s`;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+// Friendlier hours-and-minutes phrasing for the cooldown snackbar.
+function formatHumanHm(remainingMs: number): string {
+  if (remainingMs <= 0) return "0 minutes";
+  const totalMin = Math.ceil(remainingMs / 60_000);
+  const hours = Math.floor(totalMin / 60);
+  const minutes = totalMin % 60;
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
 }
 
 interface Props {
@@ -72,6 +82,9 @@ export function CounterpartyBalanceSheet({
   onAfterMutate,
 }: Props) {
   const tSubtitleColor = useSignal(themeParams.subtitleTextColor);
+  const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
+  const tButtonColor = useSignal(themeParams.buttonColor);
+  const tButtonTextColor = useSignal(themeParams.buttonTextColor);
   const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
   const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
   // Optimistic cooldown override for the just-nudged case (server's
@@ -179,9 +192,17 @@ export function CounterpartyBalanceSheet({
 
   const handleNudge = useCallback(() => {
     if (!counterparty) return;
+    // Mid-cooldown taps explain the wait via snackbar instead of
+    // firing the mutation (which would 429 anyway).
+    if (cooldownUntil && cooldownUntil > Date.now()) {
+      hapticFeedback.notificationOccurred.ifAvailable("warning");
+      const remaining = cooldownUntil - Date.now();
+      showSnackbar(`Already nudged · try again in ${formatHumanHm(remaining)}`);
+      return;
+    }
     hapticFeedback.impactOccurred.ifAvailable("light");
     nudge.mutate({ counterpartyUserId: counterparty.userId });
-  }, [counterparty, nudge]);
+  }, [counterparty, nudge, cooldownUntil, showSnackbar]);
 
   const handleCopyPhone = useCallback(async () => {
     if (!counterpartyPhone) return;
@@ -224,10 +245,16 @@ export function CounterpartyBalanceSheet({
   const showCopyPhone = !!(open && isDebtor && counterpartyPhone);
   const showNudge = !!(open && canNudge);
 
-  // Visibility / enabled / pending — only fires on the booleans that
-  // actually change those flags. cooldownRemainingMs is intentionally
-  // NOT in the deps so the 1Hz countdown tick doesn't bounce the
-  // button (cleanup hide → re-show flicker).
+  // Visibility / enabled / colour / pending — only fires on the
+  // booleans + theme signals that actually change those flags.
+  // cooldownRemainingMs is intentionally NOT in the deps so the 1Hz
+  // countdown tick doesn't bounce the button (cleanup → re-show
+  // flicker). The countdown text is updated imperatively below.
+  //
+  // During cooldown: button stays ENABLED (so the user can tap and
+  // see the explanatory snackbar) but renders with muted theme colours
+  // to read as "not active". handleNudge gates on cooldown and
+  // short-circuits to the snackbar instead of mutating.
   useEffect(() => {
     if (showCopyPhone) {
       secondaryButton.setParams.ifAvailable({
@@ -239,11 +266,20 @@ export function CounterpartyBalanceSheet({
     } else if (showNudge) {
       secondaryButton.setParams.ifAvailable({
         isVisible: true,
-        isEnabled: !nudge.isPending && !isCoolingDown,
+        isEnabled: !nudge.isPending,
         isLoaderVisible: nudge.isPending,
         text: isCoolingDown
-          ? `Nudge again in ${formatCountdown(cooldownRemainingMs)}`
+          ? `⏳ ${formatHms(cooldownRemainingMs)}`
           : "Nudge 👋",
+        // Always pass colours — setParams is a patch and omitted keys
+        // stick at their previous value, so the cooldown→ready
+        // transition needs the explicit reset to default button theme.
+        backgroundColor: (isCoolingDown ? tSecondaryBgColor : tButtonColor) as
+          | `#${string}`
+          | undefined,
+        textColor: (isCoolingDown ? tSubtitleColor : tButtonTextColor) as
+          | `#${string}`
+          | undefined,
       });
     }
     return () =>
@@ -253,14 +289,23 @@ export function CounterpartyBalanceSheet({
         isLoaderVisible: false,
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showCopyPhone, showNudge, nudge.isPending, isCoolingDown]);
+  }, [
+    showCopyPhone,
+    showNudge,
+    nudge.isPending,
+    isCoolingDown,
+    tSecondaryBgColor,
+    tSubtitleColor,
+    tButtonColor,
+    tButtonTextColor,
+  ]);
 
   // Live text-only tick while cooling down. Imperative — never runs
   // the visibility cleanup, so no flicker.
   useEffect(() => {
     if (!showNudge || !isCoolingDown) return;
     secondaryButton.setParams.ifAvailable({
-      text: `Nudge again in ${formatCountdown(cooldownRemainingMs)}`,
+      text: `⏳ ${formatHms(cooldownRemainingMs)}`,
     });
   }, [showNudge, isCoolingDown, cooldownRemainingMs]);
 
