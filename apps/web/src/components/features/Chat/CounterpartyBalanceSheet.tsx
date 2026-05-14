@@ -88,9 +88,15 @@ export function CounterpartyBalanceSheet({
     return optimisticCooldown ?? fromServer;
   }, [optimisticCooldown, counterparty?.nudgeCooldownUntil]);
   useEffect(() => {
-    if (!cooldownUntil) return;
-    if (cooldownUntil <= Date.now()) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    if (!cooldownUntil || cooldownUntil <= Date.now()) return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      if (now >= cooldownUntil) {
+        clearInterval(id);
+        return;
+      }
+      setNow(now);
+    }, 1000);
     return () => clearInterval(id);
   }, [cooldownUntil]);
   // Reset the optimistic value when the sheet closes or counterparty
