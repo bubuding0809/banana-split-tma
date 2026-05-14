@@ -19,7 +19,11 @@ export type InlineKb = {
 const NUDGE_WINDOW_MS = 86_400_000; // 24h
 
 const inputSchema = z.object({ counterpartyUserId: z.number() });
-const outputSchema = z.object({ ok: z.literal(true) });
+const outputSchema = z.object({
+  ok: z.literal(true),
+  // Epoch ms when the next nudge to this counterparty is allowed.
+  nudgeCooldownUntil: z.number(),
+});
 
 export interface Deps {
   getCounterpartyBalances: typeof getMyCounterpartyBalancesHandler;
@@ -125,7 +129,10 @@ export async function nudgeCounterpartyHandler(
   }
 
   await deps.sendDm(args.counterpartyUserId, caption, replyMarkup);
-  return { ok: true as const };
+  return {
+    ok: true as const,
+    nudgeCooldownUntil: Date.now() + NUDGE_WINDOW_MS,
+  };
 }
 
 export default protectedProcedure

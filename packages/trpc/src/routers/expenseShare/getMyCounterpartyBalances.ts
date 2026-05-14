@@ -10,6 +10,7 @@ import {
 import { convertNativeToBase } from "../../utils/currencyConversion.js";
 import { hasUserStartedBot } from "../../utils/hasUserStartedBot.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
+import { peekTokenResetAt } from "../../utils/rateLimit.js";
 
 const inputSchema = z.object({
   baseCurrency: z
@@ -28,6 +29,10 @@ const outputSchema = z.object({
       firstName: z.string(),
       lastName: z.string().nullable(),
       hasStartedBot: z.boolean(),
+      // Epoch ms when the caller can next nudge this counterparty, or
+      // null if not currently rate-limited. Frontend uses this to drive
+      // the "Nudge again in Xh Ym" countdown.
+      nudgeCooldownUntil: z.number().nullable(),
       totalBaseNet: z.number(),
       groups: z.array(
         z.object({
@@ -149,6 +154,13 @@ export async function getMyCounterpartyBalancesHandler(
           firstName: u.firstName,
           lastName: u.lastName,
           hasStartedBot: hasBotMap.get(uid) ?? false,
+          // Same key shape used by nudgeCounterparty's takeToken call.
+          // Limit = 1 per 24h, so peek with limit=1 to ask "is the
+          // bucket spent right now?".
+          nudgeCooldownUntil: peekTokenResetAt(
+            `nudge:${args.callerId}:${uid}`,
+            1
+          ),
           totalBaseNet: entry.total,
           groups: entry.groups,
         },
