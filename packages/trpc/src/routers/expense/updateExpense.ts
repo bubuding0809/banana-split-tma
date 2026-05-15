@@ -616,6 +616,8 @@ export const updateExpenseHandler = async (
                   categoryEmoji,
                   categoryTitle,
                   changedFields,
+                  recurringTemplateId:
+                    existingExpense.recurringTemplateId ?? null,
                   threadId,
                 },
                 teleBot,
