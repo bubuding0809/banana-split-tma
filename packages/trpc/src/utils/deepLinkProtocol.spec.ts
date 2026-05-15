@@ -122,4 +122,20 @@ describe("Deep Link Protocol v1", () => {
     // Random garbage
     expect(decodeV1DeepLink("not_a_payload")).toBeNull();
   });
+
+  it("encodes and decodes 'rt' (recurring template) entity round-trip", () => {
+    const chatId = BigInt(-1001234567890);
+    const chatType = "g";
+    const entityType = "rt";
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+    const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
+    expect(encoded).toMatch(/^v1_g_[A-Za-z0-9-]+_rt_[A-Za-z0-9]+$/);
+    const decoded = decodeV1DeepLink(encoded);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+      entity_type: "rt",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+  });
 });

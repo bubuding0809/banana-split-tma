@@ -10,7 +10,7 @@ export interface DecodedDeepLink {
 export function encodeV1DeepLink(
   chatId: bigint,
   chatType: string,
-  entityType?: "s" | "e" | "p" | "c",
+  entityType?: "s" | "e" | "p" | "c" | "rt",
   entityId?: string
 ): string {
   // Use absolute value for chat ID to avoid negative sign in base62
