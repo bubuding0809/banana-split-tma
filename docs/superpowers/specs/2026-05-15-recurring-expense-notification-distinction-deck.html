@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=960, initial-scale=1">
+<title>Recurring Expense Notification Distinction — Design</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+<style>
+  :root { --pos:#4ade80; --neg:#f87171; --warn:#fbbf24; --muted:#9ca3af; --card:#18181b; --line:#2a2a2c; --accent:#60a5fa; }
+  .reveal { font-size: 30px; }
+  .reveal h1, .reveal h2, .reveal h3 { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .reveal h2 { font-size: 1.6em; margin-bottom: 0.6em; }
+  .reveal h3 { font-size: 1.05em; color: #c8c8cd; }
+  .reveal p { line-height: 1.45; }
+  .reveal ul { display: block; }
+  .reveal li { margin: 0.25em 0; }
+  .pill {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 0.55em; font-weight: 600; vertical-align: middle;
+    margin-right: 4px;
+  }
+  .pill.ok { background:#163b29; color: var(--pos); }
+  .pill.bad { background:#3b1616; color: var(--neg); }
+  .pill.warn { background:#3b2d10; color: var(--warn); }
+  .pill.note { background:#1f2a37; color:#93c5fd; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+  .card {
+    background: var(--card); border:1px solid var(--line);
+    border-radius: 14px; padding: 14px 16px; font-size: 0.72em;
+    text-align: left;
+  }
+  .card h4 { margin: 0 0 6px; font-size: 0.95em; color:#e8e8ea; }
+  .card p { margin: 4px 0; font-size: 0.95em; color:#cfcfd3; line-height: 1.4; }
+  .tg {
+    background:#0e1418; border:1px solid var(--line); border-radius:14px;
+    padding:14px; font-size: 0.6em; text-align:left; color:#e8e8ea;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  .tg .title { color:#e85a4f; font-weight:700; margin-bottom: 8px; }
+  .tg .receipt {
+    background:#fde2e0; color:#1a1a1a; border-radius:8px; padding:8px 10px;
+    margin: 6px 0; font-size: 0.92em;
+  }
+  .tg .total { font-weight: 600; margin: 8px 0; }
+  .tg .splits { margin: 6px 0; }
+  .tg .split-row { color:#3b82f6; margin: 2px 0; }
+  .tg .quote {
+    border-left: 3px solid var(--accent); padding: 6px 10px; margin: 10px 0 6px;
+    background: rgba(96,165,250,0.08); color:#cfe1ff; font-size: 0.95em;
+  }
+  .tg .btn-row { display:flex; gap:6px; margin-top:10px; }
+  .tg .btn {
+    flex:1; text-align:center; background:#1f6feb; color:white;
+    border-radius:8px; padding:8px; font-size: 0.9em; font-weight:500;
+  }
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--neg); font-weight: 600; }
+  .muted { color: var(--muted); }
+  pre { font-size: 0.55em !important; }
+  code { font-size: 0.95em; }
+  .reveal table { font-size: 0.65em; }
+  .reveal table th { background:#1f2933; color:#e8e8ea; padding: 8px 10px; }
+  .reveal table td { padding: 6px 10px; border-top: 1px solid var(--line); }
+  .footnote { color: var(--muted); font-size: 0.55em; margin-top: 10px; }
+  .arrow {
+    font-size: 2em; color: var(--accent); text-align:center;
+    margin: 0.3em 0;
+  }
+  @media (max-width: 700px) {
+    .reveal { font-size: 24px; }
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <h2>Recurring Expense Notification Distinction</h2>
+  <p class="muted">2026-05-15 · bubu</p>
+  <p><span class="pill note">Design</span> <span class="pill warn">Pending plan</span></p>
+  <p style="font-size:0.7em; margin-top: 1em;">Make auto-fired recurring expenses visually distinct in Telegram group notifications, and link directly to the schedule that produced them.</p>
+</section>
+
+<section>
+  <h2>Problem</h2>
+  <ul>
+    <li>Manual and lambda-fired expense notifications look identical.</li>
+    <li>Members see <code>Broadband · S$39.90</code> in chat with no signal that nobody approved it today.</li>
+    <li><code>View Expense</code> shows the row — but the schedule that fired it is invisible from chat.</li>
+  </ul>
+  <p class="footnote">Surfaced 2026-05-15: two side-by-side notifications — one manual, one auto-fired — indistinguishable to the recipient.</p>
+</section>
+
+<section>
+  <h2>Today</h2>
+  <div class="grid2">
+    <div class="tg">
+      <div class="title">🍌 Banana Splitz</div>
+      <div>🧾 New Expense by 🌸ting</div>
+      <div class="receipt">• fairprice<br>• 🛒 Groceries<br>• Today</div>
+      <div class="total">Total: SGD 32.10</div>
+      <div class="splits">
+        💸 Splits<br>
+        <span class="split-row">├ Ruoqian: SGD 16.05</span><br>
+        <span class="split-row">└ 🌸ting: SGD 16.05</span>
+      </div>
+      <div class="btn-row"><div class="btn">View Expense</div></div>
+      <div class="footnote">manual</div>
+    </div>
+    <div class="tg">
+      <div class="title">🍌 Banana Splitz</div>
+      <div>🧾 New Expense by 🌸ting</div>
+      <div class="receipt">• Broadband<br>• 💡 Utilities<br>• Today</div>
+      <div class="total">Total: SGD 39.90</div>
+      <div class="splits">
+        💸 Splits<br>
+        <span class="split-row">├ Ruoqian: SGD 19.95</span><br>
+        <span class="split-row">└ 🌸ting: SGD 19.95</span>
+      </div>
+      <div class="btn-row"><div class="btn">View Expense</div></div>
+      <div class="footnote">auto-fired — looks identical</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Proposed</h2>
+  <div class="grid2">
+    <div class="tg">
+      <div class="title">🍌 Banana Splitz</div>
+      <div>🧾 New Expense by 🌸ting</div>
+      <div class="receipt">• fairprice<br>• 🛒 Groceries<br>• Today</div>
+      <div class="total">Total: SGD 32.10</div>
+      <div class="splits">
+        💸 Splits<br>
+        <span class="split-row">├ Ruoqian: SGD 16.05</span><br>
+        <span class="split-row">└ 🌸ting: SGD 16.05</span>
+      </div>
+      <div class="btn-row"><div class="btn">View Expense</div></div>
+      <div class="footnote"><span class="pill ok">unchanged</span> manual</div>
+    </div>
+    <div class="tg">
+      <div class="title">🍌 Banana Splitz</div>
+      <div>🧾 New Expense by 🌸ting</div>
+      <div class="receipt">• Broadband<br>• 💡 Utilities<br>• Today</div>
+      <div class="total">Total: SGD 39.90</div>
+      <div class="splits">
+        💸 Splits<br>
+        <span class="split-row">├ Ruoqian: SGD 19.95</span><br>
+        <span class="split-row">└ 🌸ting: SGD 19.95</span>
+      </div>
+      <div class="quote">🔁 Auto-created from a recurring schedule</div>
+      <div class="btn-row">
+        <div class="btn">View Expense</div>
+        <div class="btn">View Schedule</div>
+      </div>
+      <div class="footnote"><span class="pill note">new</span> blockquote + 2nd button</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Trigger flow</h2>
+  <p>Manual and recurring paths converge on one handler — that's the seam.</p>
+<pre><code class="language-text">Manual:    user submit
+        → createExpenseHandler
+        → sendExpenseNotificationMessageHandler   ◀── seam
+
+Recurring: EventBridge Scheduler
+        → RecurringExpenseLambda (HMAC)
+        → POST /recurring-expense-tick
+        → createExpenseHandler  (recurringTemplateId set)
+        → sendExpenseNotificationMessageHandler   ◀── same seam</code></pre>
+  <p class="footnote"><code>Expense.recurringTemplateId</code> non-null ⇒ auto-created. Single source of truth.</p>
+</section>
+
+<section>
+  <h2>Two diffs</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>1 · Blockquote footer</h4>
+      <p>One Telegram <code>&gt;</code> line under the splits, above the keyboard.</p>
+      <p>Plain text — the button carries the action.</p>
+      <p><code>&gt; 🔁 Auto-created from a recurring schedule</code></p>
+    </div>
+    <div class="card">
+      <h4>2 · Second inline button</h4>
+      <p><code>View Schedule</code> side-by-side with <code>View Expense</code>.</p>
+      <p>Same row; Telegram wraps narrow widths automatically.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Deep links</h2>
+  <table>
+    <thead><tr><th>Button</th><th>Entity</th><th>Lands on</th></tr></thead>
+    <tbody>
+      <tr><td>View Expense</td><td><code>e_&lt;expenseId&gt;</code></td><td>Expense detail (existing)</td></tr>
+      <tr><td>View Schedule</td><td><code>rt_&lt;templateId&gt;</code></td><td><code>/chat/$chatId/edit-recurring/$templateId</code></td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:1em;">Add <code>"rt"</code> to <code>encodeV1DeepLink</code> (alongside <code>e</code>, <code>s</code>, <code>p</code>, <code>c</code>) and a matching branch in the TMA start_param parser. Edit-recurring route already exists.</p>
+</section>
+
+<section>
+  <h2>Deep-link discipline</h2>
+  <p><span class="pill bad">load-bearing</span> Encoder is shared by <code>e</code>, <code>s</code>, <code>p</code>, <code>c</code> — counterparty links and snapshot shares depend on it.</p>
+  <ul>
+    <li><strong>TDD.</strong> Lock existing entity round-trips with tests first.</li>
+    <li>Then add a failing <code>rt</code> round-trip test.</li>
+    <li>Then change the encoder — green new test, green old tests.</li>
+    <li>Same for the TMA start_param parser: existing branches locked first.</li>
+    <li>UAT must include taps on a pre-existing View Expense, snapshot share, and counterparty deep link. Any regression = rollback.</li>
+  </ul>
+  <p class="footnote">The new <code>rt</code> entity is additive only. Existing wire format is frozen.</p>
+</section>
+
+<section>
+  <h2>Plumbing</h2>
+  <div class="card">
+    <h4>sendExpenseNotificationMessage.ts</h4>
+    <p>+ <code>recurringTemplateId</code> on input schema.</p>
+    <p>+ blockquote append in <code>formatExpenseMessage</code>.</p>
+    <p>+ 2nd button in keyboard builder.</p>
+  </div>
+  <div class="card" style="margin-top:10px;">
+    <h4>createExpenseHandler</h4>
+    <p>Forward <code>input.recurringTemplateId</code> → notification call. No new state.</p>
+  </div>
+  <div class="card" style="margin-top:10px;">
+    <h4>Edit-expense path</h4>
+    <p>Re-read <code>expense.recurringTemplateId</code> from DB; pass the same way. Footer & button persist across edits naturally.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Data model</h2>
+  <p>No schema change. Every signal already exists.</p>
+  <table>
+    <thead><tr><th>Field</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>Expense.recurringTemplateId</code></td><td>Truthy ⇒ render footer + 2nd button</td></tr>
+      <tr><td><code>RecurringExpenseTemplate.id</code></td><td>Target of <code>View Schedule</code> deep link</td></tr>
+      <tr><td><code>RecurringExpenseTemplate.status</code></td><td>Not consulted — edit screen handles read-only state</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Edge cases</h2>
+  <ul>
+    <li><span class="pill note">deleted template</span> Button still renders; edit-recurring route shows existing not-found state.</li>
+    <li><span class="pill note">edit flow</span> Body is rebuilt each edit — footer reflects current row state.</li>
+    <li><span class="pill note">first occurrence</span> Template's initial materialised expense also gets the footer + button. Desired — flags the row as recurring from day one.</li>
+    <li><span class="pill warn">manual → recurring later</span> No such flow today. If added, next edit-render picks it up automatically.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>UAT</h2>
+  <ul>
+    <li>Create recurring expense → first notification has footer + 2 buttons.</li>
+    <li><code>aws lambda invoke</code> the scheduler → second occurrence's notification matches.</li>
+    <li>Tap <code>View Schedule</code> → lands on edit-recurring screen for correct template.</li>
+    <li>Edit the recurring-origin expense in TMA → updated notification preserves both.</li>
+    <li>Create a manual expense → only one button, no footer (regression check).</li>
+  </ul>
+  <p class="footnote">Manual lambda fire required between create and edit (see <code>feedback_recurring_uat_lambda_fire</code>).</p>
+</section>
+
+<section>
+  <h2>Open questions</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>Button label</h4>
+      <p>View Schedule · Manage Schedule · Edit Schedule.</p>
+      <p>Current pick: <strong>View Schedule</strong> — matches "View Expense" read-first verb.</p>
+    </div>
+    <div class="card">
+      <h4>Footer icon</h4>
+      <p><strong>🔁</strong> — matches lucide's <code>Repeat</code> icon used in <code>RecurringExpenseBadge</code> and <code>RecurrencePickerSheet</code>. Resolved.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Not in scope</h2>
+  <ul>
+    <li>Distinction inside the TMA expense list / snapshots.</li>
+    <li>Pause / cancel / skip controls inside Telegram messages.</li>
+    <li>Separate "your recurring expense fired" DM to template owner.</li>
+    <li>Backfilling historical notifications.</li>
+  </ul>
+  <p class="footnote">Each is a clean follow-up if needed.</p>
+</section>
+
+<section>
+  <h2>Next</h2>
+  <ul>
+    <li>Confirm copy & icon.</li>
+    <li>Write the implementation plan.</li>
+    <li>Implement on <code>feat/recurring-expense-notification-distinction</code>.</li>
+    <li>UAT in test chat with real lambda fire.</li>
+  </ul>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'fade',
+    width: 960,
+    height: 720,
+    margin: 0.06,
+    plugins: [ RevealHighlight ]
+  });
+</script>
+</body>
+</html>

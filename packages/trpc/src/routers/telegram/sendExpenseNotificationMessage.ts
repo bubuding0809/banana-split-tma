@@ -72,6 +72,11 @@ const inputSchema = z.object({
   chatTimezone: z.string().nullish(),
   threadId: z.number().optional(),
   force: z.boolean().default(false),
+  // When set, the expense originated from a recurring template. The
+  // rendered message gets a blockquote footer and the inline keyboard
+  // gains a second "View Schedule" button deep-linked to the template's
+  // edit screen.
+  recurringTemplateId: z.string().uuid().nullish(),
 });
 
 // Exported type for use in other handlers
@@ -105,6 +110,7 @@ export const formatExpenseMessage = (
     isUpdate?: boolean;
     changedFields?: readonly ExpenseChangedField[];
     chatTimezone?: string | null;
+    recurringTemplateId?: string | null;
   }
 ): string => {
   const escapedDescription = escapeMarkdown(expenseDescription, 2);
@@ -165,6 +171,10 @@ export const formatExpenseMessage = (
       : escapedTotal;
   const dateMark = changed.has("date") ? `${dateLabel} ✏️` : dateLabel;
 
+  const recurringFooter = opts?.recurringTemplateId
+    ? "\n\n> 🔁 Auto\\-created from a recurring schedule"
+    : "";
+
   return `${titleLine}
 
 > 📝 • ${mark("description", escapedDescription)}
@@ -173,7 +183,7 @@ ${categoryLine}> 📅 • ${dateMark}
 Total: ${totalMark}
 
 ${splitsHeader}
-${participantList}`;
+${participantList}${recurringFooter}`;
 };
 
 export const sendExpenseNotificationMessageHandler = async (
@@ -218,22 +228,47 @@ export const sendExpenseNotificationMessageHandler = async (
     input.expenseDate,
     input.categoryEmoji,
     input.categoryTitle,
-    { chatTimezone: input.chatTimezone }
+    {
+      chatTimezone: input.chatTimezone,
+      recurringTemplateId: input.recurringTemplateId,
+    }
   );
 
   const botInfo = await teleBot.getMe();
-  const deepLinkPayload = encodeV1DeepLink(
+  const chatTypeCode = input.chatType === "private" ? "p" : "g";
+
+  const viewExpensePayload = encodeV1DeepLink(
     BigInt(input.chatId),
-    input.chatType === "private" ? "p" : "g",
+    chatTypeCode,
     "e",
     input.expenseId
   );
-  const deepLink = createDeepLinkedUrl(
+  const viewExpenseUrl = createDeepLinkedUrl(
     botInfo.username,
-    deepLinkPayload,
+    viewExpensePayload,
     "app"
   );
-  const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
+
+  const buttons: { text: string; url: string }[] = [
+    { text: "View Expense", url: viewExpenseUrl },
+  ];
+
+  if (input.recurringTemplateId) {
+    const viewSchedulePayload = encodeV1DeepLink(
+      BigInt(input.chatId),
+      chatTypeCode,
+      "rt",
+      input.recurringTemplateId
+    );
+    const viewScheduleUrl = createDeepLinkedUrl(
+      botInfo.username,
+      viewSchedulePayload,
+      "app"
+    );
+    buttons.push({ text: "View Schedule", url: viewScheduleUrl });
+  }
+
+  const keyboard = inlineKeyboard(buttons);
 
   // Send the message directly (components are pre-escaped)
   try {

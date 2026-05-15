@@ -12,6 +12,14 @@ vi.mock("@dko/trpc/src/utils/deepLinkProtocol", () => ({
         entity_id: "123e4567-e89b-12d3-a456-426614174000",
       };
     }
+    if (raw === "v1_g_1E2R4w_rt_7N42dgm5tFLK9N8MT7fXbc") {
+      return {
+        chat_id: "-1001234567890",
+        chat_type: "g",
+        entity_type: "rt",
+        entity_id: "123e4567-e89b-12d3-a456-426614174000",
+      };
+    }
     // Simulate bounds check failure for big ints
     if (raw === "v1_g_TOO_BIG") {
       return {
@@ -50,5 +58,15 @@ describe("Frontend Deep Link Parser", () => {
     const result = parseRawParams(v1PayloadTooBig);
     // Entity types and chat id should be deleted since it failed the bounds check
     expect(result).toEqual({ chat_type: "g" });
+  });
+
+  it("parses 'rt' (recurring template) entity from v1 payload", () => {
+    const result = parseRawParams("v1_g_1E2R4w_rt_7N42dgm5tFLK9N8MT7fXbc");
+    expect(result).toEqual({
+      chat_id: -1001234567890,
+      chat_type: "g",
+      entity_type: "rt",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
   });
 });

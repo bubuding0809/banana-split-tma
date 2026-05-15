@@ -36,4 +36,106 @@ describe("Deep Link Protocol v1", () => {
   it("should return null for invalid v1 strings", () => {
     expect(decodeV1DeepLink("v1_g_invalid_format")).toBeNull();
   });
+
+  it("encodes and decodes 'e' (expense) entity round-trip", () => {
+    const chatId = -1001234567890n;
+    const chatType = "g";
+    const entityType = "e";
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+
+    const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
+
+    expect(encoded).toMatch(/^v1_g_/);
+    expect(encoded).toContain("_e_");
+
+    const decoded = decodeV1DeepLink(encoded);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+      entity_type: "e",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+  });
+
+  it("encodes and decodes 'p' (profile) entity round-trip", () => {
+    const chatId = -1001234567890n;
+    const chatType = "p";
+    const entityType = "p";
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+
+    const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
+
+    expect(encoded).toMatch(/^v1_p_/);
+    expect(encoded).toContain("_p_");
+
+    const decoded = decodeV1DeepLink(encoded);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "p",
+      entity_type: "p",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+  });
+
+  it("encodes and decodes 'c' (counterparty) entity round-trip", () => {
+    const chatId = -1001234567890n;
+    const chatType = "g";
+    const entityType = "c";
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+
+    const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
+
+    expect(encoded).toMatch(/^v1_g_/);
+    expect(encoded).toContain("_c_");
+
+    const decoded = decodeV1DeepLink(encoded);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+      entity_type: "c",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+  });
+
+  it("decodes payloads without an entity (chat-only)", () => {
+    const payload = encodeV1DeepLink(BigInt(-1001234567890), "g");
+
+    const decoded = decodeV1DeepLink(payload);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+    });
+    expect(decoded).not.toHaveProperty("entity_type");
+    expect(decoded).not.toHaveProperty("entity_id");
+  });
+
+  it("returns null for malformed payloads", () => {
+    // Missing v1_ prefix
+    expect(decodeV1DeepLink("v2_g_abc")).toBeNull();
+
+    // Wrong segment count (4 segments)
+    expect(decodeV1DeepLink("v1_g_abc_e")).toBeNull();
+
+    // Empty string
+    expect(decodeV1DeepLink("")).toBeNull();
+
+    // Random garbage
+    expect(decodeV1DeepLink("not_a_payload")).toBeNull();
+  });
+
+  it("encodes and decodes 'rt' (recurring template) entity round-trip", () => {
+    const chatId = BigInt(-1001234567890);
+    const chatType = "g";
+    const entityType = "rt";
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+    const encoded = encodeV1DeepLink(chatId, chatType, entityType, entityId);
+    expect(encoded).toMatch(/^v1_g_[A-Za-z0-9-]+_rt_[A-Za-z0-9]+$/);
+    const decoded = decodeV1DeepLink(encoded);
+    expect(decoded).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+      entity_type: "rt",
+      entity_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+  });
 });

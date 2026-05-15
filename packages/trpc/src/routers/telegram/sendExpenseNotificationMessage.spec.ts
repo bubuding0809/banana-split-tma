@@ -218,3 +218,119 @@ describe("formatExpenseMessage — update variant", () => {
     expect(message).toMatch(/🧾 Expense by .+ ✏️/);
   });
 });
+
+describe("formatExpenseMessage — recurring footer", () => {
+  const common = {
+    payerId: 1,
+    payerName: "Alice",
+    description: "Lunch",
+    totalAmount: 20,
+    participants: [
+      { userId: 1, name: "Alice", amount: 10 },
+      { userId: 2, name: "Bob", amount: 10 },
+    ],
+    currency: "SGD",
+    expenseDate: new Date("2026-04-24T00:00:00Z"),
+  };
+
+  it("appends recurring blockquote footer when recurringTemplateId is set", () => {
+    const message = formatExpenseMessage(
+      common.payerId,
+      common.payerName,
+      common.description,
+      common.totalAmount,
+      common.participants,
+      common.currency,
+      common.expenseDate,
+      undefined,
+      undefined,
+      { recurringTemplateId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }
+    );
+    expect(message).toContain("🔁");
+    expect(
+      message.endsWith("\n\n> 🔁 Auto\\-created from a recurring schedule")
+    ).toBe(true);
+  });
+
+  it("does NOT append recurring footer when recurringTemplateId is undefined", () => {
+    const message = formatExpenseMessage(
+      common.payerId,
+      common.payerName,
+      common.description,
+      common.totalAmount,
+      common.participants,
+      common.currency,
+      common.expenseDate
+    );
+    expect(message).not.toContain("🔁");
+  });
+
+  it("does NOT append recurring footer when recurringTemplateId is null", () => {
+    const message = formatExpenseMessage(
+      common.payerId,
+      common.payerName,
+      common.description,
+      common.totalAmount,
+      common.participants,
+      common.currency,
+      common.expenseDate,
+      undefined,
+      undefined,
+      { recurringTemplateId: null }
+    );
+    expect(message).not.toContain("🔁");
+  });
+});
+
+describe("sendExpenseNotificationMessage — recurring keyboard", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTeleBot.getMe.mockResolvedValue({ username: "testbot" });
+    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 99 });
+  });
+
+  it("sends two inline buttons when recurringTemplateId is provided", async () => {
+    await sendExpenseNotificationMessageHandler(
+      {
+        ...baseInput,
+        force: true,
+        recurringTemplateId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      },
+      mockDb,
+      mockTeleBot as any
+    );
+    const call = mockTeleBot.sendMessage.mock.calls[0];
+    if (!call) throw new Error("sendMessage was not called");
+    const extra = call[2] as {
+      reply_markup?: {
+        inline_keyboard: { text: string; url?: string }[][];
+      };
+    };
+    const row = extra?.reply_markup?.inline_keyboard?.[0];
+    expect(row).toHaveLength(2);
+    expect(row?.[0]?.text).toBe("View Expense");
+    expect(row?.[1]?.text).toBe("View Schedule");
+    // View Schedule deep-link uses "rt" entity type
+    expect(row?.[1]?.url).toMatch(
+      /\?startapp=v1_g_[A-Za-z0-9-]+_rt_[A-Za-z0-9]+$/
+    );
+  });
+
+  it("sends only the View Expense button when recurringTemplateId is absent", async () => {
+    await sendExpenseNotificationMessageHandler(
+      { ...baseInput, force: true },
+      mockDb,
+      mockTeleBot as any
+    );
+    const call = mockTeleBot.sendMessage.mock.calls[0];
+    if (!call) throw new Error("sendMessage was not called");
+    const extra = call[2] as {
+      reply_markup?: {
+        inline_keyboard: { text: string; url?: string }[][];
+      };
+    };
+    const row = extra?.reply_markup?.inline_keyboard?.[0];
+    expect(row).toHaveLength(1);
+    expect(row?.[0]?.text).toBe("View Expense");
+  });
+});

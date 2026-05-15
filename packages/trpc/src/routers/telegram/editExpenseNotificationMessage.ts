@@ -35,6 +35,9 @@ interface EditExpenseMessageInput {
   // Fields that actually changed in this update. Each gets a trailing
   // ✏️ in the rendered message; empty/undefined means no markers.
   changedFields?: readonly ExpenseChangedField[];
+  // When set, the bubble retains the recurring footer + "View Schedule"
+  // 2nd inline button. Sourced from the persisted expense row.
+  recurringTemplateId?: string | null;
   threadId?: number;
 }
 
@@ -87,25 +90,46 @@ export const editExpenseMessageHandler = async (
         isUpdate: true,
         changedFields: input.changedFields,
         chatTimezone: input.chatTimezone,
+        recurringTemplateId: input.recurringTemplateId,
       }
     );
 
-    // Build the "View Expense" deep link payload. Uses the v1 protocol
-    // with entity_type="e" so the TMA can route straight to the
-    // edit-expense page on tap.
+    // Build the inline keyboard. Always includes "View Expense"; when the
+    // expense was auto-created from a recurring schedule, also appends a
+    // "View Schedule" button so the tapper can inspect the template.
     const botInfo = await teleBot.getMe();
-    const deepLinkPayload = encodeV1DeepLink(
+    const chatTypeCode = input.chatType === "private" ? "p" : "g";
+
+    const viewExpensePayload = encodeV1DeepLink(
       BigInt(input.chatId),
-      input.chatType === "private" ? "p" : "g",
+      chatTypeCode,
       "e",
       input.expenseId
     );
-    const deepLink = createDeepLinkedUrl(
+    const viewExpenseUrl = createDeepLinkedUrl(
       botInfo.username,
-      deepLinkPayload,
+      viewExpensePayload,
       "app"
     );
-    const keyboard = inlineKeyboard([{ text: "View Expense", url: deepLink }]);
+
+    const buttons = [{ text: "View Expense", url: viewExpenseUrl }];
+
+    if (input.recurringTemplateId) {
+      const viewSchedulePayload = encodeV1DeepLink(
+        BigInt(input.chatId),
+        chatTypeCode,
+        "rt",
+        input.recurringTemplateId
+      );
+      const viewScheduleUrl = createDeepLinkedUrl(
+        botInfo.username,
+        viewSchedulePayload,
+        "app"
+      );
+      buttons.push({ text: "View Schedule", url: viewScheduleUrl });
+    }
+
+    const keyboard = inlineKeyboard(buttons);
 
     // Edit the message
     await teleBot.editMessageText(

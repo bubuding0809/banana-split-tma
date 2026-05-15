@@ -79,6 +79,26 @@ function ChatIdRoute() {
         replace: true,
       });
     }
+
+    // Recurring template deep link — lands on the per-template edit
+    // screen. Used by the "View Schedule" CTA on lambda-fired recurring
+    // expense notifications.
+    if (
+      startParams?.entity_type === "rt" &&
+      startParams?.entity_id &&
+      !sessionStorage.getItem(deepLinkConsumedKey)
+    ) {
+      sessionStorage.setItem(deepLinkConsumedKey, "true");
+
+      navigate({
+        to: "/chat/$chatId/edit-recurring/$templateId",
+        params: {
+          chatId: chatId.toString(),
+          templateId: startParams.entity_id,
+        },
+        replace: true,
+      });
+    }
   }, [startParams?.entity_type, startParams?.entity_id, chatId, navigate]);
 
   // Validate chat existence and handle errors

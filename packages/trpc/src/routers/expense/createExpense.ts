@@ -462,6 +462,7 @@ export const createExpenseHandler = async (
                   ? Number(chatForNotification.threadId)
                   : undefined),
               force: false,
+              recurringTemplateId: expense.recurringTemplateId ?? null,
             },
             db,
             teleBot

@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendExpenseUpdateStandaloneHandler } from "./editExpenseNotificationMessage.js";
+import {
+  editExpenseMessageHandler,
+  sendExpenseUpdateStandaloneHandler,
+} from "./editExpenseNotificationMessage.js";
 
 const mockTeleBot = {
   sendMessage: vi.fn(),
+  editMessageText: vi.fn(),
   getMe: vi.fn(),
 };
 
@@ -95,5 +99,94 @@ describe("sendExpenseUpdateStandaloneHandler", () => {
       }
     )?.reply_markup?.inline_keyboard?.[0]?.[0]?.url;
     expect(url).toMatch(/\?startapp=v1_p_/);
+  });
+});
+
+describe("editExpenseMessageHandler — recurring keyboard", () => {
+  const baseEditInput = {
+    chatId: 1001,
+    chatType: "group",
+    expenseId: "123e4567-e89b-12d3-a456-426614174000",
+    messageId: 555,
+    payerId: 1,
+    payerName: "Alice",
+    expenseDescription: "Lunch",
+    totalAmount: 20,
+    participants: [
+      { userId: 1, name: "Alice", amount: 10 },
+      { userId: 2, name: "Bob", amount: 10 },
+    ],
+    currency: "SGD",
+    expenseDate: new Date("2026-04-24T00:00:00Z"),
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTeleBot.getMe.mockResolvedValue({ username: "testbot" });
+    mockTeleBot.editMessageText.mockResolvedValue({});
+  });
+
+  it("edits with two buttons when recurringTemplateId is set", async () => {
+    await editExpenseMessageHandler(
+      {
+        ...baseEditInput,
+        recurringTemplateId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockTeleBot as any
+    );
+
+    expect(mockTeleBot.editMessageText).toHaveBeenCalledOnce();
+    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const row = (
+      extra as {
+        reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
+      }
+    )?.reply_markup?.inline_keyboard?.[0];
+
+    expect(row).toHaveLength(2);
+    expect(row?.[0]?.text).toBe("View Expense");
+    expect(row?.[1]?.text).toBe("View Schedule");
+    // View Schedule uses the "rt" entity type in the deep link
+    expect(row?.[1]?.url).toMatch(
+      /\?startapp=v1_g_[A-Za-z0-9-]+_rt_[A-Za-z0-9]+$/
+    );
+  });
+
+  it("edits with one button when recurringTemplateId is not set", async () => {
+    await editExpenseMessageHandler(
+      { ...baseEditInput },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockTeleBot as any
+    );
+
+    expect(mockTeleBot.editMessageText).toHaveBeenCalledOnce();
+    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const row = (
+      extra as {
+        reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
+      }
+    )?.reply_markup?.inline_keyboard?.[0];
+
+    expect(row).toHaveLength(1);
+    expect(row?.[0]?.text).toBe("View Expense");
+  });
+
+  it("edits with one button when recurringTemplateId is explicitly null", async () => {
+    await editExpenseMessageHandler(
+      { ...baseEditInput, recurringTemplateId: null },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockTeleBot as any
+    );
+
+    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const row = (
+      extra as {
+        reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
+      }
+    )?.reply_markup?.inline_keyboard?.[0];
+
+    expect(row).toHaveLength(1);
+    expect(row?.[0]?.text).toBe("View Expense");
   });
 });
