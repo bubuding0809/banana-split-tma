@@ -2,7 +2,7 @@ import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useState } from "react";
 import { getTrpcClient } from "./lib/trpc";
-import { formatAmount } from "./lib/format";
+import { formatAmount, formatRelativeShort } from "./lib/format";
 import { type Counterparty, counterpartyName } from "./lib/balances";
 
 /** Net chip: green when they owe you, red when you owe them. No +/- sign. */
@@ -13,6 +13,54 @@ function netAccessory(totalBaseNet: number, baseCurrency: string): List.Item.Acc
       color: totalBaseNet > 0 ? Color.Green : Color.Red,
     },
   };
+}
+
+/** Inline detail pane — mirrors the group detail pane's metadata style. */
+function PersonDetailPane(props: { person: Counterparty; baseCurrency: string }) {
+  const { person, baseCurrency } = props;
+  const Metadata = List.Item.Detail.Metadata;
+  const owesYou = person.totalBaseNet > 0;
+
+  // Nudge status line — nudge is creditor-only (they must owe you).
+  let nudgeStatus: string | null = null;
+  if (owesYou) {
+    if (!person.hasStartedBot) {
+      nudgeStatus = "Can't nudge — hasn't started the bot";
+    } else if (person.nudgeCooldownUntil && person.nudgeCooldownUntil > Date.now()) {
+      nudgeStatus = `Available in ${formatRelativeShort(person.nudgeCooldownUntil - Date.now())}`;
+    } else {
+      nudgeStatus = "Available";
+    }
+  }
+
+  return (
+    <List.Item.Detail
+      metadata={
+        <Metadata>
+          <Metadata.TagList title="Net Balance">
+            <Metadata.TagList.Item
+              text={`${formatAmount(person.totalBaseNet)} ${baseCurrency}`}
+              color={owesYou ? Color.Green : Color.Red}
+            />
+          </Metadata.TagList>
+          <Metadata.Separator />
+          {person.groups.map((g, i) => (
+            <Metadata.Label
+              key={`${g.chatId}-${g.currency}-${i}`}
+              title={g.chatTitle}
+              text={`${formatAmount(g.nativeNet)} ${g.currency}`}
+            />
+          ))}
+          {nudgeStatus ? (
+            <>
+              <Metadata.Separator />
+              <Metadata.Label title="Nudge" text={nudgeStatus} />
+            </>
+          ) : null}
+        </Metadata>
+      }
+    />
+  );
 }
 
 function PersonRow(props: {
@@ -29,6 +77,7 @@ function PersonRow(props: {
       icon={{ source: Icon.Person, tintColor: person.totalBaseNet > 0 ? Color.Green : Color.Red }}
       title={counterpartyName(person)}
       accessories={[netAccessory(person.totalBaseNet, baseCurrency)]}
+      detail={<PersonDetailPane person={person} baseCurrency={baseCurrency} />}
       actions={
         <ActionPanel>
           <Action
