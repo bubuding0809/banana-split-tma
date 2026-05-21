@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Alert, Color, confirmAlert, Icon, List, showToast, Toast } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useState } from "react";
 import { getTrpcClient } from "./lib/trpc";
@@ -72,6 +72,69 @@ function PersonRow(props: {
   onRefresh: () => void;
 }) {
   const { person, baseCurrency, showDetail, onToggleDetail, onRefresh } = props;
+
+  const name = counterpartyName(person);
+  const owesYou = person.totalBaseNet > 0;
+  const onCooldown = person.nudgeCooldownUntil != null && person.nudgeCooldownUntil > Date.now();
+
+  async function handleSettleAll() {
+    const confirmed = await confirmAlert({
+      title: `Settle all with ${name}?`,
+      message: `Records settlements for your entire balance (${formatAmount(
+        person.totalBaseNet,
+      )} ${baseCurrency}) across every group. They'll be notified.`,
+      icon: Icon.Check,
+      primaryAction: { title: "Settle All", style: Alert.ActionStyle.Default },
+    });
+    if (!confirmed) return;
+
+    const toast = await showToast({ style: Toast.Style.Animated, title: "Settling…" });
+    try {
+      const res = await getTrpcClient().expenseShare.settleAllWithUser.mutate({
+        counterpartyUserId: person.userId,
+      });
+      toast.style = Toast.Style.Success;
+      toast.title = `Settled ${res.settled} ${res.settled === 1 ? "balance" : "balances"}`;
+      onRefresh();
+    } catch (err) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to settle";
+      toast.message = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  async function handleNudge() {
+    if (!person.hasStartedBot) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Can't nudge",
+        message: `${name} hasn't started the bot.`,
+      });
+      return;
+    }
+    if (onCooldown) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Already nudged",
+        message: `Try again in ${formatRelativeShort(person.nudgeCooldownUntil! - Date.now())}.`,
+      });
+      return;
+    }
+    const toast = await showToast({ style: Toast.Style.Animated, title: "Nudging…" });
+    try {
+      await getTrpcClient().expenseShare.nudgeCounterparty.mutate({
+        counterpartyUserId: person.userId,
+      });
+      toast.style = Toast.Style.Success;
+      toast.title = `Nudged ${name}`;
+      onRefresh();
+    } catch (err) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to nudge";
+      toast.message = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   return (
     <List.Item
       icon={{ source: Icon.Person, tintColor: person.totalBaseNet > 0 ? Color.Green : Color.Red }}
@@ -80,6 +143,15 @@ function PersonRow(props: {
       detail={<PersonDetailPane person={person} baseCurrency={baseCurrency} />}
       actions={
         <ActionPanel>
+          <Action title="Settle All" icon={Icon.Check} onAction={handleSettleAll} />
+          {owesYou ? (
+            <Action
+              title="Nudge"
+              icon={Icon.AlarmRinging}
+              onAction={handleNudge}
+              shortcut={{ modifiers: ["cmd"], key: "n" }}
+            />
+          ) : null}
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
             icon={Icon.Sidebar}
