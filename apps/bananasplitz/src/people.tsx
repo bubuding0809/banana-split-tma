@@ -68,11 +68,12 @@ function PersonRow(props: {
   person: Counterparty;
   baseCurrency: string;
   myUserId: number | null;
+  myName: string | null;
   showDetail: boolean;
   onToggleDetail: () => void;
   onRefresh: () => void;
 }) {
-  const { person, baseCurrency, myUserId, showDetail, onToggleDetail, onRefresh } = props;
+  const { person, baseCurrency, myUserId, myName, showDetail, onToggleDetail, onRefresh } = props;
 
   const name = counterpartyName(person);
   const owesYou = person.totalBaseNet > 0;
@@ -164,7 +165,7 @@ function PersonRow(props: {
             title="Settle by Group"
             icon={Icon.List}
             shortcut={{ modifiers: ["cmd"], key: "arrowRight" }}
-            target={<CounterpartyGroups person={person} myUserId={myUserId} onSettled={onRefresh} />}
+            target={<CounterpartyGroups person={person} myUserId={myUserId} myName={myName} onSettled={onRefresh} />}
           />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
@@ -199,12 +200,16 @@ export default function Command() {
       baseCurrency: result.baseCurrency,
       counterparties: result.counterparties as Counterparty[],
       myUserId: me?.id ?? null,
+      // The caller's own name — needed so per-group settlement notifications
+      // can name both sides (settleAllDebts only notifies with both names).
+      myName: me ? counterpartyName(me) : null,
     };
   });
 
   const baseCurrency = data?.baseCurrency ?? "SGD";
   const counterparties = data?.counterparties ?? [];
   const myUserId = data?.myUserId ?? null;
+  const myName = data?.myName ?? null;
 
   // Sort each section by magnitude, largest balance first.
   const byMagnitude = (a: Counterparty, b: Counterparty) => Math.abs(b.totalBaseNet) - Math.abs(a.totalBaseNet);
@@ -219,6 +224,7 @@ export default function Command() {
       person={person}
       baseCurrency={baseCurrency}
       myUserId={myUserId}
+      myName={myName}
       showDetail={showDetail}
       onToggleDetail={toggleDetail}
       onRefresh={revalidate}

@@ -7,8 +7,13 @@ import { bucketGroupsByChat, type ChatBucket, type Counterparty, counterpartyNam
  * Per-chat settle view for one counterparty. Each row is a chat; settling a
  * row records settlements for every currency in that chat.
  */
-export function CounterpartyGroups(props: { person: Counterparty; myUserId: number | null; onSettled: () => void }) {
-  const { person, myUserId, onSettled } = props;
+export function CounterpartyGroups(props: {
+  person: Counterparty;
+  myUserId: number | null;
+  myName: string | null;
+  onSettled: () => void;
+}) {
+  const { person, myUserId, myName, onSettled } = props;
   const buckets = bucketGroupsByChat(person.groups);
   const name = counterpartyName(person);
 
@@ -16,14 +21,27 @@ export function CounterpartyGroups(props: { person: Counterparty; myUserId: numb
     <List navigationTitle={`Balances with ${name}`} isShowingDetail={false}>
       <List.EmptyView icon={Icon.CheckCircle} title="No group balances" />
       {buckets.map((bucket) => (
-        <ChatRow key={bucket.chatId} bucket={bucket} person={person} myUserId={myUserId} onSettled={onSettled} />
+        <ChatRow
+          key={bucket.chatId}
+          bucket={bucket}
+          person={person}
+          myUserId={myUserId}
+          myName={myName}
+          onSettled={onSettled}
+        />
       ))}
     </List>
   );
 }
 
-function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: number | null; onSettled: () => void }) {
-  const { bucket, person, myUserId, onSettled } = props;
+function ChatRow(props: {
+  bucket: ChatBucket;
+  person: Counterparty;
+  myUserId: number | null;
+  myName: string | null;
+  onSettled: () => void;
+}) {
+  const { bucket, person, myUserId, myName, onSettled } = props;
   const name = counterpartyName(person);
 
   const accessories: List.Item.Accessory[] = bucket.currencies.map((c) => ({
@@ -56,12 +74,22 @@ function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: nu
     const youAreCreditor = bucket.currencies.filter((c) => c.nativeNet > 0);
     const youAreDebtor = bucket.currencies.filter((c) => c.nativeNet < 0);
 
-    const calls: { senderId: number; receiverId: number; balances: { currency: string; amount: number }[] }[] = [];
+    // settleAllDebts only sends its Telegram notification when both names
+    // are supplied; pass them so the counterparty is actually notified.
+    const calls: {
+      senderId: number;
+      receiverId: number;
+      balances: { currency: string; amount: number }[];
+      creditorName?: string;
+      debtorName?: string;
+    }[] = [];
     if (youAreCreditor.length > 0) {
       calls.push({
         senderId: person.userId,
         receiverId: myUserId,
         balances: youAreCreditor.map((c) => ({ currency: c.currency, amount: Math.abs(c.nativeNet) })),
+        creditorName: myName ?? undefined,
+        debtorName: name,
       });
     }
     if (youAreDebtor.length > 0) {
@@ -69,6 +97,8 @@ function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: nu
         senderId: myUserId,
         receiverId: person.userId,
         balances: youAreDebtor.map((c) => ({ currency: c.currency, amount: Math.abs(c.nativeNet) })),
+        creditorName: name,
+        debtorName: myName ?? undefined,
       });
     }
 
@@ -84,6 +114,8 @@ function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: nu
           senderId: call.senderId,
           receiverId: call.receiverId,
           balances: call.balances,
+          creditorName: call.creditorName,
+          debtorName: call.debtorName,
           sendNotification: true,
         });
         completed += 1;
