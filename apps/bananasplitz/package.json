@@ -17,6 +17,13 @@
       "subtitle": "Manage Banana Groups",
       "description": "Manage expenses across different groups",
       "mode": "view"
+    },
+    {
+      "name": "people",
+      "title": "People",
+      "subtitle": "Banana Split Balances",
+      "description": "Settle balances and nudge people across all your groups",
+      "mode": "view"
     }
   ],
   "preferences": [
