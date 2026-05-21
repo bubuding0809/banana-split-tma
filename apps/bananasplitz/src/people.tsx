@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getTrpcClient } from "./lib/trpc";
 import { formatAmount, formatRelativeShort } from "./lib/format";
 import { type Counterparty, counterpartyName } from "./lib/balances";
+import { CounterpartyGroups } from "./counterparty-groups";
 
 /** Net chip: green when they owe you, red when you owe them. No +/- sign. */
 function netAccessory(totalBaseNet: number, baseCurrency: string): List.Item.Accessory {
@@ -71,7 +72,7 @@ function PersonRow(props: {
   onToggleDetail: () => void;
   onRefresh: () => void;
 }) {
-  const { person, baseCurrency, showDetail, onToggleDetail, onRefresh } = props;
+  const { person, baseCurrency, myUserId, showDetail, onToggleDetail, onRefresh } = props;
 
   const name = counterpartyName(person);
   const owesYou = person.totalBaseNet > 0;
@@ -159,6 +160,19 @@ function PersonRow(props: {
               shortcut={{ modifiers: ["cmd"], key: "n" }}
             />
           ) : null}
+          <Action.Push
+            title="Settle by Group"
+            icon={Icon.List}
+            shortcut={{ modifiers: ["cmd"], key: "arrowRight" }}
+            target={
+              <CounterpartyGroups
+                person={person}
+                baseCurrency={baseCurrency}
+                myUserId={myUserId}
+                onSettled={onRefresh}
+              />
+            }
+          />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
             icon={Icon.Sidebar}
