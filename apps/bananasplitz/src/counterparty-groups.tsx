@@ -7,12 +7,7 @@ import { bucketGroupsByChat, type ChatBucket, type Counterparty, counterpartyNam
  * Per-chat settle view for one counterparty. Each row is a chat; settling a
  * row records settlements for every currency in that chat.
  */
-export function CounterpartyGroups(props: {
-  person: Counterparty;
-  baseCurrency: string;
-  myUserId: number | null;
-  onSettled: () => void;
-}) {
+export function CounterpartyGroups(props: { person: Counterparty; myUserId: number | null; onSettled: () => void }) {
   const { person, myUserId, onSettled } = props;
   const buckets = bucketGroupsByChat(person.groups);
   const name = counterpartyName(person);
@@ -78,8 +73,11 @@ function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: nu
     }
 
     const toast = await showToast({ style: Toast.Style.Animated, title: "Settling group…" });
+    const trpc = getTrpcClient();
+    // The directional calls aren't atomic — track how many landed so a
+    // failure on the second one is reported (and refreshed) as partial.
+    let completed = 0;
     try {
-      const trpc = getTrpcClient();
       for (const call of calls) {
         await trpc.settlement.settleAllDebts.mutate({
           chatId: bucket.chatId,
@@ -88,14 +86,21 @@ function ChatRow(props: { bucket: ChatBucket; person: Counterparty; myUserId: nu
           balances: call.balances,
           sendNotification: true,
         });
+        completed += 1;
       }
       toast.style = Toast.Style.Success;
       toast.title = `Settled ${bucket.chatTitle}`;
       onSettled();
     } catch (err) {
       toast.style = Toast.Style.Failure;
-      toast.title = "Failed to settle group";
       toast.message = err instanceof Error ? err.message : String(err);
+      if (completed > 0) {
+        // Part of the chat already settled — refresh so the list is honest.
+        toast.title = "Partly settled — some balances remain";
+        onSettled();
+      } else {
+        toast.title = "Failed to settle group";
+      }
     }
   }
 

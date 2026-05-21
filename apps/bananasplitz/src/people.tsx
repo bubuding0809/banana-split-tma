@@ -164,14 +164,7 @@ function PersonRow(props: {
             title="Settle by Group"
             icon={Icon.List}
             shortcut={{ modifiers: ["cmd"], key: "arrowRight" }}
-            target={
-              <CounterpartyGroups
-                person={person}
-                baseCurrency={baseCurrency}
-                myUserId={myUserId}
-                onSettled={onRefresh}
-              />
-            }
+            target={<CounterpartyGroups person={person} myUserId={myUserId} onSettled={onRefresh} />}
           />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
