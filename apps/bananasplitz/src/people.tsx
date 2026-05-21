@@ -75,7 +75,9 @@ function PersonRow(props: {
 
   const name = counterpartyName(person);
   const owesYou = person.totalBaseNet > 0;
-  const onCooldown = person.nudgeCooldownUntil != null && person.nudgeCooldownUntil > Date.now();
+  // Hoisted into a local so TS narrows `number` for the cooldown branch below.
+  const cooldownUntil = person.nudgeCooldownUntil;
+  const onCooldown = cooldownUntil != null && cooldownUntil > Date.now();
 
   async function handleSettleAll() {
     const confirmed = await confirmAlert({
@@ -116,7 +118,7 @@ function PersonRow(props: {
       await showToast({
         style: Toast.Style.Failure,
         title: "Already nudged",
-        message: `Try again in ${formatRelativeShort(person.nudgeCooldownUntil! - Date.now())}.`,
+        message: `Try again in ${formatRelativeShort(cooldownUntil - Date.now())}.`,
       });
       return;
     }
@@ -129,9 +131,14 @@ function PersonRow(props: {
       toast.title = `Nudged ${name}`;
       onRefresh();
     } catch (err) {
+      // The `onCooldown` guard above is best-effort — it reads the last
+      // loaded snapshot. The backend is authoritative and rejects a repeat
+      // nudge with TOO_MANY_REQUESTS; surface that as the friendly message.
+      const message = err instanceof Error ? err.message : String(err);
+      const isCooldown = err instanceof Error && /TOO_MANY_REQUESTS|already nudged/i.test(message);
       toast.style = Toast.Style.Failure;
-      toast.title = "Failed to nudge";
-      toast.message = err instanceof Error ? err.message : String(err);
+      toast.title = isCooldown ? "Already nudged" : "Failed to nudge";
+      toast.message = message;
     }
   }
 
