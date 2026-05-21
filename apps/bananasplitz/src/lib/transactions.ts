@@ -11,6 +11,7 @@ export type ExpenseTxn = {
   amount: number;
   currency: string;
   payerId: number;
+  creatorId: number;
   splitMode: string;
   recurring: boolean;
   shares: { userId: number; amount: number }[];
