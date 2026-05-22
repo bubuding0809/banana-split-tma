@@ -1,4 +1,4 @@
-/** Shared display formatting for the BananaSplitz extension. */
+/** Shared display formatting for the Banana Split Raycast extension. */
 
 /** Absolute amount with thousands separators and 2 decimals, e.g. "1,234.50". */
 export function formatAmount(value: number): string {
