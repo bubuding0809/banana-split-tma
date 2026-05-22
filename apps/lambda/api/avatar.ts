@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
@@ -15,32 +16,40 @@ const log = createLogger("lambda");
 
 router.get("/:userId", async (req: Request, res: Response) => {
   const targetIdRaw = String(req.params.userId);
-  // 1. Auth — TMA initData (header OR query string for <img>)
-  const headerAuth = req.header("authorization");
-  const initData =
-    (headerAuth?.startsWith("tma ") ? headerAuth.slice(4) : null) ??
-    (typeof req.query.auth === "string" ? req.query.auth : null);
-  if (!initData) {
-    log.warn(
-      {
-        request_id: getRequestId(),
-        reason: "missing_init_data",
-        endpoint: "avatar",
-        target_id: targetIdRaw,
-      },
-      "auth.initData.failed"
-    );
-    return res.status(401).end();
-  }
+  // 1. Auth — resolves the caller's Telegram user id from either a
+  //    user-level API key (x-api-key, used by the Raycast extension) or
+  //    TMA initData (header or ?auth= query string, used by the mini app).
   let callerId: number;
-  try {
-    validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
-    const parsed = parseInitData(initData);
-    if (!parsed.user?.id) {
+  const apiKey = req.header("x-api-key");
+  if (apiKey) {
+    const keyHash = createHash("sha256").update(apiKey).digest("hex");
+    const userApiKey = await prisma.userApiKey.findUnique({
+      where: { keyHash },
+      select: { revokedAt: true, user: { select: { id: true } } },
+    });
+    if (!userApiKey || userApiKey.revokedAt !== null) {
       log.warn(
         {
           request_id: getRequestId(),
-          reason: "init_data_no_user",
+          reason: userApiKey ? "user_api_key_revoked" : "invalid_api_key",
+          endpoint: "avatar",
+          target_id: targetIdRaw,
+        },
+        "auth.apiKey.failed"
+      );
+      return res.status(401).end();
+    }
+    callerId = Number(userApiKey.user.id);
+  } else {
+    const headerAuth = req.header("authorization");
+    const initData =
+      (headerAuth?.startsWith("tma ") ? headerAuth.slice(4) : null) ??
+      (typeof req.query.auth === "string" ? req.query.auth : null);
+    if (!initData) {
+      log.warn(
+        {
+          request_id: getRequestId(),
+          reason: "missing_init_data",
           endpoint: "avatar",
           target_id: targetIdRaw,
         },
@@ -48,19 +57,35 @@ router.get("/:userId", async (req: Request, res: Response) => {
       );
       return res.status(401).end();
     }
-    callerId = parsed.user.id;
-  } catch (err) {
-    log.warn(
-      {
-        err,
-        request_id: getRequestId(),
-        reason: "init_data_invalid",
-        endpoint: "avatar",
-        target_id: targetIdRaw,
-      },
-      "auth.initData.failed"
-    );
-    return res.status(401).end();
+    try {
+      validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
+      const parsed = parseInitData(initData);
+      if (!parsed.user?.id) {
+        log.warn(
+          {
+            request_id: getRequestId(),
+            reason: "init_data_no_user",
+            endpoint: "avatar",
+            target_id: targetIdRaw,
+          },
+          "auth.initData.failed"
+        );
+        return res.status(401).end();
+      }
+      callerId = parsed.user.id;
+    } catch (err) {
+      log.warn(
+        {
+          err,
+          request_id: getRequestId(),
+          reason: "init_data_invalid",
+          endpoint: "avatar",
+          target_id: targetIdRaw,
+        },
+        "auth.initData.failed"
+      );
+      return res.status(401).end();
+    }
   }
 
   // 2. Authz — caller and target share a chat (self-lookup is always allowed)

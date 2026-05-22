@@ -10,6 +10,11 @@ interface BananaPreferences {
 
 export type BananaTrpcClient = TRPCClient<AppRouter>;
 
+/** The API key + base URL from extension preferences (for non-tRPC calls). */
+export function getApiPreferences(): BananaPreferences {
+  return getPreferenceValues<BananaPreferences>();
+}
+
 /**
  * Build a tRPC client authenticated with the user-level API key stored in the
  * extension preferences. Mirrors apps/cli/src/client.ts.

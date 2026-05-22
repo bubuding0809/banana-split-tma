@@ -1,10 +1,10 @@
-import { Action, ActionPanel, Alert, Color, confirmAlert, Icon, List, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Alert, Color, confirmAlert, Icon, Image, List, showToast, Toast } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useState } from "react";
 import { getTrpcClient } from "./lib/trpc";
+import { getAvatarPath } from "./lib/avatar";
 import { formatAmount, formatRelativeShort } from "./lib/format";
 import { type Counterparty, counterpartyName } from "./lib/balances";
-import { CounterpartyGroups } from "./counterparty-groups";
 
 /** Net chip: green when they owe you, red when you owe them. No +/- sign. */
 function netAccessory(totalBaseNet: number, baseCurrency: string): List.Item.Accessory {
@@ -21,6 +21,11 @@ function PersonDetailPane(props: { person: Counterparty; baseCurrency: string })
   const { person, baseCurrency } = props;
   const Metadata = List.Item.Detail.Metadata;
   const owesYou = person.totalBaseNet > 0;
+
+  // Split the per-group lines by direction so each side is unambiguous.
+  // nativeNet > 0 => they owe you in that chat; < 0 => you owe them.
+  const groupsOwedToYou = person.groups.filter((g) => g.nativeNet > 0).sort((a, b) => b.nativeNet - a.nativeNet);
+  const groupsYouOwe = person.groups.filter((g) => g.nativeNet < 0).sort((a, b) => a.nativeNet - b.nativeNet);
 
   // Nudge status line — nudge is creditor-only (they must owe you).
   let nudgeStatus: string | null = null;
@@ -40,18 +45,33 @@ function PersonDetailPane(props: { person: Counterparty; baseCurrency: string })
         <Metadata>
           <Metadata.TagList title="Net Balance">
             <Metadata.TagList.Item
-              text={`${formatAmount(person.totalBaseNet)} ${baseCurrency}`}
+              text={`${owesYou ? "Owes you" : "You owe"} ${formatAmount(person.totalBaseNet)} ${baseCurrency}`}
               color={owesYou ? Color.Green : Color.Red}
             />
           </Metadata.TagList>
           <Metadata.Separator />
-          {person.groups.map((g, i) => (
-            <Metadata.Label
-              key={`${g.chatId}-${g.currency}-${i}`}
-              title={g.chatTitle}
-              text={`${formatAmount(g.nativeNet)} ${g.currency}`}
-            />
-          ))}
+          {groupsOwedToYou.length > 0 ? (
+            <Metadata.TagList title="Owes You In">
+              {groupsOwedToYou.map((g, i) => (
+                <Metadata.TagList.Item
+                  key={`${g.chatId}-${g.currency}-${i}`}
+                  text={`${g.chatTitle} · ${formatAmount(g.nativeNet)} ${g.currency}`}
+                  color={Color.Green}
+                />
+              ))}
+            </Metadata.TagList>
+          ) : null}
+          {groupsYouOwe.length > 0 ? (
+            <Metadata.TagList title="You Owe In">
+              {groupsYouOwe.map((g, i) => (
+                <Metadata.TagList.Item
+                  key={`${g.chatId}-${g.currency}-${i}`}
+                  text={`${g.chatTitle} · ${formatAmount(g.nativeNet)} ${g.currency}`}
+                  color={Color.Red}
+                />
+              ))}
+            </Metadata.TagList>
+          ) : null}
           {nudgeStatus ? (
             <>
               <Metadata.Separator />
@@ -67,19 +87,24 @@ function PersonDetailPane(props: { person: Counterparty; baseCurrency: string })
 function PersonRow(props: {
   person: Counterparty;
   baseCurrency: string;
-  myUserId: number | null;
-  myName: string | null;
   showDetail: boolean;
   onToggleDetail: () => void;
   onRefresh: () => void;
 }) {
-  const { person, baseCurrency, myUserId, myName, showDetail, onToggleDetail, onRefresh } = props;
+  const { person, baseCurrency, showDetail, onToggleDetail, onRefresh } = props;
 
   const name = counterpartyName(person);
   const owesYou = person.totalBaseNet > 0;
   // Hoisted into a local so TS narrows `number` for the cooldown branch below.
   const cooldownUntil = person.nudgeCooldownUntil;
   const onCooldown = cooldownUntil != null && cooldownUntil > Date.now();
+
+  // Telegram profile photo, loaded per-row so the list paints immediately.
+  // Falls back to a direction-tinted person icon while loading or if absent.
+  const { data: avatarPath } = usePromise(getAvatarPath, [person.userId]);
+  const icon: Image.ImageLike = avatarPath
+    ? { source: avatarPath, mask: Image.Mask.Circle, fallback: Icon.Person }
+    : { source: Icon.Person, tintColor: owesYou ? Color.Green : Color.Red };
 
   async function handleSettleAll() {
     const confirmed = await confirmAlert({
@@ -146,27 +171,16 @@ function PersonRow(props: {
 
   return (
     <List.Item
-      icon={{ source: Icon.Person, tintColor: person.totalBaseNet > 0 ? Color.Green : Color.Red }}
+      icon={icon}
       title={counterpartyName(person)}
       accessories={[netAccessory(person.totalBaseNet, baseCurrency)]}
       detail={<PersonDetailPane person={person} baseCurrency={baseCurrency} />}
       actions={
         <ActionPanel>
+          {/* Owed-to-you: Nudge is primary (↵), Settle All is secondary (⌘↵).
+              You-owe: there's no nudge, so Settle All is primary (↵). */}
+          {owesYou ? <Action title="Nudge" icon={Icon.AlarmRinging} onAction={handleNudge} /> : null}
           <Action title="Settle All" icon={Icon.Check} onAction={handleSettleAll} />
-          {owesYou ? (
-            <Action
-              title="Nudge"
-              icon={Icon.AlarmRinging}
-              onAction={handleNudge}
-              shortcut={{ modifiers: ["cmd"], key: "n" }}
-            />
-          ) : null}
-          <Action.Push
-            title="Settle by Group"
-            icon={Icon.List}
-            shortcut={{ modifiers: ["cmd"], key: "arrowRight" }}
-            target={<CounterpartyGroups person={person} myUserId={myUserId} myName={myName} onSettled={onRefresh} />}
-          />
           <Action
             title={showDetail ? "Hide Details" : "Show Details"}
             icon={Icon.Sidebar}
@@ -199,17 +213,11 @@ export default function Command() {
     return {
       baseCurrency: result.baseCurrency,
       counterparties: result.counterparties as Counterparty[],
-      myUserId: me?.id ?? null,
-      // The caller's own name — needed so per-group settlement notifications
-      // can name both sides (settleAllDebts only notifies with both names).
-      myName: me ? counterpartyName(me) : null,
     };
   });
 
   const baseCurrency = data?.baseCurrency ?? "SGD";
   const counterparties = data?.counterparties ?? [];
-  const myUserId = data?.myUserId ?? null;
-  const myName = data?.myName ?? null;
 
   // Sort each section by magnitude, largest balance first.
   const byMagnitude = (a: Counterparty, b: Counterparty) => Math.abs(b.totalBaseNet) - Math.abs(a.totalBaseNet);
@@ -223,8 +231,6 @@ export default function Command() {
       key={person.userId}
       person={person}
       baseCurrency={baseCurrency}
-      myUserId={myUserId}
-      myName={myName}
       showDetail={showDetail}
       onToggleDetail={toggleDetail}
       onRefresh={revalidate}

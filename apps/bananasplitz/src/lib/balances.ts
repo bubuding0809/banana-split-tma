@@ -28,32 +28,3 @@ export type Counterparty = {
 export function counterpartyName(cp: Pick<Counterparty, "firstName" | "lastName">): string {
   return [cp.firstName, cp.lastName].filter(Boolean).join(" ") || "Unknown";
 }
-
-/** A counterparty's balances within a single chat (may span currencies). */
-export type ChatBucket = {
-  chatId: number;
-  chatTitle: string;
-  currencies: CounterpartyGroup[];
-};
-
-/**
- * Bucket a counterparty's flat group list by chat. A chat can appear once per
- * currency in the source list; this collapses those into one entry per chat,
- * preserving the source order of first appearance.
- */
-export function bucketGroupsByChat(groups: CounterpartyGroup[]): ChatBucket[] {
-  const buckets = new Map<number, ChatBucket>();
-  for (const g of groups) {
-    const existing = buckets.get(g.chatId);
-    if (existing) {
-      existing.currencies.push(g);
-    } else {
-      buckets.set(g.chatId, {
-        chatId: g.chatId,
-        chatTitle: g.chatTitle,
-        currencies: [g],
-      });
-    }
-  }
-  return [...buckets.values()];
-}
