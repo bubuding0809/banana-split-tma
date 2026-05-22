@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createLogger } from "@repo/logger";
 import { type BotContext } from "../types.js";
 
@@ -91,6 +91,8 @@ describe("bot logger middleware", () => {
   });
 
   it("logs bot.update.end with duration on success", async () => {
+    vi.useFakeTimers();
+
     const lines: string[] = [];
     const log = createLogger("bot", {
       destination: { write: (s) => lines.push(s) },
@@ -99,14 +101,18 @@ describe("bot logger middleware", () => {
     const middleware = makeLoggerMiddleware(log) as MiddlewareFn;
     const ctx = { update: { update_id: 1 } } as unknown as BotContext;
 
-    await middleware(ctx, async () => {
+    const run = middleware(ctx, async () => {
       await new Promise((r) => setTimeout(r, 5));
     });
+    await vi.advanceTimersByTimeAsync(5);
+    await run;
 
     const end = lines
       .map((l) => JSON.parse(l))
       .find((p) => p.msg === "bot.update.end");
     expect(end).toBeDefined();
     expect(end.duration_ms).toBeGreaterThanOrEqual(5);
+
+    vi.useRealTimers();
   });
 });

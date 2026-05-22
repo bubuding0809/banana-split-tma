@@ -1,0 +1,341 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "bananasplitz",
+  "title": "BananaSplitz",
+  "description": "Browse your Banana Split groups, balances and transactions",
+  "icon": "extension-icon.png",
+  "author": "bubu_ding",
+  "platforms": [
+    "macOS",
+    "Windows"
+  ],
+  "license": "MIT",
+  "tools": [
+    {
+      "name": "list-my-balances",
+      "title": "List My Balances",
+      "description": "List outstanding balances for the authenticated user across all chats (user-level API key only). Each chat row includes counterparties filtered to pairs involving the caller."
+    },
+    {
+      "name": "list-my-spending",
+      "title": "List My Spending",
+      "description": "Sum the authenticated user's expense shares per chat for one month (user-level API key only). Amount = caller's share of expenses dated in the given UTC month. Does not count settlements."
+    },
+    {
+      "name": "list-counterparty-balances",
+      "title": "List Counterparty Balances",
+      "description": "List per-counterparty balance totals across all groups in a chosen base currency (user-level API key only). Use to answer how much you owe or are owed per person across all groups."
+    },
+    {
+      "name": "settle-all-with",
+      "title": "Settle All with User",
+      "description": "Zero out every per-group balance with one user (writes one Settlement per chat in native currency). User-level API key only. Requires confirmation before executing."
+    },
+    {
+      "name": "list-chats",
+      "title": "List Chats",
+      "description": "List all expense-tracking chats/groups. Use to find the chat ID when the user doesn't provide one."
+    },
+    {
+      "name": "get-chat",
+      "title": "Get Chat",
+      "description": "Get detailed information about a specific chat/group including members. Use to verify a chat exists, get base currency, and resolve member user IDs before mutating."
+    },
+    {
+      "name": "get-debts",
+      "title": "Get Debts",
+      "description": "Get all outstanding debts in a chat (all currencies). Use to see individual debts before simplification."
+    },
+    {
+      "name": "get-simplified-debts",
+      "title": "Get Simplified Debts",
+      "description": "Get optimized/simplified debt graph for a chat in a specific currency. Currency is required. Use to see the most efficient way to settle all debts."
+    },
+    {
+      "name": "update-chat-settings",
+      "title": "Update Chat Settings",
+      "description": "Update chat settings (debt simplification, base currency, notification toggles). Requires confirmation."
+    },
+    {
+      "name": "list-expenses",
+      "title": "List Expenses",
+      "description": "List all expenses in a chat. Optional currency and category filters. Each expense includes categoryLabel when assigned."
+    },
+    {
+      "name": "get-expense",
+      "title": "Get Expense",
+      "description": "Get full details of a specific expense including split. Use before updating an expense."
+    },
+    {
+      "name": "create-expense",
+      "title": "Create Expense",
+      "description": "Create a new expense with automatic split calculation. Always resolve chat and member IDs via get-chat first. Requires confirmation (may notify the group)."
+    },
+    {
+      "name": "update-expense",
+      "title": "Update Expense",
+      "description": "Update an existing expense. Omitted fields keep current values. Use get-expense first if needed. Requires confirmation."
+    },
+    {
+      "name": "delete-expense",
+      "title": "Delete Expense",
+      "description": "Delete an expense by ID. Cannot be undone. Requires confirmation."
+    },
+    {
+      "name": "get-net-share",
+      "title": "Get Net Share",
+      "description": "Get the net balance between two users in a chat for one currency. Use before creating a settlement."
+    },
+    {
+      "name": "get-totals",
+      "title": "Get Totals",
+      "description": "Get total borrowed and lent amounts for a user in a chat."
+    },
+    {
+      "name": "bulk-import-expenses",
+      "title": "Bulk Import Expenses",
+      "description": "Import multiple expenses from a JSON array (same fields as create-expense rows). Optional notify for a condensed Telegram summary. Requires confirmation."
+    },
+    {
+      "name": "bulk-update-expenses",
+      "title": "Bulk Update Expenses",
+      "description": "Update multiple expenses from a JSON array of partial updates keyed by expenseId. Per-row failures reported; batch does not abort. Requires confirmation."
+    },
+    {
+      "name": "list-categories",
+      "title": "List Categories",
+      "description": "List base + custom categories in a chat (id, emoji, title, kind). Use ids like base:food or chat:<uuid> on expenses."
+    },
+    {
+      "name": "list-settlements",
+      "title": "List Settlements",
+      "description": "List all debt settlements in a chat. Optional currency filter."
+    },
+    {
+      "name": "create-settlement",
+      "title": "Create Settlement",
+      "description": "Record a debt settlement/payment between two users. Use get-net-share first to verify the debt. Requires confirmation (notifies the group)."
+    },
+    {
+      "name": "delete-settlement",
+      "title": "Delete Settlement",
+      "description": "Delete a settlement by ID (undo a payment). Requires confirmation."
+    },
+    {
+      "name": "settle-all-debts",
+      "title": "Settle All Debts",
+      "description": "Settle all debts between two users in a chat using a JSON balances array per currency. Requires confirmation."
+    },
+    {
+      "name": "list-snapshots",
+      "title": "List Snapshots",
+      "description": "List all expense snapshots in a chat."
+    },
+    {
+      "name": "get-snapshot",
+      "title": "Get Snapshot",
+      "description": "Get full details of a snapshot including which expenses are included."
+    },
+    {
+      "name": "create-snapshot",
+      "title": "Create Snapshot",
+      "description": "Create an expense snapshot grouping specific expenses. Requires confirmation."
+    },
+    {
+      "name": "update-snapshot",
+      "title": "Update Snapshot",
+      "description": "Update a snapshot title and associated expense IDs. Requires confirmation."
+    },
+    {
+      "name": "delete-snapshot",
+      "title": "Delete Snapshot",
+      "description": "Delete a snapshot (underlying expenses are not deleted). Requires confirmation."
+    },
+    {
+      "name": "list-recurring-expenses",
+      "title": "List Recurring Expenses",
+      "description": "List active recurring expense templates in a chat."
+    },
+    {
+      "name": "get-recurring-expense",
+      "title": "Get Recurring Expense",
+      "description": "Get details for a recurring expense template (schedule, amount, etc.)."
+    },
+    {
+      "name": "update-recurring-expense",
+      "title": "Update Recurring Expense",
+      "description": "Update schedule or details of a recurring template. Requires confirmation."
+    },
+    {
+      "name": "cancel-recurring-expense",
+      "title": "Cancel Recurring Expense",
+      "description": "Cancel an active recurring template (stops future runs only). Requires confirmation."
+    },
+    {
+      "name": "send-group-reminder",
+      "title": "Send Group Reminder",
+      "description": "Send a Telegram group message about outstanding debts. Requires confirmation."
+    },
+    {
+      "name": "send-debt-reminder",
+      "title": "Send Debt Reminder",
+      "description": "Send an individual debt reminder in a Telegram group. Requires confirmation."
+    },
+    {
+      "name": "get-exchange-rate",
+      "title": "Get Exchange Rate",
+      "description": "Get the current exchange rate between two ISO 4217 currencies."
+    }
+  ],
+  "ai": {
+    "instructions": "Banana Split expense tracking via tRPC with the user's API key from extension preferences.\n\nAPI key scope:\n- User-level key: cross-group tools (list-my-balances, list-my-spending, list-counterparty-balances, settle-all-with, list-chats) work without chatId.\n- Chat-scoped key: omit chatId on chat commands; the API resolves the scoped chat automatically.\n- If chatId is missing and the key is not chat-scoped, call list-chats or ask the user.\n\nMoney: amounts use decimal precision; always show ISO currency codes (USD, SGD). Never guess user/chat IDs — call get-chat and use member ids before create-expense, settlements, or reminders.\n\nReads return JSON strings. Prefer concise summaries for the user; cite currencies and counterparties clearly.\n\nWrites and notifications: destructive or mutating tools (create/update/delete expense, settlements, settle-all-*, reminders, snapshots, recurring changes, bulk import/update, update-chat-settings) require Raycast confirmation — do not bypass. Settlements and expenses may notify Telegram group members.\n\nSplits: EQUAL needs no customSplits; EXACT/PERCENTAGE/SHARES need customSplits JSON array. Include the payer in participantIds when they share the expense.\n\nCategories: use list-categories; ids are base:<slug> or chat:<uuid>; pass category \"none\" to clear.\n\nBulk tools: pass expenses or updates as a JSON string array in the json field (not a file path).\n\nRecurring: templateId for recurring commands; expenseId for normal expenses.",
+    "evals": [
+      {
+        "input": "@bananasplitz who owes me money across all groups?",
+        "mocks": {
+          "list-counterparty-balances": "{\n  \"baseCurrency\": \"SGD\",\n  \"counterparties\": [\n    {\n      \"userId\": \"456\",\n      \"displayName\": \"Alex\",\n      \"netAmount\": \"-42.50\",\n      \"groups\": [{\"chatId\": \"1\", \"chatTitle\": \"Beach House\", \"amount\": \"-42.50\", \"currency\": \"SGD\"}]\n    }\n  ]\n}"
+        },
+        "expected": [
+          {
+            "callsTool": "list-counterparty-balances"
+          }
+        ],
+        "usedAsExample": true
+      },
+      {
+        "input": "@bananasplitz list my expense groups",
+        "mocks": {
+          "list-chats": "[{\"id\":\"123\",\"title\":\"Beach House\",\"type\":\"group\"}]"
+        },
+        "expected": [
+          {
+            "callsTool": "list-chats"
+          }
+        ],
+        "usedAsExample": true
+      },
+      {
+        "input": "@bananasplitz log a $45 dinner split equally in chat 123456789, payer is me (user 111), participants 111 and 222",
+        "mocks": {
+          "get-chat": "{\"id\":123456789,\"title\":\"Trip\",\"baseCurrency\":\"SGD\",\"members\":[{\"id\":111,\"firstName\":\"Me\"},{\"id\":222,\"firstName\":\"Bob\"}]}",
+          "create-expense": "{\"expenseId\":\"exp-1\",\"amount\":45,\"currency\":\"SGD\"}"
+        },
+        "expected": [
+          {
+            "callsTool": "get-chat"
+          },
+          {
+            "callsTool": {
+              "name": "create-expense",
+              "arguments": {
+                "chatId": {
+                  "includes": "123"
+                },
+                "amount": {
+                  "includes": "45"
+                }
+              }
+            }
+          }
+        ],
+        "usedAsExample": true
+      },
+      {
+        "input": "@bananasplitz settle everything I owe Alex (user 456) across all groups",
+        "mocks": {
+          "list-counterparty-balances": "{\"counterparties\":[{\"userId\":\"456\",\"displayName\":\"Alex\",\"groups\":[{\"chatId\":\"1\",\"amount\":\"10\",\"currency\":\"SGD\"}]}]}",
+          "settle-all-with": "{\"settled\":1}"
+        },
+        "expected": [
+          {
+            "callsTool": "settle-all-with"
+          }
+        ],
+        "usedAsExample": false
+      },
+      {
+        "input": "@bananasplitz what are the simplified debts in Beach House chat 99 in USD?",
+        "mocks": {
+          "get-simplified-debts": "{\"currency\":\"USD\",\"simplified_debts\":[{\"from\":1,\"to\":2,\"amount\":25}]}"
+        },
+        "expected": [
+          {
+            "callsTool": {
+              "name": "get-simplified-debts",
+              "arguments": {
+                "currency": {
+                  "includes": "USD"
+                }
+              }
+            }
+          }
+        ],
+        "usedAsExample": false
+      }
+    ]
+  },
+  "commands": [
+    {
+      "name": "groups",
+      "title": "Groups",
+      "subtitle": "Manage Banana Groups",
+      "description": "Manage expenses across different groups",
+      "mode": "view"
+    },
+    {
+      "name": "people",
+      "title": "People",
+      "subtitle": "Banana Split Balances",
+      "description": "Settle balances and nudge people across all your groups",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiKey",
+      "title": "API Key",
+      "description": "Your Banana Split user-level API key",
+      "type": "password",
+      "required": true
+    },
+    {
+      "name": "apiUrl",
+      "title": "API URL",
+      "description": "Banana Split tRPC endpoint base URL",
+      "type": "textfield",
+      "required": false,
+      "default": "https://banana-split-tma-lambda.vercel.app/api/trpc"
+    }
+  ],
+  "dependencies": {
+    "@repo/categories": "workspace:*",
+    "@dko/trpc": "workspace:*",
+    "@raycast/api": "^1.104.17",
+    "@raycast/utils": "^1.17.0",
+    "@trpc/client": "11.0.0",
+    "react": "19.0.0",
+    "superjson": "^2.2.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1",
+    "@raycast/eslint-config": "^2.0.4",
+    "@types/node": "22.19.17",
+    "@types/react": "19.0.10",
+    "eslint": "^9.22.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
+    "vitest": "^4.0.18"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "check-types": "tsc --noEmit",
+    "check-parity": "tsx scripts/check-cli-parity.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}

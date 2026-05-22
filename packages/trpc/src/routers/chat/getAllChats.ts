@@ -1,3 +1,4 @@
+import { Prisma } from "@dko/database";
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
@@ -16,6 +17,9 @@ const outputSchema = z.array(
     title: z.string().describe("Chat title/name"),
     type: z.enum(["private", "group", "supergroup", "channel", "sender"]),
     baseCurrency: z.string().describe("Default currency for the chat"),
+    debtSimplificationEnabled: z
+      .boolean()
+      .describe("Whether debt simplification is enabled for the chat"),
     createdAt: z.date().describe("When the chat was created"),
     updatedAt: z.date().describe("When the chat was last updated"),
   })
@@ -36,7 +40,7 @@ export const getAllChatsHandler = async (
 ) => {
   const { excludeTypes } = input;
 
-  const whereClause: any = {
+  const whereClause: Prisma.ChatWhereInput = {
     type: {
       notIn: excludeTypes,
     },
@@ -61,6 +65,7 @@ export const getAllChatsHandler = async (
       title: true,
       type: true,
       baseCurrency: true,
+      debtSimplificationEnabled: true,
       createdAt: true,
       updatedAt: true,
     },
