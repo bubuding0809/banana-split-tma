@@ -89,7 +89,12 @@ router.get("/:userId", async (req: Request, res: Response) => {
   }
 
   // 2. Authz — caller and target share a chat (self-lookup is always allowed)
-  const targetId = BigInt(targetIdRaw);
+  let targetId: bigint;
+  try {
+    targetId = BigInt(targetIdRaw);
+  } catch {
+    return res.status(400).end();
+  }
   if (BigInt(callerId) !== targetId) {
     const shared = await prisma.chat.findFirst({
       where: {

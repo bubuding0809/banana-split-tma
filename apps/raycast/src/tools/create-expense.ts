@@ -36,9 +36,8 @@ type Input = {
 };
 
 export const confirmation: Tool.Confirmation<Input> = async (input) => {
-  const amount = String(input.amount);
   return {
-    message: `Create expense "${input.description}" for ${amount}${input.currency ? ` ${input.currency}` : ""}? May notify group members.`,
+    message: `Create expense "${input.description}" for ${input.amount}${input.currency ? ` ${input.currency}` : ""}? May notify group members.`,
     info: [
       { name: "Payer", value: String(input.payerId) },
       { name: "Split", value: input.splitMode },

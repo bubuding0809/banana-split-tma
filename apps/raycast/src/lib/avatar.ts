@@ -8,7 +8,8 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
 
 /** Derive the /api/avatar base from the tRPC URL (…/api/trpc → …/api/avatar). */
-function avatarBaseUrl(apiUrl: string): string {
+function avatarBaseUrl(apiUrl: string): string | null {
+  if (!/\/trpc\/?$/.test(apiUrl)) return null;
   return apiUrl.replace(/\/trpc\/?$/, "/avatar");
 }
 
@@ -30,9 +31,12 @@ export async function getAvatarPath(userId: number): Promise<string | null> {
   }
 
   const { apiKey, apiUrl } = getApiPreferences();
+  const avatarUrl = avatarBaseUrl(apiUrl);
+  if (!avatarUrl) return null;
+
   let response: Response;
   try {
-    response = await fetch(`${avatarBaseUrl(apiUrl)}/${userId}`, {
+    response = await fetch(`${avatarUrl}/${userId}`, {
       headers: { "x-api-key": apiKey },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });

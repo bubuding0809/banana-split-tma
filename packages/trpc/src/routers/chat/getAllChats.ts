@@ -1,3 +1,4 @@
+import { Prisma } from "@dko/database";
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
@@ -39,7 +40,7 @@ export const getAllChatsHandler = async (
 ) => {
   const { excludeTypes } = input;
 
-  const whereClause: any = {
+  const whereClause: Prisma.ChatWhereInput = {
     type: {
       notIn: excludeTypes,
     },

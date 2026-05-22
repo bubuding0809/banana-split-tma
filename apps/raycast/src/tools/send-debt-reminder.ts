@@ -1,7 +1,7 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
 import { resolveChatId } from "../lib/tools/scope";
-import { parseNumber, requireField } from "../lib/tools/parse";
+import { parseNumber, parsePositiveNumber, requireField } from "../lib/tools/parse";
 
 type Input = {
   chatId?: string;
@@ -27,10 +27,10 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => ({
 /** Send an individual debt reminder in a Telegram group. */
 export default async function tool(input: Input) {
   return withToolErrors("send-debt-reminder", input, async () => {
-    const debtorUserId = parseNumber(requireField(input.debtorUserId, "debtorUserId"), "debtorUserId");
+    const debtorUserId = parsePositiveNumber(requireField(input.debtorUserId, "debtorUserId"), "debtorUserId");
     const debtorName = requireField(input.debtorName, "debtorName");
     const creditorName = requireField(input.creditorName, "creditorName");
-    const amount = parseFloat(String(requireField(input.amount, "amount")));
+    const amount = parsePositiveNumber(requireField(input.amount, "amount"), "amount");
 
     return runTool("send-debt-reminder", input, async (trpc) => {
       const chatId = await resolveChatId(trpc, input.chatId);

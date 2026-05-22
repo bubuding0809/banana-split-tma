@@ -15,7 +15,7 @@ function collectCliCommandNames(): string[] {
   for (const file of readdirSync(cliCommandsDir)) {
     if (!file.endsWith(".ts") || file.endsWith(".test.ts")) continue;
     const src = readFileSync(join(cliCommandsDir, file), "utf8");
-    const re = /name:\s*"([a-z0-9-]+)"/g;
+    const re = /^\s+name:\s*"([a-z0-9-]+)"/gm;
     let m: RegExpExecArray | null;
     while ((m = re.exec(src))) {
       if (!skip.has(m[1])) names.push(m[1]);

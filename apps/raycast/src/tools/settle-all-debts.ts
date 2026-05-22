@@ -1,7 +1,7 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
 import { resolveChatId } from "../lib/tools/scope";
-import { parseJsonArray, parseNumber, requireField } from "../lib/tools/parse";
+import { parseJsonArray, parsePositiveNumber, requireField } from "../lib/tools/parse";
 
 type Input = {
   /** Numeric chat ID (optional if API key is chat-scoped) */
@@ -24,8 +24,8 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => ({
 /** Settle all debts between two users (multi-currency). */
 export default async function tool(input: Input) {
   return withToolErrors("settle-all-debts", input, async () => {
-    const senderId = parseNumber(requireField(input.senderId, "senderId"), "senderId");
-    const receiverId = parseNumber(requireField(input.receiverId, "receiverId"), "receiverId");
+    const senderId = parsePositiveNumber(requireField(input.senderId, "senderId"), "senderId");
+    const receiverId = parsePositiveNumber(requireField(input.receiverId, "receiverId"), "receiverId");
     const parsedBalances = parseJsonArray<{ currency: string; amount: number }>(
       requireField(input.balances, "balances"),
       "balances",
