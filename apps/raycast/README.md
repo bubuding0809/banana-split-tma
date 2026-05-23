@@ -59,20 +59,20 @@ Because the Raycast Store CI is npm-only and cannot resolve `workspace:` deps, p
 Day-to-day:
 
 ```bash
-pnpm --filter @apps/raycast dev          # ray develop against the workspace source
-pnpm --filter @apps/raycast lint         # ray lint
-pnpm --filter @apps/raycast check-types  # tsc --noEmit
-pnpm --filter @apps/raycast test         # vitest
-pnpm --filter @apps/raycast check-parity # CLI ↔ Raycast tool name parity
+pnpm --filter bananasplitz dev          # ray develop against the workspace source
+pnpm --filter bananasplitz lint         # ray lint
+pnpm --filter bananasplitz check-types  # tsc --noEmit
+pnpm --filter bananasplitz test         # vitest
+pnpm --filter bananasplitz check-parity # CLI ↔ Raycast tool name parity
 ```
 
 Before publishing:
 
 ```bash
-pnpm --filter @apps/raycast stage        # build .publish-stage/ only
-pnpm --filter @apps/raycast stage:verify # stage + npm install + ray lint + ray build
-pnpm --filter @apps/raycast dry-run      # full pre-publish validation (manifest, lockfile, screenshots, parity)
-pnpm --filter @apps/raycast publish      # dry-run + ray publish from .publish-stage/
+pnpm --filter bananasplitz stage        # build .publish-stage/ only
+pnpm --filter bananasplitz stage:verify # stage + npm install + ray lint + ray build
+pnpm --filter bananasplitz dry-run      # full pre-publish validation (manifest, lockfile, screenshots, parity)
+pnpm --filter bananasplitz publish      # dry-run + ray publish from .publish-stage/
 ```
 
 Screenshots are captured locally inside `metadata/` — see [`metadata/README.md`](./metadata/README.md) for the capture checklist.

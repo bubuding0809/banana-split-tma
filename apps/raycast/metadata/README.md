@@ -6,7 +6,7 @@ Raycast requires 3–6 screenshots (max 6) at exactly **2000×1250 px** PNG, cap
 
 1. Launch the extension in dev mode:
    ```bash
-   pnpm --filter @apps/raycast dev
+   pnpm --filter bananasplitz dev
    ```
 2. With Raycast focused on a BananaSplitz view, press **Cmd + Shift + .** (Window Capture). Raycast saves a perfectly sized PNG to this folder.
 3. Name the files `bananasplitz-1.png`, `bananasplitz-2.png`, … `bananasplitz-6.png` so they sort and ship in the order you want them shown.
@@ -31,4 +31,4 @@ Suggested set (3–6 of these):
 - Screenshots must show Raycast only — no other apps in frame.
 - 2000×1250 exactly. Window Capture produces this size when invoked inside Raycast; don't resize manually afterwards.
 
-The stage script picks up everything in this folder at publish time, so once the PNGs are committed (or staged locally) the next `pnpm --filter @apps/raycast publish` includes them automatically.
+The stage script picks up everything in this folder at publish time, so once the PNGs are committed (or staged locally) the next `pnpm --filter bananasplitz publish` includes them automatically.

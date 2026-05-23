@@ -146,10 +146,18 @@ if (!existsSync(readmePath)) {
 const changelogPath = join(STAGE_DIR, "CHANGELOG.md");
 if (!existsSync(changelogPath)) {
   fail("CHANGELOG.md missing from stage");
-} else if (!/^## /m.test(readFileSync(changelogPath, "utf8"))) {
-  fail("CHANGELOG.md has no version heading (## ...)");
 } else {
-  ok("CHANGELOG.md has at least one version heading");
+  const changelogText = readFileSync(changelogPath, "utf8");
+  if (!/^## /m.test(changelogText)) {
+    fail("CHANGELOG.md has no version heading (## ...)");
+  } else {
+    ok("CHANGELOG.md has at least one version heading");
+  }
+  // Catch unfilled placeholders like {PR_MERGE_DATE} before publish.
+  const placeholders = changelogText.match(/\{[A-Z][A-Z0-9_]*\}/g);
+  if (placeholders) {
+    fail(`CHANGELOG.md contains unfilled template placeholders: ${[...new Set(placeholders)].join(", ")}`);
+  }
 }
 
 // Make sure the dev tree's workspace deps did not survive into the stage.
@@ -173,6 +181,7 @@ type LockEntry = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
   link?: boolean;
 };
 type Lock = { packages?: Record<string, LockEntry> };
@@ -203,6 +212,7 @@ for (const [path, entry] of entries) {
   for (const v of Object.values(entry.dependencies ?? {})) if (typeof v === "string") specs.push(v);
   for (const v of Object.values(entry.devDependencies ?? {})) if (typeof v === "string") specs.push(v);
   for (const v of Object.values(entry.peerDependencies ?? {})) if (typeof v === "string") specs.push(v);
+  for (const v of Object.values(entry.optionalDependencies ?? {})) if (typeof v === "string") specs.push(v);
 
   for (const spec of specs) {
     if (spec.startsWith("workspace:")) {

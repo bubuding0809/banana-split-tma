@@ -74,6 +74,16 @@ jobs:
     environment: raycast-publish
     steps:
       - uses: actions/checkout@v4
+      - name: Check RAYCAST_GH_TOKEN is configured
+        # Fast-fail before spending ~3min on install + dry-run if the secret
+        # is missing from the raycast-publish environment.
+        env:
+          RAYCAST_GH_TOKEN: ${{ secrets.RAYCAST_GH_TOKEN }}
+        run: |
+          if [ -z "$RAYCAST_GH_TOKEN" ]; then
+            echo "::error::RAYCAST_GH_TOKEN is not configured in the raycast-publish environment"
+            exit 1
+          fi
       - uses: ./.github/actions/setup
       - name: Re-stage (hermetic)
         run: pnpm --filter bananasplitz dry-run
@@ -81,8 +91,8 @@ jobs:
         working-directory: apps/raycast/.publish-stage
         env:
           # Raycast's publish CLI forks raycast/extensions and opens a PR on
-          # the maintainer's behalf, so it needs a GitHub PAT with `repo` and
-          # `workflow` scopes. Configure RAYCAST_GH_TOKEN in the
-          # raycast-publish environment secrets.
+          # the maintainer's behalf, so it needs a GitHub PAT with `repo`
+          # scope. Configure RAYCAST_GH_TOKEN in the raycast-publish
+          # environment secrets.
           GITHUB_TOKEN: ${{ secrets.RAYCAST_GH_TOKEN }}
         run: npx --yes @raycast/api@latest publish

@@ -76,7 +76,16 @@ writeFileSync(join(VENDOR_DIR, "categories-types.ts"), catTypesSrc);
 let catBaseSrc = readFileSync(join(CATEGORIES_PKG, "src", "base.ts"), "utf8");
 // Rewrite the .js-suffixed type import to our local file (no .js suffix because
 // the staged tree compiles with `module: commonjs` per the extension tsconfig).
-catBaseSrc = catBaseSrc.replace(/from\s+"\.\/types\.js"/g, 'from "./categories-types"');
+// Accepts single or double quotes; asserts the replacement landed so a future
+// rename of `types.ts` in the source package fails loudly here instead of
+// shipping a vendor file referencing a non-existent module.
+const catBaseRewritten = catBaseSrc.replace(/from\s+["']\.\/types\.js["']/g, 'from "./categories-types"');
+if (catBaseRewritten === catBaseSrc) {
+  throw new Error(
+    "failed to rewrite './types.js' import in packages/categories/src/base.ts — has the source layout changed?",
+  );
+}
+catBaseSrc = catBaseRewritten;
 writeFileSync(join(VENDOR_DIR, "categories-base.ts"), catBaseSrc);
 
 writeFileSync(
