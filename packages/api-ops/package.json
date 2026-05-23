@@ -1,0 +1,25 @@
+{
+  "name": "@bananasplitz/api-ops",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "check-types": "tsc --noEmit",
+    "check-coverage": "tsx scripts/check-op-coverage.ts"
+  },
+  "dependencies": {
+    "@bananasplitz/api-client": "workspace:*",
+    "@dko/trpc": "workspace:*",
+    "@repo/categories": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "tsx": "^4.7.1",
+    "typescript": "5.8.2",
+    "vitest": "^4.0.18"
+  }
+}

@@ -1,6 +1,10 @@
 import type { Command } from "./types.js";
-import { resolveChatId } from "../scope.js";
-import { run, error } from "../output.js";
+import { run } from "../output.js";
+import {
+  sendDebtReminder,
+  sendGroupReminder,
+  validateSendDebtReminderInput,
+} from "@bananasplitz/api-ops";
 
 export const reminderCommands: Command[] = [
   {
@@ -14,16 +18,11 @@ export const reminderCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("send-group-reminder", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        // The tRPC input schema expects a string chatId
-        return trpc.telegram.sendGroupReminderMessage.mutate({
-          chatId: chatId.toString(),
-        });
-      }),
+      run("send-group-reminder", async () =>
+        sendGroupReminder(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+        })
+      ),
   },
   {
     name: "send-debt-reminder",
@@ -64,43 +63,19 @@ export const reminderCommands: Command[] = [
     },
     execute: (opts, trpc) =>
       run("send-debt-reminder", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-
-        if (!opts["debtor-user-id"]) {
-          throw new Error("Missing required option: --debtor-user-id");
-        }
-        if (!opts["debtor-name"]) {
-          throw new Error("Missing required option: --debtor-name");
-        }
-        if (!opts["creditor-name"]) {
-          throw new Error("Missing required option: --creditor-name");
-        }
-        if (!opts["amount"]) {
-          throw new Error("Missing required option: --amount");
-        }
-
-        const input: any = {
-          chatId: Number(chatId),
-          debtorUserId: Number(opts["debtor-user-id"]),
-          debtorName: opts["debtor-name"] as string,
-          creditorName: opts["creditor-name"] as string,
-          amount: parseFloat(opts["amount"] as string),
-        };
-
-        if (opts["debtor-username"]) {
-          input.debtorUsername = opts["debtor-username"] as string;
-        }
-        if (opts["currency"]) {
-          input.currency = opts["currency"] as string;
-        }
-        if (opts["thread-id"]) {
-          input.threadId = Number(opts["thread-id"]);
-        }
-
-        return trpc.telegram.sendDebtReminderMessage.mutate(input);
+        const validated = validateSendDebtReminderInput({
+          debtorUserId: opts["debtor-user-id"] as string | undefined,
+          debtorName: opts["debtor-name"] as string | undefined,
+          creditorName: opts["creditor-name"] as string | undefined,
+          amount: opts.amount as string | undefined,
+        });
+        return sendDebtReminder(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          ...validated,
+          debtorUsername: opts["debtor-username"] as string | undefined,
+          currency: opts.currency as string | undefined,
+          threadId: opts["thread-id"] ? Number(opts["thread-id"]) : undefined,
+        });
       }),
   },
 ];

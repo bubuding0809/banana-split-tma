@@ -1,6 +1,15 @@
 import type { Command } from "./types.js";
-import { resolveChatId } from "../scope.js";
-import { run, error } from "../output.js";
+import { run } from "../output.js";
+import {
+  createSnapshot,
+  deleteSnapshot,
+  getSnapshot,
+  listSnapshots,
+  updateSnapshot,
+  validateCreateSnapshotInput,
+  validateSnapshotId,
+  validateUpdateSnapshotInput,
+} from "@bananasplitz/api-ops";
 
 export const snapshotCommands: Command[] = [
   {
@@ -16,13 +25,11 @@ export const snapshotCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("list-snapshots", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.snapshot.getByChat.query({ chatId });
-      }),
+      run("list-snapshots", async () =>
+        listSnapshots(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+        })
+      ),
   },
 
   {
@@ -39,20 +46,14 @@ export const snapshotCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["snapshot-id"]) {
-        return error(
-          "missing_option",
-          "--snapshot-id is required",
-          "get-snapshot"
-        );
-      }
-      return run("get-snapshot", async () => {
-        return trpc.snapshot.getDetails.query({
-          snapshotId: String(opts["snapshot-id"]),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-snapshot", async () =>
+        getSnapshot(trpc, {
+          snapshotId: validateSnapshotId(
+            opts["snapshot-id"] as string | undefined
+          ),
+        })
+      ),
   },
   {
     name: "create-snapshot",
@@ -80,48 +81,18 @@ export const snapshotCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["creator-id"])
-        return error(
-          "missing_option",
-          "--creator-id is required",
-          "create-snapshot"
-        );
-      if (Number.isNaN(Number(opts["creator-id"])))
-        return error(
-          "invalid_option",
-          "--creator-id must be a valid number",
-          "create-snapshot"
-        );
-      if (!opts.title)
-        return error(
-          "missing_option",
-          "--title is required",
-          "create-snapshot"
-        );
-      if (!opts["expense-ids"])
-        return error(
-          "missing_option",
-          "--expense-ids is required",
-          "create-snapshot"
-        );
-
-      return run("create-snapshot", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.snapshot.create.mutate({
-          chatId,
-          creatorId: Number(opts["creator-id"]),
-          title: String(opts.title),
-          expenseIds: String(opts["expense-ids"])
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+    execute: (opts, trpc) =>
+      run("create-snapshot", async () => {
+        const validated = validateCreateSnapshotInput({
+          creatorId: opts["creator-id"] as string | undefined,
+          title: opts.title as string | undefined,
+          expenseIds: opts["expense-ids"] as string | undefined,
         });
-      });
-    },
+        return createSnapshot(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          ...validated,
+        });
+      }),
   },
   {
     name: "update-snapshot",
@@ -148,42 +119,18 @@ export const snapshotCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["snapshot-id"])
-        return error(
-          "missing_option",
-          "--snapshot-id is required",
-          "update-snapshot"
-        );
-      if (!opts.title)
-        return error(
-          "missing_option",
-          "--title is required",
-          "update-snapshot"
-        );
-      if (!opts["expense-ids"])
-        return error(
-          "missing_option",
-          "--expense-ids is required",
-          "update-snapshot"
-        );
-
-      return run("update-snapshot", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.snapshot.update.mutate({
-          snapshotId: String(opts["snapshot-id"]),
-          chatId,
-          title: String(opts.title),
-          expenseIds: String(opts["expense-ids"])
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+    execute: (opts, trpc) =>
+      run("update-snapshot", async () => {
+        const validated = validateUpdateSnapshotInput({
+          snapshotId: opts["snapshot-id"] as string | undefined,
+          title: opts.title as string | undefined,
+          expenseIds: opts["expense-ids"] as string | undefined,
         });
-      });
-    },
+        return updateSnapshot(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          ...validated,
+        });
+      }),
   },
   {
     name: "delete-snapshot",
@@ -200,19 +147,13 @@ export const snapshotCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["snapshot-id"])
-        return error(
-          "missing_option",
-          "--snapshot-id is required",
-          "delete-snapshot"
-        );
-
-      return run("delete-snapshot", async () => {
-        return trpc.snapshot.delete.mutate({
-          snapshotId: String(opts["snapshot-id"]),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("delete-snapshot", async () =>
+        deleteSnapshot(trpc, {
+          snapshotId: validateSnapshotId(
+            opts["snapshot-id"] as string | undefined
+          ),
+        })
+      ),
   },
 ];

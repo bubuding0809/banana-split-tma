@@ -1,17 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { meCommands } from "./me.js";
 
-vi.mock("../output.js", () => ({
-  success: vi.fn((data) => data),
-  error: vi.fn((code, message, command) => ({ code, message, command })),
-  run: vi.fn(async (cmd, fn) => {
-    try {
-      return await fn();
-    } catch (err: any) {
-      return { code: "api_error", message: err.message };
-    }
-  }),
-}));
+vi.mock("../output.js", async () => {
+  const { createOutputMocks } = await import("./test-helpers.js");
+  return createOutputMocks();
+});
 
 describe("me commands", () => {
   it("list-my-balances calls trpc.expenseShare.getMyBalancesAcrossChats", async () => {
@@ -19,7 +12,7 @@ describe("me commands", () => {
     const queryMock = vi.fn().mockResolvedValue({ balances: [] });
     const trpcMock = {
       expenseShare: { getMyBalancesAcrossChats: { query: queryMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({}, trpcMock);
 
@@ -28,7 +21,7 @@ describe("me commands", () => {
 
   it("list-my-spending requires --month", async () => {
     const cmd = meCommands.find((c) => c.name === "list-my-spending");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
 
     const result = await cmd?.execute({}, trpcMock);
 
@@ -40,7 +33,7 @@ describe("me commands", () => {
 
   it("list-my-spending rejects malformed --month", async () => {
     const cmd = meCommands.find((c) => c.name === "list-my-spending");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
 
     const result = await cmd?.execute({ month: "2026-13" }, trpcMock);
 
@@ -57,7 +50,7 @@ describe("me commands", () => {
       .mockResolvedValue({ month: "2026-04", chats: [], totals: [] });
     const trpcMock = {
       expenseShare: { getMySpendByMonth: { query: queryMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({ month: "2026-04" }, trpcMock);
 

@@ -1,6 +1,6 @@
 import type { Command } from "./types.js";
-import { resolveChatId } from "../scope.js";
 import { run } from "../output.js";
+import { listCategories } from "@bananasplitz/api-ops";
 
 export const categoryCommands: Command[] = [
   {
@@ -20,12 +20,10 @@ export const categoryCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("list-categories", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.category.listByChat.query({ chatId });
-      }),
+      run("list-categories", async () =>
+        listCategories(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+        })
+      ),
   },
 ];

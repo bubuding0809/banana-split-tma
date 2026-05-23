@@ -1,30 +1,26 @@
 import { describe, it, expect, vi } from "vitest";
 import { chatCommands } from "./chat.js";
 
-vi.mock("../output.js", () => ({
-  success: vi.fn((data) => data),
-  error: vi.fn((code, message) => ({ code, message })),
-  run: vi.fn(async (cmd, fn) => {
-    try {
-      return await fn();
-    } catch (err: any) {
-      return { code: "api_error", message: err.message };
-    }
-  }),
-}));
+vi.mock("../output.js", async () => {
+  const { createOutputMocks } = await import("./test-helpers.js");
+  return createOutputMocks();
+});
 
-vi.mock("../scope.js", () => ({
-  resolveChatId: vi.fn(async (trpc, chatId) => {
-    if (chatId) return Number(chatId);
-    return 12345; // Default mock chat ID
-  }),
-}));
+vi.mock("@bananasplitz/api-client", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@bananasplitz/api-client")>();
+  const { createResolveChatIdMock } = await import("./test-helpers.js");
+  return {
+    ...actual,
+    resolveChatId: createResolveChatIdMock(),
+  };
+});
 
 describe("chat commands", () => {
   it("list-chats should call trpc.chat.getAllChats", async () => {
     const cmd = chatCommands.find((c) => c.name === "list-chats");
     const queryMock = vi.fn().mockResolvedValue([{ id: 1, type: "group" }]);
-    const trpcMock = { chat: { getAllChats: { query: queryMock } } } as any;
+    const trpcMock = { chat: { getAllChats: { query: queryMock } } } as never;
 
     await cmd?.execute({ "exclude-types": "private,sender" }, trpcMock);
 
@@ -36,7 +32,7 @@ describe("chat commands", () => {
   it("get-chat should call trpc.chat.getChat with resolved ID", async () => {
     const cmd = chatCommands.find((c) => c.name === "get-chat");
     const queryMock = vi.fn().mockResolvedValue({ id: 999 });
-    const trpcMock = { chat: { getChat: { query: queryMock } } } as any;
+    const trpcMock = { chat: { getChat: { query: queryMock } } } as never;
 
     await cmd?.execute({ "chat-id": "999" }, trpcMock);
 
@@ -48,7 +44,7 @@ describe("chat commands", () => {
     const queryMock = vi.fn().mockResolvedValue([]);
     const trpcMock = {
       chat: { getBulkChatDebts: { query: queryMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({ "chat-id": "888", currencies: "USD,EUR" }, trpcMock);
 
@@ -60,7 +56,7 @@ describe("chat commands", () => {
 
   it("get-simplified-debts should fail if currency is missing", async () => {
     const cmd = chatCommands.find((c) => c.name === "get-simplified-debts");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
     const result = await cmd?.execute({}, trpcMock);
 
     expect(result).toMatchObject({
@@ -74,7 +70,7 @@ describe("chat commands", () => {
     const queryMock = vi.fn().mockResolvedValue([]);
     const trpcMock = {
       chat: { getSimplifiedDebts: { query: queryMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({ "chat-id": "777", currency: "JPY" }, trpcMock);
 
@@ -84,7 +80,7 @@ describe("chat commands", () => {
   it("update-chat-settings should call trpc.chat.updateChat", async () => {
     const cmd = chatCommands.find((c) => c.name === "update-chat-settings");
     const mutateMock = vi.fn().mockResolvedValue({ success: true });
-    const trpcMock = { chat: { updateChat: { mutate: mutateMock } } } as any;
+    const trpcMock = { chat: { updateChat: { mutate: mutateMock } } } as never;
 
     await cmd?.execute(
       {

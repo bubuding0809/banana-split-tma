@@ -1,24 +1,18 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { resolveChatId } from "../lib/tools/scope";
+import { sendGroupReminder } from "@bananasplitz/api-ops";
 
 type Input = {
-  /** Numeric chat ID (optional if API key is chat-scoped) */
   chatId?: string;
 };
 
 export const confirmation: Tool.Confirmation<Input> = async () => ({
-  message: "Send a group debt reminder to this Telegram chat?",
+  message: "Send a group debt reminder to Telegram?",
 });
 
-/** Send a group debt reminder message. */
+/** Send a group reminder about outstanding debts. */
 export default async function tool(input: Input) {
   return withToolErrors("send-group-reminder", input, async () => {
-    return runTool("send-group-reminder", input, async (trpc) => {
-      const chatId = await resolveChatId(trpc, input.chatId);
-      return trpc.telegram.sendGroupReminderMessage.mutate({
-        chatId: chatId.toString(),
-      });
-    });
+    return runTool("send-group-reminder", input, (trpc) => sendGroupReminder(trpc, { chatId: input.chatId }));
   });
 }

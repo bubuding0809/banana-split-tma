@@ -1,20 +1,20 @@
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { resolveChatId } from "../lib/tools/scope";
+import { getDebts, parseCurrencies } from "@bananasplitz/api-ops";
 
 type Input = {
-  /** Numeric chat ID (optional if API key is chat-scoped) */
   chatId?: string;
-  /** Comma-separated 3-letter currency codes (e.g. USD,SGD) */
+  /** Comma-separated currency codes */
   currencies?: string;
 };
 
 /** Get all outstanding debts in a chat. */
 export default async function tool(input: Input) {
   return withToolErrors("get-debts", input, async () => {
-    return runTool("get-debts", input, async (trpc) => {
-      const chatId = await resolveChatId(trpc, input.chatId);
-      const currencies = input.currencies?.split(",").map((c) => c.trim());
-      return trpc.chat.getBulkChatDebts.query({ chatId, currencies });
-    });
+    return runTool("get-debts", input, (trpc) =>
+      getDebts(trpc, {
+        chatId: input.chatId,
+        currencies: parseCurrencies(input.currencies),
+      }),
+    );
   });
 }

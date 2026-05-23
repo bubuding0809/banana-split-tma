@@ -1,8 +1,6 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { resolveChatId } from "../lib/tools/scope";
-import { applyExpensePartialUpdate, type ExpenseSplitMode, type ExpenseUpdatePatch } from "../lib/tools/expense-update";
-import { parseCommaSeparatedNumbers, parseJsonArray, parsePositiveNumber, requireField } from "../lib/tools/parse";
+import { parseUpdateExpensePatch, updateExpense, type ExpenseSplitMode } from "@bananasplitz/api-ops";
 
 type Input = {
   /** Expense UUID */
@@ -33,42 +31,20 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => ({
 /** Update an existing expense (partial patch). */
 export default async function tool(input: Input) {
   return withToolErrors("update-expense", input, async () => {
-    const patch: ExpenseUpdatePatch = {
-      expenseId: requireField(input.expenseId, "expenseId"),
-    };
-
-    if (input.payerId !== undefined) {
-      patch.payerId = parsePositiveNumber(input.payerId, "payerId");
-    }
-    if (input.amount !== undefined) {
-      patch.amount = parsePositiveNumber(input.amount, "amount");
-    }
-    if (input.creatorId !== undefined) {
-      patch.creatorId = parsePositiveNumber(input.creatorId, "creatorId");
-    }
-    if (input.description !== undefined) patch.description = input.description;
-    if (input.currency !== undefined) patch.currency = input.currency;
-    if (input.splitMode !== undefined) {
-      patch.splitMode = input.splitMode as ExpenseSplitMode;
-    }
-    if (input.participantIds !== undefined) {
-      patch.participantIds = parseCommaSeparatedNumbers(input.participantIds, "participantIds");
-    }
-    if (input.customSplits !== undefined) {
-      patch.customSplits = parseJsonArray<{ userId: number; amount: number }>(input.customSplits, "customSplits");
-    }
-    if (input.date !== undefined) {
-      const date = new Date(input.date);
-      if (Number.isNaN(date.getTime())) throw new Error("date must be valid ISO 8601");
-      patch.date = date;
-    }
-    if (input.category !== undefined) {
-      patch.categoryId = input.category === "none" ? null : input.category;
-    }
-
-    return runTool("update-expense", input, async (trpc) => {
-      const chatId = await resolveChatId(trpc, input.chatId);
-      return applyExpensePartialUpdate(patch, trpc, chatId);
+    const patch = parseUpdateExpensePatch({
+      expenseId: input.expenseId,
+      payerId: input.payerId,
+      creatorId: input.creatorId,
+      description: input.description,
+      amount: input.amount,
+      currency: input.currency,
+      splitMode: input.splitMode as ExpenseSplitMode | undefined,
+      participantIds: input.participantIds,
+      customSplits: input.customSplits,
+      date: input.date,
+      category: input.category,
     });
+
+    return runTool("update-expense", input, (trpc) => updateExpense(trpc, { patch, chatId: input.chatId }));
   });
 }

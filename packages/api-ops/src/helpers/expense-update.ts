@@ -1,4 +1,4 @@
-import type { BananaTrpcClient } from "../trpc";
+import type { TrpcClient } from "@bananasplitz/api-client";
 
 export type ExpenseSplitMode = "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
 
@@ -19,9 +19,9 @@ export type ExpenseUpdatePatch = {
 /** Shared partial expense update (ported from apps/cli/src/commands/expense.ts). */
 export async function applyExpensePartialUpdate(
   patch: ExpenseUpdatePatch,
-  trpc: BananaTrpcClient,
+  trpc: TrpcClient,
   chatId: number,
-  opts: { sendNotification?: boolean } = {},
+  opts: { sendNotification?: boolean } = {}
 ): Promise<unknown> {
   const existing = await trpc.expense.getExpenseDetails.query({
     expenseId: patch.expenseId,
@@ -32,19 +32,24 @@ export async function applyExpensePartialUpdate(
   }
 
   const splitMode = (patch.splitMode ?? existing.splitMode) as ExpenseSplitMode;
-  const participantIds = patch.participantIds ?? existing.participants.map((p: { id: number }) => p.id);
+  const participantIds =
+    patch.participantIds ??
+    existing.participants.map((p: { id: number }) => p.id);
 
   let customSplits: { userId: number; amount: number }[] | undefined;
   if (patch.customSplits) {
     customSplits = patch.customSplits;
   } else if (splitMode !== "EQUAL") {
-    customSplits = existing.shares.map((s: { userId: number; amount: number }) => ({
-      userId: s.userId,
-      amount: s.amount,
-    }));
+    customSplits = existing.shares.map(
+      (s: { userId: number; amount: number }) => ({
+        userId: s.userId,
+        amount: s.amount,
+      })
+    );
   }
 
-  const categoryId = patch.categoryId !== undefined ? patch.categoryId : existing.categoryId;
+  const categoryId =
+    patch.categoryId !== undefined ? patch.categoryId : existing.categoryId;
 
   return trpc.expense.updateExpense.mutate({
     expenseId: patch.expenseId,

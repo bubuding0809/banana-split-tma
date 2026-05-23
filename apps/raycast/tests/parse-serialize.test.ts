@@ -6,7 +6,7 @@ import {
   parseNumber,
   parsePositiveNumber,
   requireField,
-} from "../src/lib/tools/parse";
+} from "@bananasplitz/api-ops";
 import { serializeToolResult } from "../src/lib/tools/serialize";
 
 describe("parse helpers", () => {

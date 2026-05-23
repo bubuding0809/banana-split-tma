@@ -1,6 +1,9 @@
 export const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export function requireField<T>(value: T | undefined, name: string): NonNullable<T> {
+export function requireField<T>(
+  value: T | undefined | null,
+  name: string
+): NonNullable<T> {
   if (value === undefined || value === null || value === "") {
     throw new Error(`${name} is required`);
   }
@@ -13,13 +16,19 @@ export function parseNumber(value: string | number, field: string): number {
   return n;
 }
 
-export function parsePositiveNumber(value: string | number, field: string): number {
+export function parsePositiveNumber(
+  value: string | number,
+  field: string
+): number {
   const n = parseNumber(value, field);
   if (n <= 0) throw new Error(`${field} must be a positive number`);
   return n;
 }
 
-export function parseCommaSeparatedNumbers(value: string, field: string): number[] {
+export function parseCommaSeparatedNumbers(
+  value: string,
+  field: string
+): number[] {
   const ids = value.split(",").map((s) => Number(s.trim()));
   if (ids.some(Number.isNaN)) {
     throw new Error(`${field} must be comma-separated numbers`);

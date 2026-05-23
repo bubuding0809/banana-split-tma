@@ -1,7 +1,6 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { resolveChatId } from "../lib/tools/scope";
-import { parseNumber, parsePositiveNumber, requireField } from "../lib/tools/parse";
+import { createSettlement, parsePositiveNumber, requireField } from "@bananasplitz/api-ops";
 
 type Input = {
   /** Numeric chat ID (optional if API key is chat-scoped) */
@@ -19,41 +18,21 @@ type Input = {
 };
 
 export const confirmation: Tool.Confirmation<Input> = async (input) => ({
-  message: `Record settlement: user ${input.senderId} pays ${input.amount}${input.currency ? ` ${input.currency}` : ""} to user ${input.receiverId}? May notify the group.`,
-  info: [
-    { name: "From", value: String(input.senderId) },
-    { name: "To", value: String(input.receiverId) },
-    { name: "Amount", value: String(input.amount) },
-  ],
+  message: `Record settlement of ${input.amount}${input.currency ? ` ${input.currency}` : ""} from user ${input.senderId} to ${input.receiverId}? May notify the group.`,
 });
 
-/** Record a settlement between two users. */
+/** Record a debt settlement between two users. */
 export default async function tool(input: Input) {
   return withToolErrors("create-settlement", input, async () => {
-    const senderId = parseNumber(requireField(input.senderId, "senderId"), "senderId");
-    const receiverId = parseNumber(requireField(input.receiverId, "receiverId"), "receiverId");
-    const amount = parsePositiveNumber(requireField(input.amount, "amount"), "amount");
-
-    return runTool("create-settlement", input, async (trpc) => {
-      const chatId = await resolveChatId(trpc, input.chatId);
-      const chat = await trpc.chat.getChat.query({ chatId });
-      const members = chat.members ?? [];
-      const creditor = members.find((m: { id: number }) => m.id === receiverId);
-      const debtor = members.find((m: { id: number }) => m.id === senderId);
-
-      return trpc.settlement.createSettlement.mutate({
-        chatId,
-        senderId,
-        receiverId,
-        amount,
+    return runTool("create-settlement", input, (trpc) =>
+      createSettlement(trpc, {
+        chatId: input.chatId,
+        senderId: parsePositiveNumber(requireField(input.senderId, "senderId"), "senderId"),
+        receiverId: parsePositiveNumber(requireField(input.receiverId, "receiverId"), "receiverId"),
+        amount: parsePositiveNumber(requireField(input.amount, "amount"), "amount"),
         currency: input.currency,
         description: input.description,
-        sendNotification: true,
-        creditorName: creditor?.firstName ?? `User ${receiverId}`,
-        creditorUsername: creditor?.username ?? undefined,
-        debtorName: debtor?.firstName ?? `User ${senderId}`,
-        threadId: chat.threadId ?? undefined,
-      });
-    });
+      }),
+    );
   });
 }
