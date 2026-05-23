@@ -1,7 +1,6 @@
 import { resolveChatId, type TrpcClient } from "@bananasplitz/api-client";
 import { invalidField, missingField } from "../errors.js";
-
-type ChatType = "private" | "group" | "supergroup" | "channel" | "sender";
+import { CHAT_TYPES, type ChatType } from "../types.js";
 
 export async function listChats(
   trpc: TrpcClient,
@@ -88,7 +87,13 @@ export function parseExcludeTypes(
   raw: string | undefined
 ): ChatType[] | undefined {
   if (!raw) return undefined;
-  return raw.split(",") as ChatType[];
+  const types = raw.split(",").map((s) => s.trim());
+  for (const type of types) {
+    if (!CHAT_TYPES.includes(type as ChatType)) {
+      invalidField(`invalid chat type: ${type}`);
+    }
+  }
+  return types as ChatType[];
 }
 
 export function parseCurrencies(raw: string | undefined): string[] | undefined {

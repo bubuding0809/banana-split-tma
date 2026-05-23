@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-05-22
+
+### Fixed
+
+- Validation errors from shared `@bananasplitz/api-ops` now surface as `missing_option` / `invalid_option` instead of `api_error` for debt reminders, expense updates, and bulk expense updates.
+
 ## [0.15.1] - 2026-05-23
 
 ### Changed

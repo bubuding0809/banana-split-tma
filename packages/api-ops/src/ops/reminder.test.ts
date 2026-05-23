@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { ApiValidationError } from "../errors.js";
 import {
   sendGroupReminder,
   validateSendDebtReminderInput,
@@ -29,8 +30,14 @@ describe("reminder ops", () => {
   });
 
   it("validateSendDebtReminderInput throws for missing fields", () => {
-    expect(() => validateSendDebtReminderInput({})).toThrow(
-      "Missing required option: --debtor-user-id"
-    );
+    expect(() => validateSendDebtReminderInput({})).toThrow(ApiValidationError);
+    try {
+      validateSendDebtReminderInput({});
+    } catch (err) {
+      expect(err).toMatchObject({
+        code: "missing_field",
+        message: "Missing required option: --debtor-user-id",
+      });
+    }
   });
 });

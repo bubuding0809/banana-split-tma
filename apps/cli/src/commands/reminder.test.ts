@@ -35,14 +35,14 @@ describe("reminder commands", () => {
     const trpcMock = {} as never;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
-      code: "api_error",
+      code: "missing_option",
       message: "Missing required option: --debtor-user-id",
     });
 
     expect(
       await cmd?.execute({ "debtor-user-id": "1" }, trpcMock)
     ).toMatchObject({
-      code: "api_error",
+      code: "missing_option",
       message: "Missing required option: --debtor-name",
     });
 
@@ -52,7 +52,7 @@ describe("reminder commands", () => {
         trpcMock
       )
     ).toMatchObject({
-      code: "api_error",
+      code: "missing_option",
       message: "Missing required option: --creditor-name",
     });
 
@@ -66,7 +66,7 @@ describe("reminder commands", () => {
         trpcMock
       )
     ).toMatchObject({
-      code: "api_error",
+      code: "missing_option",
       message: "Missing required option: --amount",
     });
   });

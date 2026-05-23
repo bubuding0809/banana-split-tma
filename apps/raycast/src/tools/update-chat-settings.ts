@@ -1,6 +1,6 @@
 import { Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { parseBooleanString, updateChatSettings } from "@bananasplitz/api-ops";
+import { parseBooleanField, updateChatSettings } from "@bananasplitz/api-ops";
 
 type Input = {
   chatId?: string;
@@ -23,20 +23,18 @@ export default async function tool(input: Input) {
         chatId: input.chatId,
         debtSimplificationEnabled:
           input.debtSimplification !== undefined
-            ? parseBooleanString(input.debtSimplification, "debtSimplification")
+            ? parseBooleanField(input.debtSimplification, "debtSimplification")
             : undefined,
         baseCurrency: input.baseCurrency,
         notifyOnExpense:
-          input.notifyOnExpense !== undefined
-            ? parseBooleanString(input.notifyOnExpense, "notifyOnExpense")
-            : undefined,
+          input.notifyOnExpense !== undefined ? parseBooleanField(input.notifyOnExpense, "notifyOnExpense") : undefined,
         notifyOnExpenseUpdate:
           input.notifyOnExpenseUpdate !== undefined
-            ? parseBooleanString(input.notifyOnExpenseUpdate, "notifyOnExpenseUpdate")
+            ? parseBooleanField(input.notifyOnExpenseUpdate, "notifyOnExpenseUpdate")
             : undefined,
         notifyOnSettlement:
           input.notifyOnSettlement !== undefined
-            ? parseBooleanString(input.notifyOnSettlement, "notifyOnSettlement")
+            ? parseBooleanField(input.notifyOnSettlement, "notifyOnSettlement")
             : undefined,
       }),
     );

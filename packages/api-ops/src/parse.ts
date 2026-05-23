@@ -1,3 +1,5 @@
+import { invalidField } from "./errors.js";
+
 export const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export function requireField<T>(
@@ -46,9 +48,10 @@ export function parseJsonArray<T>(value: string, field: string): T[] {
   }
 }
 
-export function parseBooleanString(value: string, field: string): boolean {
+/** Parse a required boolean string (e.g. Raycast tool args). Throws on invalid values. */
+export function parseBooleanField(value: string, field: string): boolean {
   const v = value.toLowerCase();
   if (v === "true") return true;
   if (v === "false") return false;
-  throw new Error(`${field} must be true or false`);
+  invalidField(`${field} must be true or false`);
 }

@@ -6,12 +6,10 @@ import {
   type ExpenseUpdatePatch,
 } from "../helpers/expense-update.js";
 import { invalidField, missingField } from "../errors.js";
+import { type RecurrenceFrequency, type Weekday, WEEKDAYS } from "../types.js";
 
 export type { ExpenseSplitMode, ExpenseUpdatePatch };
 export { applyExpensePartialUpdate };
-
-type RecurrenceFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
-type Weekday = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
 
 export type ExpenseRow = {
   payerId: number;
@@ -23,6 +21,7 @@ export type ExpenseRow = {
   participantIds: number[];
   customSplits?: { userId: number; amount: number }[];
   date?: string;
+  /** Server field name — used in bulk import JSON rows. */
   categoryId?: string | null;
 };
 
@@ -37,6 +36,7 @@ export type BulkUpdateRow = {
   participantIds?: number[];
   customSplits?: { userId: number; amount: number }[];
   date?: string;
+  /** CLI/JSON alias — mapped to `categoryId` before the bulk update mutation. */
   category?: string | null;
 };
 
@@ -234,8 +234,7 @@ export function parseCreateExpenseInput(input: CreateExpenseInput): {
       weekdays = String(input.recurrenceWeekdays)
         .split(",")
         .map((s) => s.trim().toUpperCase());
-      const validWeekdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-      if (weekdays.some((w) => !validWeekdays.includes(w))) {
+      if (weekdays.some((w) => !(WEEKDAYS as readonly string[]).includes(w))) {
         invalidField(
           "--recurrence-weekdays must contain valid short days (SUN,MON,TUE...)"
         );
@@ -351,14 +350,14 @@ export function parseUpdateExpensePatch(input: {
   if (input.payerId) {
     const payerId = Number(input.payerId);
     if (Number.isNaN(payerId))
-      throw new Error("--payer-id must be a valid number");
+      invalidField("--payer-id must be a valid number");
     patch.payerId = payerId;
   }
 
   if (input.amount) {
     const amount = Number(input.amount);
     if (Number.isNaN(amount) || amount <= 0) {
-      throw new Error("--amount must be a positive number");
+      invalidField("--amount must be a positive number");
     }
     patch.amount = amount;
   }
@@ -366,7 +365,7 @@ export function parseUpdateExpensePatch(input: {
   if (input.creatorId) {
     const creatorId = Number(input.creatorId);
     if (Number.isNaN(creatorId)) {
-      throw new Error("--creator-id must be a valid number");
+      invalidField("--creator-id must be a valid number");
     }
     patch.creatorId = creatorId;
   }
@@ -381,7 +380,7 @@ export function parseUpdateExpensePatch(input: {
   if (input.participantIds) {
     const participantIds = String(input.participantIds).split(",").map(Number);
     if (participantIds.some(Number.isNaN)) {
-      throw new Error("--participant-ids must be comma-separated numbers");
+      invalidField("--participant-ids must be comma-separated numbers");
     }
     patch.participantIds = participantIds;
   }
@@ -393,14 +392,14 @@ export function parseUpdateExpensePatch(input: {
         amount: number;
       }[];
     } catch {
-      throw new Error("--custom-splits must be valid JSON array");
+      invalidField("--custom-splits must be valid JSON array");
     }
   }
 
   if (input.date) {
     const date = new Date(String(input.date));
     if (Number.isNaN(date.getTime())) {
-      throw new Error("--date must be a valid ISO 8601 date string");
+      invalidField("--date must be a valid ISO 8601 date string");
     }
     patch.date = date;
   }
@@ -539,7 +538,7 @@ export async function bulkUpdateExpenses(
 
   const expenses: BulkUpdateRowServer[] = input.rows.map((row, i) => {
     if (!row || typeof row.expenseId !== "string" || !row.expenseId) {
-      throw new Error(`row ${i}: missing expenseId`);
+      missingField(`row ${i}: missing expenseId`);
     }
     const out: BulkUpdateRowServer = { expenseId: row.expenseId };
     if (row.payerId !== undefined) out.payerId = row.payerId;
@@ -554,7 +553,7 @@ export async function bulkUpdateExpenses(
     if (row.date !== undefined) {
       const d = new Date(row.date);
       if (Number.isNaN(d.getTime())) {
-        throw new Error(`row ${i}: date must be a valid ISO 8601 string`);
+        invalidField(`row ${i}: date must be a valid ISO 8601 string`);
       }
       out.date = d;
     }

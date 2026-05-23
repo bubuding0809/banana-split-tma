@@ -1,8 +1,6 @@
 import { resolveChatId, type TrpcClient } from "@bananasplitz/api-client";
 import { invalidField, missingField } from "../errors.js";
-
-type RecurrenceFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
-type Weekday = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
+import { type RecurrenceFrequency, type Weekday } from "../types.js";
 
 export async function listRecurringExpenses(
   trpc: TrpcClient,

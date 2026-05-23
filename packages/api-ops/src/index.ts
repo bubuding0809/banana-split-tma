@@ -8,7 +8,7 @@ export {
   parsePositiveNumber,
   parseCommaSeparatedNumbers,
   parseJsonArray,
-  parseBooleanString,
+  parseBooleanField,
 } from "./parse.js";
 
 export {

@@ -5,6 +5,7 @@ import {
   getDebts,
   getSimplifiedDebts,
   listChats,
+  parseExcludeTypes,
   updateChatSettings,
 } from "./chat.js";
 
@@ -77,6 +78,21 @@ describe("chat ops", () => {
     await getSimplifiedDebts(trpc, { chatId: "777", currency: "JPY" });
 
     expect(queryMock).toHaveBeenCalledWith({ chatId: 777, currency: "JPY" });
+  });
+
+  it("parseExcludeTypes validates chat type values", () => {
+    expect(parseExcludeTypes("private,group")).toEqual(["private", "group"]);
+    expect(() => parseExcludeTypes("private,invalid")).toThrow(
+      ApiValidationError
+    );
+    try {
+      parseExcludeTypes("private,invalid");
+    } catch (err) {
+      expect(err).toMatchObject({
+        code: "invalid_field",
+        message: "invalid chat type: invalid",
+      });
+    }
   });
 
   it("updateChatSettings calls trpc.chat.updateChat", async () => {

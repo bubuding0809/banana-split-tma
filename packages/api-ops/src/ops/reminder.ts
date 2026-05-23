@@ -1,4 +1,5 @@
 import { resolveChatId, type TrpcClient } from "@bananasplitz/api-client";
+import { missingField } from "../errors.js";
 
 export async function sendGroupReminder(
   trpc: TrpcClient,
@@ -35,7 +36,7 @@ export async function sendDebtReminder(
     currency?: string;
     threadId?: number;
   } = {
-    chatId: Number(chatId),
+    chatId,
     debtorUserId: input.debtorUserId,
     debtorName: input.debtorName,
     creditorName: input.creditorName,
@@ -61,16 +62,16 @@ export function validateSendDebtReminderInput(input: {
   amount: number;
 } {
   if (!input.debtorUserId) {
-    throw new Error("Missing required option: --debtor-user-id");
+    missingField("Missing required option: --debtor-user-id");
   }
   if (!input.debtorName) {
-    throw new Error("Missing required option: --debtor-name");
+    missingField("Missing required option: --debtor-name");
   }
   if (!input.creditorName) {
-    throw new Error("Missing required option: --creditor-name");
+    missingField("Missing required option: --creditor-name");
   }
   if (input.amount === undefined || input.amount === "") {
-    throw new Error("Missing required option: --amount");
+    missingField("Missing required option: --amount");
   }
 
   return {
