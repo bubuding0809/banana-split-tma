@@ -3,7 +3,9 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 
 const CONFIG_PATH = join(homedir(), ".bananasplit.json");
-const DEFAULT_API_URL = "https://banana-split-tma-lambda.vercel.app/api/trpc";
+import { DEFAULT_TRPC_URL } from "@bananasplitz/api-client";
+
+const DEFAULT_API_URL = DEFAULT_TRPC_URL;
 
 interface Config {
   apiKey?: string;

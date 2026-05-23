@@ -1,24 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { settlementCommands } from "./settlement.js";
 
-vi.mock("../output.js", () => ({
-  success: vi.fn((data) => data),
-  error: vi.fn((code, message) => ({ code, message })),
-  run: vi.fn(async (cmd, fn) => {
-    try {
-      return await fn();
-    } catch (err: any) {
-      return { code: "api_error", message: err.message };
-    }
-  }),
-}));
+vi.mock("../output.js", async () => {
+  const { createOutputMocks } = await import("./test-helpers.js");
+  return createOutputMocks();
+});
 
-vi.mock("../scope.js", () => ({
-  resolveChatId: vi.fn(async (trpc, chatId) => {
-    if (chatId) return Number(chatId);
-    return 12345;
-  }),
-}));
+vi.mock("@bananasplitz/api-client", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@bananasplitz/api-client")>();
+  const { createResolveChatIdMock } = await import("./test-helpers.js");
+  return {
+    ...actual,
+    resolveChatId: createResolveChatIdMock(),
+  };
+});
 
 describe("settlement commands", () => {
   it("list-settlements should call trpc.settlement.getSettlementByChat", async () => {
@@ -26,7 +22,7 @@ describe("settlement commands", () => {
     const queryMock = vi.fn().mockResolvedValue([]);
     const trpcMock = {
       settlement: { getSettlementByChat: { query: queryMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({ "chat-id": "111", currency: "USD" }, trpcMock);
 
@@ -35,7 +31,7 @@ describe("settlement commands", () => {
 
   it("create-settlement should fail if required options are missing", async () => {
     const cmd = settlementCommands.find((c) => c.name === "create-settlement");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
       code: "missing_option",
@@ -70,7 +66,7 @@ describe("settlement commands", () => {
     const trpcMock = {
       chat: { getChat: { query: chatQueryMock } },
       settlement: { createSettlement: { mutate: mutateMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute(
       {
@@ -100,7 +96,7 @@ describe("settlement commands", () => {
 
   it("delete-settlement should fail when settlement-id is missing", async () => {
     const cmd = settlementCommands.find((c) => c.name === "delete-settlement");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
     const result = await cmd?.execute({}, trpcMock);
 
     expect(result).toMatchObject({
@@ -114,7 +110,7 @@ describe("settlement commands", () => {
     const mutateMock = vi.fn().mockResolvedValue({ message: "Deleted" });
     const trpcMock = {
       settlement: { deleteSettlement: { mutate: mutateMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute({ "settlement-id": "set-123" }, trpcMock);
     expect(mutateMock).toHaveBeenCalledWith({ settlementId: "set-123" });
@@ -122,7 +118,7 @@ describe("settlement commands", () => {
 
   it("settle-all-debts should fail if required options are missing", async () => {
     const cmd = settlementCommands.find((c) => c.name === "settle-all-debts");
-    const trpcMock = {} as any;
+    const trpcMock = {} as never;
 
     expect(await cmd?.execute({}, trpcMock)).toMatchObject({
       code: "missing_option",
@@ -151,7 +147,7 @@ describe("settlement commands", () => {
     const trpcMock = {
       chat: { getChat: { query: chatQueryMock } },
       settlement: { settleAllDebts: { mutate: mutateMock } },
-    } as any;
+    } as never;
 
     await cmd?.execute(
       {

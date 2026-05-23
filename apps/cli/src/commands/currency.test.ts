@@ -1,17 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { currencyCommands } from "./currency.js";
 
-vi.mock("../output.js", () => ({
-  success: vi.fn((data) => data),
-  error: vi.fn((code, message) => ({ code, message })),
-  run: vi.fn(async (cmd, fn) => {
-    try {
-      return await fn();
-    } catch (err: any) {
-      return { code: "api_error", message: err.message };
-    }
-  }),
-}));
+vi.mock("../output.js", async () => {
+  const { createOutputMocks } = await import("./test-helpers.js");
+  return createOutputMocks();
+});
 
 describe("currency commands", () => {
   it("get-exchange-rate should fail if base-currency is missing", async () => {

@@ -308,6 +308,8 @@
     }
   ],
   "dependencies": {
+    "@bananasplitz/api-client": "workspace:*",
+    "@bananasplitz/api-ops": "workspace:*",
     "@repo/categories": "workspace:*",
     "@dko/trpc": "workspace:*",
     "@raycast/api": "^1.104.17",

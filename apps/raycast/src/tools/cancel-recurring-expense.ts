@@ -1,6 +1,6 @@
 import { Action, Tool } from "@raycast/api";
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { requireField } from "../lib/tools/parse";
+import { cancelRecurringExpense, requireField } from "@bananasplitz/api-ops";
 
 type Input = {
   /** Template UUID */
@@ -16,6 +16,6 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => ({
 export default async function tool(input: Input) {
   return withToolErrors("cancel-recurring-expense", input, async () => {
     const templateId = requireField(input.templateId, "templateId");
-    return runTool("cancel-recurring-expense", input, (trpc) => trpc.expense.recurring.cancel.mutate({ templateId }));
+    return runTool("cancel-recurring-expense", input, (trpc) => cancelRecurringExpense(trpc, { templateId }));
   });
 }

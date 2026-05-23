@@ -1,21 +1,20 @@
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
-import { resolveChatId } from "../lib/tools/scope";
-import { requireField } from "../lib/tools/parse";
+import { getSimplifiedDebts, requireField } from "@bananasplitz/api-ops";
 
 type Input = {
-  /** Numeric chat ID (optional if API key is chat-scoped) */
   chatId?: string;
-  /** 3-letter currency code (required), e.g. USD or SGD */
+  /** 3-letter currency code — required */
   currency: string;
 };
 
-/** Get optimized debt graph for one currency in a chat. */
+/** Get simplified debt graph for a chat in one currency. */
 export default async function tool(input: Input) {
   return withToolErrors("get-simplified-debts", input, async () => {
-    const currency = requireField(input.currency, "currency");
-    return runTool("get-simplified-debts", input, async (trpc) => {
-      const chatId = await resolveChatId(trpc, input.chatId);
-      return trpc.chat.getSimplifiedDebts.query({ chatId, currency });
-    });
+    return runTool("get-simplified-debts", input, (trpc) =>
+      getSimplifiedDebts(trpc, {
+        chatId: input.chatId,
+        currency: requireField(input.currency, "currency"),
+      }),
+    );
   });
 }

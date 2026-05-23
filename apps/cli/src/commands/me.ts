@@ -1,7 +1,12 @@
 import type { Command } from "./types.js";
 import { run, error } from "../output.js";
-
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+import {
+  listCounterpartyBalances,
+  listMyBalances,
+  listMySpending,
+  parseCounterpartyUserId,
+  settleAllWith,
+} from "@bananasplitz/api-ops";
 
 export const meCommands: Command[] = [
   {
@@ -13,9 +18,7 @@ export const meCommands: Command[] = [
     examples: ["banana list-my-balances"],
     options: {},
     execute: (_opts, trpc) =>
-      run("list-my-balances", async () =>
-        trpc.expenseShare.getMyBalancesAcrossChats.query()
-      ),
+      run("list-my-balances", async () => listMyBalances(trpc)),
   },
 
   {
@@ -33,26 +36,10 @@ export const meCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts.month) {
-        return error(
-          "missing_option",
-          "--month is required",
-          "list-my-spending"
-        );
-      }
-      const month = String(opts.month);
-      if (!MONTH_RE.test(month)) {
-        return error(
-          "invalid_option",
-          "--month must be YYYY-MM (e.g. 2026-04)",
-          "list-my-spending"
-        );
-      }
-      return run("list-my-spending", async () =>
-        trpc.expenseShare.getMySpendByMonth.query({ month })
-      );
-    },
+    execute: (opts, trpc) =>
+      run("list-my-spending", async () =>
+        listMySpending(trpc, { month: opts.month as string | undefined })
+      ),
   },
 
   {
@@ -74,9 +61,9 @@ export const meCommands: Command[] = [
     },
     execute: (opts, trpc) =>
       run("list-counterparty-balances", async () =>
-        trpc.expenseShare.getMyCounterpartyBalances.query(
-          opts.base ? { baseCurrency: String(opts.base) } : {}
-        )
+        listCounterpartyBalances(trpc, {
+          baseCurrency: opts.base ? String(opts.base) : undefined,
+        })
       ),
   },
 
@@ -102,21 +89,11 @@ export const meCommands: Command[] = [
       },
     },
     execute: async (opts, trpc) => {
-      if (!opts.user)
-        return error("missing_option", "--user required", "settle-all-with");
-      const counterpartyUserId = Number(opts.user);
-      if (!Number.isFinite(counterpartyUserId)) {
-        return error(
-          "invalid_option",
-          "--user must be a numeric Telegram user id",
-          "settle-all-with"
-        );
-      }
+      const counterpartyUserId = parseCounterpartyUserId(
+        opts.user as string | undefined
+      );
       if (!opts.yes) {
-        // Preview first
-        const preview = await trpc.expenseShare.getMyCounterpartyBalances.query(
-          {}
-        );
+        const preview = await listCounterpartyBalances(trpc, {});
         const cp = preview.counterparties.find(
           (c) => c.userId === counterpartyUserId
         );
@@ -133,7 +110,7 @@ export const meCommands: Command[] = [
         process.exit(0);
       }
       return run("settle-all-with", async () =>
-        trpc.expenseShare.settleAllWithUser.mutate({ counterpartyUserId })
+        settleAllWith(trpc, { counterpartyUserId })
       );
     },
   },

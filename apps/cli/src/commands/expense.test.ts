@@ -23,24 +23,20 @@ vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
 }));
 
-vi.mock("../output.js", () => ({
-  success: vi.fn((data) => data),
-  error: vi.fn((code, message) => ({ code, message })),
-  run: vi.fn(async (cmd, fn) => {
-    try {
-      return await fn();
-    } catch (err: any) {
-      return { code: "api_error", message: err.message };
-    }
-  }),
-}));
+vi.mock("../output.js", async () => {
+  const { createOutputMocks } = await import("./test-helpers.js");
+  return createOutputMocks();
+});
 
-vi.mock("../scope.js", () => ({
-  resolveChatId: vi.fn(async (trpc, chatId) => {
-    if (chatId) return Number(chatId);
-    return 12345;
-  }),
-}));
+vi.mock("@bananasplitz/api-client", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@bananasplitz/api-client")>();
+  const { createResolveChatIdMock } = await import("./test-helpers.js");
+  return {
+    ...actual,
+    resolveChatId: createResolveChatIdMock(),
+  };
+});
 
 describe("expense commands", () => {
   it("list-expenses should call trpc.expense.getExpenseByChat", async () => {
@@ -670,7 +666,7 @@ describe("expense commands", () => {
     expect(call.expenses[3]).toEqual({ expenseId: "exp-4", categoryId: null });
   });
 
-  it("bulk-update-expenses should throw api_error if a row is missing expenseId (no server call)", async () => {
+  it("bulk-update-expenses should throw missing_option if a row is missing expenseId (no server call)", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
     const rows = [{ amount: 10 }, { expenseId: "exp-2", amount: 20 }];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
@@ -685,13 +681,13 @@ describe("expense commands", () => {
     )) as any;
 
     expect(result).toMatchObject({
-      code: "api_error",
+      code: "missing_option",
       message: "row 0: missing expenseId",
     });
     expect(bulkMutate).not.toHaveBeenCalled();
   });
 
-  it("bulk-update-expenses should throw api_error for invalid row date (no server call)", async () => {
+  it("bulk-update-expenses should throw invalid_option for invalid row date (no server call)", async () => {
     const cmd = expenseCommands.find((c) => c.name === "bulk-update-expenses");
     const rows = [{ expenseId: "exp-1", date: "not-a-date" }];
     vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(rows));
@@ -706,7 +702,7 @@ describe("expense commands", () => {
     )) as any;
 
     expect(result).toMatchObject({
-      code: "api_error",
+      code: "invalid_option",
       message: "row 0: date must be a valid ISO 8601 string",
     });
     expect(bulkMutate).not.toHaveBeenCalled();
@@ -1013,7 +1009,7 @@ describe("expense commands", () => {
     );
 
     expect(result).toMatchObject({
-      code: "api_error",
+      code: "invalid_option",
       message: "--date must be a valid ISO 8601 date string",
     });
   });

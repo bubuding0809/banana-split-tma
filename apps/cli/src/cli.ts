@@ -211,7 +211,7 @@ async function main(): Promise<never> {
   delete commandValues["api-key"];
   delete commandValues["api-url"];
 
-  const trpc = createTrpcClient(apiKey, apiUrl);
+  const trpc = createTrpcClient({ apiKey, apiUrl });
 
   return command.execute(commandValues, trpc) as Promise<never>;
 }

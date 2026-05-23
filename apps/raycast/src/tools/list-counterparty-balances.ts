@@ -1,15 +1,16 @@
 import { runTool, withToolErrors } from "../lib/tools/run-tool";
+import { listCounterpartyBalances } from "@bananasplitz/api-ops";
 
 type Input = {
-  /** ISO 4217 base currency (defaults to stored baseCurrency) */
+  /** ISO 4217 base currency */
   base?: string;
 };
 
-/** Per-counterparty balance totals across all groups in one base currency. */
+/** Per-counterparty balance totals across all groups. */
 export default async function tool(input: Input) {
   return withToolErrors("list-counterparty-balances", input, async () => {
     return runTool("list-counterparty-balances", input, (trpc) =>
-      trpc.expenseShare.getMyCounterpartyBalances.query(input.base ? { baseCurrency: input.base } : {}),
+      listCounterpartyBalances(trpc, { baseCurrency: input.base }),
     );
   });
 }

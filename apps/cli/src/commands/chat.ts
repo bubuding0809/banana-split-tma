@@ -1,6 +1,15 @@
 import type { Command } from "./types.js";
-import { resolveChatId } from "../scope.js";
-import { run, error } from "../output.js";
+import { run } from "../output.js";
+import {
+  getChat,
+  getDebts,
+  getSimplifiedDebts,
+  listChats,
+  parseBooleanOption,
+  parseCurrencies,
+  parseExcludeTypes,
+  updateChatSettings,
+} from "@bananasplitz/api-ops";
 
 export const chatCommands: Command[] = [
   {
@@ -18,18 +27,13 @@ export const chatCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("list-chats", async () => {
-        const excludeTypes = opts["exclude-types"]
-          ? (String(opts["exclude-types"]).split(",") as (
-              | "private"
-              | "group"
-              | "supergroup"
-              | "channel"
-              | "sender"
-            )[])
-          : undefined;
-        return trpc.chat.getAllChats.query({ excludeTypes });
-      }),
+      run("list-chats", async () =>
+        listChats(trpc, {
+          excludeTypes: parseExcludeTypes(
+            opts["exclude-types"] as string | undefined
+          ),
+        })
+      ),
   },
 
   {
@@ -46,13 +50,9 @@ export const chatCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("get-chat", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.chat.getChat.query({ chatId });
-      }),
+      run("get-chat", async () =>
+        getChat(trpc, { chatId: opts["chat-id"] as string | undefined })
+      ),
   },
 
   {
@@ -75,16 +75,12 @@ export const chatCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("get-debts", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        const currencies = opts.currencies
-          ? String(opts.currencies).split(",")
-          : undefined;
-        return trpc.chat.getBulkChatDebts.query({ chatId, currencies });
-      }),
+      run("get-debts", async () =>
+        getDebts(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          currencies: parseCurrencies(opts.currencies as string | undefined),
+        })
+      ),
   },
 
   {
@@ -108,25 +104,13 @@ export const chatCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts.currency) {
-        return error(
-          "missing_option",
-          "--currency is required",
-          "get-simplified-debts"
-        );
-      }
-      return run("get-simplified-debts", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.chat.getSimplifiedDebts.query({
-          chatId,
-          currency: String(opts.currency),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-simplified-debts", async () =>
+        getSimplifiedDebts(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          currency: opts.currency as string | undefined,
+        })
+      ),
   },
 
   {
@@ -174,42 +158,23 @@ export const chatCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("update-chat-settings", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-
-        const updateData: {
-          chatId: number;
-          debtSimplificationEnabled?: boolean;
-          baseCurrency?: string;
-          notifyOnExpense?: boolean;
-          notifyOnExpenseUpdate?: boolean;
-          notifyOnSettlement?: boolean;
-        } = { chatId };
-
-        if (opts["debt-simplification"] !== undefined) {
-          updateData.debtSimplificationEnabled =
-            String(opts["debt-simplification"]) === "true";
-        }
-        if (opts["base-currency"] !== undefined) {
-          updateData.baseCurrency = String(opts["base-currency"]);
-        }
-        if (opts["notify-on-expense"] !== undefined) {
-          updateData.notifyOnExpense =
-            String(opts["notify-on-expense"]) === "true";
-        }
-        if (opts["notify-on-expense-update"] !== undefined) {
-          updateData.notifyOnExpenseUpdate =
-            String(opts["notify-on-expense-update"]) === "true";
-        }
-        if (opts["notify-on-settlement"] !== undefined) {
-          updateData.notifyOnSettlement =
-            String(opts["notify-on-settlement"]) === "true";
-        }
-
-        return trpc.chat.updateChat.mutate(updateData);
-      }),
+      run("update-chat-settings", async () =>
+        updateChatSettings(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          debtSimplificationEnabled: parseBooleanOption(
+            opts["debt-simplification"] as string | undefined
+          ),
+          baseCurrency: opts["base-currency"] as string | undefined,
+          notifyOnExpense: parseBooleanOption(
+            opts["notify-on-expense"] as string | undefined
+          ),
+          notifyOnExpenseUpdate: parseBooleanOption(
+            opts["notify-on-expense-update"] as string | undefined
+          ),
+          notifyOnSettlement: parseBooleanOption(
+            opts["notify-on-settlement"] as string | undefined
+          ),
+        })
+      ),
   },
 ];

@@ -1,5 +1,6 @@
 import type { Command } from "./types.js";
-import { run, error } from "../output.js";
+import { run } from "../output.js";
+import { getExchangeRate } from "@bananasplitz/api-ops";
 
 export const currencyCommands: Command[] = [
   {
@@ -22,27 +23,12 @@ export const currencyCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["base-currency"]) {
-        return error(
-          "missing_option",
-          "--base-currency is required",
-          "get-exchange-rate"
-        );
-      }
-      if (!opts["target-currency"]) {
-        return error(
-          "missing_option",
-          "--target-currency is required",
-          "get-exchange-rate"
-        );
-      }
-      return run("get-exchange-rate", async () => {
-        return trpc.currency.getCurrentRate.query({
-          baseCurrency: String(opts["base-currency"]),
-          targetCurrency: String(opts["target-currency"]),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-exchange-rate", async () =>
+        getExchangeRate(trpc, {
+          baseCurrency: opts["base-currency"] as string | undefined,
+          targetCurrency: opts["target-currency"] as string | undefined,
+        })
+      ),
   },
 ];

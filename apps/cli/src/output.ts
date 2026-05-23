@@ -1,11 +1,9 @@
-/** Custom replacer: BigInt → string for JSON serialization */
-function replacer(_key: string, value: unknown): unknown {
-  return typeof value === "bigint" ? value.toString() : value;
-}
+import { serializeForJson } from "@bananasplitz/api-client";
+import { ApiValidationError } from "@bananasplitz/api-ops";
 
 /** Print success result as JSON to stdout. Exit 0. */
 export function success(data: unknown): never {
-  console.log(JSON.stringify(data, replacer, 2));
+  console.log(serializeForJson(data));
   process.exit(0);
 }
 
@@ -36,6 +34,11 @@ export async function run(
     const result = await fn();
     return success(result);
   } catch (err) {
+    if (err instanceof ApiValidationError) {
+      const category =
+        err.code === "missing_field" ? "missing_option" : "invalid_option";
+      return error(category, err.message, command);
+    }
     const message = err instanceof Error ? err.message : String(err);
     return error("api_error", message, command);
   }

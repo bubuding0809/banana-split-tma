@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  parseBooleanString,
+  parseBooleanField,
   parseCommaSeparatedNumbers,
   parseJsonArray,
   parseNumber,
   parsePositiveNumber,
   requireField,
-} from "../src/lib/tools/parse";
+} from "@bananasplitz/api-ops";
 import { serializeToolResult } from "../src/lib/tools/serialize";
 
 describe("parse helpers", () => {
@@ -39,9 +39,9 @@ describe("parse helpers", () => {
   });
 
   it("parses boolean strings", () => {
-    expect(parseBooleanString("true", "enabled")).toBe(true);
-    expect(parseBooleanString("FALSE", "enabled")).toBe(false);
-    expect(() => parseBooleanString("yes", "enabled")).toThrow("enabled must be true or false");
+    expect(parseBooleanField("true", "enabled")).toBe(true);
+    expect(parseBooleanField("FALSE", "enabled")).toBe(false);
+    expect(() => parseBooleanField("yes", "enabled")).toThrow("enabled must be true or false");
   });
 });
 

@@ -5,6 +5,11 @@
     "lib": ["ES2023"],
     "module": "commonjs",
     "target": "ES2023",
+    "baseUrl": ".",
+    "paths": {
+      "@bananasplitz/api-client": ["../../packages/api-client/src/index.ts"],
+      "@bananasplitz/api-ops": ["../../packages/api-ops/src/index.ts"]
+    },
     "strict": true,
     "isolatedModules": true,
     "esModuleInterop": true,

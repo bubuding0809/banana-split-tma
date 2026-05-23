@@ -1,76 +1,21 @@
 import { readFileSync } from "node:fs";
 import type { Command } from "./types.js";
-import { resolveChatId } from "../scope.js";
 import { run, error } from "../output.js";
-import { BASE_CATEGORIES } from "@repo/categories";
-
-type ExpenseSplitMode = "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
-
-type ExpenseUpdatePatch = {
-  expenseId: string;
-  payerId?: number;
-  creatorId?: number;
-  description?: string;
-  amount?: number;
-  currency?: string;
-  splitMode?: ExpenseSplitMode;
-  participantIds?: number[];
-  customSplits?: { userId: number; amount: number }[];
-  date?: Date;
-  categoryId?: string | null;
-};
-
-async function applyExpensePartialUpdate(
-  patch: ExpenseUpdatePatch,
-  trpc: any,
-  chatId: number,
-  opts: { sendNotification?: boolean } = {}
-): Promise<any> {
-  const existing = await trpc.expense.getExpenseDetails.query({
-    expenseId: patch.expenseId,
-  });
-
-  // getExpenseDetails returns { amount: null, splitMode: undefined, ... }
-  // (not an error) for unknown IDs. Catch that here so the fan-out in
-  // bulk-update-expenses reports a clean "not found" instead of the
-  // server's Zod validation dump when NaN values reach updateExpense.
-  if (existing == null || existing.splitMode == null) {
-    throw new Error(`expense ${patch.expenseId} not found`);
-  }
-
-  const splitMode = (patch.splitMode ?? existing.splitMode) as ExpenseSplitMode;
-  const participantIds =
-    patch.participantIds ?? existing.participants.map((p: any) => p.id);
-
-  let customSplits: { userId: number; amount: number }[] | undefined;
-  if (patch.customSplits) {
-    customSplits = patch.customSplits;
-  } else if (splitMode !== "EQUAL") {
-    customSplits = existing.shares.map((s: any) => ({
-      userId: s.userId,
-      amount: s.amount,
-    }));
-  }
-
-  const categoryId =
-    patch.categoryId !== undefined ? patch.categoryId : existing.categoryId;
-
-  return trpc.expense.updateExpense.mutate({
-    expenseId: patch.expenseId,
-    chatId,
-    creatorId: patch.creatorId ?? Number(existing.creatorId),
-    payerId: patch.payerId ?? Number(existing.payerId),
-    description: patch.description ?? String(existing.description),
-    amount: patch.amount ?? Number(existing.amount),
-    date: patch.date ?? existing.date,
-    currency: patch.currency ?? existing.currency,
-    splitMode,
-    participantIds,
-    customSplits,
-    categoryId,
-    sendNotification: opts.sendNotification ?? true,
-  });
-}
+import {
+  bulkImportExpenses,
+  bulkUpdateExpenses,
+  createExpense,
+  deleteExpense,
+  getExpense,
+  getNetShare,
+  getTotals,
+  listExpenses,
+  parseUpdateExpensePatch,
+  updateExpense,
+  validateExpenseId,
+  type BulkUpdateRow,
+  type ExpenseRow,
+} from "@bananasplitz/api-ops";
 
 export const expenseCommands: Command[] = [
   {
@@ -102,54 +47,13 @@ export const expenseCommands: Command[] = [
       },
     },
     execute: (opts, trpc) =>
-      run("list-expenses", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-
-        // Resolve category labels once per command invocation.
-        const categoryMap = new Map<string, { emoji: string; title: string }>();
-        for (const b of BASE_CATEGORIES) {
-          categoryMap.set(b.id, { emoji: b.emoji, title: b.title });
-        }
-        try {
-          const result = await trpc.category.listByChat.query({ chatId });
-          for (const c of result.items.filter(
-            (item) => item.kind === "custom"
-          )) {
-            categoryMap.set(c.id, { emoji: c.emoji, title: c.title });
-          }
-        } catch {
-          // Non-fatal: category labels are best-effort
-        }
-
-        let expenses = await trpc.expense.getExpenseByChat.query({
-          chatId,
+      run("list-expenses", async () =>
+        listExpenses(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
           currency: opts.currency ? String(opts.currency) : undefined,
-        });
-
-        // Strict category match. `getExpenseByChat` returns expenses only
-        // (no settlements), so there's no reason to let untagged rows
-        // pass through. The special value "none" filters to uncategorized
-        // expenses, mirroring the TMA's Uncategorized chip.
-        if (opts.category) {
-          const target = String(opts.category);
-          expenses = expenses.filter(
-            (e: { categoryId?: string | null }) =>
-              (e.categoryId ?? "none") === target
-          );
-        }
-
-        // Annotate each expense with a categoryLabel for display.
-        return expenses.map(
-          (e: { categoryId?: string | null; [key: string]: unknown }) => {
-            const cat = e.categoryId ? categoryMap.get(e.categoryId) : null;
-            const categoryLabel = cat ? `${cat.emoji} ${cat.title}` : null;
-            return { ...e, categoryLabel };
-          }
-        );
-      }),
+          category: opts.category ? String(opts.category) : undefined,
+        })
+      ),
   },
 
   {
@@ -167,20 +71,14 @@ export const expenseCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["expense-id"]) {
-        return error(
-          "missing_option",
-          "--expense-id is required",
-          "get-expense"
-        );
-      }
-      return run("get-expense", async () => {
-        return trpc.expense.getExpenseDetails.query({
-          expenseId: String(opts["expense-id"]),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-expense", async () =>
+        getExpense(trpc, {
+          expenseId: validateExpenseId(
+            opts["expense-id"] as string | undefined
+          ),
+        })
+      ),
   },
 
   {
@@ -282,251 +180,29 @@ export const expenseCommands: Command[] = [
         required: false,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["payer-id"]) {
-        return error(
-          "missing_option",
-          "--payer-id is required",
-          "create-expense"
-        );
-      }
-      if (!opts.description) {
-        return error(
-          "missing_option",
-          "--description is required",
-          "create-expense"
-        );
-      }
-      if (!opts.amount) {
-        return error(
-          "missing_option",
-          "--amount is required",
-          "create-expense"
-        );
-      }
-      if (!opts["split-mode"]) {
-        return error(
-          "missing_option",
-          "--split-mode is required",
-          "create-expense"
-        );
-      }
-      if (!opts["participant-ids"]) {
-        return error(
-          "missing_option",
-          "--participant-ids is required",
-          "create-expense"
-        );
-      }
-
-      const payerId = Number(opts["payer-id"]);
-      if (Number.isNaN(payerId)) {
-        return error(
-          "invalid_option",
-          "--payer-id must be a valid number",
-          "create-expense"
-        );
-      }
-
-      const amount = Number(opts.amount);
-      if (Number.isNaN(amount) || amount <= 0) {
-        return error(
-          "invalid_option",
-          "--amount must be a positive number",
-          "create-expense"
-        );
-      }
-
-      const creatorId = opts["creator-id"]
-        ? Number(opts["creator-id"])
-        : payerId;
-      if (Number.isNaN(creatorId)) {
-        return error(
-          "invalid_option",
-          "--creator-id must be a valid number",
-          "create-expense"
-        );
-      }
-
-      const participantIds = String(opts["participant-ids"])
-        .split(",")
-        .map(Number);
-      if (participantIds.some(Number.isNaN)) {
-        return error(
-          "invalid_option",
-          "--participant-ids must be comma-separated numbers",
-          "create-expense"
-        );
-      }
-
-      let customSplits: { userId: number; amount: number }[] | undefined;
-      if (opts["custom-splits"]) {
-        try {
-          customSplits = JSON.parse(String(opts["custom-splits"])) as {
-            userId: number;
-            amount: number;
-          }[];
-        } catch {
-          return error(
-            "invalid_option",
-            "--custom-splits must be valid JSON array",
-            "create-expense"
-          );
-        }
-      }
-
-      let date: Date | undefined;
-      if (opts.date) {
-        date = new Date(String(opts.date));
-        if (Number.isNaN(date.getTime())) {
-          return error(
-            "invalid_option",
-            "--date must be a valid ISO 8601 date string",
-            "create-expense"
-          );
-        }
-      }
-
-      const frequency = opts["recurrence-frequency"]
-        ? String(opts["recurrence-frequency"]).toUpperCase()
-        : undefined;
-      let recurrenceParams: any = undefined;
-
-      if (
-        !frequency &&
-        (opts["recurrence-interval"] ||
-          opts["recurrence-weekdays"] ||
-          opts["recurrence-end-date"] ||
-          opts["recurrence-timezone"])
-      ) {
-        return error(
-          "invalid_option",
-          "Recurrence options require --recurrence-frequency",
-          "create-expense"
-        );
-      }
-
-      if (frequency) {
-        const timezone =
-          (opts["recurrence-timezone"] as string) ||
-          Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-        if (!["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(frequency)) {
-          return error(
-            "invalid_option",
-            "--recurrence-frequency must be DAILY, WEEKLY, MONTHLY, or YEARLY",
-            "create-expense"
-          );
-        }
-
-        const interval = opts["recurrence-interval"]
-          ? Number(opts["recurrence-interval"])
-          : 1;
-        if (
-          Number.isNaN(interval) ||
-          interval <= 0 ||
-          !Number.isInteger(interval)
-        ) {
-          return error(
-            "invalid_option",
-            "--recurrence-interval must be a positive integer",
-            "create-expense"
-          );
-        }
-
-        let weekdays: string[] | undefined;
-        if (opts["recurrence-weekdays"]) {
-          weekdays = String(opts["recurrence-weekdays"])
-            .split(",")
-            .map((s) => s.trim().toUpperCase());
-          const validWeekdays = [
-            "SUN",
-            "MON",
-            "TUE",
-            "WED",
-            "THU",
-            "FRI",
-            "SAT",
-          ];
-          if (weekdays.some((w) => !validWeekdays.includes(w))) {
-            return error(
-              "invalid_option",
-              "--recurrence-weekdays must contain valid short days (SUN,MON,TUE...)",
-              "create-expense"
-            );
-          }
-        } else if (frequency === "WEEKLY") {
-          // Default to current day if WEEKLY and no weekdays provided
-          const baseDate = date || new Date();
-          const DAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-          weekdays = [DAY_NAMES[baseDate.getDay()]!];
-        }
-
-        let endDate: Date | undefined;
-        if (opts["recurrence-end-date"]) {
-          endDate = new Date(String(opts["recurrence-end-date"]));
-          if (Number.isNaN(endDate.getTime())) {
-            return error(
-              "invalid_option",
-              "--recurrence-end-date must be a valid ISO 8601 date string",
-              "create-expense"
-            );
-          }
-
-          const baseDate = date || new Date();
-          if (endDate < baseDate) {
-            return error(
-              "invalid_option",
-              "--recurrence-end-date cannot be before the expense date",
-              "create-expense"
-            );
-          }
-        }
-
-        recurrenceParams = {
-          frequency,
-          interval,
-          weekdays: weekdays ?? [],
-          endDate,
-          timezone,
-        };
-      }
-
-      return run("create-expense", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-
-        const payload = {
-          chatId,
-          creatorId,
-          payerId,
-          description: String(opts.description),
-          amount,
-          currency: opts.currency ? String(opts.currency) : undefined,
-          date,
-          splitMode: String(opts["split-mode"]) as
-            | "EQUAL"
-            | "EXACT"
-            | "PERCENTAGE"
-            | "SHARES",
-          participantIds,
-          customSplits,
-          categoryId: opts.category ? String(opts.category) : undefined,
-          sendNotification: true,
-        };
-
-        if (recurrenceParams) {
-          return trpc.expense.createExpenseWithRecurrence.mutate({
-            expense: payload,
-            recurrence: recurrenceParams,
-          });
-        }
-
-        return trpc.expense.createExpense.mutate(payload);
-      });
-    },
+    execute: (opts, trpc) =>
+      run("create-expense", async () =>
+        createExpense(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          payerId: opts["payer-id"] as string,
+          creatorId: opts["creator-id"] as string | undefined,
+          description: opts.description as string,
+          amount: opts.amount as string,
+          currency: opts.currency as string | undefined,
+          splitMode: opts["split-mode"] as string,
+          participantIds: opts["participant-ids"] as string,
+          customSplits: opts["custom-splits"] as string | undefined,
+          date: opts.date as string | undefined,
+          category: opts.category as string | undefined,
+          recurrenceFrequency: opts["recurrence-frequency"] as
+            | string
+            | undefined,
+          recurrenceInterval: opts["recurrence-interval"] as string | undefined,
+          recurrenceWeekdays: opts["recurrence-weekdays"] as string | undefined,
+          recurrenceEndDate: opts["recurrence-end-date"] as string | undefined,
+          recurrenceTimezone: opts["recurrence-timezone"] as string | undefined,
+        })
+      ),
   },
 
   {
@@ -603,100 +279,26 @@ export const expenseCommands: Command[] = [
         required: false,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["expense-id"]) {
-        return error(
-          "missing_option",
-          "--expense-id is required",
-          "update-expense"
-        );
-      }
-
-      return run("update-expense", async () => {
-        const patch: ExpenseUpdatePatch = {
-          expenseId: String(opts["expense-id"]),
-        };
-
-        if (opts["payer-id"]) {
-          const payerId = Number(opts["payer-id"]);
-          if (Number.isNaN(payerId)) {
-            throw new Error("--payer-id must be a valid number");
-          }
-          patch.payerId = payerId;
-        }
-
-        if (opts.amount) {
-          const amount = Number(opts.amount);
-          if (Number.isNaN(amount) || amount <= 0) {
-            throw new Error("--amount must be a positive number");
-          }
-          patch.amount = amount;
-        }
-
-        if (opts["creator-id"]) {
-          const creatorId = Number(opts["creator-id"]);
-          if (Number.isNaN(creatorId)) {
-            throw new Error("--creator-id must be a valid number");
-          }
-          patch.creatorId = creatorId;
-        }
-
-        if (opts.description) {
-          patch.description = String(opts.description);
-        }
-
-        if (opts.currency) {
-          patch.currency = String(opts.currency);
-        }
-
-        if (opts["split-mode"]) {
-          patch.splitMode = String(opts["split-mode"]) as ExpenseSplitMode;
-        }
-
-        if (opts["participant-ids"]) {
-          const participantIds = String(opts["participant-ids"])
-            .split(",")
-            .map(Number);
-          if (participantIds.some(Number.isNaN)) {
-            throw new Error(
-              "--participant-ids must be comma-separated numbers"
-            );
-          }
-          patch.participantIds = participantIds;
-        }
-
-        if (opts["custom-splits"]) {
-          try {
-            patch.customSplits = JSON.parse(String(opts["custom-splits"])) as {
-              userId: number;
-              amount: number;
-            }[];
-          } catch {
-            throw new Error("--custom-splits must be valid JSON array");
-          }
-        }
-
-        if (opts.date) {
-          const date = new Date(String(opts.date));
-          if (Number.isNaN(date.getTime())) {
-            throw new Error("--date must be a valid ISO 8601 date string");
-          }
-          patch.date = date;
-        }
-
-        if (opts.category !== undefined) {
-          const raw = String(opts.category);
-          patch.categoryId = raw === "none" ? null : raw;
-        }
-
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-
-        return applyExpensePartialUpdate(patch, trpc, chatId);
-      });
-    },
+    execute: (opts, trpc) =>
+      run("update-expense", async () => {
+        const patch = parseUpdateExpensePatch({
+          expenseId: opts["expense-id"] as string | undefined,
+          payerId: opts["payer-id"] as string | undefined,
+          creatorId: opts["creator-id"] as string | undefined,
+          description: opts.description as string | undefined,
+          amount: opts.amount as string | undefined,
+          currency: opts.currency as string | undefined,
+          splitMode: opts["split-mode"] as string | undefined,
+          participantIds: opts["participant-ids"] as string | undefined,
+          customSplits: opts["custom-splits"] as string | undefined,
+          date: opts.date as string | undefined,
+          category: opts.category as string | undefined,
+        });
+        return updateExpense(trpc, {
+          patch,
+          chatId: opts["chat-id"] as string | undefined,
+        });
+      }),
   },
 
   {
@@ -728,41 +330,15 @@ export const expenseCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["main-user-id"]) {
-        return error(
-          "missing_option",
-          "--main-user-id is required",
-          "get-net-share"
-        );
-      }
-      if (!opts["target-user-id"]) {
-        return error(
-          "missing_option",
-          "--target-user-id is required",
-          "get-net-share"
-        );
-      }
-      if (!opts.currency) {
-        return error(
-          "missing_option",
-          "--currency is required",
-          "get-net-share"
-        );
-      }
-      return run("get-net-share", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        return trpc.expenseShare.getNetShare.query({
-          mainUserId: Number(opts["main-user-id"]),
-          targetUserId: Number(opts["target-user-id"]),
-          chatId,
-          currency: String(opts.currency),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-net-share", async () =>
+        getNetShare(trpc, {
+          mainUserId: opts["main-user-id"] as string | undefined,
+          targetUserId: opts["target-user-id"] as string | undefined,
+          chatId: opts["chat-id"] as string | undefined,
+          currency: opts.currency as string | undefined,
+        })
+      ),
   },
 
   {
@@ -783,23 +359,13 @@ export const expenseCommands: Command[] = [
         required: false,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["user-id"]) {
-        return error("missing_option", "--user-id is required", "get-totals");
-      }
-      return run("get-totals", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        const userId = Number(opts["user-id"]);
-        const [borrowed, lent] = await Promise.all([
-          trpc.expenseShare.getTotalBorrowed.query({ userId, chatId }),
-          trpc.expenseShare.getTotalLent.query({ userId, chatId }),
-        ]);
-        return { borrowed, lent };
-      });
-    },
+    execute: (opts, trpc) =>
+      run("get-totals", async () =>
+        getTotals(trpc, {
+          userId: opts["user-id"] as string | undefined,
+          chatId: opts["chat-id"] as string | undefined,
+        })
+      ),
   },
 
   {
@@ -817,20 +383,14 @@ export const expenseCommands: Command[] = [
         required: true,
       },
     },
-    execute: (opts, trpc) => {
-      if (!opts["expense-id"]) {
-        return error(
-          "missing_option",
-          "--expense-id is required",
-          "delete-expense"
-        );
-      }
-      return run("delete-expense", async () => {
-        return trpc.expense.deleteExpense.mutate({
-          expenseId: String(opts["expense-id"]),
-        });
-      });
-    },
+    execute: (opts, trpc) =>
+      run("delete-expense", async () =>
+        deleteExpense(trpc, {
+          expenseId: validateExpenseId(
+            opts["expense-id"] as string | undefined
+          ),
+        })
+      ),
   },
 
   {
@@ -868,19 +428,6 @@ export const expenseCommands: Command[] = [
         );
       }
 
-      type ExpenseRow = {
-        payerId: number;
-        creatorId?: number;
-        description: string;
-        amount: number;
-        currency?: string;
-        splitMode: "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
-        participantIds: number[];
-        customSplits?: { userId: number; amount: number }[];
-        date?: string;
-        categoryId?: string | null;
-      };
-
       let rows: ExpenseRow[];
       try {
         const raw = readFileSync(String(opts.file), "utf8");
@@ -900,63 +447,13 @@ export const expenseCommands: Command[] = [
         );
       }
 
-      return run("bulk-import-expenses", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        const notify = Boolean(opts.notify);
-
-        const bulkResult = await trpc.expense.createExpensesBulk.mutate({
-          chatId,
-          expenses: rows.map((row) => ({
-            payerId: row.payerId,
-            creatorId: row.creatorId,
-            description: row.description,
-            amount: row.amount,
-            currency: row.currency,
-            splitMode: row.splitMode,
-            participantIds: row.participantIds,
-            customSplits: row.customSplits,
-            date: row.date ? new Date(row.date) : undefined,
-            categoryId: row.categoryId,
-          })),
-        });
-
-        let summary: { sent: boolean; messageId: number | null } | undefined;
-        if (notify && bulkResult.succeeded > 0) {
-          // Join server response (final amount/currency/categoryId) with
-          // the original input row (payerId/splitMode/participantIds) so
-          // the summary can render the richer per-row block.
-          const items = bulkResult.results
-            .filter((r: any) => r.status === "success" && r.expense)
-            .map((r: any) => {
-              const inputRow = rows[r.index];
-              return {
-                description: String(
-                  r.expense.description ?? r.description ?? ""
-                ),
-                amount: Number(r.expense.amount),
-                currency: String(r.expense.currency),
-                categoryId: r.expense.categoryId ?? null,
-                payerId: inputRow?.payerId,
-                splitMode: inputRow?.splitMode,
-                participantCount: inputRow?.participantIds?.length,
-              };
-            });
-          try {
-            summary = await trpc.expense.sendBatchExpenseSummary.mutate({
-              chatId,
-              kind: "created",
-              items,
-            });
-          } catch {
-            summary = { sent: false, messageId: null };
-          }
-        }
-
-        return summary ? { ...bulkResult, summary } : bulkResult;
-      });
+      return run("bulk-import-expenses", async () =>
+        bulkImportExpenses(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          rows,
+          notify: Boolean(opts.notify),
+        })
+      );
     },
   },
 
@@ -998,24 +495,10 @@ export const expenseCommands: Command[] = [
         );
       }
 
-      type UpdateRow = {
-        expenseId: string;
-        payerId?: number;
-        creatorId?: number;
-        description?: string;
-        amount?: number;
-        currency?: string;
-        splitMode?: ExpenseSplitMode;
-        participantIds?: number[];
-        customSplits?: { userId: number; amount: number }[];
-        date?: string;
-        category?: string | null;
-      };
-
-      let rows: UpdateRow[];
+      let rows: BulkUpdateRow[];
       try {
         const raw = readFileSync(String(opts.file), "utf8");
-        rows = JSON.parse(raw) as UpdateRow[];
+        rows = JSON.parse(raw) as BulkUpdateRow[];
         if (!Array.isArray(rows)) {
           return error(
             "invalid_option",
@@ -1031,57 +514,13 @@ export const expenseCommands: Command[] = [
         );
       }
 
-      return run("bulk-update-expenses", async () => {
-        const chatId = await resolveChatId(
-          trpc,
-          opts["chat-id"] as string | undefined
-        );
-        const notify = Boolean(opts.notify);
-
-        // Translate CLI-friendly row shape → server's update schema.
-        // `category` (CLI) → `categoryId` (server): omit = leave unchanged,
-        // "none"/null = clear, string = set.
-        type BulkUpdateInput = Parameters<
-          typeof trpc.expense.updateExpensesBulk.mutate
-        >[0];
-        type BulkUpdateRow = BulkUpdateInput["expenses"][number];
-        const expenses: BulkUpdateRow[] = rows.map((row, i) => {
-          if (!row || typeof row.expenseId !== "string" || !row.expenseId) {
-            throw new Error(`row ${i}: missing expenseId`);
-          }
-          const out: BulkUpdateRow = { expenseId: row.expenseId };
-          if (row.payerId !== undefined) out.payerId = row.payerId;
-          if (row.creatorId !== undefined) out.creatorId = row.creatorId;
-          if (row.description !== undefined) out.description = row.description;
-          if (row.amount !== undefined) out.amount = row.amount;
-          if (row.currency !== undefined) out.currency = row.currency;
-          if (row.splitMode !== undefined) out.splitMode = row.splitMode;
-          if (row.participantIds !== undefined)
-            out.participantIds = row.participantIds;
-          if (row.customSplits !== undefined)
-            out.customSplits = row.customSplits;
-          if (row.date !== undefined) {
-            const d = new Date(row.date);
-            if (Number.isNaN(d.getTime())) {
-              throw new Error(`row ${i}: date must be a valid ISO 8601 string`);
-            }
-            out.date = d;
-          }
-          if (row.category !== undefined) {
-            out.categoryId =
-              row.category === null || row.category === "none"
-                ? null
-                : row.category;
-          }
-          return out;
-        });
-
-        return trpc.expense.updateExpensesBulk.mutate({
-          chatId,
-          expenses,
-          sendNotification: notify,
-        });
-      });
+      return run("bulk-update-expenses", async () =>
+        bulkUpdateExpenses(trpc, {
+          chatId: opts["chat-id"] as string | undefined,
+          rows,
+          notify: Boolean(opts.notify),
+        })
+      );
     },
   },
 ];
