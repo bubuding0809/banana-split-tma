@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -128,9 +128,49 @@ for (const r of REWRITES) {
   if (!text.includes(r.from)) {
     throw new Error(`stage rewrite missed: '${r.from}' not found in ${r.file}`);
   }
-  writeFileSync(p, text.replace(r.from, r.to));
+  writeFileSync(p, text.replaceAll(r.from, r.to));
   log(`rewrote import in ${r.file}`);
 }
+
+// Final guard: walk the staged src tree and fail if any workspace import
+// still references @dko/* or @repo/*. Catches the case where someone adds a
+// new workspace import without updating REWRITES above.
+function findResidualWorkspaceImports(dir: string): string[] {
+  const hits: string[] = [];
+  const stack: string[] = [dir];
+  // Match any quoted module specifier starting with @dko/ or @repo/. This catches
+  // `import ... from`, `export ... from`, side-effect `import "..."`, and
+  // dynamic `import("...")`/`require("...")` forms in a single pass. False
+  // positives on unrelated string literals are unlikely in source code and
+  // would be caught early during stage:verify.
+  const WORKSPACE_RE = /["'](@dko\/[^"']+|@repo\/[^"']+)["']/g;
+  while (stack.length) {
+    const current = stack.pop()!;
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(full);
+        continue;
+      }
+      if (!/\.(ts|tsx|mts|cts)$/.test(entry.name)) continue;
+      const text = readFileSync(full, "utf8");
+      let m: RegExpExecArray | null;
+      WORKSPACE_RE.lastIndex = 0;
+      while ((m = WORKSPACE_RE.exec(text))) {
+        hits.push(`${full.replace(STAGE_DIR + "/", "")}: ${m[1]}`);
+      }
+    }
+  }
+  return hits;
+}
+
+const residual = findResidualWorkspaceImports(join(STAGE_DIR, "src"));
+if (residual.length > 0) {
+  throw new Error(
+    `residual workspace imports in staged source — add to REWRITES in stage-publish.ts:\n  ${residual.join("\n  ")}`,
+  );
+}
+log("no residual @dko/* or @repo/* imports in staged source");
 
 // Format the vendor dir with the extension's prettier config — the source
 // packages may use a narrower printWidth than apps/raycast (120).

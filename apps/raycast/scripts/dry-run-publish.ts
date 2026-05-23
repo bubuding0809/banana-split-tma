@@ -172,6 +172,7 @@ type LockEntry = {
   resolved?: string;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
   link?: boolean;
 };
 type Lock = { packages?: Record<string, LockEntry> };
@@ -188,11 +189,20 @@ for (const [path, entry] of entries) {
     fail(`lockfile path escapes the extension folder: ${path}`);
   }
 
+  // npm v7+ encodes workspace symlinks as `{ "link": true, "resolved": "<rel>" }`
+  // without a `version`. These entries would slip past every string check below
+  // (no `resolved` matching workspace:/file: patterns), so flag them explicitly.
+  if (entry.link === true) {
+    fail(`lockfile has symlink (workspace) entry: ${path}${entry.resolved ? ` -> ${entry.resolved}` : ""}`);
+    continue;
+  }
+
   const specs: string[] = [];
   if (typeof entry.resolved === "string") specs.push(entry.resolved);
   if (typeof entry.version === "string") specs.push(entry.version);
   for (const v of Object.values(entry.dependencies ?? {})) if (typeof v === "string") specs.push(v);
   for (const v of Object.values(entry.devDependencies ?? {})) if (typeof v === "string") specs.push(v);
+  for (const v of Object.values(entry.peerDependencies ?? {})) if (typeof v === "string") specs.push(v);
 
   for (const spec of specs) {
     if (spec.startsWith("workspace:")) {
@@ -206,7 +216,7 @@ for (const [path, entry] of entries) {
     }
   }
 }
-ok(`${depCount} dep entries scanned, no workspace/out-of-folder references`);
+ok(`${depCount} dep entries scanned, no workspace/symlink/out-of-folder references`);
 
 // ---------------------------------------------------------------------------
 // Phase 6 — screenshots in metadata/.
