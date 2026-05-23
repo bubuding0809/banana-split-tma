@@ -1,0 +1,88 @@
+name: Raycast
+
+on:
+  pull_request:
+    paths:
+      - "apps/raycast/**"
+      - "packages/categories/**"
+      - "packages/trpc/**"
+      - ".github/workflows/raycast.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/raycast/**"
+      - "packages/categories/**"
+      - "packages/trpc/**"
+      - ".github/workflows/raycast.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run mode"
+        type: choice
+        options:
+          - dry-run
+          - publish
+        default: dry-run
+
+concurrency:
+  group: raycast-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  verify:
+    name: Verify (stage + ray lint + ray build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Stage + lint + build
+        run: pnpm --filter bananasplitz stage:verify
+
+  dry-run:
+    name: Dry-run (full pre-publish validation)
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Dry-run
+        run: pnpm --filter bananasplitz dry-run
+      - name: Upload staged lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-stage-lockfile-${{ github.sha }}
+          path: apps/raycast/.publish-stage/package-lock.json
+          if-no-files-found: error
+      - name: Upload staged manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-stage-manifest-${{ github.sha }}
+          path: apps/raycast/.publish-stage/package.json
+          if-no-files-found: error
+
+  publish:
+    name: Publish to Raycast Store
+    runs-on: ubuntu-latest
+    needs: dry-run
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'publish'
+    environment: raycast-publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Re-stage (hermetic)
+        run: pnpm --filter bananasplitz dry-run
+      - name: Publish to Raycast Store
+        working-directory: apps/raycast/.publish-stage
+        env:
+          # Raycast's publish CLI forks raycast/extensions and opens a PR on
+          # the maintainer's behalf, so it needs a GitHub PAT with `repo` and
+          # `workflow` scopes. Configure RAYCAST_GH_TOKEN in the
+          # raycast-publish environment secrets.
+          GITHUB_TOKEN: ${{ secrets.RAYCAST_GH_TOKEN }}
+        run: npx --yes @raycast/api@latest publish
