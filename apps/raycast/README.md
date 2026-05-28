@@ -77,6 +77,33 @@ pnpm --filter bananasplitz publish      # dry-run + ray publish from .publish-st
 
 Screenshots are captured locally inside `metadata/` — see [`metadata/README.md`](./metadata/README.md) for the capture checklist.
 
+## Publishing
+
+The Raycast Store is not a registry — every extension lives as a folder inside the public [`raycast/extensions`](https://github.com/raycast/extensions) repo, and "publishing" means opening a PR there. `npx @raycast/api publish` automates that: it forks `raycast/extensions`, pushes the staged extension into a branch on your fork, and opens the contribution PR. A Raycast reviewer merges it and the store picks it up on its next sync.
+
+### One-time setup (only needed for the CI publish path)
+
+Publishing from your laptop needs nothing extra — `pnpm --filter bananasplitz publish` uses your interactive `gh`/git auth. The setup below is only for the `workflow_dispatch` CI publish job.
+
+1. **Mint a GitHub PAT** at <https://github.com/settings/tokens/new>:
+   - Note: `Raycast publish — banana-split-tma`
+   - Scope: the top-level `repo` checkbox (needed to fork, push to the fork, and open a PR on the public `raycast/extensions`). `workflow` scope is **not** needed — the contributed extension carries no Actions config.
+2. **Create a GitHub Environment** at <https://github.com/bubuding0809/banana-split-tma/settings/environments>:
+   - Name it `raycast-publish` (exact — the workflow references this name).
+   - Optionally add yourself as a **Required reviewer** to gate the publish job behind a manual approval.
+3. **Add the secret** in that environment: name `RAYCAST_GH_TOKEN`, value the PAT from step 1. The publish job fast-fails if it is missing.
+
+### Per-release checklist
+
+1. Confirm `package.json` `author` matches your Raycast username (`raycast.com/<username>`), or the contribution PR is auto-rejected.
+2. Ensure 3–6 screenshots exist in `metadata/` (`bananasplitz-1.png` … `bananasplitz-6.png`). See [`metadata/README.md`](./metadata/README.md).
+3. Replace any `{PLACEHOLDER}` token in `CHANGELOG.md` (e.g. `{PR_MERGE_DATE}`) with the real value — `dry-run` blocks on unfilled placeholders.
+4. Run `pnpm --filter bananasplitz dry-run` locally and confirm it is green.
+5. Publish via **one** of:
+   - **Local:** `pnpm --filter bananasplitz publish`
+   - **CI:** Actions → `Raycast` workflow → `Run workflow` → branch `main`, mode `publish`. Approve the environment gate if you configured required reviewers.
+6. Watch the contribution PR on `raycast/extensions` (the CLI prints its URL) and respond to any reviewer feedback there.
+
 ## Links
 
 - [Banana Split mini-app](https://t.me/BananaSplit_bot)
