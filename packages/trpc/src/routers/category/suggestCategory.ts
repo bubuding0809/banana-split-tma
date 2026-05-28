@@ -20,13 +20,14 @@ const outputSchema = z.object({
 // @repo/agent already depends on @dko/trpc, so @dko/trpc cannot depend on @repo/agent.
 // Keep the default model in sync with @repo/agent's getAgentModel() default.
 function getModel(): LanguageModel {
-  const modelName = process.env.AGENT_MODEL || "gemini-3.1-flash-lite-preview";
+  const modelName = process.env.AGENT_MODEL || "gemini-3.1-flash-lite";
   return google(modelName) as unknown as LanguageModel;
 }
 
 export const suggestCategoryHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  logger?: { warn: (obj: Record<string, unknown>, msg: string) => void }
 ): Promise<z.infer<typeof outputSchema>> => {
   const rows = await db.chatCategory.findMany({
     where: { chatId: input.chatId },
@@ -36,6 +37,7 @@ export const suggestCategoryHandler = async (
     description: input.description,
     chatCategories: rows,
     model: getModel(),
+    logger,
   });
   return result
     ? { categoryId: result.categoryId, confidence: result.confidence }
@@ -56,5 +58,5 @@ export default protectedProcedure
       );
       return { categoryId: null };
     }
-    return suggestCategoryHandler(input, ctx.db);
+    return suggestCategoryHandler(input, ctx.db, ctx.log);
   });

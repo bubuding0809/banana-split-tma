@@ -8,11 +8,16 @@ import type { ChatCategoryRow } from "./types.js";
 const CLASSIFY_TIMEOUT_MS = 3000;
 export const CONFIDENCE_THRESHOLD = 0.4;
 
+export interface ClassifyLogger {
+  warn: (obj: Record<string, unknown>, msg: string) => void;
+}
+
 export async function classifyCategory(args: {
   description: string;
   chatCategories: ChatCategoryRow[];
   model: LanguageModel;
   signal?: AbortSignal;
+  logger?: ClassifyLogger;
 }): Promise<{ categoryId: string; confidence: number } | null> {
   if (args.signal?.aborted) return null;
   if (!args.description.trim()) return null;
@@ -67,7 +72,14 @@ export async function classifyCategory(args: {
       clearTimeout(timeout);
       args.signal?.removeEventListener("abort", onAbort);
     }
-  } catch {
+  } catch (err) {
+    args.logger?.warn(
+      {
+        err_message: err instanceof Error ? err.message : String(err),
+        err_name: err instanceof Error ? err.name : undefined,
+      },
+      "categories.classify.error"
+    );
     return null;
   }
 }

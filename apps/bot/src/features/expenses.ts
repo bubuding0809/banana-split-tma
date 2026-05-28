@@ -557,6 +557,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
         description: parsed.description,
         chatCategories: chatRows,
         model: getAgentModel() as unknown as LanguageModel,
+        logger: ctx.log,
       });
       categoryId = suggestion?.categoryId ?? null;
       ctx.log.info(

@@ -7,7 +7,7 @@ export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
   const modelName = process.env.AGENT_MODEL;
 
   if (provider === "google") {
-    return google(modelName || "gemini-3.1-flash-lite-preview");
+    return google(modelName || "gemini-3.1-flash-lite");
   }
 
   if (provider === "minimax") {
