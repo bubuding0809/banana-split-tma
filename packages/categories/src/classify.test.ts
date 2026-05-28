@@ -26,10 +26,14 @@ describe("classifyCategory", () => {
       model: MOCK_MODEL,
     });
 
-    expect(result).toEqual({ categoryId: "base:food", confidence: 0.9 });
+    expect(result).toEqual({
+      kind: "match",
+      categoryId: "base:food",
+      confidence: 0.9,
+    });
   });
 
-  it("returns null when model returns 'none'", async () => {
+  it("returns no_match when model returns 'none'", async () => {
     generateObjectMock.mockResolvedValueOnce({
       object: { categoryId: "none", confidence: 0.1 },
     });
@@ -40,10 +44,10 @@ describe("classifyCategory", () => {
       model: MOCK_MODEL,
     });
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ kind: "no_match" });
   });
 
-  it("returns null when confidence is below 0.4", async () => {
+  it("returns no_match when confidence is below 0.4", async () => {
     generateObjectMock.mockResolvedValueOnce({
       object: { categoryId: "base:food", confidence: 0.2 },
     });
@@ -54,10 +58,10 @@ describe("classifyCategory", () => {
       model: MOCK_MODEL,
     });
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ kind: "no_match" });
   });
 
-  it("returns null when the LLM call throws", async () => {
+  it("returns error when the LLM call throws", async () => {
     generateObjectMock.mockRejectedValueOnce(new Error("boom"));
 
     const result = await classifyCategory({
@@ -66,10 +70,10 @@ describe("classifyCategory", () => {
       model: MOCK_MODEL,
     });
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ kind: "error", message: "boom" });
   });
 
-  it("returns null on abort", async () => {
+  it("returns no_match on abort", async () => {
     const controller = new AbortController();
     generateObjectMock.mockImplementationOnce(
       () =>
@@ -90,10 +94,10 @@ describe("classifyCategory", () => {
       signal: controller.signal,
     });
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ kind: "no_match" });
   });
 
-  it("returns null when external signal aborts mid-call", async () => {
+  it("returns no_match when external signal aborts mid-call", async () => {
     const outer = new AbortController();
     let rejectHold!: (err: Error) => void;
     generateObjectMock.mockImplementationOnce(
@@ -112,11 +116,9 @@ describe("classifyCategory", () => {
 
     // Simulate: external signal aborts while generateObject is still pending.
     outer.abort();
-    // The onAbort listener in classify.ts should have triggered the local controller,
-    // which would cause ai's generateObject to reject in real life. We simulate that here.
     rejectHold(Object.assign(new Error("abort"), { name: "AbortError" }));
 
-    expect(await promise).toBeNull();
+    expect(await promise).toEqual({ kind: "no_match" });
   });
 
   it("includes custom categories as allowed ids in the call", async () => {
@@ -132,7 +134,11 @@ describe("classifyCategory", () => {
       model: MOCK_MODEL,
     });
 
-    expect(result).toEqual({ categoryId: "chat:abc", confidence: 0.95 });
+    expect(result).toEqual({
+      kind: "match",
+      categoryId: "chat:abc",
+      confidence: 0.95,
+    });
     const call = generateObjectMock.mock.calls[0][0] as {
       schema: { shape: { categoryId: { options: string[] } } };
     };

@@ -559,7 +559,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
         model: getAgentModel() as unknown as LanguageModel,
         logger: ctx.log,
       });
-      categoryId = suggestion?.categoryId ?? null;
+      categoryId = suggestion.kind === "match" ? suggestion.categoryId : null;
       ctx.log.info(
         {
           duration_ms: Date.now() - classifyStart,

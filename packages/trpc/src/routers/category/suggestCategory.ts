@@ -14,6 +14,10 @@ const inputSchema = z.object({
 const outputSchema = z.object({
   categoryId: z.string().nullable(),
   confidence: z.number().optional(),
+  // Lets the client decide which snackbar to render: a confirmation, a
+  // "we couldn't auto-pick" nudge, an "auto-classify hit a snag" warning,
+  // or a quiet "you're typing too fast" no-op.
+  status: z.enum(["match", "no_match", "error", "rate_limited"]),
 });
 
 // Inlined rather than imported from @repo/agent to avoid a cycle:
@@ -39,9 +43,17 @@ export const suggestCategoryHandler = async (
     model: getModel(),
     logger,
   });
-  return result
-    ? { categoryId: result.categoryId, confidence: result.confidence }
-    : { categoryId: null };
+  if (result.kind === "match") {
+    return {
+      categoryId: result.categoryId,
+      confidence: result.confidence,
+      status: "match",
+    };
+  }
+  if (result.kind === "error") {
+    return { categoryId: null, status: "error" };
+  }
+  return { categoryId: null, status: "no_match" };
 };
 
 export default protectedProcedure
@@ -56,7 +68,7 @@ export default protectedProcedure
         { user_id: userId?.toString() },
         "category.suggest.rateLimited"
       );
-      return { categoryId: null };
+      return { categoryId: null, status: "rate_limited" };
     }
     return suggestCategoryHandler(input, ctx.db, ctx.log);
   });
