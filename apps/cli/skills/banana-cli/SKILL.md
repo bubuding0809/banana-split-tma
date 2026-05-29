@@ -106,6 +106,20 @@ Always parse stdout as JSON. Check exit code before reading output.
 
 ### Testing / UAT against the Local Development Server
 
+**Note on targeting environments**: By default, the CLI connects to the production/staging cloud API (`https://banana-split-tma-lambda.vercel.app/api/trpc`) unless overridden by `--api-url http://localhost:8081/api/trpc`. Always check which environment your CLI is targeting before querying or modifying records.
+
+**Programmatic Live Data Queries & Cleanups**:
+If you need to perform programmatic audits or cleanups on live production/staging data (e.g. bulk-deleting experimental transfers), do not try to run direct database queries locally. Instead, write a temporary TypeScript file inside `apps/cli/src/` (e.g., `src/audit.ts`) that loads the user-level key from `~/.bananasplit.json` and instantiates the tRPC client via `createTrpcClient` from `./client.js`. Then, execute it using `pnpm --filter @banananasplitz/cli exec tsx src/audit.ts`. This utilizes the live API endpoints securely and safely with proper credentials.
+
+**Math Direction for Debt Transfers**:
+When relocating a debt across groups to offset/clear your own liability in Chat A using a receivable you have in Chat B:
+
+- **Debtor**: The person who owes you in Chat B (not you!).
+- **Creditor**: You (the person who is owed).
+- **Source Chat**: Chat B (where the debt is removed).
+- **Target Chat**: Chat A (where the debt is added, perfectly balancing your net liability in Chat A).
+- Moving the credit to Chat A increases what they owe you there, which cancels out what you owe others in Chat A.
+
 When testing CLI modifications against the local dev environment (`http://localhost:8081/api/trpc`), the `.env.development` file usually has its `API_KEY` redacted.
 You **must** generate a test key and inject it straight into the local `prisma` database to test safely without authenticating as superadmin.
 
