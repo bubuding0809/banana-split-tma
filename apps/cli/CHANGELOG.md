@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-05-29
+
+### Changed
+
+- docs: add two transfer gotchas to the `banana-cli` skill. (1) Size `create-transfer` from the **direct pairwise balance** (`get-debts`), never from `get-simplified-debts` or the onscreen figure — simplified balances are display-only and can sit above or below the direct edge, so transferring the simplified amount can fail the solvency check. (2) Cross-group offset direction: `--from-chat` is the group where the debt is cleared (debtor must already owe there), `--to-chat` is where it is added; swapping them fails the solvency check, swapping `--debtor`/`--creditor` doubles the liability. Docs-only; no command behavior changed.
+
 ## [0.17.0] - 2026-05-29
 
 ### Added
