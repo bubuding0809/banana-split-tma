@@ -4,7 +4,7 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
-## [0.18.0] - 2026-05-29
+## [0.17.2] - 2026-05-29
 
 ### Added
 
