@@ -33,7 +33,7 @@ export const getMemberBalanceSummaryHandler = async (
 
   const memberIds = chat.members.map((m) => Number(m.id));
 
-  const [shares, settlements] = await Promise.all([
+  const [shares, settlements, transfers] = await Promise.all([
     db.expenseShare.findMany({
       where: { expense: { chatId: input.chatId } },
       select: {
@@ -47,6 +47,19 @@ export const getMemberBalanceSummaryHandler = async (
       select: {
         senderId: true,
         receiverId: true,
+        amount: true,
+        currency: true,
+      },
+    }),
+    db.debtTransfer.findMany({
+      where: {
+        OR: [{ sourceChatId: input.chatId }, { targetChatId: input.chatId }],
+      },
+      select: {
+        sourceChatId: true,
+        targetChatId: true,
+        debtorId: true,
+        creditorId: true,
         amount: true,
         currency: true,
       },
@@ -65,10 +78,17 @@ export const getMemberBalanceSummaryHandler = async (
       settlementsByCurrency.set(s.currency, []);
     settlementsByCurrency.get(s.currency)!.push(s);
   }
+  const transfersByCurrency = new Map<string, typeof transfers>();
+  for (const t of transfers) {
+    if (!transfersByCurrency.has(t.currency))
+      transfersByCurrency.set(t.currency, []);
+    transfersByCurrency.get(t.currency)!.push(t);
+  }
 
   const allCurrencies = new Set<string>([
     ...sharesByCurrency.keys(),
     ...settlementsByCurrency.keys(),
+    ...transfersByCurrency.keys(),
   ]);
 
   const balances: { currency: string; amount: number }[] = [];
@@ -76,7 +96,9 @@ export const getMemberBalanceSummaryHandler = async (
     const map = buildUserBalanceMap(
       memberIds,
       sharesByCurrency.get(currency) ?? [],
-      settlementsByCurrency.get(currency) ?? []
+      settlementsByCurrency.get(currency) ?? [],
+      transfersByCurrency.get(currency) ?? [],
+      input.chatId
     );
     const amount = map.get(input.userId) ?? 0;
     if (Math.abs(amount) > FINANCIAL_THRESHOLDS.DISPLAY) {

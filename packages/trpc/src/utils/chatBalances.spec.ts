@@ -168,3 +168,76 @@ describe("computeChatPairwiseBalances", () => {
     expect(pairs).toEqual([]);
   });
 });
+
+describe("computeChatPairwiseBalances with native transfers", () => {
+  const sourceChatId = 100;
+  const targetChatId = 200;
+  const transfer = (amount: number) => ({
+    sourceChatId: BigInt(sourceChatId),
+    targetChatId: BigInt(targetChatId),
+    debtorId: 2n,
+    creditorId: 1n,
+    amount: d(amount),
+  });
+
+  it("clears a pairwise debt in the source chat", () => {
+    // Sean (2) owes Ruoqian (1) $10 from a share.
+    const shares = [
+      { userId: 2n, amount: d(10), expense: { payerId: 1n, currency: "SGD" } },
+    ];
+
+    const pairs = computeChatPairwiseBalances(
+      [1, 2],
+      shares,
+      [],
+      [transfer(10)],
+      sourceChatId
+    );
+
+    expect(pairs).toEqual([]);
+  });
+
+  it("partially reduces a pairwise debt in the source chat", () => {
+    const shares = [
+      { userId: 2n, amount: d(10), expense: { payerId: 1n, currency: "SGD" } },
+    ];
+
+    const pairs = computeChatPairwiseBalances(
+      [1, 2],
+      shares,
+      [],
+      [transfer(4)],
+      sourceChatId
+    );
+
+    expect(pairs).toEqual([{ debtorId: 2, creditorId: 1, amount: 6 }]);
+  });
+
+  it("adds a pairwise debt in the target chat", () => {
+    const pairs = computeChatPairwiseBalances(
+      [1, 2],
+      [],
+      [],
+      [transfer(10)],
+      targetChatId
+    );
+
+    expect(pairs).toEqual([{ debtorId: 2, creditorId: 1, amount: 10 }]);
+  });
+
+  it("ignores transfers for an unrelated chat", () => {
+    const shares = [
+      { userId: 2n, amount: d(10), expense: { payerId: 1n, currency: "SGD" } },
+    ];
+
+    const pairs = computeChatPairwiseBalances(
+      [1, 2],
+      shares,
+      [],
+      [transfer(10)],
+      999
+    );
+
+    expect(pairs).toEqual([{ debtorId: 2, creditorId: 1, amount: 10 }]);
+  });
+});

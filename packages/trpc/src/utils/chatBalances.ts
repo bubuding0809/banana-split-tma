@@ -125,7 +125,9 @@ export function buildUserBalanceMap(
 export function computeChatPairwiseBalances(
   memberIds: number[],
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): PairwiseDebt[] {
   const out: PairwiseDebt[] = [];
 
@@ -133,7 +135,7 @@ export function computeChatPairwiseBalances(
     for (let j = i + 1; j < memberIds.length; j++) {
       const a = memberIds[i]!;
       const b = memberIds[j]!;
-      const net = pairwiseNet(a, b, shares, settlements);
+      const net = pairwiseNet(a, b, shares, settlements, transfers, chatId);
       if (Math.abs(net) <= 0.01) continue;
       if (net > 0) {
         out.push({ debtorId: b, creditorId: a, amount: net });
@@ -156,7 +158,9 @@ function pairwiseNet(
   a: number,
   b: number,
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): number {
   const toReceive = shares
     .filter(
@@ -184,10 +188,33 @@ function pairwiseNet(
     .filter((s) => Number(s.senderId) === b && Number(s.receiverId) === a)
     .map((s) => s.amount);
 
+  // Native transfers touching this chat. Source clears a debt
+  // (settlement-like); target adds one (expense-like). Sign mirrors the
+  // source/target convention in buildUserBalanceMap. Positive = b owes a.
+  let transferNet = new Decimal(0);
+  for (const t of transfers) {
+    const debtor = Number(t.debtorId);
+    const creditor = Number(t.creditorId);
+    const isSource = Number(t.sourceChatId) === chatId;
+    const isTarget = Number(t.targetChatId) === chatId;
+    if (!isSource && !isTarget) continue;
+
+    if (debtor === b && creditor === a) {
+      transferNet = isTarget
+        ? transferNet.plus(t.amount)
+        : transferNet.minus(t.amount);
+    } else if (debtor === a && creditor === b) {
+      transferNet = isTarget
+        ? transferNet.minus(t.amount)
+        : transferNet.plus(t.amount);
+    }
+  }
+
   const net = sumAmounts(toReceive)
     .minus(sumAmounts(toPay))
     .plus(sumAmounts(settleAToB))
-    .minus(sumAmounts(settleBToA));
+    .minus(sumAmounts(settleBToA))
+    .plus(transferNet);
 
   return toNumber(net);
 }

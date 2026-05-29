@@ -78,6 +78,24 @@ export async function getMyBalancesAcrossChatsHandler(
     },
   });
 
+  // Native transfers touching any of the caller's chats (as source or target).
+  const allTransfers = await db.debtTransfer.findMany({
+    where: {
+      OR: [
+        { sourceChatId: { in: chatIds } },
+        { targetChatId: { in: chatIds } },
+      ],
+    },
+    select: {
+      sourceChatId: true,
+      targetChatId: true,
+      debtorId: true,
+      creditorId: true,
+      amount: true,
+      currency: true,
+    },
+  });
+
   // Index by chatId as number
   const sharesByChat = new Map<number, typeof allShares>();
   for (const s of allShares) {
@@ -93,6 +111,18 @@ export async function getMyBalancesAcrossChatsHandler(
     settlementsByChat.get(k)!.push(s);
   }
 
+  // A transfer is relevant to BOTH its source and target chat (the engine's
+  // chatId arg decides which side applies), so bucket it under each.
+  const inScope = new Set(chatIds.map((id) => Number(id)));
+  const transfersByChat = new Map<number, typeof allTransfers>();
+  for (const t of allTransfers) {
+    for (const k of [Number(t.sourceChatId), Number(t.targetChatId)]) {
+      if (!inScope.has(k)) continue;
+      if (!transfersByChat.has(k)) transfersByChat.set(k, []);
+      transfersByChat.get(k)!.push(t);
+    }
+  }
+
   const balances: Output["balances"] = [];
   const counterpartyIds = new Set<number>();
 
@@ -103,6 +133,7 @@ export async function getMyBalancesAcrossChatsHandler(
 
     const chatShares = sharesByChat.get(chatIdNum) ?? [];
     const chatSettlements = settlementsByChat.get(chatIdNum) ?? [];
+    const chatTransfers = transfersByChat.get(chatIdNum) ?? [];
 
     // Group by currency
     const sharesByCurrency = new Map<string, typeof chatShares>();
@@ -117,10 +148,17 @@ export async function getMyBalancesAcrossChatsHandler(
         settlementsByCurrency.set(s.currency, []);
       settlementsByCurrency.get(s.currency)!.push(s);
     }
+    const transfersByCurrency = new Map<string, typeof chatTransfers>();
+    for (const t of chatTransfers) {
+      if (!transfersByCurrency.has(t.currency))
+        transfersByCurrency.set(t.currency, []);
+      transfersByCurrency.get(t.currency)!.push(t);
+    }
 
     const allCurrencies = new Set([
       ...sharesByCurrency.keys(),
       ...settlementsByCurrency.keys(),
+      ...transfersByCurrency.keys(),
     ]);
 
     const currencyRows: Output["balances"][number]["currencies"] = [];
@@ -129,8 +167,15 @@ export async function getMyBalancesAcrossChatsHandler(
     for (const currency of allCurrencies) {
       const shares = sharesByCurrency.get(currency) ?? [];
       const settlements = settlementsByCurrency.get(currency) ?? [];
+      const transfers = transfersByCurrency.get(currency) ?? [];
 
-      const balanceMap = buildUserBalanceMap(memberIds, shares, settlements);
+      const balanceMap = buildUserBalanceMap(
+        memberIds,
+        shares,
+        settlements,
+        transfers,
+        chatIdNum
+      );
       const callerNet = balanceMap.get(callerId) ?? 0;
       if (Math.abs(callerNet) <= FINANCIAL_THRESHOLDS.DISPLAY) continue;
 
@@ -161,7 +206,9 @@ export async function getMyBalancesAcrossChatsHandler(
         const pairs = computeChatPairwiseBalances(
           memberIds,
           shares,
-          settlements
+          settlements,
+          transfers,
+          chatIdNum
         );
         for (const p of pairs) {
           if (p.creditorId === callerId) {

@@ -7,6 +7,7 @@ const mockDb = {
   chat: { findMany: vi.fn() },
   expenseShare: { findMany: vi.fn() },
   settlement: { findMany: vi.fn() },
+  debtTransfer: { findMany: vi.fn() },
   user: { findMany: vi.fn() },
 } as unknown as PrismaClient;
 
@@ -86,7 +87,11 @@ function setupUsers(
 }
 
 describe("getMyBalancesAcrossChatsHandler", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    // Default: no native transfers. Individual tests can override.
+    (mockDb.debtTransfer.findMany as any).mockResolvedValue([]);
+  });
 
   it("returns empty array when caller is square in every chat", async () => {
     setupChats([
