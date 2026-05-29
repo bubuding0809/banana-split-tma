@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-29
+
+### Added
+
+- feat: `create-transfer` — relocate an outstanding debt from one chat to another (`--from-chat`, `--to-chat`, `--debtor`, `--creditor`, `--amount`; optional `--currency`, `--description`). Records a native `DebtTransfer` that clears the debt in the source chat and adds it in the target chat without logging consumption expenses in either group, so personal spending metrics stay clean. Requires a user-level API key; the debtor must already owe the creditor at least the amount in the source chat.
+
 ## [0.15.0] - 2026-05-13
 
 ### Added
