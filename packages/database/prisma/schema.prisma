@@ -33,6 +33,7 @@ model Chat {
   notifyOnExpense           Boolean                    @default(true)
   notifyOnExpenseUpdate     Boolean                    @default(true)
   notifyOnSettlement        Boolean                    @default(true)
+  notifyOnTransfer          Boolean                    @default(true)
   timezone                  String?
   migratedFromChatId        BigInt?
   recurringExpenses         RecurringExpenseTemplate[]

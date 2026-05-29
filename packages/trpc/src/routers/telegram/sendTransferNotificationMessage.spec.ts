@@ -26,9 +26,9 @@ describe("sendTransferNotificationMessage", () => {
     mockTeleBot.sendMessage.mockResolvedValue({ message_id: 99 });
   });
 
-  it("returns null when chat.notifyOnSettlement is false and not forced", async () => {
+  it("returns null when chat.notifyOnTransfer is false and not forced", async () => {
     (mockDb.chat.findUnique as any).mockResolvedValue({
-      notifyOnSettlement: false,
+      notifyOnTransfer: false,
     });
 
     const result = await sendTransferNotificationMessageHandler(
@@ -43,7 +43,7 @@ describe("sendTransferNotificationMessage", () => {
 
   it("posts a 'transferred out' message naming the target group", async () => {
     (mockDb.chat.findUnique as any).mockResolvedValue({
-      notifyOnSettlement: true,
+      notifyOnTransfer: true,
     });
 
     const result = await sendTransferNotificationMessageHandler(
@@ -63,7 +63,7 @@ describe("sendTransferNotificationMessage", () => {
 
   it("posts a 'transferred in' message naming the source group", async () => {
     (mockDb.chat.findUnique as any).mockResolvedValue({
-      notifyOnSettlement: true,
+      notifyOnTransfer: true,
     });
 
     await sendTransferNotificationMessageHandler(
@@ -85,7 +85,7 @@ describe("sendTransferNotificationMessage", () => {
 
   it("bypasses the pref check when force is true", async () => {
     (mockDb.chat.findUnique as any).mockResolvedValue({
-      notifyOnSettlement: false,
+      notifyOnTransfer: false,
     });
 
     const result = await sendTransferNotificationMessageHandler(

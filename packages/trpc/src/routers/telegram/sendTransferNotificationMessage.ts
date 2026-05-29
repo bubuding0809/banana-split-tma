@@ -23,8 +23,8 @@ export const inputSchema = z.object({
 /**
  * Posts a transfer announcement into one group chat. Called once per affected
  * chat: the source chat (direction "out", debt removed) and the target chat
- * (direction "in", debt added). Gated on the chat's settlement-notification
- * preference, since a transfer is a settlement-like balance change.
+ * (direction "in", debt added). Gated on the chat's notifyOnTransfer
+ * preference.
  */
 export const sendTransferNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
@@ -42,9 +42,9 @@ export const sendTransferNotificationMessageHandler = async (
   if (!input.force) {
     const chat = await db.chat.findUnique({
       where: { id: BigInt(input.chatId) },
-      select: { notifyOnSettlement: true },
+      select: { notifyOnTransfer: true },
     });
-    if (!chat?.notifyOnSettlement) {
+    if (!chat?.notifyOnTransfer) {
       return null;
     }
   }
