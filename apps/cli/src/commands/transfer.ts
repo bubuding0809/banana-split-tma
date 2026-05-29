@@ -153,4 +153,54 @@ export const transferCommands: Command[] = [
       );
     },
   },
+  {
+    name: "list-transfers",
+    description: "List native debt transfers touching a chat",
+    options: {
+      "chat-id": {
+        type: "string",
+        description: "The ID of the chat to list transfers for",
+        required: true,
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["chat-id"]) {
+        return error(
+          "missing_option",
+          "--chat-id is required",
+          "list-transfers"
+        );
+      }
+      return run("list-transfers", async () =>
+        trpc.debtTransfer.getAllByChat.query({
+          chatId: Number(opts["chat-id"]),
+        })
+      );
+    },
+  },
+  {
+    name: "delete-transfer",
+    description: "Delete a native debt transfer by ID",
+    options: {
+      "transfer-id": {
+        type: "string",
+        description: "The UUID of the transfer to delete",
+        required: true,
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["transfer-id"]) {
+        return error(
+          "missing_option",
+          "--transfer-id is required",
+          "delete-transfer"
+        );
+      }
+      return run("delete-transfer", async () =>
+        trpc.debtTransfer.deleteTransfer.mutate({
+          transferId: String(opts["transfer-id"]),
+        })
+      );
+    },
+  },
 ];
