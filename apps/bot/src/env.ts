@@ -17,7 +17,7 @@ export const env = createEnv({
     AWS_GROUP_REMINDER_LAMBDA_ARN: z.string().optional(),
     AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: z.string().optional(),
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-    AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
+    AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite"),
     AGENT_PROVIDER: z.enum(["google", "minimax"]).default("google"),
     MINIMAX_API_KEY: z.string().optional(),
     MINIMAX_BASE_URL: z.string().optional(),

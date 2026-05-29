@@ -557,12 +557,13 @@ expensesFeature.on("message:text", async (ctx, next) => {
         description: parsed.description,
         chatCategories: chatRows,
         model: getAgentModel() as unknown as LanguageModel,
+        logger: ctx.log,
       });
-      categoryId = suggestion?.categoryId ?? null;
+      categoryId = suggestion.kind === "match" ? suggestion.categoryId : null;
       ctx.log.info(
         {
           duration_ms: Date.now() - classifyStart,
-          outcome: "ok",
+          outcome: suggestion.kind,
           category_id: categoryId,
         },
         "expense.create.ai_classify.end"

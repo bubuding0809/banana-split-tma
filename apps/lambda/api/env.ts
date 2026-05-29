@@ -23,10 +23,10 @@ export const env = createEnv({
         "INTERNAL_AGENT_KEY is required for internal agent communication"
       ),
     // Optional — powers category.suggest. Missing key degrades gracefully to
-    // categoryId: null (classifyCategory swallows the auth error). We warn at
-    // boot so the miss is visible instead of silent.
+    // categoryId: null; classifyCategory logs the underlying error via the
+    // injected logger. We also warn at boot so the miss is visible.
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-    AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite-preview"),
+    AGENT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite"),
     // Shared secret used to verify the HMAC signature on
     // /api/internal/recurring-expense-tick webhook calls from the
     // RecurringExpenseLambda. Must match the Lambda's env var of the

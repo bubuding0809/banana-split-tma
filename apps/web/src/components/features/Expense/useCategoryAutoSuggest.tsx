@@ -80,7 +80,11 @@ export function useCategoryAutoSuggest({
     [categoriesData]
   );
 
-  const [snackbarText, setSnackbarText] = useState<string | null>(null);
+  type SnackbarState =
+    | { kind: "match"; text: string }
+    | { kind: "no_match" }
+    | { kind: "error" };
+  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
 
   const suggestMutation = trpc.category.suggest.useMutation({
     onMutate: () => {
@@ -108,18 +112,36 @@ export function useCategoryAutoSuggest({
           onSuccess: (res) => {
             if (requestId !== latestRequestRef.current) return;
             if (form.getFieldValue("userTouchedCategory")) return;
-            if (!res.categoryId) return;
-            form.setFieldValue("categoryId", res.categoryId);
-            form.setFieldValue("autoPicked", true);
-            // Surface a short confirmation so the user sees the category
-            // arrived — easy to miss otherwise since the picker cell lives
-            // on a later step.
-            const resolved = resolveCategory(res.categoryId, chatRows);
-            if (resolved) {
-              setSnackbarText(
-                `Auto-picked ${resolved.emoji} ${resolved.title}`
-              );
+            if (res.status === "match" && res.categoryId) {
+              form.setFieldValue("categoryId", res.categoryId);
+              form.setFieldValue("autoPicked", true);
+              const resolved = resolveCategory(res.categoryId, chatRows);
+              if (resolved) {
+                setSnackbar({
+                  kind: "match",
+                  text: `Auto-picked ${resolved.emoji} ${resolved.title}`,
+                });
+              }
+              return;
             }
+            // Rate-limit is intentionally silent — user is typing too fast,
+            // a brief gap will produce a real suggestion. Toast would be noise.
+            if (res.status === "rate_limited") return;
+            if (res.status === "error") {
+              setSnackbar({ kind: "error" });
+              return;
+            }
+            // no_match: model returned "none" or low confidence.
+            setSnackbar({ kind: "no_match" });
+          },
+          onError: (err) => {
+            if (requestId !== latestRequestRef.current) return;
+            if (form.getFieldValue("userTouchedCategory")) return;
+            // Network or tRPC-layer failure — surface the same error UX as
+            // a model-side failure so the user always gets a path to pick
+            // manually rather than wondering why nothing happened.
+            console.warn("[category.suggest] mutation error", err);
+            setSnackbar({ kind: "error" });
           },
         }
       );
@@ -130,27 +152,52 @@ export function useCategoryAutoSuggest({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [description, chatId, disableAutoAssign, categoryId, userTouchedCategory]);
 
-  const dismiss = () => setSnackbarText(null);
+  const dismiss = () => setSnackbar(null);
 
-  const snackbar = snackbarText ? (
-    <Snackbar
-      duration={3500}
-      onClose={dismiss}
-      description="Not what you meant? Change the category."
-      after={
-        <Snackbar.Button
-          onClick={() => {
-            onJumpToCategory?.();
-            dismiss();
-          }}
-        >
-          {onJumpToCategory ? "Change" : "Dismiss"}
-        </Snackbar.Button>
-      }
-    >
-      {snackbarText}
-    </Snackbar>
-  ) : null;
+  const snackbarNode = snackbar
+    ? (() => {
+        const {
+          headline,
+          description: snackDesc,
+          actionLabel,
+        } = snackbar.kind === "match"
+          ? {
+              headline: snackbar.text,
+              description: "Not what you meant? Change the category.",
+              actionLabel: onJumpToCategory ? "Change" : "Dismiss",
+            }
+          : snackbar.kind === "no_match"
+            ? {
+                headline: "Couldn't auto-pick a category",
+                description: "Pick one yourself in a sec.",
+                actionLabel: onJumpToCategory ? "Pick" : "Dismiss",
+              }
+            : {
+                headline: "Auto-classify hit a snag",
+                description: "Tap to pick a category manually.",
+                actionLabel: onJumpToCategory ? "Pick" : "Dismiss",
+              };
+        return (
+          <Snackbar
+            duration={snackbar.kind === "match" ? 3500 : 5000}
+            onClose={dismiss}
+            description={snackDesc}
+            after={
+              <Snackbar.Button
+                onClick={() => {
+                  onJumpToCategory?.();
+                  dismiss();
+                }}
+              >
+                {actionLabel}
+              </Snackbar.Button>
+            }
+          >
+            {headline}
+          </Snackbar>
+        );
+      })()
+    : null;
 
-  return { snackbar };
+  return { snackbar: snackbarNode };
 }

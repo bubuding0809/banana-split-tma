@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
-import { classifyCategory } from "@repo/categories";
+import { classifyCategory, DEFAULT_AGENT_MODEL } from "@repo/categories";
 import { google } from "@ai-sdk/google";
 import { takeToken } from "../../utils/rateLimit.js";
 import type { LanguageModel } from "ai";
@@ -14,19 +14,25 @@ const inputSchema = z.object({
 const outputSchema = z.object({
   categoryId: z.string().nullable(),
   confidence: z.number().optional(),
+  // Lets the client decide which snackbar to render: a confirmation, a
+  // "we couldn't auto-pick" nudge, an "auto-classify hit a snag" warning,
+  // or a quiet "you're typing too fast" no-op.
+  status: z.enum(["match", "no_match", "error", "rate_limited"]),
 });
 
 // Inlined rather than imported from @repo/agent to avoid a cycle:
-// @repo/agent already depends on @dko/trpc, so @dko/trpc cannot depend on @repo/agent.
-// Keep the default model in sync with @repo/agent's getAgentModel() default.
+// @repo/agent already depends on @dko/trpc. The default model name is hoisted
+// to @repo/categories (a no-cycle leaf) so this stays in sync with
+// @repo/agent's getAgentModel() default automatically.
 function getModel(): LanguageModel {
-  const modelName = process.env.AGENT_MODEL || "gemini-3.1-flash-lite-preview";
+  const modelName = process.env.AGENT_MODEL || DEFAULT_AGENT_MODEL;
   return google(modelName) as unknown as LanguageModel;
 }
 
 export const suggestCategoryHandler = async (
   input: z.infer<typeof inputSchema>,
-  db: Db
+  db: Db,
+  logger?: { warn: (obj: Record<string, unknown>, msg: string) => void }
 ): Promise<z.infer<typeof outputSchema>> => {
   const rows = await db.chatCategory.findMany({
     where: { chatId: input.chatId },
@@ -36,10 +42,19 @@ export const suggestCategoryHandler = async (
     description: input.description,
     chatCategories: rows,
     model: getModel(),
+    logger,
   });
-  return result
-    ? { categoryId: result.categoryId, confidence: result.confidence }
-    : { categoryId: null };
+  if (result.kind === "match") {
+    return {
+      categoryId: result.categoryId,
+      confidence: result.confidence,
+      status: "match",
+    };
+  }
+  if (result.kind === "error") {
+    return { categoryId: null, status: "error" };
+  }
+  return { categoryId: null, status: "no_match" };
 };
 
 export default protectedProcedure
@@ -54,7 +69,7 @@ export default protectedProcedure
         { user_id: userId?.toString() },
         "category.suggest.rateLimited"
       );
-      return { categoryId: null };
+      return { categoryId: null, status: "rate_limited" };
     }
-    return suggestCategoryHandler(input, ctx.db);
+    return suggestCategoryHandler(input, ctx.db, ctx.log);
   });
