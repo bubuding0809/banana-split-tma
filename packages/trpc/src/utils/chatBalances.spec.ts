@@ -48,6 +48,93 @@ describe("buildUserBalanceMap", () => {
   });
 });
 
+describe("buildUserBalanceMap with native transfers", () => {
+  // Sean (2) owes Ruoqian (1). A transfer moves that debt from the
+  // source chat (where it is cleared) to the target chat (where it is added).
+  const sourceChatId = 100;
+  const targetChatId = 200;
+
+  it("clears the debtor's debt in the source chat", () => {
+    // Sean owes Ruoqian $10 in the source chat (Ruoqian paid, Sean took a share).
+    const shares = [
+      { userId: 2n, amount: d(10), expense: { payerId: 1n, currency: "SGD" } },
+    ];
+    const transfers = [
+      {
+        sourceChatId: BigInt(sourceChatId),
+        targetChatId: BigInt(targetChatId),
+        debtorId: 2n,
+        creditorId: 1n,
+        amount: d(10),
+      },
+    ];
+
+    const map = buildUserBalanceMap(
+      [1, 2],
+      shares,
+      [],
+      transfers,
+      sourceChatId
+    );
+
+    // Debt is removed: both square in the source chat.
+    expect(map.get(1)).toBe(0);
+    expect(map.get(2)).toBe(0);
+  });
+
+  it("adds the debt in the target chat", () => {
+    const transfers = [
+      {
+        sourceChatId: BigInt(sourceChatId),
+        targetChatId: BigInt(targetChatId),
+        debtorId: 2n,
+        creditorId: 1n,
+        amount: d(10),
+      },
+    ];
+
+    const map = buildUserBalanceMap([1, 2], [], [], transfers, targetChatId);
+
+    // Sean now owes Ruoqian $10 in the target chat.
+    expect(map.get(1)).toBe(10);
+    expect(map.get(2)).toBe(-10);
+  });
+
+  it("ignores transfers for a chat that is neither source nor target", () => {
+    const transfers = [
+      {
+        sourceChatId: BigInt(sourceChatId),
+        targetChatId: BigInt(targetChatId),
+        debtorId: 2n,
+        creditorId: 1n,
+        amount: d(10),
+      },
+    ];
+
+    const map = buildUserBalanceMap([1, 2], [], [], transfers, 999);
+
+    expect(map.get(1)).toBe(0);
+    expect(map.get(2)).toBe(0);
+  });
+
+  it("is a no-op when no chatId is provided", () => {
+    const transfers = [
+      {
+        sourceChatId: BigInt(sourceChatId),
+        targetChatId: BigInt(targetChatId),
+        debtorId: 2n,
+        creditorId: 1n,
+        amount: d(10),
+      },
+    ];
+
+    const map = buildUserBalanceMap([1, 2], [], [], transfers);
+
+    expect(map.get(1)).toBe(0);
+    expect(map.get(2)).toBe(0);
+  });
+});
+
 describe("computeChatPairwiseBalances", () => {
   it("returns pairwise debts only for significant amounts", () => {
     // Alice paid 30, split equally among Alice, Bob, Carol

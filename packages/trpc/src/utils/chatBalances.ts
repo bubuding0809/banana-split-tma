@@ -23,6 +23,14 @@ interface SettlementRow {
   currency: string;
 }
 
+export interface TransferRow {
+  sourceChatId: bigint;
+  targetChatId: bigint;
+  debtorId: bigint;
+  creditorId: bigint;
+  amount: Decimal;
+}
+
 /**
  * Aggregates per-user signed net balance for one currency.
  * Positive = user is owed; negative = user owes.
@@ -30,13 +38,21 @@ interface SettlementRow {
  * Formula per user U:
  *   net(U) = sum(shares paid by U for others) - sum(U's shares on others' expenses)
  *          + sum(settlements U sent) - sum(settlements U received)
+ *          ± native debt transfers touching this chat
  *
  * Equivalent to getBulkChatDebts.calculateNetShareBulk unrolled for every member.
+ *
+ * Native transfers move a debt between chats: in the source chat the debt is
+ * removed (settlement-like), in the target chat it is added (expense-like).
+ * `chatId` selects which side applies; omit it (and `transfers`) for callers
+ * that don't model cross-group transfers.
  */
 export function buildUserBalanceMap(
   memberIds: number[],
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): Map<number, number> {
   const balance = new Map<number, Decimal>();
   for (const id of memberIds) balance.set(id, new Decimal(0));
@@ -66,6 +82,35 @@ export function buildUserBalanceMap(
       receiver,
       (balance.get(receiver) ?? new Decimal(0)).minus(s.amount)
     );
+  }
+
+  for (const t of transfers) {
+    const debtor = Number(t.debtorId);
+    const creditor = Number(t.creditorId);
+    const isSource = Number(t.sourceChatId) === chatId;
+    const isTarget = Number(t.targetChatId) === chatId;
+
+    if (isSource) {
+      // Source: debt is cleared (settlement-like)
+      balance.set(
+        debtor,
+        (balance.get(debtor) ?? new Decimal(0)).plus(t.amount)
+      );
+      balance.set(
+        creditor,
+        (balance.get(creditor) ?? new Decimal(0)).minus(t.amount)
+      );
+    } else if (isTarget) {
+      // Target: debt is added (expense-like)
+      balance.set(
+        debtor,
+        (balance.get(debtor) ?? new Decimal(0)).minus(t.amount)
+      );
+      balance.set(
+        creditor,
+        (balance.get(creditor) ?? new Decimal(0)).plus(t.amount)
+      );
+    }
   }
 
   const out = new Map<number, number>();
