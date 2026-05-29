@@ -101,6 +101,8 @@ Always parse stdout as JSON. Check exit code before reading output.
 8. **Calling `list-my-*` commands with a chat-scoped API key** — they require a user-level API key. Set `BANANA_SPLIT_API_KEY` to a user-level key or run `banana login --api-key <user-level-key>`.
 9. **Confusing `expenseId` and `templateId`** — recurring management commands take a `--template-id`, while normal expense commands take an `--expense-id`.
 10. **Trying to delete past recurrences via `cancel-recurring-expense`** — cancelling a template only stops _future_ runs; previously generated expenses remain intact.
+11. **Transferring simplified debts without checking raw direct debts** — `create-transfer` validates strictly against **direct raw debt edges** (from `get-debts`), NOT the simplified graph (from `get-simplified-debts`). When a group has `debtSimplificationEnabled: true`, the onscreen/simplified balance can be lower than the raw balance (e.g. owing S$22.46 net but S$29.16 raw) or higher. Always check `get-debts` first to confirm the direct debtor→creditor edge is ≥ the transfer amount.
+12. **Flipping the direction of cross-group debt transfers** — when offsetting debt, confirm which group is source vs target. If you owe in Group A (source) and are owed in Group B (target), the transfer moves credit from target to source: `--from-chat <Target>` (where you are owed), `--to-chat <Source>` (where you owe), `--debtor <person who owes you in Target>`, `--creditor <you>`. Flipping this **doubles** your debt in the source group instead of clearing it.
 
 ## Workflows
 
