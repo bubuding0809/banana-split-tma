@@ -39,6 +39,8 @@ model Chat {
   members                   User[]
   expenses                  Expense[]
   transfers                 Settlement[]
+  sourceTransfers           DebtTransfer[]             @relation("SourceTransfers")
+  targetTransfers           DebtTransfer[]             @relation("TargetTransfers")
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   ExpenseSnapshot           ExpenseSnapshot[]
@@ -70,6 +72,9 @@ model User {
   createdChatCategories ChatCategory[]
   sentNudges            Nudge[]           @relation("NudgeSender")
   receivedNudges        Nudge[]           @relation("NudgeReceiver")
+  createdTransfers      DebtTransfer[]    @relation("TransferCreator")
+  debtorTransfers       DebtTransfer[]    @relation("TransferDebtor")
+  creditorTransfers     DebtTransfer[]    @relation("TransferCreditor")
 }
 
 /// One row per cross-group nudge sent. Used as the durable backing
@@ -155,6 +160,41 @@ model Settlement {
   @@index([chatId]) // Speeds up queries filtering settlements within a specific chat
   @@index([senderId]) // Improves performance when querying settlements sent by a user
   @@index([receiverId]) // Optimizes lookups of settlements received by a user
+}
+
+/// A cross-group debt transfer. Removes a debt in the source chat and adds
+/// the equivalent debt in the target chat without creating consumption
+/// spending in either group (applied dynamically by the balance engine).
+model DebtTransfer {
+  id          String   @id @default(uuid())
+  date        DateTime @default(now())
+
+  creator   User   @relation("TransferCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId BigInt
+
+  debtor   User   @relation("TransferDebtor", fields: [debtorId], references: [id], onDelete: Cascade)
+  debtorId BigInt // The person who owes the money (e.g., Sean)
+
+  creditor   User   @relation("TransferCreditor", fields: [creditorId], references: [id], onDelete: Cascade)
+  creditorId BigInt // The person who is owed the money (e.g., Ruoqian)
+
+  amount      Decimal @db.Decimal(12, 2)
+  currency    String  @default("SGD")
+  description String?
+
+  sourceChat   Chat   @relation("SourceTransfers", fields: [sourceChatId], references: [id], onDelete: Cascade)
+  sourceChatId BigInt // Chat where debt is REMOVED (Settlement-like)
+
+  targetChat   Chat   @relation("TargetTransfers", fields: [targetChatId], references: [id], onDelete: Cascade)
+  targetChatId BigInt // Chat where debt is ADDED (Expense-like)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceChatId])
+  @@index([targetChatId])
+  @@index([debtorId])
+  @@index([creditorId])
 }
 
 model CurrencyRate {
