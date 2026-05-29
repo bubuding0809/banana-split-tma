@@ -19,6 +19,7 @@ import {
   buildUserBalanceMap,
   type TransferRow,
 } from "../../utils/chatBalances.js";
+import getAllByChat from "./getAllByChat.js";
 
 export const inputSchema = z.object({
   debtorId: z.number().transform((val) => BigInt(val)),
@@ -263,4 +264,5 @@ const createTransfer = protectedProcedure
 
 export const debtTransferRouter = createTRPCRouter({
   createTransfer,
+  getAllByChat,
 });
