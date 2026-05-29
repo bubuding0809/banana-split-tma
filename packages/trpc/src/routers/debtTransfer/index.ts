@@ -20,6 +20,7 @@ import {
   type TransferRow,
 } from "../../utils/chatBalances.js";
 import getAllByChat from "./getAllByChat.js";
+import deleteTransfer from "./deleteTransfer.js";
 
 export const inputSchema = z.object({
   debtorId: z.number().transform((val) => BigInt(val)),
@@ -265,4 +266,5 @@ const createTransfer = protectedProcedure
 export const debtTransferRouter = createTRPCRouter({
   createTransfer,
   getAllByChat,
+  deleteTransfer,
 });

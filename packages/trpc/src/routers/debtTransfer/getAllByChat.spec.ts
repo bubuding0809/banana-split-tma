@@ -30,6 +30,8 @@ describe("getAllByChatHandler", () => {
     expect(t.direction).toBe("out");
     expect(t.counterpartChatId).toBe(200);
     expect(t.counterpartChatTitle).toBe("LADS 2026");
+    expect(t.sourceChatTitle).toBe("Ho Chi Minh 2026");
+    expect(t.targetChatTitle).toBe("LADS 2026");
     expect(t.debtorId).toBe(2);
     expect(t.creditorId).toBe(1);
     expect(t.amount).toBe(71.79);

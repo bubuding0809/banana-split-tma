@@ -59,6 +59,8 @@ export const getAllByChatHandler = async (
       direction,
       counterpartChatId: Number(counterpartChatId),
       counterpartChatTitle,
+      sourceChatTitle: t.sourceChat.title,
+      targetChatTitle: t.targetChat.title,
     };
   });
 };
