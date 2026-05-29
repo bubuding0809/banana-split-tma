@@ -7,7 +7,7 @@ description: >
   expense splitting, shared costs, or bill splitting.
 metadata:
   author: banananasplitz
-  version: "0.17.1"
+  version: "0.18.0"
 ---
 
 # Banana Split CLI

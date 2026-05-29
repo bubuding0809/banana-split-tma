@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-05-29
+
+### Added
+
+- feat: native debt simplification support in `create-transfer` on the backend tRPC router. If the source group has `debtSimplificationEnabled: true`, the transfer amount is validated directly against the simplified debtor-creditor edge in the simplified graph instead of requiring raw/unsimplified edges. The CLI's skill is updated to reflect this seamless integration!
+
 ## [0.17.1] - 2026-05-29
 
 ### Changed
