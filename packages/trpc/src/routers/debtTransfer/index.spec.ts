@@ -52,8 +52,15 @@ function makeDb(opts: DbOpts) {
     expenseShare: { findMany: async () => shares },
     settlement: { findMany: async () => settlements },
     debtTransfer: { findMany: async () => transfers, create },
+    // The tx client mirrors the reader surface plus $executeRaw so the
+    // solvency check + advisory lock + write run against the same client.
     $transaction: async (fn: (tx: Stub) => unknown) =>
-      fn({ debtTransfer: { create } }),
+      fn({
+        $executeRaw: async () => 1,
+        expenseShare: { findMany: async () => shares },
+        settlement: { findMany: async () => settlements },
+        debtTransfer: { findMany: async () => transfers, create },
+      }),
   } as never;
 }
 
@@ -164,5 +171,63 @@ describe("createTransferHandler", () => {
     await expect(
       createTransferHandler(baseInput({ amount: 0 }), db, silentLog)
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("acquires the advisory lock before reading balances or writing (atomic solvency check)", async () => {
+    // Records the order of operations on the tx client to prove the lock is
+    // taken first and the solvency read + write happen inside the same tx.
+    const calls: string[] = [];
+    const create = async ({ data }: { data: Record<string, unknown> }) => {
+      calls.push("create");
+      return {
+        id: "transfer-1",
+        date: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...data,
+      };
+    };
+    const tx = {
+      $executeRaw: async () => {
+        calls.push("lock");
+        return 1;
+      },
+      expenseShare: {
+        findMany: async () => {
+          calls.push("read");
+          return owesHundred;
+        },
+      },
+      settlement: { findMany: async () => [] },
+      debtTransfer: { findMany: async () => [], create },
+    };
+    const db = {
+      chat: {
+        findUnique: async ({
+          select,
+        }: {
+          select: { members: { where: { id: { in: bigint[] } } } };
+        }) => {
+          const wanted = select.members.where.id.in.map(String);
+          return {
+            members: [{ id: 1n }, { id: 2n }, { id: 3n }].filter((m) =>
+              wanted.includes(m.id.toString())
+            ),
+          };
+        },
+      },
+      // If the handler read balances on the OUTER client, this would throw,
+      // proving the read moved inside the transaction.
+      expenseShare: {
+        findMany: async () => {
+          throw new Error("balances must be read inside the transaction");
+        },
+      },
+      $transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
+    } as never;
+
+    await createTransferHandler(baseInput({ amount: 50 }), db, silentLog);
+
+    expect(calls).toEqual(["lock", "read", "create"]);
   });
 });

@@ -52,6 +52,11 @@ export type CreateTransferInput = z.infer<typeof inputSchema> & {
   creatorId: bigint;
 };
 
+// Minimal client surface used to read balances. Both the top-level Db and a
+// Prisma interactive-transaction client satisfy this, so the solvency check
+// can run inside `$transaction`.
+type BalanceReader = Pick<Db, "expenseShare" | "settlement" | "debtTransfer">;
+
 /**
  * Computes how much `debtorId` owes `creditorId` in `chatId` for `currency`,
  * including the effect of any prior native transfers touching that chat.
@@ -61,7 +66,7 @@ export type CreateTransferInput = z.infer<typeof inputSchema> & {
  * consistent with the rest of the app. Positive = debtor owes creditor.
  */
 const computePairwiseOwed = async (
-  db: Db,
+  db: BalanceReader,
   chatId: bigint,
   currency: string,
   debtorId: bigint,
@@ -155,29 +160,37 @@ export const createTransferHandler = async (
     await assertUsersInChat(db, input.sourceChatId, participants);
     await assertUsersInChat(db, input.targetChatId, participants);
 
-    // The debtor must actually owe the creditor at least `amount` in the
-    // source chat, otherwise we'd be fabricating synthetic debt.
-    const owed = await computePairwiseOwed(
-      db,
-      input.sourceChatId,
-      currency,
-      input.debtorId,
-      input.creditorId
-    );
+    const transfer = await db.$transaction(async (tx) => {
+      // Serialize concurrent transfers for the same source ledger. Without
+      // this, two requests could both pass the solvency check below and both
+      // commit (TOCTOU), moving more debt than actually exists. The advisory
+      // lock is held for the duration of the transaction and released on
+      // commit/rollback.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${input.sourceChatId})`;
 
-    if (
-      toDecimal(owed).lessThan(
-        amountDecimal.minus(FINANCIAL_THRESHOLDS.DISPLAY)
-      )
-    ) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Debtor only owes ${owed.toFixed(2)} ${currency} in the source chat, which is less than the requested transfer of ${input.amount.toFixed(2)} ${currency}`,
-      });
-    }
+      // The debtor must actually owe the creditor at least `amount` in the
+      // source chat, otherwise we'd be fabricating synthetic debt. Read this
+      // inside the locked transaction so the check and the write are atomic.
+      const owed = await computePairwiseOwed(
+        tx,
+        input.sourceChatId,
+        currency,
+        input.debtorId,
+        input.creditorId
+      );
 
-    const transfer = await db.$transaction((tx) =>
-      tx.debtTransfer.create({
+      if (
+        toDecimal(owed).lessThan(
+          amountDecimal.minus(FINANCIAL_THRESHOLDS.DISPLAY)
+        )
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Debtor only owes ${owed.toFixed(2)} ${currency} in the source chat, which is less than the requested transfer of ${input.amount.toFixed(2)} ${currency}`,
+        });
+      }
+
+      return tx.debtTransfer.create({
         data: {
           creatorId: input.creatorId,
           debtorId: input.debtorId,
@@ -188,8 +201,8 @@ export const createTransferHandler = async (
           sourceChatId: input.sourceChatId,
           targetChatId: input.targetChatId,
         },
-      })
-    );
+      });
+    });
 
     return {
       ...transfer,
