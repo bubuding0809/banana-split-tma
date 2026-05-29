@@ -21,6 +21,7 @@ import {
 } from "../../utils/chatBalances.js";
 import getAllByChat from "./getAllByChat.js";
 import deleteTransfer from "./deleteTransfer.js";
+import { sendTransferNotificationMessageHandler } from "../telegram/sendTransferNotificationMessage.js";
 
 export const inputSchema = z.object({
   debtorId: z.number().transform((val) => BigInt(val)),
@@ -256,11 +257,84 @@ const createTransfer = protectedProcedure
       });
     }
 
-    return createTransferHandler(
+    const transfer = await createTransferHandler(
       { ...input, creatorId: BigInt(creatorId) },
       ctx.db,
       ctx.log
     );
+
+    // Announce in both affected group chats (source: out, target: in). Best
+    // effort — a notification failure must not fail the transfer.
+    try {
+      const [debtor, creditor, sourceChat, targetChat] = await Promise.all([
+        ctx.db.user.findUnique({
+          where: { id: input.debtorId },
+          select: { firstName: true },
+        }),
+        ctx.db.user.findUnique({
+          where: { id: input.creditorId },
+          select: { firstName: true },
+        }),
+        ctx.db.chat.findUnique({
+          where: { id: input.sourceChatId },
+          select: { title: true, threadId: true },
+        }),
+        ctx.db.chat.findUnique({
+          where: { id: input.targetChatId },
+          select: { title: true, threadId: true },
+        }),
+      ]);
+
+      const debtorName = debtor?.firstName ?? `User ${transfer.debtorId}`;
+      const creditorName = creditor?.firstName ?? `User ${transfer.creditorId}`;
+
+      await Promise.allSettled([
+        sendTransferNotificationMessageHandler(
+          {
+            chatId: transfer.sourceChatId,
+            direction: "out",
+            debtorId: transfer.debtorId,
+            debtorName,
+            creditorId: transfer.creditorId,
+            creditorName,
+            amount: transfer.amount,
+            currency: transfer.currency,
+            counterpartChatTitle: targetChat?.title ?? "another group",
+            threadId: sourceChat?.threadId
+              ? Number(sourceChat.threadId)
+              : undefined,
+            force: false,
+          },
+          ctx.db,
+          ctx.teleBot,
+          ctx.log
+        ),
+        sendTransferNotificationMessageHandler(
+          {
+            chatId: transfer.targetChatId,
+            direction: "in",
+            debtorId: transfer.debtorId,
+            debtorName,
+            creditorId: transfer.creditorId,
+            creditorName,
+            amount: transfer.amount,
+            currency: transfer.currency,
+            counterpartChatTitle: sourceChat?.title ?? "another group",
+            threadId: targetChat?.threadId
+              ? Number(targetChat.threadId)
+              : undefined,
+            force: false,
+          },
+          ctx.db,
+          ctx.teleBot,
+          ctx.log
+        ),
+      ]);
+    } catch (error) {
+      ctx.log.error({ err: error }, "debtTransfer.broadcast.failed");
+    }
+
+    return transfer;
   });
 
 export const debtTransferRouter = createTRPCRouter({
