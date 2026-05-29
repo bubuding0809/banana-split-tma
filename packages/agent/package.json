@@ -18,6 +18,7 @@
     "@ai-sdk/provider": "^3.0.8",
     "@dko/database": "workspace:^",
     "@dko/trpc": "workspace:*",
+    "@repo/categories": "workspace:*",
     "@mastra/core": "^1.18.0",
     "@mastra/memory": "^1.10.0",
     "@mastra/pg": "^1.8.3",

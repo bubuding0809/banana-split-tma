@@ -563,7 +563,7 @@ expensesFeature.on("message:text", async (ctx, next) => {
       ctx.log.info(
         {
           duration_ms: Date.now() - classifyStart,
-          outcome: "ok",
+          outcome: suggestion.kind,
           category_id: categoryId,
         },
         "expense.create.ai_classify.end"

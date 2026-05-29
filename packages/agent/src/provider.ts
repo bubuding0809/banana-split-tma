@@ -1,13 +1,14 @@
 import { google } from "@ai-sdk/google";
 import { createMinimax } from "vercel-minimax-ai-provider";
 import type { LanguageModelV2, LanguageModelV3 } from "@ai-sdk/provider";
+import { DEFAULT_AGENT_MODEL } from "@repo/categories";
 
 export function getAgentModel(): LanguageModelV2 | LanguageModelV3 {
   const provider = process.env.AGENT_PROVIDER || "google";
   const modelName = process.env.AGENT_MODEL;
 
   if (provider === "google") {
-    return google(modelName || "gemini-3.1-flash-lite");
+    return google(modelName || DEFAULT_AGENT_MODEL);
   }
 
   if (provider === "minimax") {
