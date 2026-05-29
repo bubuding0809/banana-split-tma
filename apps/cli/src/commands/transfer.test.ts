@@ -13,7 +13,49 @@ vi.mock("../output.js", () => ({
   }),
 }));
 
+vi.mock("../scope.js", () => ({
+  resolveChatId: vi.fn(async (_trpc, chatId) =>
+    chatId ? Number(chatId) : 12345
+  ),
+}));
+
 describe("transfer commands", () => {
+  it("list-transfers calls trpc.debtTransfer.getAllByChat", async () => {
+    const cmd = transferCommands.find((c) => c.name === "list-transfers");
+    const queryMock = vi.fn().mockResolvedValue([]);
+    const trpcMock = {
+      debtTransfer: { getAllByChat: { query: queryMock } },
+    } as any;
+
+    await cmd?.execute({ "chat-id": "111" }, trpcMock);
+
+    expect(queryMock).toHaveBeenCalledWith({ chatId: 111 });
+  });
+
+  it("delete-transfer fails when --transfer-id is missing", async () => {
+    const cmd = transferCommands.find((c) => c.name === "delete-transfer");
+    const trpcMock = {} as any;
+
+    expect(await cmd?.execute({}, trpcMock)).toMatchObject({
+      code: "missing_option",
+      message: "--transfer-id is required",
+    });
+  });
+
+  it("delete-transfer calls trpc.debtTransfer.deleteTransfer with the id", async () => {
+    const cmd = transferCommands.find((c) => c.name === "delete-transfer");
+    const mutateMock = vi.fn().mockResolvedValue({ success: true });
+    const trpcMock = {
+      debtTransfer: { deleteTransfer: { mutate: mutateMock } },
+    } as any;
+
+    await cmd?.execute({ "transfer-id": "tr-123" }, trpcMock);
+
+    expect(mutateMock).toHaveBeenCalledWith({ transferId: "tr-123" });
+  });
+});
+
+describe("transfer commands (create)", () => {
   it("create-transfer fails when required options are missing", async () => {
     const cmd = transferCommands.find((c) => c.name === "create-transfer");
     const trpcMock = {} as any;
