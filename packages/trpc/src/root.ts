@@ -11,6 +11,7 @@ import {
   telegramRouter,
   userRouter,
   adminRouter,
+  debtTransferRouter,
 } from "./routers/index.js";
 import { categoryRouter } from "./routers/category/index.js";
 import { createTRPCRouter } from "./trpc.js";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   settlement: settlementRouter,
   currency: currencyRouter,
   snapshot: snapshotRouter,
+  debtTransfer: debtTransferRouter,
 });
 
 export type AppRouter = typeof appRouter;
