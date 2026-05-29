@@ -1,7 +1,62 @@
 import type { Command } from "./types.js";
+import { resolveChatId } from "../scope.js";
 import { run, error } from "../output.js";
 
 export const transferCommands: Command[] = [
+  {
+    name: "list-transfers",
+    description: "List native cross-group debt transfers touching a chat",
+    agentGuidance:
+      "Use this to see transfers in or out of a chat, and to find a transfer's id before deleting it. Each row has a `direction` ('out' when this chat is the source, 'in' when it is the target) and the counterpart group's title.",
+    examples: ["banana list-transfers --chat-id 123456789"],
+    options: {
+      "chat-id": {
+        type: "string",
+        description: "The numeric chat ID (optional if API key is chat-scoped)",
+        required: false,
+      },
+    },
+    execute: (opts, trpc) =>
+      run("list-transfers", async () => {
+        const chatId = await resolveChatId(
+          trpc,
+          opts["chat-id"] as string | undefined
+        );
+        return trpc.debtTransfer.getAllByChat.query({ chatId });
+      }),
+  },
+
+  {
+    name: "delete-transfer",
+    description: "Delete a debt transfer by ID (reverses it in both groups)",
+    agentGuidance:
+      "Use this to undo a transfer. Removing the row reverses its effect: the source-chat debt comes back and the target-chat debt is removed. Use list-transfers first to find the id.",
+    examples: [
+      "banana delete-transfer --transfer-id 123e4567-e89b-12d3-a456-426614174000",
+    ],
+    options: {
+      "transfer-id": {
+        type: "string",
+        description: "The transfer UUID",
+        required: true,
+      },
+    },
+    execute: (opts, trpc) => {
+      if (!opts["transfer-id"]) {
+        return error(
+          "missing_option",
+          "--transfer-id is required",
+          "delete-transfer"
+        );
+      }
+      return run("delete-transfer", async () =>
+        trpc.debtTransfer.deleteTransfer.mutate({
+          transferId: String(opts["transfer-id"]),
+        })
+      );
+    },
+  },
+
   {
     name: "create-transfer",
     description:

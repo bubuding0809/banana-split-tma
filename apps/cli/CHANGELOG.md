@@ -4,6 +4,13 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-29
+
+### Added
+
+- feat: `list-transfers` (`--chat-id`) — list native debt transfers touching a chat; each row carries `direction` (`out` when the chat is the source, `in` when it is the target) and the counterpart group title. Use it to find a transfer id.
+- feat: `delete-transfer` (`--transfer-id`) — delete a transfer by ID, reversing it in both groups (the source-chat debt returns, the target-chat debt is removed). Completes the CLI surface alongside `create-transfer`.
+
 ## [0.16.0] - 2026-05-29
 
 ### Added
