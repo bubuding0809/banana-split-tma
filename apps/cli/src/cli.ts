@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { chatCommands } from "./commands/chat.js";
 import { expenseCommands } from "./commands/expense.js";
 import { settlementCommands } from "./commands/settlement.js";
+import { transferCommands } from "./commands/transfer.js";
 import { snapshotCommands } from "./commands/snapshot.js";
 import { currencyCommands } from "./commands/currency.js";
 import { reminderCommands } from "./commands/reminder.js";
@@ -19,6 +20,7 @@ const ALL_COMMANDS: Command[] = [
   ...chatCommands,
   ...expenseCommands,
   ...settlementCommands,
+  ...transferCommands,
   ...snapshotCommands,
   ...currencyCommands,
   ...reminderCommands,

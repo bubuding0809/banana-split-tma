@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
@@ -74,6 +75,45 @@ export const getNetShareHandler = async (
     },
   });
 
+  //* Native cross-group transfers between the two users that touch this chat.
+  // Source clears a debt (settlement-like); target adds one (expense-like).
+  const transfers = await db.debtTransfer.findMany({
+    where: {
+      currency: input.currency,
+      debtorId: { in: [input.mainUserId, input.targetUserId] },
+      creditorId: { in: [input.mainUserId, input.targetUserId] },
+      OR: [{ sourceChatId: input.chatId }, { targetChatId: input.chatId }],
+    },
+    select: {
+      sourceChatId: true,
+      targetChatId: true,
+      debtorId: true,
+      creditorId: true,
+      amount: true,
+    },
+  });
+
+  // Positive net = target owes main. Mirrors the source/target sign
+  // convention in chatBalances so simplified debts stay consistent.
+  let transferNet = new Decimal(0);
+  for (const t of transfers) {
+    const debtor = Number(t.debtorId);
+    const creditor = Number(t.creditorId);
+    const isSource = Number(t.sourceChatId) === input.chatId;
+    const isTarget = Number(t.targetChatId) === input.chatId;
+    if (!isSource && !isTarget) continue;
+
+    if (debtor === input.targetUserId && creditor === input.mainUserId) {
+      transferNet = isTarget
+        ? transferNet.plus(t.amount)
+        : transferNet.minus(t.amount);
+    } else if (debtor === input.mainUserId && creditor === input.targetUserId) {
+      transferNet = isTarget
+        ? transferNet.minus(t.amount)
+        : transferNet.plus(t.amount);
+    }
+  }
+
   //* Calculate the net amount between the two users using precise Decimal arithmetic
   // Positive = target user owes main user, Negative = main user owes target user
 
@@ -87,11 +127,12 @@ export const getNetShareHandler = async (
     settlementsTargetToMain.map((settlement) => settlement.amount)
   );
 
-  // Calculate net balance: (amount to receive) - (amount to pay) + (settlements sent) - (settlements received)
+  // Calculate net balance: (amount to receive) - (amount to pay) + (settlements sent) - (settlements received) + (transfers)
   const netAmountDecimal = toReceiveTotal
     .minus(toPayTotal)
     .plus(settlementsMainToTargetTotal)
-    .minus(settlementsTargetToMainTotal);
+    .minus(settlementsTargetToMainTotal)
+    .plus(transferNet);
 
   // Convert to number for API response
   return toNumber(netAmountDecimal);

@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { backButton, hapticFeedback } from "@telegram-apps/sdk-react";
 import { Cell, Section, Skeleton, Switch } from "@telegram-apps/telegram-ui";
-import { Bell, BellOff, BellRing } from "lucide-react";
+import { Bell, BellOff, BellRing, Forward } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import IconSquare from "./IconSquare";
 
@@ -13,7 +13,8 @@ interface EventAlertsSubPageProps {
 type NotifyKey =
   | "notifyOnExpense"
   | "notifyOnExpenseUpdate"
-  | "notifyOnSettlement";
+  | "notifyOnSettlement"
+  | "notifyOnTransfer";
 type NotifyPatch = Partial<Record<NotifyKey, boolean>>;
 
 export default function EventAlertsSubPage({
@@ -125,6 +126,25 @@ export default function EventAlertsSubPage({
           }
         >
           Settlement recorded
+        </Cell>
+        <Cell
+          Component="label"
+          before={
+            <IconSquare color="orange">
+              <Forward size={14} />
+            </IconSquare>
+          }
+          after={
+            <Skeleton visible={isPending}>
+              <Switch
+                checked={chat?.notifyOnTransfer ?? true}
+                onChange={() => toggle("notifyOnTransfer")}
+                disabled={isPending}
+              />
+            </Skeleton>
+          }
+        >
+          Debt transferred
         </Cell>
       </Section>
     </main>

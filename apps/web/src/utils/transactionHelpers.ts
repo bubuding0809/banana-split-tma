@@ -20,6 +20,7 @@ type Expenses = RouterOutputs["expense"]["getExpenseByChat"] | undefined;
 type Settlements =
   | RouterOutputs["settlement"]["getAllSettlementsByChat"]
   | undefined;
+type Transfers = RouterOutputs["debtTransfer"]["getAllByChat"] | undefined;
 
 /**
  * Get the date value to use for sorting based on sortBy option
@@ -76,6 +77,9 @@ export const isTransactionRelated = (
       transaction.shares?.some((share) => share.userId === userId) ||
       false
     );
+  } else if (transaction.type === "transfer") {
+    // For transfers: user is related if they are the debtor or creditor
+    return transaction.debtorId === userId || transaction.creditorId === userId;
   } else {
     // For settlements: user is related if they are sender or receiver
     return transaction.senderId === userId || transaction.receiverId === userId;
@@ -100,7 +104,8 @@ export const filterRelatedTransactions = (
 export const combineTransactions = (
   expenses: Expenses = [],
   settlements: Settlements = [],
-  showPayments: boolean
+  showPayments: boolean,
+  transfers: Transfers = []
 ): CombinedTransaction[] => {
   const expenseTransactions: CombinedTransaction[] = expenses.map(
     (expense) => ({
@@ -116,7 +121,20 @@ export const combineTransactions = (
       }))
     : [];
 
-  return [...expenseTransactions, ...settlementTransactions];
+  // Transfers are balance-affecting bookkeeping (not consumption or a
+  // payment), so they always show regardless of the Payments toggle.
+  const transferTransactions: CombinedTransaction[] = (transfers ?? []).map(
+    (transfer) => ({
+      ...transfer,
+      type: "transfer" as const,
+    })
+  );
+
+  return [
+    ...expenseTransactions,
+    ...settlementTransactions,
+    ...transferTransactions,
+  ];
 };
 
 /**

@@ -39,25 +39,39 @@ export const getCurrenciesWithBalanceHandler = async (
   db: Db
 ) => {
   try {
-    // Get all unique currencies used in this chat from expenses and settlements
-    const [expenseCurrencies, settlementCurrencies] = await Promise.all([
-      db.expense.findMany({
-        where: { chatId: input.chatId },
-        select: { currency: true },
-        distinct: ["currency"],
-      }),
-      db.settlement.findMany({
-        where: { chatId: input.chatId },
-        select: { currency: true },
-        distinct: ["currency"],
-      }),
-    ]);
+    // Get all unique currencies used in this chat from expenses, settlements
+    // and native transfers (a currency may appear only via a cross-group
+    // transfer touching this chat).
+    const [expenseCurrencies, settlementCurrencies, transferCurrencies] =
+      await Promise.all([
+        db.expense.findMany({
+          where: { chatId: input.chatId },
+          select: { currency: true },
+          distinct: ["currency"],
+        }),
+        db.settlement.findMany({
+          where: { chatId: input.chatId },
+          select: { currency: true },
+          distinct: ["currency"],
+        }),
+        db.debtTransfer.findMany({
+          where: {
+            OR: [
+              { sourceChatId: input.chatId },
+              { targetChatId: input.chatId },
+            ],
+          },
+          select: { currency: true },
+          distinct: ["currency"],
+        }),
+      ]);
 
     // Combine and deduplicate currencies
     const allUsedCurrencies = [
       ...new Set([
         ...expenseCurrencies.map((e) => e.currency),
         ...settlementCurrencies.map((s) => s.currency),
+        ...transferCurrencies.map((t) => t.currency),
       ]),
     ];
 
@@ -79,47 +93,64 @@ export const getCurrenciesWithBalanceHandler = async (
 
     const usedCurrenciesWithBalanceInfo = await Promise.all(
       filteredCurrencies.map(async (currency) => {
-        const [debtors, creditors, latestExpense, latestSettlement] =
-          await Promise.all([
-            getDebtorsHandler(
-              {
-                chatId: Number(input.chatId),
-                userId: Number(input.userId),
-                currency: currency.code,
-              },
-              db
-            ),
-            getCreditorsHandler(
-              {
-                chatId: Number(input.chatId),
-                userId: Number(input.userId),
-                currency: currency.code,
-              },
-              db
-            ),
-            db.expense.findFirst({
-              where: {
-                chatId: input.chatId,
-                currency: currency.code,
-              },
-              orderBy: { createdAt: "desc" },
-              select: { createdAt: true },
-            }),
-            db.settlement.findFirst({
-              where: {
-                chatId: input.chatId,
-                currency: currency.code,
-              },
-              orderBy: { createdAt: "desc" },
-              select: { createdAt: true },
-            }),
-          ]);
+        const [
+          debtors,
+          creditors,
+          latestExpense,
+          latestSettlement,
+          latestTransfer,
+        ] = await Promise.all([
+          getDebtorsHandler(
+            {
+              chatId: Number(input.chatId),
+              userId: Number(input.userId),
+              currency: currency.code,
+            },
+            db
+          ),
+          getCreditorsHandler(
+            {
+              chatId: Number(input.chatId),
+              userId: Number(input.userId),
+              currency: currency.code,
+            },
+            db
+          ),
+          db.expense.findFirst({
+            where: {
+              chatId: input.chatId,
+              currency: currency.code,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          }),
+          db.settlement.findFirst({
+            where: {
+              chatId: input.chatId,
+              currency: currency.code,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          }),
+          db.debtTransfer.findFirst({
+            where: {
+              currency: currency.code,
+              OR: [
+                { sourceChatId: input.chatId },
+                { targetChatId: input.chatId },
+              ],
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          }),
+        ]);
 
-        // Get the most recent createdAt from either expenses or settlements
+        // Get the most recent createdAt from expenses, settlements or transfers
         const lastCreatedAt = new Date(
           Math.max(
             latestExpense?.createdAt?.getTime() || 0,
-            latestSettlement?.createdAt?.getTime() || 0
+            latestSettlement?.createdAt?.getTime() || 0,
+            latestTransfer?.createdAt?.getTime() || 0
           )
         );
 

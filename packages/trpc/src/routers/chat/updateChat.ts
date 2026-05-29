@@ -19,6 +19,7 @@ export const inputSchema = z.object({
   notifyOnExpense: z.boolean().optional(),
   notifyOnExpenseUpdate: z.boolean().optional(),
   notifyOnSettlement: z.boolean().optional(),
+  notifyOnTransfer: z.boolean().optional(),
 });
 
 export const outputSchema = z.object({
@@ -32,6 +33,7 @@ export const outputSchema = z.object({
   notifyOnExpense: z.boolean(),
   notifyOnExpenseUpdate: z.boolean(),
   notifyOnSettlement: z.boolean(),
+  notifyOnTransfer: z.boolean(),
   updatedAt: z.date(),
 });
 
@@ -64,6 +66,7 @@ export const updateChatHandler = async (
       notifyOnExpense?: boolean;
       notifyOnExpenseUpdate?: boolean;
       notifyOnSettlement?: boolean;
+      notifyOnTransfer?: boolean;
     } = {};
 
     if (input.threadId !== undefined) {
@@ -92,6 +95,9 @@ export const updateChatHandler = async (
     }
     if (input.notifyOnSettlement !== undefined) {
       updateData.notifyOnSettlement = input.notifyOnSettlement;
+    }
+    if (input.notifyOnTransfer !== undefined) {
+      updateData.notifyOnTransfer = input.notifyOnTransfer;
     }
 
     const updatedChat = await db.chat.update({

@@ -23,6 +23,14 @@ interface SettlementRow {
   currency: string;
 }
 
+export interface TransferRow {
+  sourceChatId: bigint;
+  targetChatId: bigint;
+  debtorId: bigint;
+  creditorId: bigint;
+  amount: Decimal;
+}
+
 /**
  * Aggregates per-user signed net balance for one currency.
  * Positive = user is owed; negative = user owes.
@@ -30,13 +38,21 @@ interface SettlementRow {
  * Formula per user U:
  *   net(U) = sum(shares paid by U for others) - sum(U's shares on others' expenses)
  *          + sum(settlements U sent) - sum(settlements U received)
+ *          ± native debt transfers touching this chat
  *
  * Equivalent to getBulkChatDebts.calculateNetShareBulk unrolled for every member.
+ *
+ * Native transfers move a debt between chats: in the source chat the debt is
+ * removed (settlement-like), in the target chat it is added (expense-like).
+ * `chatId` selects which side applies; omit it (and `transfers`) for callers
+ * that don't model cross-group transfers.
  */
 export function buildUserBalanceMap(
   memberIds: number[],
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): Map<number, number> {
   const balance = new Map<number, Decimal>();
   for (const id of memberIds) balance.set(id, new Decimal(0));
@@ -68,6 +84,35 @@ export function buildUserBalanceMap(
     );
   }
 
+  for (const t of transfers) {
+    const debtor = Number(t.debtorId);
+    const creditor = Number(t.creditorId);
+    const isSource = Number(t.sourceChatId) === chatId;
+    const isTarget = Number(t.targetChatId) === chatId;
+
+    if (isSource) {
+      // Source: debt is cleared (settlement-like)
+      balance.set(
+        debtor,
+        (balance.get(debtor) ?? new Decimal(0)).plus(t.amount)
+      );
+      balance.set(
+        creditor,
+        (balance.get(creditor) ?? new Decimal(0)).minus(t.amount)
+      );
+    } else if (isTarget) {
+      // Target: debt is added (expense-like)
+      balance.set(
+        debtor,
+        (balance.get(debtor) ?? new Decimal(0)).minus(t.amount)
+      );
+      balance.set(
+        creditor,
+        (balance.get(creditor) ?? new Decimal(0)).plus(t.amount)
+      );
+    }
+  }
+
   const out = new Map<number, number>();
   for (const [id, dec] of balance) out.set(id, toNumber(dec));
   return out;
@@ -80,7 +125,9 @@ export function buildUserBalanceMap(
 export function computeChatPairwiseBalances(
   memberIds: number[],
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): PairwiseDebt[] {
   const out: PairwiseDebt[] = [];
 
@@ -88,7 +135,7 @@ export function computeChatPairwiseBalances(
     for (let j = i + 1; j < memberIds.length; j++) {
       const a = memberIds[i]!;
       const b = memberIds[j]!;
-      const net = pairwiseNet(a, b, shares, settlements);
+      const net = pairwiseNet(a, b, shares, settlements, transfers, chatId);
       if (Math.abs(net) <= 0.01) continue;
       if (net > 0) {
         out.push({ debtorId: b, creditorId: a, amount: net });
@@ -111,7 +158,9 @@ function pairwiseNet(
   a: number,
   b: number,
   shares: ShareRow[],
-  settlements: SettlementRow[]
+  settlements: SettlementRow[],
+  transfers: TransferRow[] = [],
+  chatId?: number
 ): number {
   const toReceive = shares
     .filter(
@@ -139,10 +188,33 @@ function pairwiseNet(
     .filter((s) => Number(s.senderId) === b && Number(s.receiverId) === a)
     .map((s) => s.amount);
 
+  // Native transfers touching this chat. Source clears a debt
+  // (settlement-like); target adds one (expense-like). Sign mirrors the
+  // source/target convention in buildUserBalanceMap. Positive = b owes a.
+  let transferNet = new Decimal(0);
+  for (const t of transfers) {
+    const debtor = Number(t.debtorId);
+    const creditor = Number(t.creditorId);
+    const isSource = Number(t.sourceChatId) === chatId;
+    const isTarget = Number(t.targetChatId) === chatId;
+    if (!isSource && !isTarget) continue;
+
+    if (debtor === b && creditor === a) {
+      transferNet = isTarget
+        ? transferNet.plus(t.amount)
+        : transferNet.minus(t.amount);
+    } else if (debtor === a && creditor === b) {
+      transferNet = isTarget
+        ? transferNet.minus(t.amount)
+        : transferNet.plus(t.amount);
+    }
+  }
+
   const net = sumAmounts(toReceive)
     .minus(sumAmounts(toPay))
     .plus(sumAmounts(settleAToB))
-    .minus(sumAmounts(settleBToA));
+    .minus(sumAmounts(settleBToA))
+    .plus(transferNet);
 
   return toNumber(net);
 }

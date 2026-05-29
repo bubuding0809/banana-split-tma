@@ -14,10 +14,12 @@ type Expenses = RouterOutputs["expense"]["getExpenseByChat"] | undefined;
 type Settlements =
   | RouterOutputs["settlement"]["getAllSettlementsByChat"]
   | undefined;
+type Transfers = RouterOutputs["debtTransfer"]["getAllByChat"] | undefined;
 
 interface UseTransactionGroupingParams {
   expenses: Expenses;
   settlements: Settlements;
+  transfers: Transfers;
   showPayments: boolean;
   relatedOnly: boolean;
   userId: number;
@@ -41,6 +43,7 @@ interface UseTransactionGroupingReturn {
 export const useTransactionGrouping = ({
   expenses,
   settlements,
+  transfers,
   showPayments,
   relatedOnly,
   userId,
@@ -49,11 +52,12 @@ export const useTransactionGrouping = ({
 }: UseTransactionGroupingParams): UseTransactionGroupingReturn => {
   // Combine and group transactions by month buckets then sort them by the sortBy field
   const { groupedTransactions, sortedKeys } = useMemo(() => {
-    // Combine expenses and settlements into a single array with type indicators
+    // Combine expenses, settlements and transfers into one typed array
     let combinedTransactions = combineTransactions(
       expenses,
       settlements,
-      showPayments
+      showPayments,
+      transfers
     );
 
     // Filter by related transactions if relatedOnly is true
@@ -68,6 +72,7 @@ export const useTransactionGrouping = ({
   }, [
     expenses,
     settlements,
+    transfers,
     showPayments,
     relatedOnly,
     userId,
@@ -81,7 +86,8 @@ export const useTransactionGrouping = ({
     let combinedTransactions = combineTransactions(
       expenses,
       settlements,
-      showPayments
+      showPayments,
+      transfers
     );
 
     // Filter by related transactions if relatedOnly is true (same logic as above)
@@ -96,6 +102,7 @@ export const useTransactionGrouping = ({
   }, [
     expenses,
     settlements,
+    transfers,
     showPayments,
     relatedOnly,
     userId,

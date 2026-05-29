@@ -65,6 +65,22 @@ export const getBulkChatDebtsHandler = async (
     },
   });
 
+  // Native cross-group transfers touching this chat (as source or target).
+  const transfers = await db.debtTransfer.findMany({
+    where: {
+      ...(currencyFilter && { currency: currencyFilter }),
+      OR: [{ sourceChatId: chatId }, { targetChatId: chatId }],
+    },
+    select: {
+      sourceChatId: true,
+      targetChatId: true,
+      debtorId: true,
+      creditorId: true,
+      amount: true,
+      currency: true,
+    },
+  });
+
   const sharesByCurrency = new Map<string, typeof expenseShares>();
   for (const s of expenseShares) {
     const cur = s.expense.currency;
@@ -79,17 +95,27 @@ export const getBulkChatDebtsHandler = async (
     settlementsByCurrency.get(s.currency)!.push(s);
   }
 
+  const transfersByCurrency = new Map<string, typeof transfers>();
+  for (const t of transfers) {
+    if (!transfersByCurrency.has(t.currency))
+      transfersByCurrency.set(t.currency, []);
+    transfersByCurrency.get(t.currency)!.push(t);
+  }
+
   const debts: BulkDebtResult[] = [];
   const allCurrencies = new Set([
     ...sharesByCurrency.keys(),
     ...settlementsByCurrency.keys(),
+    ...transfersByCurrency.keys(),
   ]);
 
   for (const currency of allCurrencies) {
     const pairs = computeChatPairwiseBalances(
       memberIds,
       sharesByCurrency.get(currency) ?? [],
-      settlementsByCurrency.get(currency) ?? []
+      settlementsByCurrency.get(currency) ?? [],
+      transfersByCurrency.get(currency) ?? [],
+      chatId
     );
     for (const p of pairs) {
       debts.push({ ...p, currency });

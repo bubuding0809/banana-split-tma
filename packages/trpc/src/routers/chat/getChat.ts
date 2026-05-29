@@ -28,6 +28,7 @@ export const getChatHandler = async (
     debtSimplificationEnabled: chat?.debtSimplificationEnabled ?? false,
     notifyOnExpense: chat?.notifyOnExpense ?? true,
     notifyOnSettlement: chat?.notifyOnSettlement ?? true,
+    notifyOnTransfer: chat?.notifyOnTransfer ?? true,
     members:
       chat?.members.map((m) => ({
         ...m,

@@ -61,24 +61,36 @@ export const getSimplifiedDebtsMultiCurrencyHandler = async (
     };
   }
 
-  // Get all unique currencies used in this chat
-  const [expenseCurrencies, settlementCurrencies] = await Promise.all([
-    db.expense.findMany({
-      where: { chatId: input.chatId },
-      select: { currency: true },
-      distinct: ["currency"],
-    }),
-    db.settlement.findMany({
-      where: { chatId: input.chatId },
-      select: { currency: true },
-      distinct: ["currency"],
-    }),
-  ]);
+  // Get all unique currencies used in this chat, including currencies that
+  // appear only via a native transfer touching this chat (the per-pair
+  // getNetShare math is transfer-aware, but a transfer-only currency would
+  // otherwise never be discovered and would be silently omitted).
+  const [expenseCurrencies, settlementCurrencies, transferCurrencies] =
+    await Promise.all([
+      db.expense.findMany({
+        where: { chatId: input.chatId },
+        select: { currency: true },
+        distinct: ["currency"],
+      }),
+      db.settlement.findMany({
+        where: { chatId: input.chatId },
+        select: { currency: true },
+        distinct: ["currency"],
+      }),
+      db.debtTransfer.findMany({
+        where: {
+          OR: [{ sourceChatId: input.chatId }, { targetChatId: input.chatId }],
+        },
+        select: { currency: true },
+        distinct: ["currency"],
+      }),
+    ]);
 
   const allUsedCurrencies = [
     ...new Set([
       ...expenseCurrencies.map((e) => e.currency),
       ...settlementCurrencies.map((s) => s.currency),
+      ...transferCurrencies.map((t) => t.currency),
     ]),
   ];
 
