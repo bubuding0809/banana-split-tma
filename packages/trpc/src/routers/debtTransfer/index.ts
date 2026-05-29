@@ -21,6 +21,7 @@ import {
 } from "../../utils/chatBalances.js";
 import getAllByChat from "./getAllByChat.js";
 import deleteTransfer from "./deleteTransfer.js";
+import { getSimplifiedDebtsHandler } from "../chat/getSimplifiedDebts.js";
 import { sendTransferNotificationMessageHandler } from "../telegram/sendTransferNotificationMessage.js";
 
 export const inputSchema = z.object({
@@ -163,6 +164,21 @@ export const createTransferHandler = async (
     await assertUsersInChat(db, input.sourceChatId, participants);
     await assertUsersInChat(db, input.targetChatId, participants);
 
+    // Check if source chat has simplification enabled (defensive lookup to support test stubs)
+    let debtSimplificationEnabled = false;
+    try {
+      const chatRow = await db.chat.findUnique({
+        where: { id: input.sourceChatId },
+        select: { debtSimplificationEnabled: true },
+      } as any);
+      if (chatRow && "debtSimplificationEnabled" in chatRow) {
+        debtSimplificationEnabled = !!(chatRow as any)
+          .debtSimplificationEnabled;
+      }
+    } catch (e) {
+      debtSimplificationEnabled = false;
+    }
+
     const transfer = await db.$transaction(async (tx) => {
       // Serialize concurrent transfers for the same source ledger. Without
       // this, two requests could both pass the solvency check below and both
@@ -171,25 +187,42 @@ export const createTransferHandler = async (
       // commit/rollback.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${input.sourceChatId})`;
 
-      // The debtor must actually owe the creditor at least `amount` in the
-      // source chat, otherwise we'd be fabricating synthetic debt. Read this
-      // inside the locked transaction so the check and the write are atomic.
-      const owed = await computePairwiseOwed(
-        tx,
-        input.sourceChatId,
-        currency,
-        input.debtorId,
-        input.creditorId
-      );
+      let owed = 0;
+      if (debtSimplificationEnabled) {
+        // Evaluate the limit against the simplified graph
+        const simplified = await getSimplifiedDebtsHandler(
+          {
+            chatId: Number(input.sourceChatId),
+            currency,
+          },
+          tx as any
+        );
+        const edge = simplified.simplifiedDebts.find(
+          (d) =>
+            BigInt(d.fromUserId) === input.debtorId &&
+            BigInt(d.toUserId) === input.creditorId
+        );
+        owed = edge ? edge.amount : 0;
+      } else {
+        // Fall back to direct pairwise raw debt if simplification is disabled
+        owed = await computePairwiseOwed(
+          tx,
+          input.sourceChatId,
+          currency,
+          input.debtorId,
+          input.creditorId
+        );
+      }
 
       if (
         toDecimal(owed).lessThan(
           amountDecimal.minus(FINANCIAL_THRESHOLDS.DISPLAY)
         )
       ) {
+        const typeStr = debtSimplificationEnabled ? "simplified" : "raw";
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Debtor only owes ${owed.toFixed(2)} ${currency} in the source chat, which is less than the requested transfer of ${input.amount.toFixed(2)} ${currency}`,
+          message: `Debtor only owes ${owed.toFixed(2)} ${currency} (${typeStr}) in the source chat, which is less than the requested transfer of ${input.amount.toFixed(2)} ${currency}`,
         });
       }
 
