@@ -25,6 +25,7 @@ import { trpc } from "@utils/trpc";
 import { formatMonthYear } from "@utils/date";
 import ChatExpenseCell from "./ChatExpenseCell";
 import ChatSettlementCell from "./ChatSettlementCell";
+import ChatTransferCell from "./ChatTransferCell";
 import { useSearch } from "@tanstack/react-router";
 import { useTransactionGrouping } from "@/hooks/useTransactionGrouping";
 import { CombinedTransaction } from "@/types/transaction.types";
@@ -109,7 +110,13 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
         chatId,
       });
 
-    const isLoading = isExpensesLoading || isSettlementsLoading;
+    const { data: transfers, isLoading: isTransfersLoading } =
+      trpc.debtTransfer.getAllByChat.useQuery({
+        chatId,
+      });
+
+    const isLoading =
+      isExpensesLoading || isSettlementsLoading || isTransfersLoading;
 
     // Multi-select category filter. Empty array = no filter (pass through).
     // "none" in the set matches expenses with a null categoryId (Uncategorized).
@@ -127,6 +134,7 @@ const VirtualizedCombinedTransactionSegment = forwardRef<
       useTransactionGrouping({
         expenses: filteredExpenses,
         settlements,
+        transfers,
         showPayments,
         relatedOnly,
         userId,
@@ -562,6 +570,12 @@ const VirtualTransactionItem = memo(
             categoryEmoji={resolved?.emoji}
             categoryTitle={resolved?.title}
           />
+        </div>
+      );
+    } else if (transaction.type === "transfer") {
+      return (
+        <div data-transaction-id={transaction.id} data-month-key={monthKey}>
+          <ChatTransferCell transfer={transaction} />
         </div>
       );
     } else {

@@ -11,6 +11,14 @@ export type SettlementTransaction =
     type: "settlement";
   };
 
-export type CombinedTransaction = ExpenseTransaction | SettlementTransaction;
+export type TransferTransaction =
+  inferRouterOutputs<AppRouter>["debtTransfer"]["getAllByChat"][number] & {
+    type: "transfer";
+  };
+
+export type CombinedTransaction =
+  | ExpenseTransaction
+  | SettlementTransaction
+  | TransferTransaction;
 
 export type GroupedTransactions = Record<string, CombinedTransaction[]>;
