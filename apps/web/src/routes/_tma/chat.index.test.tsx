@@ -96,7 +96,7 @@ describe("chat.index Deep Link Routing", () => {
     });
   });
 
-  it("routes private recurring-template deep link to edit-recurring page", () => {
+  it("routes private recurring-template deep link to the schedule list with the modal pre-selected", () => {
     mockGetItem.mockReturnValue(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useStartParams as any).mockReturnValue({
@@ -113,8 +113,9 @@ describe("chat.index Deep Link Routing", () => {
       "true"
     );
     expect(mockNavigate).toHaveBeenCalledWith({
-      to: "/chat/$chatId/edit-recurring/$templateId",
-      params: { chatId: "259941064", templateId: "tmpl-uuid-1234" },
+      to: "/chat/$chatId/recurring-expenses",
+      params: { chatId: "259941064" },
+      search: { selectedTemplate: "tmpl-uuid-1234" },
       replace: true,
     });
   });

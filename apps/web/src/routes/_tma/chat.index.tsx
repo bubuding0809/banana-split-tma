@@ -81,7 +81,8 @@ function RouteComponent() {
     // consumed in `chat.$chatId.tsx`, but lambda-fired recurring expenses
     // created in a private chat (chat_type "p") land here via home.tsx,
     // so the "View Schedule" CTA needs its own consumer or it's dropped.
-    // Route to the per-template edit screen keyed by the DM's chat_id.
+    // Route to the schedule list keyed by the DM's chat_id with the
+    // template's details modal auto-opened.
     if (
       startParams.entity_type === "rt" &&
       startParams.chat_type === "p" &&
@@ -89,11 +90,9 @@ function RouteComponent() {
     ) {
       sessionStorage.setItem(consumedKey, "true");
       void navigate({
-        to: "/chat/$chatId/edit-recurring/$templateId",
-        params: {
-          chatId: startParams.chat_id.toString(),
-          templateId: startParams.entity_id,
-        },
+        to: "/chat/$chatId/recurring-expenses",
+        params: { chatId: startParams.chat_id.toString() },
+        search: { selectedTemplate: startParams.entity_id },
         replace: true,
       });
     }
