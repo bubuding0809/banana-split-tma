@@ -76,7 +76,29 @@ function RouteComponent() {
         replace: true,
       });
     }
+
+    // Recurring template deep link in a DM. The group equivalent is
+    // consumed in `chat.$chatId.tsx`, but lambda-fired recurring expenses
+    // created in a private chat (chat_type "p") land here via home.tsx,
+    // so the "View Schedule" CTA needs its own consumer or it's dropped.
+    // Route to the per-template edit screen keyed by the DM's chat_id.
+    if (
+      startParams.entity_type === "rt" &&
+      startParams.chat_type === "p" &&
+      startParams.chat_id
+    ) {
+      sessionStorage.setItem(consumedKey, "true");
+      void navigate({
+        to: "/chat/$chatId/edit-recurring/$templateId",
+        params: {
+          chatId: startParams.chat_id.toString(),
+          templateId: startParams.entity_id,
+        },
+        replace: true,
+      });
+    }
   }, [
+    startParams?.chat_id,
     startParams?.entity_type,
     startParams?.entity_id,
     startParams?.chat_type,
