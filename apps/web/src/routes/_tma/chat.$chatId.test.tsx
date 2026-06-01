@@ -160,4 +160,19 @@ describe("chat.$chatId Deep Link Routing", () => {
       replace: true,
     });
   });
+
+  it("should not navigate for entity_type 'rt' when deep link is already consumed", () => {
+    mockGetItem.mockReturnValue("true");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "rt",
+      entity_id: "tmpl-uuid-1234",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
