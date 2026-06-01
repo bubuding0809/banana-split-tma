@@ -21,6 +21,9 @@ import RecurringExpenseDetailsModal from "./RecurringExpenseDetailsModal";
 
 interface Props {
   chatId: number;
+  // When set (via the "View Schedule" deep link), auto-open this
+  // template's details modal once the list has loaded.
+  initialSelectedTemplateId?: string | null;
 }
 
 type RecurringTemplate = RecurringTemplateForCell & {
@@ -31,7 +34,10 @@ type RecurringTemplate = RecurringTemplateForCell & {
   status: "ACTIVE" | "CANCELED" | "ENDED";
 };
 
-export default function RecurringTemplatesList({ chatId }: Props) {
+export default function RecurringTemplatesList({
+  chatId,
+  initialSelectedTemplateId = null,
+}: Props) {
   const globalNavigate = useNavigate();
   const router = useRouter();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
@@ -155,6 +161,22 @@ export default function RecurringTemplatesList({ chatId }: Props) {
     },
     [tDestructive, tButtonColor, cancelMutation]
   );
+
+  // Auto-open the details modal for a deep-linked template once the list
+  // has loaded. Guarded by a ref so it fires once — closing the modal
+  // (which clears selectedTemplateId) must not re-trigger it.
+  const seededDeepLinkRef = useRef(false);
+  useEffect(() => {
+    if (seededDeepLinkRef.current) return;
+    if (!initialSelectedTemplateId) return;
+    if (status !== "success" || !data) return;
+    const exists = (data as RecurringTemplate[]).some(
+      (t) => t.id === initialSelectedTemplateId
+    );
+    if (!exists) return;
+    seededDeepLinkRef.current = true;
+    handleModalOpenChange(initialSelectedTemplateId);
+  }, [initialSelectedTemplateId, status, data, handleModalOpenChange]);
 
   if (status === "pending") {
     return (

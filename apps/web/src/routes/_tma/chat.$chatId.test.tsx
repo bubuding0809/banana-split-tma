@@ -138,7 +138,7 @@ describe("chat.$chatId Deep Link Routing", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("should navigate to edit-recurring route when deep link entity_type is 'rt' and flag is false", () => {
+  it("should navigate to the schedule list with the modal pre-selected when deep link entity_type is 'rt' and flag is false", () => {
     mockGetItem.mockReturnValue(null); // Not consumed yet
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useStartParams as any).mockReturnValue({
@@ -154,9 +154,25 @@ describe("chat.$chatId Deep Link Routing", () => {
       "true"
     );
     expect(mockNavigate).toHaveBeenCalledWith({
-      to: "/chat/$chatId/edit-recurring/$templateId",
-      params: { chatId: "1234", templateId: "tmpl-uuid-1234" },
+      to: "/chat/$chatId/recurring-expenses",
+      params: { chatId: "1234" },
+      search: { selectedTemplate: "tmpl-uuid-1234" },
       replace: true,
     });
+  });
+
+  it("should not navigate for entity_type 'rt' when deep link is already consumed", () => {
+    mockGetItem.mockReturnValue("true");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "rt",
+      entity_id: "tmpl-uuid-1234",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockSetItem).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

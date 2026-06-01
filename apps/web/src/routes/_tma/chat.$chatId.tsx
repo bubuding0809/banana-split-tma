@@ -80,9 +80,9 @@ function ChatIdRoute() {
       });
     }
 
-    // Recurring template deep link — lands on the per-template edit
-    // screen. Used by the "View Schedule" CTA on lambda-fired recurring
-    // expense notifications.
+    // Recurring template deep link — lands on the schedule list with the
+    // tapped template's details modal auto-opened. Used by the "View
+    // Schedule" CTA on lambda-fired recurring expense notifications.
     if (
       startParams?.entity_type === "rt" &&
       startParams?.entity_id &&
@@ -91,11 +91,9 @@ function ChatIdRoute() {
       sessionStorage.setItem(deepLinkConsumedKey, "true");
 
       navigate({
-        to: "/chat/$chatId/edit-recurring/$templateId",
-        params: {
-          chatId: chatId.toString(),
-          templateId: startParams.entity_id,
-        },
+        to: "/chat/$chatId/recurring-expenses",
+        params: { chatId: chatId.toString() },
+        search: { selectedTemplate: startParams.entity_id },
         replace: true,
       });
     }
