@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { TRPCError } from "@trpc/server";
-import { parseMonthRange } from "../../utils/monthRange.js";
+import { parseMonthRangeInTimezone } from "../../utils/monthRange.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 import { Decimal } from "decimal.js";
 
@@ -26,34 +26,52 @@ const outputSchema = z.object({
 
 type Output = z.infer<typeof outputSchema>;
 
+// Chats with a null timezone fall back to SGT, matching how expenses are
+// stored (local-midnight-as-UTC) for Singapore-based groups.
+const DEFAULT_TIMEZONE = "Asia/Singapore";
+
 export async function getMySpendByMonthHandler(
   callerId: number,
   month: string,
   db: Db
 ): Promise<Output> {
-  const { start, endExclusive } = parseMonthRange(month); // throws on malformed
+  // Validate the month up front (throws on malformed) before any query.
+  parseMonthRangeInTimezone(month, DEFAULT_TIMEZONE);
 
   const chats = await db.chat.findMany({
     where: { members: { some: { id: BigInt(callerId) } } },
-    select: { id: true, title: true },
+    select: { id: true, title: true, timezone: true },
   });
   if (chats.length === 0) return { month, chats: [], totals: [] };
 
-  const chatIds = chats.map((c) => c.id);
+  // The local month maps to a different UTC window per timezone, so group
+  // chats by their resolved timezone and query each window separately.
+  const chatIdsByTimezone = new Map<string, bigint[]>();
+  for (const c of chats) {
+    const tz = c.timezone ?? DEFAULT_TIMEZONE;
+    if (!chatIdsByTimezone.has(tz)) chatIdsByTimezone.set(tz, []);
+    chatIdsByTimezone.get(tz)!.push(c.id);
+  }
 
-  const shares = await db.expenseShare.findMany({
-    where: {
-      userId: BigInt(callerId),
-      expense: {
-        chatId: { in: chatIds },
-        date: { gte: start, lt: endExclusive },
-      },
-    },
-    select: {
-      amount: true,
-      expense: { select: { chatId: true, currency: true } },
-    },
-  });
+  const shareGroups = await Promise.all(
+    Array.from(chatIdsByTimezone.entries()).map(([tz, ids]) => {
+      const { start, endExclusive } = parseMonthRangeInTimezone(month, tz);
+      return db.expenseShare.findMany({
+        where: {
+          userId: BigInt(callerId),
+          expense: {
+            chatId: { in: ids },
+            date: { gte: start, lt: endExclusive },
+          },
+        },
+        select: {
+          amount: true,
+          expense: { select: { chatId: true, currency: true } },
+        },
+      });
+    })
+  );
+  const shares = shareGroups.flat();
 
   // Group by (chatId, currency)
   const byChatCurrency = new Map<number, Map<string, typeof shares>>();

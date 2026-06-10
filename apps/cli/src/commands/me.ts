@@ -23,13 +23,13 @@ export const meCommands: Command[] = [
     description:
       "Sum the authenticated user's expense shares per chat for one month (user-level API key only)",
     agentGuidance:
-      "Use this to answer 'what did I spend this month in each group?'. Amount = caller's share of expenses dated in the given UTC month. Does not count settlements.",
+      "Use this to answer 'what did I spend this month in each group?'. Amount = caller's share of expenses dated in the given month, using each chat's local timezone (defaults to Asia/Singapore). Does not count settlements.",
     examples: ["banana list-my-spending --month 2026-04"],
     options: {
       month: {
         type: "string",
         description:
-          "Month in YYYY-MM format (UTC boundaries). Example: 2026-04",
+          "Month in YYYY-MM format (each chat's local timezone). Example: 2026-04",
         required: true,
       },
     },
