@@ -90,6 +90,25 @@ describe("getMySpendByMonthHandler", () => {
     expect(call.where.userId).toBe(BigInt(caller));
   });
 
+  it("falls back to the SGT window when a chat's timezone is an empty string", async () => {
+    // An empty IANA string would make Intl.DateTimeFormat throw; it must be
+    // treated like null and fall back to Asia/Singapore.
+    (mockDb.chat.findMany as any).mockResolvedValue([
+      { id: 1n, title: "A", timezone: "" },
+    ]);
+    (mockDb.expenseShare.findMany as any).mockResolvedValue([]);
+
+    await getMySpendByMonthHandler(caller, "2026-04", mockDb);
+
+    const call = (mockDb.expenseShare.findMany as any).mock.calls[0][0];
+    expect(call.where.expense.date.gte.toISOString()).toBe(
+      "2026-03-31T16:00:00.000Z"
+    );
+    expect(call.where.expense.date.lt.toISOString()).toBe(
+      "2026-04-30T16:00:00.000Z"
+    );
+  });
+
   it("queries each chat's own local month window per its timezone", async () => {
     (mockDb.chat.findMany as any).mockResolvedValue([
       { id: 1n, title: "Singapore", timezone: "Asia/Singapore" },

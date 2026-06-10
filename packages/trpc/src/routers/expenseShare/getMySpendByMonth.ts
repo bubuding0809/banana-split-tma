@@ -2,7 +2,10 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import { TRPCError } from "@trpc/server";
-import { parseMonthRangeInTimezone } from "../../utils/monthRange.js";
+import {
+  parseMonthRange,
+  parseMonthRangeInTimezone,
+} from "../../utils/monthRange.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
 import { Decimal } from "decimal.js";
 
@@ -36,7 +39,8 @@ export async function getMySpendByMonthHandler(
   db: Db
 ): Promise<Output> {
   // Validate the month up front (throws on malformed) before any query.
-  parseMonthRangeInTimezone(month, DEFAULT_TIMEZONE);
+  // Boundaries are recomputed per timezone below; this call is parse-only.
+  parseMonthRange(month);
 
   const chats = await db.chat.findMany({
     where: { members: { some: { id: BigInt(callerId) } } },
@@ -48,7 +52,9 @@ export async function getMySpendByMonthHandler(
   // chats by their resolved timezone and query each window separately.
   const chatIdsByTimezone = new Map<string, bigint[]>();
   for (const c of chats) {
-    const tz = c.timezone ?? DEFAULT_TIMEZONE;
+    // `||` (not `??`) so empty/blank strings also fall back — an empty IANA
+    // name makes Intl.DateTimeFormat throw a RangeError.
+    const tz = c.timezone?.trim() || DEFAULT_TIMEZONE;
     if (!chatIdsByTimezone.has(tz)) chatIdsByTimezone.set(tz, []);
     chatIdsByTimezone.get(tz)!.push(c.id);
   }

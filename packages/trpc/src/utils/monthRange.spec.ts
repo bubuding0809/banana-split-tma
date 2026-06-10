@@ -47,6 +47,18 @@ describe("parseMonthRangeInTimezone", () => {
     expect(endExclusive.toISOString()).toBe("2026-07-01T04:00:00.000Z");
   });
 
+  it("gives independent, correct boundaries for a month straddling a DST transition", () => {
+    // US DST ends 2026-11-01 at 02:00 local. Nov 1 midnight is still EDT
+    // (UTC-4); Dec 1 midnight is EST (UTC-5). Each boundary resolves on its
+    // own offset, so the window is intentionally asymmetric.
+    const { start, endExclusive } = parseMonthRangeInTimezone(
+      "2026-11",
+      "America/New_York"
+    );
+    expect(start.toISOString()).toBe("2026-11-01T04:00:00.000Z");
+    expect(endExclusive.toISOString()).toBe("2026-12-01T05:00:00.000Z");
+  });
+
   it("rolls over December to next January in local time", () => {
     // 2027-01-01T00:00 SGT === 2026-12-31T16:00 UTC
     const { endExclusive } = parseMonthRangeInTimezone(
