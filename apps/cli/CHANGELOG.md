@@ -4,6 +4,12 @@ All notable changes to `@banananasplitz/cli` are recorded here. The format follo
 
 ## [Unreleased]
 
+## [0.17.3] - 2026-06-10
+
+### Fixed
+
+- fix: `list-my-spending` now computes each month's boundaries in the chat's local timezone (`Chat.timezone`, defaulting to `Asia/Singapore`) instead of fixed UTC. Previously a transaction logged in the early-morning hours of the 1st (e.g. 12:00–07:59 AM SGT, stored as the prior day in UTC) was counted in the wrong month; the backend now converts local month boundaries to UTC per chat before querying. The `--month` help text reflects the local-timezone semantics. Backend/skill metadata only — no command surface change.
+
 ## [0.17.2] - 2026-05-29
 
 ### Added
