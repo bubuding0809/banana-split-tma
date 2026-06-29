@@ -346,6 +346,57 @@ describe("shareSnapshotMessage procedure", () => {
     expect(html).toContain("@xuetingg");
   });
 
+  it("should HTML-escape a user-set custom category emoji in the rich breakdown", async () => {
+    // Custom category emoji is only validated as a 1–8 char string, so it
+    // can contain HTML-significant characters. If left unescaped it would
+    // produce malformed rich HTML and Telegram would reject the message.
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Emoji Snapshot",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Creator", username: "creator_usr" },
+      chat: {
+        type: "group",
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+        chatCategories: [{ id: "cat-uuid", emoji: "<x", title: "Custom" }],
+      },
+      expenses: [
+        {
+          amount: "10.00",
+          currency: "SGD",
+          date: new Date("2026-04-15T00:00:00Z"),
+          description: "Thing",
+          categoryId: "chat:cat-uuid",
+          payerId: 111n,
+          payer: { firstName: "Creator", username: "creator_usr" },
+          shares: [
+            {
+              userId: 222n,
+              amount: "10.00",
+              user: { firstName: "Ting", username: "xuetingg" },
+            },
+          ],
+        },
+      ],
+    });
+
+    mockTeleBot.callApi.mockResolvedValue({ message_id: 999 });
+
+    await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    const html = mockTeleBot.callApi.mock.calls[0]![1].rich_message.html;
+    expect(html).toContain("&lt;x"); // escaped emoji
+    expect(html).not.toContain("<x"); // no raw injection
+  });
+
   it("should fall back to MarkdownV2 sendMessage when sendRichMessage fails", async () => {
     (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
       id: "mock-id",

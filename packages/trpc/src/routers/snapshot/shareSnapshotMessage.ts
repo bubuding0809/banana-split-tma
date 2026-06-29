@@ -706,7 +706,7 @@ function renderItemHtml(item: NormalizedExpense, view: SnapshotView): string {
     case "cat":
       return `<li>${desc} · ${amt} · ${dateStr}</li>`;
     case "date":
-      return `<li>${desc} · ${amt} · ${item.categoryEmoji}</li>`;
+      return `<li>${desc} · ${amt} · ${htmlEscape(item.categoryEmoji)}</li>`;
   }
 }
 
@@ -736,7 +736,7 @@ function renderBreakdownHtml(ctx: SnapshotContext, view: SnapshotView): string {
     );
     const label =
       view === "cat"
-        ? `${first.categoryEmoji} <b>${htmlEscape(first.categoryTitle)}</b>`
+        ? `${htmlEscape(first.categoryEmoji)} <b>${htmlEscape(first.categoryTitle)}</b>`
         : `📅 <b>${htmlEscape(formatShortDate(first.date))}</b>`;
 
     const shown = group.items.slice(0, linesRemaining);
