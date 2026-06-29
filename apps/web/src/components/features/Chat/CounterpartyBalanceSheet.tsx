@@ -224,9 +224,13 @@ export function CounterpartyBalanceSheet({
     }
   }, [counterpartyPhone, showSnackbar]);
 
+  // The nested MoveDebtSheet owns the native buttons while it is open, so
+  // suppress this sheet's Settle/Nudge buttons whenever a move is in progress.
+  const moveSheetOpen = moveTarget !== null;
+
   // mainButton — Settle All ✅; loader + disabled mirror settle.isPending
   useEffect(() => {
-    if (!open || !counterparty) return;
+    if (!open || !counterparty || moveSheetOpen) return;
     mainButton.setParams.ifAvailable({
       isVisible: true,
       isEnabled: !settle.isPending,
@@ -238,19 +242,24 @@ export function CounterpartyBalanceSheet({
         isVisible: false,
         isLoaderVisible: false,
       });
-  }, [open, counterparty, settle.isPending]);
+  }, [open, counterparty, settle.isPending, moveSheetOpen]);
 
   useEffect(() => {
-    if (!open || !counterparty) return;
+    if (!open || !counterparty || moveSheetOpen) return;
     const off = mainButton.onClick.ifAvailable(handleSettle);
     return () => off?.();
-  }, [open, counterparty, handleSettle]);
+  }, [open, counterparty, handleSettle, moveSheetOpen]);
 
   // secondaryButton — direction-dependent:
   //   debtor (user owes) + counterparty has phone → "Copy Phone No. 📲"
   //   creditor (user is owed) + counterparty started bot → "Nudge 👋"
-  const showCopyPhone = !!(open && isDebtor && counterpartyPhone);
-  const showNudge = !!(open && canNudge);
+  const showCopyPhone = !!(
+    open &&
+    !moveSheetOpen &&
+    isDebtor &&
+    counterpartyPhone
+  );
+  const showNudge = !!(open && !moveSheetOpen && canNudge);
 
   // Visibility / enabled / colour / pending — only fires on the
   // booleans + theme signals that actually change those flags.

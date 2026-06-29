@@ -109,7 +109,7 @@ export function MoveDebtSheet({
 
   if (!move) {
     return (
-      <Modal open={open} onOpenChange={onOpenChange}>
+      <Modal nested open={open} onOpenChange={onOpenChange}>
         <div />
       </Modal>
     );
@@ -121,6 +121,7 @@ export function MoveDebtSheet({
 
   return (
     <Modal
+      nested
       header={<Modal.Header>Move debt</Modal.Header>}
       open={open}
       onOpenChange={onOpenChange}
