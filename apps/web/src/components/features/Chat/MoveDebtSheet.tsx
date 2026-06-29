@@ -147,15 +147,14 @@ export function MoveDebtSheet({
       onOpenChange={onOpenChange}
     >
       <div className="flex flex-col gap-y-2 pb-8">
-        <Section header="Moving" className="px-3">
+        <Section header="Moving from" className="px-3">
           <Cell
             before={<ChatMemberAvatar userId={counterpartyUserId} size={40} />}
             subhead={subhead}
             after={
-              <div className="flex flex-col items-end">
-                <Caption className="text-zinc-500">from</Caption>
-                <Text weight="2">{move.sourceChatTitle}</Text>
-              </div>
+              <Text weight="2" className="text-zinc-500">
+                {move.sourceChatTitle}
+              </Text>
             }
             style={{ backgroundColor: tSectionBgColor }}
           >
@@ -165,7 +164,7 @@ export function MoveDebtSheet({
           </Cell>
         </Section>
 
-        <Section header="Move to" className="px-3">
+        <Section header="Moving to" className="px-3">
           {targetsQuery.isLoading ? (
             <Cell>
               <Skeleton visible>
