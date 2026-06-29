@@ -4,6 +4,7 @@ import {
   Cell,
   Info,
   Modal,
+  Navigation,
   Section,
   Snackbar,
   Text,
@@ -394,7 +395,6 @@ export function CounterpartyBalanceSheet({
               return (
                 <Cell
                   key={`${chat.chatId}-${c.currency}`}
-                  subhead={chat.chatTitle}
                   onClick={
                     canMove
                       ? () => {
@@ -404,32 +404,37 @@ export function CounterpartyBalanceSheet({
                       : undefined
                   }
                   after={
-                    <div className="flex flex-col items-end gap-0.5">
-                      <div className="flex items-center gap-x-1">
-                        <span className="text-base">
-                          {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
-                        </span>
-                        <Text className={cn(getBalanceColorClass(c.nativeNet))}>
-                          {c.nativeNet >= 0 ? "+ " : "− "}
-                          {formatCurrencyWithCode(
-                            Math.abs(c.nativeNet),
-                            c.currency
-                          )}
-                        </Text>
+                    <div className="flex items-center gap-x-1.5">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex items-center gap-x-1">
+                          <span className="text-base">
+                            {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
+                          </span>
+                          <Text
+                            className={cn(getBalanceColorClass(c.nativeNet))}
+                          >
+                            {c.nativeNet >= 0 ? "+ " : "− "}
+                            {formatCurrencyWithCode(
+                              Math.abs(c.nativeNet),
+                              c.currency
+                            )}
+                          </Text>
+                        </div>
+                        {c.currency !== baseCurrency && (
+                          <Caption style={{ color: tSubtitleColor }}>
+                            or{" "}
+                            {formatCurrencyWithCode(
+                              Math.abs(c.baseNet),
+                              baseCurrency
+                            )}
+                          </Caption>
+                        )}
                       </div>
-                      {c.currency !== baseCurrency && (
-                        <Caption style={{ color: tSubtitleColor }}>
-                          or{" "}
-                          {formatCurrencyWithCode(
-                            Math.abs(c.baseNet),
-                            baseCurrency
-                          )}
-                        </Caption>
-                      )}
+                      {canMove && <Navigation />}
                     </div>
                   }
                 >
-                  {canMove ? "Move to another group" : " "}
+                  {chat.chatTitle}
                 </Cell>
               );
             })
