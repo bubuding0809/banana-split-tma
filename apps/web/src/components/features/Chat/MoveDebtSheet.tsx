@@ -77,6 +77,7 @@ export function MoveDebtSheet({
   const handlePick = useCallback(
     async (target: { chatId: number; chatTitle: string }) => {
       if (!move) return;
+      if (createTransfer.isPending) return;
       hapticFeedback.impactOccurred.ifAvailable("medium");
       const choice = await popup.open.ifAvailable({
         title: "Move this debt?",
@@ -164,7 +165,7 @@ export function MoveDebtSheet({
             targets.map((t) => (
               <Cell
                 key={t.chatId}
-                onClick={() => handlePick(t)}
+                onClick={pendingTargetId ? undefined : () => handlePick(t)}
                 after={
                   pendingTargetId === t.chatId ? (
                     <Skeleton visible>
