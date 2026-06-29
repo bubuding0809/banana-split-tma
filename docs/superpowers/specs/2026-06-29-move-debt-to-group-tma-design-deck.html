@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Move debt to another group — TMA UI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+  :root { --bn: #f5c518; }
+  .reveal { font-size: 30px; }
+  .reveal h1 { font-size: 1.5em; color: var(--bn); }
+  .reveal h2 { font-size: 1.15em; color: var(--bn); text-transform: none; }
+  .reveal h3 { font-size: 0.85em; color: #fff; text-transform: none; }
+  .reveal section { text-align: left; }
+  .reveal .title-slide { text-align: center; }
+  .reveal pre { width: 100%; font-size: 0.7em; box-shadow: none; }
+  .reveal pre code { padding: 0.8em; border-radius: 8px; max-height: 460px; }
+  .reveal table { font-size: 0.7em; }
+  .reveal th { background: #2a2a2a; color: var(--bn); }
+  .reveal td, .reveal th { padding: 0.3em 0.55em; border-bottom: 1px solid #333; }
+  .pill { display: inline-block; padding: 0.08em 0.6em; border-radius: 999px;
+          font-size: 0.65em; font-weight: 700; vertical-align: middle; }
+  .ok   { background: #143d1e; color: #5ee07a; }
+  .bad  { background: #4a1414; color: #ff7a7a; }
+  .note { background: #14304a; color: #6ec0ff; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em; }
+  .box { background: #1b1b1b; border: 1px solid #333; border-left: 4px solid var(--bn);
+         border-radius: 8px; padding: 0.7em 0.9em; }
+  .box.good { border-left-color: #5ee07a; }
+  .box.skip { border-left-color: #ff7a7a; }
+  .reveal ul { width: 100%; }
+  .reveal li { margin: 0.18em 0; }
+  .mock { background: #17212b; border: 1px solid #2a3a47; border-radius: 14px;
+          padding: 0.8em 1em; font-size: 0.7em; color: #e6edf3; max-width: 70%; margin: 0.4em auto; }
+  .mock .cap { color: #7d8a97; font-size: 0.85em; }
+  .mock .row { display: flex; justify-content: space-between; padding: 0.35em 0;
+               border-bottom: 1px solid #243240; }
+  .mock .row:last-child { border-bottom: none; }
+  .mono { color: var(--bn); }
+  @media (max-width: 700px) {
+    .reveal { font-size: 26px; }
+    .grid { grid-template-columns: 1fr; }
+    .mock { max-width: 100%; }
+    .reveal pre code { font-size: 0.95em; }
+  }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section class="title-slide" data-background-color="#0d0d0d">
+  <h1>Move debt to another group</h1>
+  <h3>Bringing CLI <code>create-transfer</code> into the TMA</h3>
+  <p style="color:#7d8a97;">banana-split-tma · 2026-06-29 · brainstorm → spec</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>The gap</h2>
+  <p>Cross-group debt transfer is complete in backend + CLI. TMA exposes only 2 of 3 ops.</p>
+  <table>
+    <tr><th>Operation</th><th>CLI</th><th>TMA</th></tr>
+    <tr><td>List transfers</td><td>list-transfers</td><td><span class="pill ok">✅ feed</span></td></tr>
+    <tr><td>Details</td><td>—</td><td><span class="pill ok">✅ modal</span></td></tr>
+    <tr><td>Delete / reverse</td><td>delete-transfer</td><td><span class="pill ok">✅ modal</span></td></tr>
+    <tr><td><b>Create</b></td><td>create-transfer</td><td><span class="pill bad">❌ missing</span></td></tr>
+  </table>
+  <p style="margin-top:0.5em;">Users can see &amp; undo transfers in-app, but can only <b>create</b> from the command line.</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>What create-transfer does</h2>
+  <p>Moves an outstanding <b>debtor → creditor</b> debt from a <b>source</b> chat to a <b>target</b> chat. No spending logged in either group.</p>
+  <ul>
+    <li>Source ≠ target · debtor ≠ creditor</li>
+    <li>Creator + debtor + creditor all in <b>both</b> chats</li>
+    <li>Debtor must already owe ≥ amount in source <span class="pill note">solvency, advisory-locked</span></li>
+    <li>Both groups get a Telegram notice — already built</li>
+  </ul>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Principle</h2>
+  <div class="grid">
+    <div class="box good"><b>Yes</b><ul>
+      <li>Modal of tappable cells</li>
+      <li>Launched from a debt you're already viewing</li>
+      <li>Row fixes every parameter</li>
+    </ul></div>
+    <div class="box skip"><b>No</b><ul>
+      <li>No new route</li>
+      <li>No free-text form</li>
+      <li>No amount entry</li>
+    </ul></div>
+  </div>
+  <p style="margin-top:0.6em;text-align:center;">Only choice the user makes: <b>which group to move it to.</b></p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Entry point</h2>
+  <p><code>UserBalancesTab</code> → tap counterparty → <code>CounterpartyBalanceSheet</code> already shows the per-chat+currency breakdown. Those rows are display-only today.</p>
+  <div class="mock">
+    <div class="cap">Sean · you owe · breakdown</div>
+    <div class="row"><span>🇯🇵 Japan Trip</span><span class="mono">− SGD 71.79 ›</span></div>
+    <div class="row"><span>🏠 Flat Ledger</span><span class="mono">− SGD 12.00 ›</span></div>
+  </div>
+  <p style="text-align:center;"><b>Change:</b> make each breakdown row tappable → opens <code>MoveDebtSheet</code>.</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Row → parameters</h2>
+  <p>The tapped row fixes everything:</p>
+  <table>
+    <tr><th>Field</th><th>From the row</th></tr>
+    <tr><td>source chat / currency</td><td>row's chat &amp; currency</td></tr>
+    <tr><td>amount</td><td><code>abs(nativeNet)</code> — full only</td></tr>
+    <tr><td>debtor / creditor</td><td>sign of <code>nativeNet</code></td></tr>
+  </table>
+  <ul style="margin-top:0.4em;">
+    <li><code>net &lt; 0</code> caller owes → debtor=caller, creditor=counterparty</li>
+    <li><code>net &gt; 0</code> they owe → debtor=counterparty, creditor=caller</li>
+    <li>zero-net row → not transferable, stays inert</li>
+  </ul>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>MoveDebtSheet — the modal</h2>
+  <div class="mock">
+    <div class="cap">MOVING</div>
+    <div class="row"><span>🫵 You → Sean</span><span class="mono">SGD 71.79</span></div>
+    <div class="row"><span class="cap">from Japan Trip</span><span></span></div>
+    <div class="cap" style="margin-top:0.6em;">MOVE TO</div>
+    <div class="row"><span>🏠 Flat Ledger</span><span>›</span></div>
+    <div class="row"><span>⛰️ Ski 2026</span><span>›</span></div>
+  </div>
+  <p style="text-align:center;">Read-only recap + tappable eligible-group list. No inputs.</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Confirm — popup, not a form</h2>
+  <p>Tapping a target group fires <code>popup.open.ifAvailable</code>:</p>
+  <div class="box">
+    <b>Move this debt?</b><br/>
+    Moves SGD 71.79 from "Japan Trip" to "Flat Ledger". Removes it here, adds it there.<br/>
+    <span class="pill ok">Move</span> <span class="pill bad">Cancel</span>
+  </div>
+  <ul style="margin-top:0.5em;">
+    <li>Confirm → <code>createTransfer.mutate</code></li>
+    <li>No mainButton submit step</li>
+    <li>Empty list → "No shared groups with Sean to move this to."</li>
+  </ul>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Mutation wiring</h2>
+  <pre><code class="language-ts" data-trim>createTransfer.mutate({
+  sourceChatId, targetChatId,
+  debtorId, creditorId,
+  amount,                 // row nativeNet, abs
+  currency,               // row currency
+  description: undefined, // no note field
+})</code></pre>
+  <p><b>onSuccess:</b> haptic, close, invalidate the same caches delete already does + <code>getMyCounterpartyBalances</code>.</p>
+  <p><b>onError:</b> haptic + <code>Snackbar</code> with backend message (solvency / membership).</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>New backend query</h2>
+  <h3>expenseShare.getEligibleTransferTargets</h3>
+  <pre><code class="language-ts" data-trim>// in: { counterpartyUserId, sourceChatId }
+db.chat.findMany({
+  where: {
+    AND: [
+      { members: { some: { id: callerId } } },
+      { members: { some: { id: counterpartyId } } },
+    ],
+    id: { not: sourceChatId },
+  },
+  select: { id: true, title: true },
+})
+// out: [{ chatId, chatTitle }]</code></pre>
+  <p>Membership-only filter. Solvency stays server-side in <code>createTransfer</code> — backend remains source of truth.</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Components — all existing</h2>
+  <div class="grid">
+    <div class="box"><b>telegram-ui</b><br/>Modal · Section · Cell · Skeleton · Caption · Text · Snackbar · Info</div>
+    <div class="box"><b>sdk-react</b><br/>popup · hapticFeedback</div>
+    <div class="box"><b>project</b><br/>ChatMemberAvatar · formatCurrencyWithCode · getBalanceColorClass</div>
+    <div class="box"><b>icons</b><br/>lucide ArrowRight</div>
+  </div>
+  <p style="text-align:center;margin-top:0.5em;">No raw <code>&lt;div style&gt;</code>, no native <code>&lt;select&gt;</code>, no <code>window.confirm</code>.</p>
+</section>
+
+<section data-background-color="#0d0d0d">
+  <h2>Scope &amp; files</h2>
+  <div class="grid">
+    <div class="box skip"><b>Out (YAGNI)</b><ul>
+      <li>Partial amounts</li>
+      <li>Note / description field</li>
+      <li>Standalone blank form</li>
+      <li>Edit transfer (delete+recreate)</li>
+    </ul></div>
+    <div class="box good"><b>Files</b><ul>
+      <li>+ MoveDebtSheet.tsx</li>
+      <li>~ CounterpartyBalanceSheet.tsx</li>
+      <li>+ getEligibleTransferTargets.ts</li>
+      <li>+ tests</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="title-slide" data-background-color="#0d0d0d">
+  <h1>Next: implementation plan</h1>
+  <p style="color:#7d8a97;">Spec approved → writing-plans</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({ hash: true, slideNumber: 'c/t', width: 960, height: 720,
+    margin: 0.06, plugins: [RevealHighlight] });
+</script>
+</body>
+</html>

@@ -17,8 +17,9 @@ import {
   Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { assetUrls } from "@/assets/urls";
+import { MoveDebtEntry } from "./MoveDebtEntry";
 
 interface ToReceiveModalProps {
   modalOpen: boolean;
@@ -45,6 +46,8 @@ const ToReceiveModal = ({
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
+  // While the nested MoveDebtSheet is open it owns the native buttons.
+  const [moveOpen, setMoveOpen] = useState(false);
 
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
   const { data: conversionRateData, status: conversionRateStatus } =
@@ -196,7 +199,7 @@ const ToReceiveModal = ({
 
   // Set secondary button parameters when modal opens
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     secondaryButton.setParams.ifAvailable({
       text: "Remind 💬",
@@ -210,11 +213,11 @@ const ToReceiveModal = ({
         isEnabled: false,
       });
     };
-  }, [modalOpen]);
+  }, [modalOpen, moveOpen]);
 
   // Set up main button when modal opens
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     mainButton.setParams.ifAvailable({
       isVisible: true,
@@ -228,20 +231,20 @@ const ToReceiveModal = ({
         isEnabled: false,
       });
     };
-  }, [modalOpen]);
+  }, [modalOpen, moveOpen]);
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     const offMainButtonClick = mainButton.onClick.ifAvailable(handleSettleDebt);
 
     return () => {
       offMainButtonClick?.();
     };
-  }, [handleSettleDebt, modalOpen]);
+  }, [handleSettleDebt, modalOpen, moveOpen]);
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     const offSecondaryButtonClick =
       secondaryButton.onClick.ifAvailable(handleSendReminder);
@@ -249,7 +252,7 @@ const ToReceiveModal = ({
     return () => {
       offSecondaryButtonClick?.();
     };
-  }, [handleSendReminder, modalOpen]);
+  }, [handleSendReminder, modalOpen, moveOpen]);
 
   return (
     <Modal
@@ -298,6 +301,18 @@ const ToReceiveModal = ({
             }}
           />
         </Placeholder>
+
+        <MoveDebtEntry
+          sourceChatId={chatId}
+          sourceChatTitle={dChatData?.title ?? ""}
+          currency={currency}
+          amount={absAmountLent}
+          counterpartyUserId={member.id}
+          counterpartyName={member.firstName}
+          callerOwes={false}
+          onOpenChange={setMoveOpen}
+          onMoved={() => onOpenChange(false)}
+        />
       </div>
     </Modal>
   );

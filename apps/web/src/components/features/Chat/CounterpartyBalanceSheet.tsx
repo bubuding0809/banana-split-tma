@@ -4,17 +4,21 @@ import {
   Cell,
   Info,
   Modal,
+  Navigation,
   Section,
   Snackbar,
   Text,
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
+  initData,
   mainButton,
   secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
+import { MoveDebtSheet } from "./MoveDebtSheet";
+import { deriveMoveParams, type MoveParams } from "./deriveMoveParams";
 import { cn } from "@/utils/cn";
 import { trpc } from "@/utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
@@ -85,6 +89,9 @@ export function CounterpartyBalanceSheet({
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+  const tUser = useSignal(initData.user);
+  const callerId = Number(tUser?.id ?? 0);
+  const [moveTarget, setMoveTarget] = useState<MoveParams | null>(null);
   const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
   const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
   // Optimistic cooldown override for the just-nudged case (server's
@@ -217,9 +224,13 @@ export function CounterpartyBalanceSheet({
     }
   }, [counterpartyPhone, showSnackbar]);
 
+  // The nested MoveDebtSheet owns the native buttons while it is open, so
+  // suppress this sheet's Settle/Nudge buttons whenever a move is in progress.
+  const moveSheetOpen = moveTarget !== null;
+
   // mainButton — Settle All ✅; loader + disabled mirror settle.isPending
   useEffect(() => {
-    if (!open || !counterparty) return;
+    if (!open || !counterparty || moveSheetOpen) return;
     mainButton.setParams.ifAvailable({
       isVisible: true,
       isEnabled: !settle.isPending,
@@ -231,19 +242,24 @@ export function CounterpartyBalanceSheet({
         isVisible: false,
         isLoaderVisible: false,
       });
-  }, [open, counterparty, settle.isPending]);
+  }, [open, counterparty, settle.isPending, moveSheetOpen]);
 
   useEffect(() => {
-    if (!open || !counterparty) return;
+    if (!open || !counterparty || moveSheetOpen) return;
     const off = mainButton.onClick.ifAvailable(handleSettle);
     return () => off?.();
-  }, [open, counterparty, handleSettle]);
+  }, [open, counterparty, handleSettle, moveSheetOpen]);
 
   // secondaryButton — direction-dependent:
   //   debtor (user owes) + counterparty has phone → "Copy Phone No. 📲"
   //   creditor (user is owed) + counterparty started bot → "Nudge 👋"
-  const showCopyPhone = !!(open && isDebtor && counterpartyPhone);
-  const showNudge = !!(open && canNudge);
+  const showCopyPhone = !!(
+    open &&
+    !moveSheetOpen &&
+    isDebtor &&
+    counterpartyPhone
+  );
+  const showNudge = !!(open && !moveSheetOpen && canNudge);
 
   // Visibility / enabled / colour / pending — only fires on the
   // booleans + theme signals that actually change those flags.
@@ -372,45 +388,66 @@ export function CounterpartyBalanceSheet({
         </Section>
 
         <Section header="Breakdown">
-          {byChat.map((chat) => (
-            <Cell
-              key={chat.chatId}
-              after={
-                <div className="flex flex-col items-end gap-0.5">
-                  {chat.currencies.map((c) => (
-                    <div
-                      key={c.currency}
-                      className="flex flex-col items-end gap-0.5"
-                    >
-                      <div className="flex items-center gap-x-1">
-                        <span className="text-base">
-                          {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
-                        </span>
-                        <Text className={cn(getBalanceColorClass(c.nativeNet))}>
-                          {c.nativeNet >= 0 ? "+ " : "− "}
-                          {formatCurrencyWithCode(
-                            Math.abs(c.nativeNet),
-                            c.currency
-                          )}
-                        </Text>
+          {byChat.flatMap((chat) =>
+            chat.currencies.map((c) => {
+              const params = deriveMoveParams(
+                {
+                  chatId: c.chatId,
+                  chatTitle: c.chatTitle,
+                  currency: c.currency,
+                  nativeNet: c.nativeNet,
+                },
+                callerId,
+                counterparty.userId
+              );
+              const canMove = params !== null;
+              return (
+                <Cell
+                  key={`${chat.chatId}-${c.currency}`}
+                  onClick={
+                    canMove
+                      ? () => {
+                          hapticFeedback.impactOccurred.ifAvailable("light");
+                          setMoveTarget(params);
+                        }
+                      : undefined
+                  }
+                  after={
+                    <div className="flex items-center gap-x-1.5">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex items-center gap-x-1">
+                          <span className="text-base">
+                            {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
+                          </span>
+                          <Text
+                            className={cn(getBalanceColorClass(c.nativeNet))}
+                          >
+                            {c.nativeNet >= 0 ? "+ " : "− "}
+                            {formatCurrencyWithCode(
+                              Math.abs(c.nativeNet),
+                              c.currency
+                            )}
+                          </Text>
+                        </div>
+                        {c.currency !== baseCurrency && (
+                          <Caption style={{ color: tSubtitleColor }}>
+                            or{" "}
+                            {formatCurrencyWithCode(
+                              Math.abs(c.baseNet),
+                              baseCurrency
+                            )}
+                          </Caption>
+                        )}
                       </div>
-                      {c.currency !== baseCurrency && (
-                        <Caption style={{ color: tSubtitleColor }}>
-                          or{" "}
-                          {formatCurrencyWithCode(
-                            Math.abs(c.baseNet),
-                            baseCurrency
-                          )}
-                        </Caption>
-                      )}
+                      {canMove && <Navigation />}
                     </div>
-                  ))}
-                </div>
-              }
-            >
-              {chat.chatTitle}
-            </Cell>
-          ))}
+                  }
+                >
+                  {chat.chatTitle}
+                </Cell>
+              );
+            })
+          )}
         </Section>
 
         {showQr && counterpartyPhone && (
@@ -429,6 +466,14 @@ export function CounterpartyBalanceSheet({
           </Snackbar>
         )}
       </div>
+      <MoveDebtSheet
+        open={moveTarget !== null}
+        move={moveTarget}
+        counterpartyUserId={counterparty.userId}
+        counterpartyName={counterparty.firstName}
+        onOpenChange={(o) => !o && setMoveTarget(null)}
+        onAfterMutate={onAfterMutate}
+      />
     </Modal>
   );
 }

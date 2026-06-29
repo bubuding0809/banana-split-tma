@@ -17,9 +17,10 @@ import {
   Skeleton,
   Text,
 } from "@telegram-apps/telegram-ui";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { assetUrls } from "@/assets/urls";
 import PayNowQR from "./PayNowQR";
+import { MoveDebtEntry } from "./MoveDebtEntry";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -46,6 +47,8 @@ const ToPayModal = ({
 
   const userId = tUserData?.id ?? 0;
   const chatId = startParams?.chat_id ?? 0;
+  // While the nested MoveDebtSheet is open it owns the native buttons.
+  const [moveOpen, setMoveOpen] = useState(false);
 
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
   const { data: conversionRateData, status: conversionRateStatus } =
@@ -140,7 +143,7 @@ const ToPayModal = ({
 
   // Set main button parameters when modal opens
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     mainButton.setParams.ifAvailable({
       text: "Settled ✅",
@@ -154,11 +157,11 @@ const ToPayModal = ({
         isEnabled: false,
       });
     };
-  }, [modalOpen]);
+  }, [modalOpen, moveOpen]);
 
   // Clean up secondary button
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     if (memberData?.phoneNumber) {
       secondaryButton.setParams.ifAvailable({
@@ -173,10 +176,10 @@ const ToPayModal = ({
         isVisible: false,
         isEnabled: false,
       });
-  }, [memberData?.phoneNumber, modalOpen]);
+  }, [memberData?.phoneNumber, modalOpen, moveOpen]);
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     const offMainButtonClick = mainButton.onClick.ifAvailable(
       handleCreateSettlement
@@ -185,10 +188,10 @@ const ToPayModal = ({
     return () => {
       offMainButtonClick?.();
     };
-  }, [handleCreateSettlement, modalOpen]);
+  }, [handleCreateSettlement, modalOpen, moveOpen]);
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen || moveOpen) return;
 
     const offSecondaryButtonClick = secondaryButton.onClick.ifAvailable(
       async () => {
@@ -225,7 +228,7 @@ const ToPayModal = ({
     return () => {
       offSecondaryButtonClick?.();
     };
-  }, [memberData?.phoneNumber, modalOpen]);
+  }, [memberData?.phoneNumber, modalOpen, moveOpen]);
 
   return (
     <Modal
@@ -282,6 +285,18 @@ const ToPayModal = ({
             merchantName={member.firstName}
           />
         )}
+
+        <MoveDebtEntry
+          sourceChatId={chatId}
+          sourceChatTitle={dChatData?.title ?? ""}
+          currency={currency}
+          amount={absAmountOwed}
+          counterpartyUserId={member.id}
+          counterpartyName={member.firstName}
+          callerOwes={true}
+          onOpenChange={setMoveOpen}
+          onMoved={() => onOpenChange(false)}
+        />
       </div>
     </Modal>
   );
