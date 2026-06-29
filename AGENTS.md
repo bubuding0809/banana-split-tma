@@ -445,6 +445,7 @@ packages/trpc/src/routers/
 
 - Node.js 22+ and `pnpm` (enable with `corepack enable`)
 - Docker Desktop or OrbStack (for the local Postgres container)
+- TruffleHog (`brew install trufflehog`) — powers the secret-scanning git hooks. The hooks self-skip with a warning if it's absent, but then nothing blocks a secret locally, so install it.
 - Tailscale — either the [Mac App Store app](https://apps.apple.com/us/app/tailscale/id1475387142) or `brew install tailscale`
   - If you installed via the Mac App Store, the `tailscale` CLI is not on PATH by default. Add `alias tailscale='/Applications/Tailscale.app/Contents/MacOS/Tailscale'` to your `~/.zshrc` for interactive use. The `scripts/tunnel.sh` script already falls back to this binary automatically.
 
@@ -610,11 +611,18 @@ The `VERCEL_TOKEN` for use with `vercel --token` is stored in `.envrc` at the pr
 VERCEL_TOKEN=$(grep VERCEL_TOKEN .envrc | cut -d'"' -f2) vercel projects list
 ```
 
-### Pre-commit Hooks
+### Git Hooks
 
-- Husky setup with lint-staged
-- Automatic type checking, linting, and formatting
-- Prevents commits with TypeScript errors
+Husky drives two hooks:
+
+**`pre-commit`**
+- TruffleHog scan of staged content first (fail-fast) — blocks the commit on any detected secret
+- Then lint-staged, repo-wide lint, type checking, and lockfile sync; prevents commits with TypeScript errors
+
+**`pre-push`**
+- TruffleHog scan of the commits being pushed (the `remote..local` range; new branches diff against `origin/main`) — the last gate before secrets go public
+
+Both hooks require `trufflehog` (see Prerequisites). They self-skip with a warning if it's not installed. Bypass a confirmed false positive with `git commit --no-verify` / `git push --no-verify`. Post-push detection is also covered by GitGuardian and GitHub native secret scanning; the hooks add the pre-push *prevention* tier those can't.
 
 ## Styling Guidelines
 

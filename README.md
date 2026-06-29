@@ -32,6 +32,7 @@ dko-turbo-monorepo/
 - [PNPM](https://pnpm.io/) (v9.0.0 or later)
 - [Docker](https://www.docker.com/) (for PostgreSQL database)
 - [Turborepo](https://turbo.build/) installed globally
+- [TruffleHog](https://github.com/trufflesecurity/trufflehog) (`brew install trufflehog`) — powers the secret-scanning pre-commit/pre-push hooks; they self-skip if it's missing
 
 ```bash
 # Install Turborepo globally
