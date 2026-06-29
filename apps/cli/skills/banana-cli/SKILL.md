@@ -41,6 +41,24 @@ banana list-chats
 
 Always parse stdout as JSON. Check exit code before reading output.
 
+### Handling Large Output in Python Subprocesses
+
+When executing CLI commands inside Python scripts (e.g. within an `execute_code` block) that return large JSON payloads (like `list-expenses` on busy groups, which can easily exceed 64KB), standard pipes like `subprocess.run(..., capture_output=True)` may get truncated or blocked due to system buffer limits.
+
+Always redirect the CLI stdout to a temporary file and parse it directly in Python:
+
+```python
+import subprocess
+import json
+import os
+
+# Safe execution: redirect to a file first
+subprocess.run("banana list-expenses --chat-id -123456 > temp.json", shell=True)
+with open("temp.json", "r") as f:
+    expenses = json.load(f)
+os.remove("temp.json")
+```
+
 ## Command Reference
 
 | Command                         | Key Flags                                                                                                                                                                                                                                                                                                         | Description                                                                                                                                                                                                              |
@@ -103,6 +121,7 @@ Always parse stdout as JSON. Check exit code before reading output.
 10. **Trying to delete past recurrences via `cancel-recurring-expense`** — cancelling a template only stops _future_ runs; previously generated expenses remain intact.
 11. **Sizing a transfer relative to simplification**: `create-transfer` natively respects the active simplification status of the group. If the source group has `debtSimplificationEnabled: true` set, you can (and should) size the transfer exactly to the on-screen simplified balance (retrieved via `get-simplified-debts`). If simplification is disabled, size the transfer to the direct raw pairwise debt (retrieved via `get-debts`). This makes transfers intuitive and seamless without requiring manual raw translation on simplified groups.
 12. **Flipping the direction of cross-group debt transfers** — `--from-chat` is the group where the debt is **cleared** (debtor must already owe creditor there); `--to-chat` is where it is **added**. When offsetting cross-group debt: put the group where you **are owed** in `--from-chat`, the group where you **owe** in `--to-chat`, the person who owes you in `--debtor`, and yourself in `--creditor`. Example: Bob owes you S$50 in Group B, you owe Bob S$50 in Group A → `--from-chat <Group B> --to-chat <Group A> --debtor <Bob> --creditor <you>`. Swapping `--from-chat`/`--to-chat` fails the solvency check (`Debtor only owes 0.00 ... in the source chat`); swapping `--debtor`/`--creditor` **doubles** your Group A liability instead of clearing it.
+13. **Assuming `list-my-spending` uses UTC month boundaries** — it does not. Each chat's month window is computed in that chat's own timezone (`Chat.timezone`, defaulting to `Asia/Singapore` when null) and converted to UTC before querying. A transaction logged 12:00–07:59 AM SGT on the 1st (stored as the prior day in UTC) is counted in the correct local month. Chats in different timezones use different windows for the same `--month`.
 
 ## Workflows
 
@@ -265,7 +284,7 @@ banana list-my-spending --month 2026-04
 **Notes:**
 
 - Both commands require a **user-level** API key. Chat-scoped keys will return an auth error.
-- `list-my-spending` uses UTC month boundaries and sums only the caller's expense-share amounts — settlements are not counted.
+- `list-my-spending` computes the month window in each chat's own timezone (`Chat.timezone`, defaulting to `Asia/Singapore` when null), then converts those local boundaries to UTC before querying. So for an SGT chat, `--month 2026-06` covers `[2026-05-31T16:00Z, 2026-06-30T16:00Z)` — early-morning-of-the-1st transactions land in the correct local month. Chats in different timezones use different UTC windows for the same `--month`. Settlements are never counted in spending.
 - For per-chat details (full debt graph between every member, not just edges involving caller), drill in with `get-debts --chat-id <id>`.
 
 ### Cross-Group Balance Overview and Settlement
@@ -307,7 +326,7 @@ banana me settle-all-with --user 123456789 --yes
 
 Create a recurring expense and update it later.
 
-```bash
+````bash
 # 1. Create a monthly subscription
 banana create-expense \
   --description "Spotify" \
@@ -324,4 +343,85 @@ banana list-recurring-expenses
 banana update-recurring-expense \
   --template-id <uuid> \
   --amount 16.90
+
+### Future-Dating and Consolidating Scheduled Expenses
+
+Because the Banana Split API rejects future-dated expenses, you cannot create an expense with a date in the future. To "shift" or schedule an expense for a future date (e.g. the 1st of next month), use the following one-shot cron job workflow:
+
+#### 1. Individual Future-Dated Expense
+Create a one-shot cron job to run on the target date.
+```json
+{
+  "action": "create",
+  "name": "Create June 1 Taobao topup personal expense",
+  "schedule": "2026-06-01T00:00:00+08:00",
+  "skills": ["banana-cli"],
+  "prompt": "Create the user's personal Banana Split expense on June 1 only.\n\nDetails:\n- Chat/private ledger ID: 259941064\n- Description: alipay taobao topup\n- Amount: 520\n- Currency: SGD\n- Split mode: EQUAL\n- Category: base:shopping\n\nBefore creating, check for duplicates by listing SGD expenses in chat 259941064 and looking for an existing expense with amount 520, description containing 'alipay taobao topup', and date around June 1. If one exists, do not create another."
+}
+````
+
+#### 2. Consolidated Master Future-Dated Expenses (The Consolidation Pattern)
+
+If there are multiple expenses scheduled for the same future date, **do not** create multiple individual cron jobs spaced minutes apart. Instead, consolidate them into a single, unified master cron job to minimize API calls, reduce ledger spam, and maintain a clean scheduler.
+
+Create a single consolidated one-shot cron job with an idempotent prompt:
+
+```json
+{
+  "action": "create",
+  "name": "Create June 1 Consolidated Taobao and Alipay Expenses",
+  "schedule": "2026-06-01T00:00:00+08:00",
+  "skills": ["banana-cli"],
+  "prompt": "Create Ruoqian's six personal Banana Split expenses on June 1 only.\n\nDetails of the 6 expenses to log (Chat/private ledger ID: '259941064', Payer: '259941064', Participant IDs: ['259941064'], Currency: SGD, Split Mode: EQUAL, Category: base:shopping):\n1. Description: 'alipay taobao topup', Amount: 520.00, Date: June 1, 2026\n2. Description: 'Big Taobao purchase', Amount: 870.00, Date: June 1, 2026\n3. Description: 'alipay taobao topup', Amount: 376.00, Date: June 1, 2026\n4. Description: 'Taobao chaser bike parts', Amount: 165.40, Date: June 1, 2026\n5. Description: 'last Taobao haul for 618', Amount: 66.40, Date: June 1, 2026\n6. Description: 'pocket money (gf)', Amount: 1000.00, Date: June 1, 2026\n\nFor each of the 6 expenses:\n- List SGD expenses in chat 259941064 to check for existing duplicates matching the amount and description keywords.\n- If a duplicate already exists for that item, skip creation.\n- If no duplicate exists, run banana create-expense with the corresponding details.\n\nFinally, output a clear, consolidated summary of all 6 items: whether they were newly created (with their expense IDs) or skipped as duplicates."
+}
+```
+
+This pattern keeps the system exceptionally clean, enforces rigorous idempotency, and delivers a single, cohesive notification summary upon execution.
+
+### Telegram Mini App Deep Links
+
+To provide the user with direct links to view or manage logged resources inside the Telegram Mini App (TMA), use the following standard URL patterns:
+
+- **Format**: `https://t.me/<bot_username>?startapp=v1_<g|p>_<base62_chat_id>_<e|rt>_<base62_entity_id>`
+  - Where `<bot_username>` is usually `BananaSplitzBot` (production).
+  - Use `g` for groups/supergroups and `p` for private/personal chats.
+  - **Crucial Rule**: Both `<chat_id>` and `<entity_id>` (UUID) MUST be Base62 encoded as defined in `packages/trpc/src/utils/deepLinkProtocol.ts`. Do NOT use raw IDs or raw UUIDs.
+
+#### Encoder Reference (JavaScript)
+
+```javascript
+const ALPHABET =
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const BASE = BigInt(ALPHABET.length);
+
+function encodeBase62(num) {
+  if (num < 0n) throw new Error("Cannot encode negative numbers");
+  if (num === 0n) return ALPHABET[0];
+  let str = "";
+  let current = num;
+  while (current > 0n) {
+    str = ALPHABET[Number(current % BASE)] + str;
+    current = current / BASE;
+  }
+  return str;
+}
+
+function encodeV1DeepLink(chatId, chatType, entityType, entityId) {
+  const absChatId = chatId < 0n ? -chatId : chatId;
+  const chatIdStr = (chatId < 0n ? "-" : "") + encodeBase62(absChatId);
+  let payload = `v1_${chatType}_${chatIdStr}`;
+  if (entityType && entityId) {
+    const hexUuid = entityId.replace(/-/g, "");
+    const uuidBigInt = BigInt("0x" + hexUuid);
+    const uuidStr = encodeBase62(uuidBigInt);
+    payload += `_${entityType}_${uuidStr}`;
+  }
+  return payload;
+}
+```
+
+- **Example of properly encoded Expense link**: `https://t.me/BananaSplitzBot?startapp=v1_p_hAGxO_e_4yVoxOgZmt1TOyLYnVTqgc` (Chat ID: `259941064`, Expense ID: `95efb0f0-9cde-48a0-ae71-902336b8bbcc`).
+
+```
+
 ```
