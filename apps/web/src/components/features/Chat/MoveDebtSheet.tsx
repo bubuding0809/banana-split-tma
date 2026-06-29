@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import {
   Caption,
   Cell,
-  Info,
   Modal,
   Section,
   Skeleton,
@@ -139,9 +138,10 @@ export function MoveDebtSheet({
             before={<ChatMemberAvatar userId={counterpartyUserId} size={40} />}
             subhead={subhead}
             after={
-              <Info subtitle="from" type="text">
+              <div className="flex flex-col items-end">
+                <Caption className="text-zinc-500">from</Caption>
                 <Text weight="2">{move.sourceChatTitle}</Text>
-              </Info>
+              </div>
             }
             style={{ backgroundColor: tSectionBgColor }}
           >
