@@ -13,6 +13,7 @@ vi.mock("@telegram-apps/sdk-react", () => ({
   popup: { open: { ifAvailable: vi.fn(async () => "cancel") } },
   themeParams: { sectionBackgroundColor: {}, subtitleTextColor: {} },
   useSignal: vi.fn(() => "#888888"),
+  initDataRaw: vi.fn(() => "raw-init-data"),
 }));
 
 vi.mock("@telegram-apps/telegram-ui", () => ({
@@ -44,6 +45,7 @@ vi.mock("@telegram-apps/telegram-ui", () => ({
   Skeleton: ({ children }: any) => <>{children}</>,
   Info: ({ children }: any) => <div>{children}</div>,
   Snackbar: ({ children }: any) => <div>{children}</div>,
+  Avatar: ({ children, src }: any) => <span data-src={src}>{children}</span>,
 }));
 
 const mutateAsync = vi.fn(async () => ({}));

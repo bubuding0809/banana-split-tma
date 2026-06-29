@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import {
+  Avatar,
   Caption,
   Cell,
   Modal,
@@ -10,6 +11,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
+  initDataRaw,
   popup,
   themeParams,
   useSignal,
@@ -125,6 +127,18 @@ export function MoveDebtSheet({
   const signedNet = move.callerOwes ? -move.amount : move.amount;
   const targets = targetsQuery.data ?? [];
 
+  // Group photo served from the lambda's /api/chat-photo sibling of
+  // VITE_TRPC_URL — same construction as GroupPage.
+  const TRPC_URL = import.meta.env.VITE_TRPC_URL;
+  const CHAT_PHOTO_BASE = TRPC_URL
+    ? TRPC_URL.replace(/\/api\/trpc\/?$/, "/api/chat-photo")
+    : "/api/chat-photo";
+  const rawAuth = initDataRaw();
+  const chatPhotoSrc = (chatId: number) =>
+    rawAuth
+      ? `${CHAT_PHOTO_BASE}/${chatId}?auth=${encodeURIComponent(rawAuth)}`
+      : undefined;
+
   return (
     <Modal
       nested
@@ -169,6 +183,11 @@ export function MoveDebtSheet({
               <Cell
                 key={t.chatId}
                 onClick={pendingTargetId ? undefined : () => handlePick(t)}
+                before={
+                  <Avatar size={40} src={chatPhotoSrc(t.chatId)}>
+                    {t.chatTitle.charAt(0).toUpperCase()}
+                  </Avatar>
+                }
                 after={
                   pendingTargetId === t.chatId ? (
                     <Skeleton visible>
