@@ -1,4 +1,5 @@
 import { createTRPCRouter } from "../../trpc.js";
+import getEligibleTransferTargets from "./getEligibleTransferTargets.js";
 import getMyBalancesAcrossChats from "./getMyBalancesAcrossChats.js";
 import getMyCounterpartyBalances from "./getMyCounterpartyBalances.js";
 import getMySpendByMonth from "./getMySpendByMonth.js";
@@ -9,6 +10,7 @@ import nudgeCounterparty from "./nudgeCounterparty.js";
 import settleAllWithUser from "./settleAllWithUser.js";
 
 export const expenseShareRouter = createTRPCRouter({
+  getEligibleTransferTargets,
   getMyBalancesAcrossChats,
   getMyCounterpartyBalances,
   getMySpendByMonth,
