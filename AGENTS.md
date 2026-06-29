@@ -616,13 +616,15 @@ VERCEL_TOKEN=$(grep VERCEL_TOKEN .envrc | cut -d'"' -f2) vercel projects list
 Husky drives two hooks:
 
 **`pre-commit`**
+
 - TruffleHog scan of staged content first (fail-fast) — blocks the commit on any detected secret
 - Then lint-staged, repo-wide lint, type checking, and lockfile sync; prevents commits with TypeScript errors
 
 **`pre-push`**
+
 - TruffleHog scan of the commits being pushed (the `remote..local` range; new branches diff against `origin/main`) — the last gate before secrets go public
 
-Both hooks require `trufflehog` (see Prerequisites). They self-skip with a warning if it's not installed. Bypass a confirmed false positive with `git commit --no-verify` / `git push --no-verify`. Post-push detection is also covered by GitGuardian and GitHub native secret scanning; the hooks add the pre-push *prevention* tier those can't.
+Both hooks require `trufflehog` (see Prerequisites). They self-skip with a warning if it's not installed. Bypass a confirmed false positive with `git commit --no-verify` / `git push --no-verify`. Post-push detection is also covered by GitGuardian and GitHub native secret scanning; the hooks add the pre-push _prevention_ tier those can't.
 
 ## Styling Guidelines
 

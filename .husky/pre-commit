@@ -1,3 +1,4 @@
+#!/bin/sh
 # Scan staged changes for secrets (TruffleHog) — fail fast before anything else
 if command -v trufflehog >/dev/null 2>&1; then
   STAGED=$(git diff --cached --name-only --diff-filter=ACM)
