@@ -4,6 +4,7 @@ import { protectedProcedure } from "../../trpc.js";
 import {
   SNAPSHOT_VIEWS,
   buildSnapshotMessage,
+  buildSnapshotRichHtml,
   loadSnapshotContext,
 } from "./shareSnapshotMessage.js";
 
@@ -20,9 +21,12 @@ const inputSchema = z.object({
 
 // Output mirrors the shape of a Telegram InlineKeyboardMarkup so the
 // bot callback handler can forward `replyMarkup` straight into
-// editMessageText without reconstruction.
+// editMessageText without reconstruction. `text` is the MarkdownV2 body
+// (fallback edit); `html` is the rich-message body (preferred edit, to
+// match the initial rich share).
 const outputSchema = z.object({
   text: z.string(),
+  html: z.string(),
   replyMarkup: z.object({
     inline_keyboard: z.array(
       z.array(
@@ -52,5 +56,10 @@ export default protectedProcedure
       input.snapshotId,
       BigInt(effectiveUserId)
     );
-    return buildSnapshotMessage(snapshotCtx, input.view);
+    const { text, replyMarkup } = buildSnapshotMessage(snapshotCtx, input.view);
+    return {
+      text,
+      html: buildSnapshotRichHtml(snapshotCtx, input.view),
+      replyMarkup,
+    };
   });

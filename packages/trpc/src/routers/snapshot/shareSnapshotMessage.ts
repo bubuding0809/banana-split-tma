@@ -92,6 +92,8 @@ export type SnapshotContext = {
   threadId: bigint | null;
   creatorId: bigint;
   creatorMention: string;
+  /** Raw (unescaped) creator identity, for building HTML mentions. */
+  creator: { name: string; username?: string };
   title: string;
   currencyCode: string;
   totalSpent: Prisma.Decimal;
@@ -318,6 +320,7 @@ export async function loadSnapshotContext(
     threadId: snapshot.chat.threadId ?? null,
     creatorId: snapshot.creatorId,
     creatorMention,
+    creator: creatorInfo,
     title: snapshot.title,
     currencyCode,
     totalSpent,
@@ -604,6 +607,223 @@ export function buildSnapshotMessage(
   };
 }
 
+// ----- Rich HTML rendering (Bot API 10.1 sendRichMessage) -----
+//
+// Telegram's rich-message HTML mode supports a far richer tag set than the
+// classic `parse_mode: "HTML"` allowlist — notably <table>, collapsible
+// <details>/<summary>, and <ul>/<ol>/<li>. Only a handful of *named* HTML
+// entities are accepted (&lt; &gt; &amp; &quot; &apos; …), so user-supplied
+// text must be escaped to those (or numeric) forms before interpolation.
+
+/** Escape text for safe interpolation into Telegram rich-message HTML. */
+function htmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Render a user mention as rich HTML: a live `@username` (auto-linked by
+ * Telegram's entity detection) when available, otherwise a `tg://user?id=…`
+ * inline-mention anchor pinned to the numeric id.
+ */
+function htmlMention(
+  uid: bigint,
+  member: { name: string; username?: string } | undefined
+): string {
+  if (!member) return htmlEscape("unknown");
+  if (member.username) return `@${htmlEscape(member.username)}`;
+  return `<a href="tg://user?id=${uid.toString()}">${htmlEscape(member.name)}</a>`;
+}
+
+/** Header / metadata block as a two-column key/value table. */
+function renderHeaderHtml(ctx: SnapshotContext): string {
+  const rows: string[] = [
+    `<tr><td><b>Group</b></td><td>${htmlEscape(ctx.title)}</td></tr>`,
+    `<tr><td><b>Shared by</b></td><td>${htmlMention(ctx.creatorId, ctx.creator)}</td></tr>`,
+  ];
+  if (ctx.expenses.length > 0) {
+    const dates = ctx.expenses
+      .map((e) => e.date)
+      .sort((a, b) => a.getTime() - b.getTime());
+    const range = formatDateRange(dates[0]!, dates[dates.length - 1]!);
+    rows.push(
+      `<tr><td><b>Dates</b></td><td>${htmlEscape(range)}</td></tr>`,
+      `<tr><td><b>Expenses</b></td><td>${ctx.expenses.length.toString()}</td></tr>`
+    );
+  }
+  const total = htmlEscape(
+    fmtMoney(ctx.totalSpent.toNumber(), ctx.currencyCode)
+  );
+  rows.push(`<tr><td><b>Total spent</b></td><td><b>${total}</b></td></tr>`);
+  return `<h3>📊 Snapshot</h3>\n<table>${rows.join("")}</table>`;
+}
+
+/** Shares block as a "Member | Share (Spend)" table. */
+function renderSharesHtml(ctx: SnapshotContext): string {
+  const sortedShares = Array.from(ctx.shareByUser.entries())
+    .filter(([, amount]) => isSignificantBalance(amount))
+    .sort(([, a], [, b]) => b.comparedTo(a));
+
+  if (sortedShares.length === 0) return "";
+
+  const topShares = sortedShares.slice(0, MAX_DISPLAYED_USERS);
+  const rows = topShares
+    .map(([uid, amount]) => {
+      const member = ctx.memberMap.get(uid);
+      if (!member) return "";
+      const mention = htmlMention(uid, member);
+      const formatted = htmlEscape(
+        fmtMoney(amount.toNumber(), ctx.currencyCode)
+      );
+      return `<tr><td>${mention}</td><td>${formatted}</td></tr>`;
+    })
+    .filter(Boolean);
+
+  let html =
+    `<b>🧾 Shares</b>\n<table bordered>` +
+    `<tr><th>Member</th><th>Share (Spend)</th></tr>` +
+    rows.join("") +
+    `</table>`;
+
+  const hidden = sortedShares.length - topShares.length;
+  if (hidden > 0) {
+    html += `\n<i>…and ${hidden.toString()} others</i>`;
+  }
+  return html;
+}
+
+/** A single breakdown item as a compact list row. */
+function renderItemHtml(item: NormalizedExpense, view: SnapshotView): string {
+  const desc = htmlEscape(item.description);
+  const amt = htmlEscape(fmtBare(item.amountInBase.toNumber()));
+  const dateStr = htmlEscape(formatShortDate(item.date));
+  // Mirror the MarkdownV2 layout: drop whichever dimension is the group
+  // header, keep the row compact for mobile.
+  switch (view) {
+    case "cat":
+      return `<li>${desc} · ${amt} · ${dateStr}</li>`;
+    case "date":
+      return `<li>${desc} · ${amt} · ${htmlEscape(item.categoryEmoji)}</li>`;
+  }
+}
+
+/**
+ * Breakdown block: one collapsible <details> per group, with a <summary>
+ * showing the group label + total and a <ul> of its expense rows. The first
+ * group is expanded (`open`) so the message isn't fully collapsed on open.
+ */
+function renderBreakdownHtml(ctx: SnapshotContext, view: SnapshotView): string {
+  const groups = view === "cat" ? groupByCategory(ctx) : groupByDate(ctx);
+  if (groups.length === 0) return "";
+
+  let linesRemaining = MAX_EXPENSE_LINES;
+  let truncatedExpenses = 0;
+  let truncatedGroups = 0;
+  const blocks: string[] = [];
+
+  groups.forEach((group, gi) => {
+    if (linesRemaining <= 0) {
+      truncatedExpenses += group.items.length;
+      truncatedGroups += 1;
+      return;
+    }
+    const first = group.items[0]!;
+    const total = htmlEscape(
+      fmtMoney(group.totalInBase.toNumber(), ctx.currencyCode)
+    );
+    const label =
+      view === "cat"
+        ? `${htmlEscape(first.categoryEmoji)} <b>${htmlEscape(first.categoryTitle)}</b>`
+        : `📅 <b>${htmlEscape(formatShortDate(first.date))}</b>`;
+
+    const shown = group.items.slice(0, linesRemaining);
+    const overflow = group.items.length - shown.length;
+    truncatedExpenses += overflow;
+
+    const items = shown.map((item) => renderItemHtml(item, view));
+    if (overflow > 0) {
+      items.push(`<li><i>…and ${overflow.toString()} more</i></li>`);
+    }
+    linesRemaining -= shown.length;
+
+    const openAttr = gi === 0 ? " open" : "";
+    blocks.push(
+      `<details${openAttr}><summary>${label} · ${total}</summary>` +
+        `<ul>${items.join("")}</ul></details>`
+    );
+  });
+
+  let html = `<b>${legendPlainFor(view)}</b>\n${blocks.join("\n")}`;
+  if (truncatedExpenses > 0 && truncatedGroups > 0) {
+    html += `\n<i>…and ${truncatedExpenses.toString()} more expenses across ${truncatedGroups.toString()} groups not shown</i>`;
+  }
+  return html;
+}
+
+/** Plain-text (HTML-safe) legend label, mirroring legendFor. */
+function legendPlainFor(view: SnapshotView): string {
+  switch (view) {
+    case "cat":
+      return "📋 Expenses by category";
+    case "date":
+      return "📋 Expenses by date";
+  }
+}
+
+/** Build the full rich-message HTML body for a given view. */
+export function buildSnapshotRichHtml(
+  ctx: SnapshotContext,
+  view: SnapshotView
+): string {
+  const sections: string[] = [renderHeaderHtml(ctx)];
+  const shares = renderSharesHtml(ctx);
+  if (shares) sections.push(shares);
+  const breakdown = renderBreakdownHtml(ctx, view);
+  if (breakdown) sections.push(breakdown);
+  return sections.join("\n\n");
+}
+
+// ----- Telegraf raw API call for the rich-message endpoint -----
+
+type RichMessagePayload = {
+  chat_id: number;
+  message_thread_id?: number;
+  rich_message: {
+    html?: string;
+    markdown?: string;
+    is_rtl?: boolean;
+    skip_entity_detection?: boolean;
+  };
+  reply_parameters?: Record<string, unknown>;
+  reply_markup?: SnapshotReplyMarkup;
+};
+
+/**
+ * Invoke the Bot API `sendRichMessage` method via Telegraf's generic
+ * `callApi`. The method isn't in Telegraf's typed method map, so we call it
+ * through a narrow cast. Throws if the endpoint is unsupported — callers are
+ * expected to catch and fall back to a classic `sendMessage`.
+ */
+async function sendRichMessage(
+  teleBot: Telegram,
+  payload: RichMessagePayload
+): Promise<void> {
+  const client = teleBot as unknown as {
+    callApi: (
+      method: string,
+      payload: Record<string, unknown>
+    ) => Promise<unknown>;
+  };
+  await client.callApi.call(
+    teleBot,
+    "sendRichMessage",
+    payload as unknown as Record<string, unknown>
+  );
+}
+
 // ----- Mutation handler: initial share -----
 
 export const shareSnapshotMessageHandler = async (
@@ -620,8 +840,26 @@ export const shareSnapshotMessageHandler = async (
     userId,
     log
   );
-  const { text, replyMarkup } = buildSnapshotMessage(ctx, "cat");
+  const view: SnapshotView = "cat";
+  const { text, replyMarkup } = buildSnapshotMessage(ctx, view);
 
+  // Preferred path: a native rich message (Bot API 10.1), which renders
+  // interactive HTML tables and collapsible <details> blocks on Telegram
+  // clients. Some environments/clients may not support `sendRichMessage`, so
+  // any failure falls back to the classic MarkdownV2 message below.
+  try {
+    await sendRichMessage(teleBot, {
+      chat_id: Number(ctx.chatId),
+      ...(ctx.threadId ? { message_thread_id: Number(ctx.threadId) } : {}),
+      rich_message: { html: buildSnapshotRichHtml(ctx, view) },
+      reply_markup: replyMarkup,
+    });
+    return { success: true };
+  } catch (richError) {
+    log.warn({ err: richError }, "telegram.snapshotMessage.rich.fallback");
+  }
+
+  // Fallback path: classic MarkdownV2 message.
   try {
     await teleBot.sendMessage(Number(ctx.chatId), text, {
       parse_mode: "MarkdownV2",
