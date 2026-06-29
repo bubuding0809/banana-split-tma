@@ -4,6 +4,7 @@ import {
   Caption,
   Cell,
   Modal,
+  Navigation,
   Section,
   Skeleton,
   Snackbar,
@@ -16,7 +17,6 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { ArrowRight } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import {
@@ -188,13 +188,16 @@ export function MoveDebtSheet({
                     {t.chatTitle.charAt(0).toUpperCase()}
                   </Avatar>
                 }
+                subtitle={`${t.memberCount} ${
+                  t.memberCount === 1 ? "member" : "members"
+                }`}
                 after={
                   pendingTargetId === t.chatId ? (
                     <Skeleton visible>
                       <Text>…</Text>
                     </Skeleton>
                   ) : (
-                    <ArrowRight size={16} className="text-zinc-400" />
+                    <Navigation />
                   )
                 }
                 style={{ backgroundColor: tSectionBgColor }}

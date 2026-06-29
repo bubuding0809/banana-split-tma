@@ -46,6 +46,7 @@ vi.mock("@telegram-apps/telegram-ui", () => ({
   Info: ({ children }: any) => <div>{children}</div>,
   Snackbar: ({ children }: any) => <div>{children}</div>,
   Avatar: ({ children, src }: any) => <span data-src={src}>{children}</span>,
+  Navigation: ({ children }: any) => <span>{children}</span>,
 }));
 
 const mutateAsync = vi.fn(async () => ({}));
@@ -55,8 +56,8 @@ vi.mock("@utils/trpc", () => ({
       getEligibleTransferTargets: {
         useQuery: vi.fn(() => ({
           data: [
-            { chatId: 200, chatTitle: "LADS 2026" },
-            { chatId: 300, chatTitle: "Ski 2026" },
+            { chatId: 200, chatTitle: "LADS 2026", memberCount: 5 },
+            { chatId: 300, chatTitle: "Ski 2026", memberCount: 3 },
           ],
           isLoading: false,
         })),

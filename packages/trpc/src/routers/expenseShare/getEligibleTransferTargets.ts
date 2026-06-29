@@ -9,7 +9,11 @@ const inputSchema = z.object({
 });
 
 const outputSchema = z.array(
-  z.object({ chatId: z.number(), chatTitle: z.string() })
+  z.object({
+    chatId: z.number(),
+    chatTitle: z.string(),
+    memberCount: z.number(),
+  })
 );
 
 export async function getEligibleTransferTargetsHandler(
@@ -27,11 +31,15 @@ export async function getEligibleTransferTargetsHandler(
       ],
       id: { not: BigInt(input.sourceChatId) },
     },
-    select: { id: true, title: true },
+    select: { id: true, title: true, _count: { select: { members: true } } },
     orderBy: { title: "asc" },
   });
 
-  return chats.map((c) => ({ chatId: Number(c.id), chatTitle: c.title }));
+  return chats.map((c) => ({
+    chatId: Number(c.id),
+    chatTitle: c.title,
+    memberCount: c._count.members,
+  }));
 }
 
 export default protectedProcedure
