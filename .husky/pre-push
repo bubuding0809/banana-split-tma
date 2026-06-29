@@ -1,0 +1,48 @@
+#!/bin/sh
+# Last preventive gate before secrets go public: scan the commits being pushed.
+# Receives on stdin: <local_ref> <local_sha> <remote_ref> <remote_sha>  (one line per ref)
+if ! command -v trufflehog >/dev/null 2>&1; then
+  echo "⚠️  trufflehog not installed — skipping pre-push secret scan. Install: brew install trufflehog"
+  exit 0
+fi
+
+ZERO=0000000000000000000000000000000000000000
+REPO="file://$(pwd)"
+FAIL=0
+LOG=$(mktemp)
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue   # branch deletion — nothing to scan
+
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # New branch on remote — scan commits unique vs origin/main (fallback: whole branch)
+    base=$(git merge-base origin/main "$local_sha" 2>/dev/null)
+  else
+    base="$remote_sha"                      # existing branch — scan only new commits
+  fi
+
+  if [ -n "$base" ]; then
+    set -- --since-commit "$base"
+  else
+    set --                                  # no base (first push / no main) — scan all
+  fi
+
+  echo "🔑 Scanning commits being pushed for secrets..."
+  if ! trufflehog git "$REPO" "$@" --results=verified,unverified,unknown --fail --no-update >"$LOG" 2>&1; then
+    echo ""
+    echo "❌ Potential secret detected in commits being pushed:"
+    grep -E 'Detector Type|File|Line|Commit|Verified' "$LOG" || cat "$LOG"
+    FAIL=1
+  fi
+done
+
+rm -f "$LOG"
+if [ "$FAIL" -ne 0 ]; then
+  echo ""
+  echo "   Rotate the secret at its issuer, then rewrite history before pushing"
+  echo "   (deleting the file in a new commit does NOT remove it)."
+  echo "   To bypass for a confirmed false positive: git push --no-verify"
+  exit 1
+fi
+echo "✅ No secrets in pushed commits."
+exit 0

@@ -1,3 +1,32 @@
+# Scan staged changes for secrets (TruffleHog) — fail fast before anything else
+if command -v trufflehog >/dev/null 2>&1; then
+  STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+  if [ -n "$STAGED" ]; then
+    echo "🔑 Scanning staged changes for secrets..."
+    TMPD=$(mktemp -d)
+    # Export the *staged* version of each changed file (not the working-tree copy)
+    echo "$STAGED" | while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      mkdir -p "$TMPD/$(dirname "$f")"
+      git show ":$f" > "$TMPD/$f" 2>/dev/null || true
+    done
+    if ! trufflehog filesystem "$TMPD" --results=verified,unverified,unknown --fail --no-update >"$TMPD/.thlog" 2>&1; then
+      echo ""
+      echo "❌ Potential secret detected in staged changes:"
+      grep -E 'Detector Type|File|Verified' "$TMPD/.thlog" || cat "$TMPD/.thlog"
+      echo ""
+      echo "   Remove the secret (use env vars / .env which is gitignored)."
+      echo "   If it's a false positive, bypass with: git commit --no-verify"
+      rm -rf "$TMPD"
+      exit 1
+    fi
+    rm -rf "$TMPD"
+    echo "✅ No secrets in staged changes."
+  fi
+else
+  echo "⚠️  trufflehog not installed — skipping secret scan. Install: brew install trufflehog"
+fi
+
 # Run lint-staged for formatting
 npx lint-staged --allow-empty
 
