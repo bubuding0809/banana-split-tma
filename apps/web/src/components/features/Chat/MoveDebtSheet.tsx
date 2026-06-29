@@ -18,7 +18,11 @@ import {
 import { ArrowRight } from "lucide-react";
 import { trpc } from "@utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
-import { formatCurrencyWithCode } from "@/utils/financial";
+import {
+  formatCurrencyWithCode,
+  getBalanceColorClass,
+} from "@/utils/financial";
+import { cn } from "@/utils/cn";
 import type { MoveParams } from "./deriveMoveParams";
 
 interface MoveDebtSheetProps {
@@ -115,8 +119,11 @@ export function MoveDebtSheet({
     );
   }
 
-  const debtorLabel = move.callerOwes ? "You" : counterpartyName;
-  const creditorLabel = move.callerOwes ? counterpartyName : "you";
+  const subhead = move.callerOwes
+    ? `You owe ${counterpartyName}`
+    : `${counterpartyName} owes you`;
+  // Signed for colour: you owe → negative/red, owed to you → positive/green.
+  const signedNet = move.callerOwes ? -move.amount : move.amount;
   const targets = targetsQuery.data ?? [];
 
   return (
@@ -129,23 +136,18 @@ export function MoveDebtSheet({
       <div className="flex flex-col gap-y-2 pb-8">
         <Section header="Moving" className="px-3">
           <Cell
-            before={<ChatMemberAvatar userId={move.debtorId} size={40} />}
+            before={<ChatMemberAvatar userId={counterpartyUserId} size={40} />}
+            subhead={subhead}
             after={
-              <Info subtitle="Amount" type="text">
-                <Text weight="2">{amountText}</Text>
+              <Info subtitle="from" type="text">
+                <Text weight="2">{move.sourceChatTitle}</Text>
               </Info>
             }
             style={{ backgroundColor: tSectionBgColor }}
           >
-            <Text weight="2">{debtorLabel}</Text>
-            <div className="flex items-center gap-1 text-zinc-500">
-              <ArrowRight size={14} />
-              <Caption>{creditorLabel}</Caption>
-            </div>
-          </Cell>
-          <Cell style={{ backgroundColor: tSectionBgColor }}>
-            <Caption className="text-zinc-500">From</Caption>
-            <Text weight="2">{move.sourceChatTitle}</Text>
+            <Text weight="2" className={cn(getBalanceColorClass(signedNet))}>
+              {amountText}
+            </Text>
           </Cell>
         </Section>
 
