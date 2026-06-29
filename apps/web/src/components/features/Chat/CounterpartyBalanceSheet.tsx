@@ -10,11 +10,14 @@ import {
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
+  initData,
   mainButton,
   secondaryButton,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
+import { MoveDebtSheet } from "./MoveDebtSheet";
+import { deriveMoveParams, type MoveParams } from "./deriveMoveParams";
 import { cn } from "@/utils/cn";
 import { trpc } from "@/utils/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
@@ -85,6 +88,9 @@ export function CounterpartyBalanceSheet({
   const tSecondaryBgColor = useSignal(themeParams.secondaryBackgroundColor);
   const tButtonColor = useSignal(themeParams.buttonColor);
   const tButtonTextColor = useSignal(themeParams.buttonTextColor);
+  const tUser = useSignal(initData.user);
+  const callerId = Number(tUser?.id ?? 0);
+  const [moveTarget, setMoveTarget] = useState<MoveParams | null>(null);
   const [snackbar, setSnackbar] = useState<{ text: string } | null>(null);
   const showSnackbar = useCallback((text: string) => setSnackbar({ text }), []);
   // Optimistic cooldown override for the just-nudged case (server's
@@ -372,16 +378,33 @@ export function CounterpartyBalanceSheet({
         </Section>
 
         <Section header="Breakdown">
-          {byChat.map((chat) => (
-            <Cell
-              key={chat.chatId}
-              after={
-                <div className="flex flex-col items-end gap-0.5">
-                  {chat.currencies.map((c) => (
-                    <div
-                      key={c.currency}
-                      className="flex flex-col items-end gap-0.5"
-                    >
+          {byChat.flatMap((chat) =>
+            chat.currencies.map((c) => {
+              const params = deriveMoveParams(
+                {
+                  chatId: c.chatId,
+                  chatTitle: c.chatTitle,
+                  currency: c.currency,
+                  nativeNet: c.nativeNet,
+                },
+                callerId,
+                counterparty.userId
+              );
+              const canMove = params !== null;
+              return (
+                <Cell
+                  key={`${chat.chatId}-${c.currency}`}
+                  subhead={chat.chatTitle}
+                  onClick={
+                    canMove
+                      ? () => {
+                          hapticFeedback.impactOccurred.ifAvailable("light");
+                          setMoveTarget(params);
+                        }
+                      : undefined
+                  }
+                  after={
+                    <div className="flex flex-col items-end gap-0.5">
                       <div className="flex items-center gap-x-1">
                         <span className="text-base">
                           {currencyMap.get(c.currency)?.flagEmoji ?? "🌍"}
@@ -404,13 +427,13 @@ export function CounterpartyBalanceSheet({
                         </Caption>
                       )}
                     </div>
-                  ))}
-                </div>
-              }
-            >
-              {chat.chatTitle}
-            </Cell>
-          ))}
+                  }
+                >
+                  {canMove ? "Move to another group" : " "}
+                </Cell>
+              );
+            })
+          )}
         </Section>
 
         {showQr && counterpartyPhone && (
@@ -429,6 +452,14 @@ export function CounterpartyBalanceSheet({
           </Snackbar>
         )}
       </div>
+      <MoveDebtSheet
+        open={moveTarget !== null}
+        move={moveTarget}
+        counterpartyUserId={counterparty.userId}
+        counterpartyName={counterparty.firstName}
+        onOpenChange={(o) => !o && setMoveTarget(null)}
+        onAfterMutate={onAfterMutate}
+      />
     </Modal>
   );
 }
