@@ -151,11 +151,7 @@ export function MoveDebtSheet({
           <Cell
             before={<ChatMemberAvatar userId={counterpartyUserId} size={40} />}
             subhead={subhead}
-            after={
-              <Text weight="2" className="text-zinc-500">
-                {move.sourceChatTitle}
-              </Text>
-            }
+            subtitle={move.sourceChatTitle}
             style={{ backgroundColor: tSectionBgColor }}
           >
             <Text weight="2" className={cn(getBalanceColorClass(signedNet))}>
