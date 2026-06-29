@@ -12,12 +12,17 @@ const mockDb = {
 const mockTeleBot = {
   sendMessage: vi.fn(),
   getMe: vi.fn(),
+  callApi: vi.fn(),
 };
 
 describe("shareSnapshotMessage procedure", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockTeleBot.getMe.mockResolvedValue({ username: "testbot" });
+    // Default: pretend the rich-message endpoint is unsupported so the
+    // handler falls back to the classic MarkdownV2 sendMessage path that
+    // most assertions below inspect. Rich-path tests override this.
+    mockTeleBot.callApi.mockRejectedValue(new Error("sendRichMessage: 404"));
   });
 
   it("should throw NOT_FOUND if snapshot does not exist", async () => {
@@ -263,5 +268,118 @@ describe("shareSnapshotMessage procedure", () => {
     expect(mockTeleBot.sendMessage).toHaveBeenCalled();
     const options = mockTeleBot.sendMessage.mock.calls[0]![2];
     expect(options).toHaveProperty("message_thread_id", 555);
+  });
+
+  it("should send a rich HTML message via sendRichMessage when supported", async () => {
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Japan <Trip> & Co",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Creator", username: "creator_usr" },
+      chat: {
+        type: "group",
+        threadId: 555n,
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+        chatCategories: [],
+      },
+      expenses: [
+        {
+          amount: "120.00",
+          currency: "SGD",
+          date: new Date("2026-04-15T00:00:00Z"),
+          description: "Sushi <dinner>",
+          categoryId: null,
+          payerId: 111n,
+          payer: { firstName: "Creator", username: "creator_usr" },
+          shares: [
+            {
+              userId: 222n,
+              amount: "120.00",
+              user: { firstName: "Ting", username: "xuetingg" },
+            },
+          ],
+        },
+      ],
+    });
+
+    mockTeleBot.callApi.mockResolvedValue({ message_id: 999 });
+
+    await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    // Rich endpoint used; classic sendMessage NOT used.
+    expect(mockTeleBot.callApi).toHaveBeenCalledWith(
+      "sendRichMessage",
+      expect.objectContaining({
+        chat_id: -1001234567890,
+        message_thread_id: 555,
+        rich_message: expect.objectContaining({
+          html: expect.any(String),
+        }),
+        reply_markup: expect.any(Object),
+      })
+    );
+    expect(mockTeleBot.sendMessage).not.toHaveBeenCalled();
+
+    const html = mockTeleBot.callApi.mock.calls[0]![1].rich_message.html;
+
+    // Structural rich-HTML elements present.
+    expect(html).toContain("<table>");
+    expect(html).toContain("<th>Member</th>");
+    expect(html).toContain("<details");
+    expect(html).toContain("<summary>");
+
+    // User-supplied text is HTML-escaped (no raw angle brackets leak).
+    expect(html).toContain("Japan &lt;Trip&gt; &amp; Co");
+    expect(html).toContain("Sushi &lt;dinner&gt;");
+    expect(html).not.toContain("<Trip>");
+
+    // Money + mention rendering.
+    expect(html).toContain("SGD 120.00");
+    expect(html).toContain("@xuetingg");
+  });
+
+  it("should fall back to MarkdownV2 sendMessage when sendRichMessage fails", async () => {
+    (mockDb.expenseSnapshot.findUnique as any).mockResolvedValue({
+      id: "mock-id",
+      title: "Fallback Snapshot",
+      chatId: -1001234567890n,
+      currency: "SGD",
+      creatorId: 111n,
+      creator: { firstName: "Creator", username: "creator_usr" },
+      chat: {
+        type: "group",
+        members: [{ userId: 123n }],
+        baseCurrency: "SGD",
+        chatCategories: [],
+      },
+      expenses: [],
+    });
+
+    // callApi rejects (default in beforeEach); sendMessage succeeds.
+    mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
+
+    const result = await shareSnapshotMessageHandler(
+      { snapshotId: "mock-id" },
+      mockDb,
+      mockTeleBot as any,
+      123n
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mockTeleBot.callApi).toHaveBeenCalledWith(
+      "sendRichMessage",
+      expect.anything()
+    );
+    expect(mockTeleBot.sendMessage).toHaveBeenCalled();
+    const options = mockTeleBot.sendMessage.mock.calls[0]![2];
+    expect(options).toHaveProperty("parse_mode", "MarkdownV2");
   });
 });
