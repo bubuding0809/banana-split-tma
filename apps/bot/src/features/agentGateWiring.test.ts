@@ -14,6 +14,31 @@ vi.mock("@repo/agent", () => ({
   },
 }));
 
+// group.ts imports ../env.js (via @t3-oss/env-core), which validates
+// required bot env vars at module load time. Locally direnv supplies them,
+// but CI has none, so the real module throws "Invalid environment
+// variables" before any test runs. These wiring tests don't exercise
+// env-dependent behavior (the /start and /pin commands that read
+// MINI_APP_DEEPLINK aren't under test here), so stub the module with
+// harmless values to keep the test hermetic and CI-safe.
+vi.mock("../env.js", () => ({
+  env: {
+    TELEGRAM_BOT_TOKEN: "test-token",
+    NODE_ENV: "test",
+    VERCEL_URL: undefined,
+    API_KEY: "test-api-key",
+    INTERNAL_AGENT_KEY: "test-internal-agent-key",
+    MINI_APP_DEEPLINK: "https://t.me/testbot",
+    AWS_GROUP_REMINDER_LAMBDA_ARN: undefined,
+    AWS_EVENTBRIDGE_SCHEDULER_ROLE_ARN: undefined,
+    GOOGLE_GENERATIVE_AI_API_KEY: undefined,
+    AGENT_MODEL: "gemini-3.1-flash-lite",
+    AGENT_PROVIDER: "google",
+    MINIMAX_API_KEY: undefined,
+    MINIMAX_BASE_URL: undefined,
+  },
+}));
+
 const { groupFeature } = await import("./group.js");
 const { agentFeature } = await import("./agent.js");
 
