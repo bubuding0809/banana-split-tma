@@ -5,6 +5,7 @@ import { env } from "../env.js";
 import { ChatUtils } from "../utils/chat.js";
 
 import { handleAgentMessage } from "./agent.js";
+import { isAgentAllowed } from "../utils/agentGate.js";
 
 export const groupFeature = new Composer<BotContext>();
 
@@ -236,6 +237,9 @@ groupFeature.on("message", async (ctx, next) => {
   if (text.startsWith("/")) return next();
 
   if (isMentioned || isReplyToBot) {
+    // Experimental AI agent is opt-in per group; silently ignore when gated.
+    if (!(await isAgentAllowed(ctx))) return;
+
     // Strip all mentions of the bot (case-insensitive, global) to get the actual command payload
     const payload = text
       .replace(new RegExp(`@${botUsername}\\b`, "gi"), "")
