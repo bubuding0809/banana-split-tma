@@ -24,8 +24,11 @@ function initial(): SessionData {
 bot.use(session({ initial }));
 
 bot.use(loggerMiddleware);
-bot.use(reactionsMiddleware);
+// trpcMiddleware must run before reactionsMiddleware: reactions now consults
+// the agent opt-in gate (isAgentAllowed), which needs ctx.trpc. The proxy it
+// attaches is lazy/cheap to create, so this reorder is safe.
 bot.use(trpcMiddleware);
+bot.use(reactionsMiddleware);
 bot.use(agentFeature);
 bot.use(groupFeature);
 bot.use(userFeature);

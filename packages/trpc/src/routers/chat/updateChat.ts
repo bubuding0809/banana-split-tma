@@ -16,6 +16,7 @@ export const inputSchema = z.object({
   type: z.nativeEnum(ChatType).optional(),
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean().optional(),
+  agentEnabled: z.boolean().optional(),
   notifyOnExpense: z.boolean().optional(),
   notifyOnExpenseUpdate: z.boolean().optional(),
   notifyOnSettlement: z.boolean().optional(),
@@ -30,6 +31,7 @@ export const outputSchema = z.object({
   threadId: z.number().optional(),
   baseCurrency: z.string().optional(),
   debtSimplificationEnabled: z.boolean(),
+  agentEnabled: z.boolean(),
   notifyOnExpense: z.boolean(),
   notifyOnExpenseUpdate: z.boolean(),
   notifyOnSettlement: z.boolean(),
@@ -63,6 +65,7 @@ export const updateChatHandler = async (
       type?: ChatType;
       baseCurrency?: string;
       debtSimplificationEnabled?: boolean;
+      agentEnabled?: boolean;
       notifyOnExpense?: boolean;
       notifyOnExpenseUpdate?: boolean;
       notifyOnSettlement?: boolean;
@@ -86,6 +89,9 @@ export const updateChatHandler = async (
     }
     if (input.debtSimplificationEnabled !== undefined) {
       updateData.debtSimplificationEnabled = input.debtSimplificationEnabled;
+    }
+    if (input.agentEnabled !== undefined) {
+      updateData.agentEnabled = input.agentEnabled;
     }
     if (input.notifyOnExpense !== undefined) {
       updateData.notifyOnExpense = input.notifyOnExpense;

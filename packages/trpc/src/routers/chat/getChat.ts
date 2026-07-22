@@ -26,6 +26,7 @@ export const getChatHandler = async (
       ? Number(chat.migratedFromChatId)
       : null,
     debtSimplificationEnabled: chat?.debtSimplificationEnabled ?? false,
+    agentEnabled: chat?.agentEnabled ?? false,
     notifyOnExpense: chat?.notifyOnExpense ?? true,
     notifyOnSettlement: chat?.notifyOnSettlement ?? true,
     notifyOnTransfer: chat?.notifyOnTransfer ?? true,

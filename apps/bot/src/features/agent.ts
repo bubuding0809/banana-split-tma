@@ -4,6 +4,7 @@ import { RequestContext } from "@mastra/core/request-context";
 import { Composer } from "grammy";
 import { renderTelegramHtml } from "../utils/telegramMarkdown.js";
 import { splitTelegramHtmlChunks } from "../utils/chunkHtml.js";
+import { isAgentAllowed } from "../utils/agentGate.js";
 
 export const agentFeature = new Composer<BotContext>();
 
@@ -378,6 +379,9 @@ CRITICAL: When you mention or refer to any user in your text responses, NEVER ou
 agentFeature.command(["ask", "do"], async (ctx) => {
   const text = ctx.match;
   if (!text && !ctx.message?.photo) return;
+
+  // Experimental AI agent is opt-in per group; silently ignore when gated.
+  if (!(await isAgentAllowed(ctx))) return;
 
   await handleAgentMessage(ctx, text?.trim() || "");
 });
