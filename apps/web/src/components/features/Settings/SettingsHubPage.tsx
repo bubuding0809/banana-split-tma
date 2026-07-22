@@ -17,6 +17,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import {
   Bell,
+  Bot,
   Clock,
   DollarSign,
   Key,
@@ -34,6 +35,7 @@ type SubKey =
   | "categories"
   | "notifications"
   | "reminders"
+  | "bot"
   | "account"
   | "developer";
 
@@ -44,6 +46,7 @@ const SUB_PATHS: Record<
   | "/chat/$chatId/settings/categories"
   | "/chat/$chatId/settings/notifications"
   | "/chat/$chatId/settings/reminders"
+  | "/chat/$chatId/settings/bot"
   | "/chat/$chatId/settings/account"
   | "/chat/$chatId/settings/developer"
 > = {
@@ -52,6 +55,7 @@ const SUB_PATHS: Record<
   categories: "/chat/$chatId/settings/categories",
   notifications: "/chat/$chatId/settings/notifications",
   reminders: "/chat/$chatId/settings/reminders",
+  bot: "/chat/$chatId/settings/bot",
   account: "/chat/$chatId/settings/account",
   developer: "/chat/$chatId/settings/developer",
 };
@@ -192,6 +196,14 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
             label="Categories"
             value={categoryPreview}
             onClick={() => goto("categories")}
+          />
+          <RowLink
+            color="indigo"
+            icon={<Bot size={16} />}
+            label="AI assistant"
+            value={chat?.agentEnabled ? "On" : "Off"}
+            loading={chatPending}
+            onClick={() => goto("bot")}
           />
         </Section>
       )}
