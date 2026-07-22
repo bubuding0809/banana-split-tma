@@ -44,4 +44,43 @@ describe("isAgentAllowed", () => {
     const ctx = makeCtx({ chat: undefined });
     await expect(isAgentAllowed(ctx)).resolves.toBe(false);
   });
+
+  it("logs agent.gated.no_chat at info (not error) when the lookup 404s", async () => {
+    const ctx = makeCtx();
+    ctx.trpc.chat.getChat.mockRejectedValue({
+      code: "NOT_FOUND",
+      message: "Chat not found",
+    });
+    await expect(isAgentAllowed(ctx)).resolves.toBe(false);
+    expect(ctx.log.info).toHaveBeenCalledWith(
+      { chat_id: 42 },
+      "agent.gated.no_chat"
+    );
+    expect(ctx.log.error).not.toHaveBeenCalled();
+  });
+
+  it("memoizes the gate result per ctx so getChat is only called once", async () => {
+    const ctx = makeCtx();
+    const [first, second] = await Promise.all([
+      isAgentAllowed(ctx),
+      isAgentAllowed(ctx),
+    ]);
+    expect(first).toBe(true);
+    expect(second).toBe(true);
+    expect(ctx.trpc.chat.getChat).toHaveBeenCalledTimes(1);
+
+    // A later call against the same ctx object still reuses the cached
+    // result instead of issuing a second lookup.
+    await isAgentAllowed(ctx);
+    expect(ctx.trpc.chat.getChat).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not share the memoized result across different ctx objects", async () => {
+    const ctxA = makeCtx();
+    const ctxB = makeCtx();
+    await isAgentAllowed(ctxA);
+    await isAgentAllowed(ctxB);
+    expect(ctxA.trpc.chat.getChat).toHaveBeenCalledTimes(1);
+    expect(ctxB.trpc.chat.getChat).toHaveBeenCalledTimes(1);
+  });
 });
