@@ -422,6 +422,31 @@ function encodeV1DeepLink(chatId, chatType, entityType, entityId) {
 
 - **Example of properly encoded Expense link**: `https://t.me/BananaSplitzBot?startapp=v1_p_hAGxO_e_4yVoxOgZmt1TOyLYnVTqgc` (Chat ID: `259941064`, Expense ID: `95efb0f0-9cde-48a0-ae71-902336b8bbcc`).
 
+## Telegram Bot API 10.1 Rich Messages
+
+Telegram Bot API 10.1 (released June 11, 2026) introduced **Rich Messages** (`sendRichMessage`), allowing bots to transmit highly structured HTML blocks directly inside chat bubbles instead of squished markdown, perfectly suited for summary sheets or mobile dashboards.
+
+### Supported HTML Blocks & Syntax
+
+- **Tables**: Use `<table>` (supports attributes `bordered`, `striped`), `<tr>`, `<th>`, and `<td>` (supports `colspan="..."`, `rowspan="..."`, `align="left|center|right"`, `valign="top|middle|bottom"`).
+- **Checkboxes**: Use `<ul>`/`<ol>` lists with `<li><input type="checkbox" checked> Label</li>` inside list items to render interactive checkbox tasks.
+- **Details (Collapsible Blocks)**: Use `<details open><summary>Section Title</summary>Content Body</details>` to render expandable blocks.
+- **Formulas**: Use `<tg-math-block>E = mc^2</tg-math-block>` for LaTeX formulas.
+- **Thinking Blocks**: Use `<tg-thinking>Thinking...</tg-thinking>` to output AI reasoning steps.
+
+### API Method
+
+Send the formatted body to the `sendRichMessage` endpoint:
+
+```json
+{
+  "chat_id": "YOUR_CHAT_ID",
+  "rich_message": {
+    "html": "<h1>Header</h1><table bordered striped><tr><th>Col 1</th>...</tr></table>"
+  }
+}
+```
+
 ```
 
 ```
