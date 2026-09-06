@@ -200,20 +200,22 @@ function pairwiseNet(
   // source/target convention in buildUserBalanceMap. Positive = b owes a.
   let transferNet = new Decimal(0);
   for (const t of transfers) {
+    if (chatId === undefined) continue;
+    const leg = legFor(t, chatId);
+    if (!leg) continue;
+
     const debtor = Number(t.debtorId);
     const creditor = Number(t.creditorId);
-    const isSource = Number(t.sourceChatId) === chatId;
     const isTarget = Number(t.targetChatId) === chatId;
-    if (!isSource && !isTarget) continue;
 
     if (debtor === b && creditor === a) {
       transferNet = isTarget
-        ? transferNet.plus(t.amount)
-        : transferNet.minus(t.amount);
+        ? transferNet.plus(leg.amount)
+        : transferNet.minus(leg.amount);
     } else if (debtor === a && creditor === b) {
       transferNet = isTarget
-        ? transferNet.minus(t.amount)
-        : transferNet.plus(t.amount);
+        ? transferNet.minus(leg.amount)
+        : transferNet.plus(leg.amount);
     }
   }
 
