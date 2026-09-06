@@ -70,6 +70,10 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
       trpcUtils.chat.getDebtorsMultiCurrency.invalidate({ userId, chatId });
       trpcUtils.chat.getCreditorsMultiCurrency.invalidate({ userId, chatId });
       trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({ chatId });
+      // Conversion now also rewrites this chat's own transfer legs — without
+      // this, a transfer row on the Transactions tab keeps showing the
+      // pre-conversion amount/currency until a manual refresh.
+      trpcUtils.debtTransfer.getAllByChat.invalidate();
       hapticFeedback.notificationOccurred("success");
       const parts = [
         result.convertedExpenses > 0 && `${result.convertedExpenses} expenses`,

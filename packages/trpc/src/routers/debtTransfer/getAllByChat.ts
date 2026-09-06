@@ -36,7 +36,7 @@ export const getAllByChatHandler = async (
     },
   });
 
-  return rows.map((t) => {
+  return rows.flatMap((t) => {
     // Direction is relative to the chat being viewed: "out" when this chat
     // is the source (debt removed here), "in" when it is the target.
     const isSource = Number(t.sourceChatId) === input.chatId;
@@ -46,26 +46,32 @@ export const getAllByChatHandler = async (
       ? t.targetChat.title
       : t.sourceChat.title;
     const leg = legFor(t, input.chatId);
+    // The `where` above guarantees this chat is one of the two legs, so leg
+    // should never be null in practice. If that guarantee is ever loosened,
+    // drop the row rather than invent an amount/currency for it.
+    if (!leg) return [];
 
-    return {
-      id: t.id,
-      date: t.date,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-      debtorId: Number(t.debtorId),
-      creditorId: Number(t.creditorId),
-      creatorId: Number(t.creatorId),
-      sourceChatId: Number(t.sourceChatId),
-      targetChatId: Number(t.targetChatId),
-      amount: Number(leg?.amount ?? 0),
-      currency: leg?.currency ?? "SGD",
-      description: t.description,
-      direction,
-      counterpartChatId: Number(counterpartChatId),
-      counterpartChatTitle,
-      sourceChatTitle: t.sourceChat.title,
-      targetChatTitle: t.targetChat.title,
-    };
+    return [
+      {
+        id: t.id,
+        date: t.date,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        debtorId: Number(t.debtorId),
+        creditorId: Number(t.creditorId),
+        creatorId: Number(t.creatorId),
+        sourceChatId: Number(t.sourceChatId),
+        targetChatId: Number(t.targetChatId),
+        amount: Number(leg.amount),
+        currency: leg.currency,
+        description: t.description,
+        direction,
+        counterpartChatId: Number(counterpartChatId),
+        counterpartChatTitle,
+        sourceChatTitle: t.sourceChat.title,
+        targetChatTitle: t.targetChat.title,
+      },
+    ];
   });
 };
 

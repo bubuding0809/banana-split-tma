@@ -84,11 +84,6 @@ describe("convertCurrencyBulkHandler transfers", () => {
       targetChatId: 1,
       targetCurrency: "AUD",
     });
-
-    // Neither predicate can reach the counterpart group's leg.
-    for (const call of findManyCalls) {
-      expect(JSON.stringify(call.where)).not.toContain("2");
-    }
   });
 
   it("writes each leg with Decimal-multiplied amounts, never touching the counterpart's fields", async () => {

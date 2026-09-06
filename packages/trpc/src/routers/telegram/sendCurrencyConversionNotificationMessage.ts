@@ -83,15 +83,24 @@ export const sendCurrencyConversionNotificationMessageHandler = async (
     input.convertedSettlements === 1
       ? `${input.convertedSettlements} settlement`
       : `${input.convertedSettlements} settlements`;
-  const breakdownParts = [expensesLine, settlementsLine];
-  if (input.convertedTransfers > 0) {
-    breakdownParts.push(
-      input.convertedTransfers === 1
-        ? `${input.convertedTransfers} transfer`
-        : `${input.convertedTransfers} transfers`
-    );
-  }
-  const breakdown = escapeMarkdown(breakdownParts.join(", "), 2);
+  const transfersLine =
+    input.convertedTransfers === 1
+      ? `${input.convertedTransfers} transfer`
+      : `${input.convertedTransfers} transfers`;
+  // Only mention segments that actually changed — mirrors the TMA snackbar
+  // (ConvertCurrenciesCell.tsx). Before per-leg transfers existed, expenses
+  // and settlements were always shown because the handler never fired
+  // unless one of them was non-zero; a transfers-only conversion now makes
+  // that zero-zero case reachable, so it must be filtered here too.
+  const breakdownParts = [
+    input.convertedExpenses > 0 && expensesLine,
+    input.convertedSettlements > 0 && settlementsLine,
+    input.convertedTransfers > 0 && transfersLine,
+  ].filter((part): part is string => Boolean(part));
+  const breakdown = escapeMarkdown(
+    breakdownParts.length > 0 ? breakdownParts.join(", ") : "nothing converted",
+    2
+  );
 
   const message =
     `💱 *Currency converted*\n\n` +
