@@ -10,8 +10,10 @@ const row = {
   debtorId: 2n,
   creditorId: 1n,
   creatorId: 1n,
-  amount: new Decimal(71.79),
-  currency: "SGD",
+  sourceAmount: new Decimal(71.79),
+  sourceCurrency: "SGD",
+  targetAmount: new Decimal(71.79),
+  targetCurrency: "SGD",
   description: null,
   sourceChat: { title: "Ho Chi Minh 2026" },
   targetChat: { title: "LADS 2026" },
@@ -46,5 +48,38 @@ describe("getAllByChatHandler", () => {
     expect(t.direction).toBe("in");
     expect(t.counterpartChatId).toBe(100);
     expect(t.counterpartChatTitle).toBe("Ho Chi Minh 2026");
+  });
+
+  it("returns the viewing chat's leg amount and currency", async () => {
+    const mockDb = makeDb([
+      {
+        id: "t1",
+        date: new Date("2026-09-07"),
+        createdAt: new Date("2026-09-07"),
+        updatedAt: new Date("2026-09-07"),
+        debtorId: BigInt(200),
+        creditorId: BigInt(100),
+        creatorId: BigInt(100),
+        sourceChatId: BigInt(1),
+        targetChatId: BigInt(2),
+        sourceAmount: new Decimal(50),
+        sourceCurrency: "AUD",
+        targetAmount: new Decimal(44),
+        targetCurrency: "SGD",
+        description: null,
+        sourceChat: { title: "Trip" },
+        targetChat: { title: "Flat" },
+      },
+    ]);
+
+    const asTarget = await getAllByChatHandler({ chatId: 2 }, mockDb);
+    expect(asTarget[0]!.amount).toBe(44);
+    expect(asTarget[0]!.currency).toBe("SGD");
+    expect(asTarget[0]!.direction).toBe("in");
+
+    const asSource = await getAllByChatHandler({ chatId: 1 }, mockDb);
+    expect(asSource[0]!.amount).toBe(50);
+    expect(asSource[0]!.currency).toBe("AUD");
+    expect(asSource[0]!.direction).toBe("out");
   });
 });

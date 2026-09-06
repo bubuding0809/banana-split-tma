@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
+import { legFor } from "../../utils/transferLegs.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -25,8 +26,10 @@ export const getAllByChatHandler = async (
       creatorId: true,
       sourceChatId: true,
       targetChatId: true,
-      amount: true,
-      currency: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
       description: true,
       sourceChat: { select: { title: true } },
       targetChat: { select: { title: true } },
@@ -42,6 +45,7 @@ export const getAllByChatHandler = async (
     const counterpartChatTitle = isSource
       ? t.targetChat.title
       : t.sourceChat.title;
+    const leg = legFor(t, input.chatId);
 
     return {
       id: t.id,
@@ -53,8 +57,8 @@ export const getAllByChatHandler = async (
       creatorId: Number(t.creatorId),
       sourceChatId: Number(t.sourceChatId),
       targetChatId: Number(t.targetChatId),
-      amount: Number(t.amount),
-      currency: t.currency,
+      amount: Number(leg?.amount ?? 0),
+      currency: leg?.currency ?? "SGD",
       description: t.description,
       direction,
       counterpartChatId: Number(counterpartChatId),
