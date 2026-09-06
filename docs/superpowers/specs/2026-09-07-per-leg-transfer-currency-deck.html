@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Per-Leg Currency for Debt Transfers — Design</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+  .reveal { font-size: 30px; }
+  .reveal h1 { font-size: 1.6em; }
+  .reveal h2 { font-size: 1.15em; }
+  .reveal pre code { font-size: 0.72em; line-height: 1.35; border-radius: 8px; }
+  .pill { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 0.6em; font-weight: 600; vertical-align: middle; }
+  .pill.ok { background: #1d3b28; color: #6fdc8c; }
+  .pill.bad { background: #4a1d1d; color: #ff8389; }
+  .pill.warn { background: #4a3a1d; color: #f1c21b; }
+  .pill.note { background: #1d2f4a; color: #78a9ff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: #1e1e24; border: 1px solid #333; border-radius: 10px; padding: 16px 20px; font-size: 0.7em; }
+  .box h3 { font-size: 1.1em; margin: 0 0 8px; color: #78a9ff; }
+  .hl { background: #26261a; border-left: 4px solid #f1c21b; border-radius: 6px; padding: 12px 18px; font-size: 0.75em; text-align: left; }
+  .reveal table { font-size: 0.65em; }
+  .reveal table th { background: #26262e; }
+  .reveal table tr:nth-child(even) { background: #1b1b21; }
+  .small { font-size: 0.7em; }
+  .muted { color: #999; }
+  .strike { text-decoration: line-through; color: #ff8389; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <h1>Per-Leg Currency<br/>for Debt Transfers</h1>
+  <p class="small muted">Design spec · 2026-09-07 · banana-split-tma</p>
+  <p><span class="pill ok">approved design</span> <span class="pill warn">schema change</span> <span class="pill note">money path</span></p>
+</section>
+
+<section>
+  <h2>Problem</h2>
+  <p class="small">One <code>DebtTransfer</code> row holds <strong>one amount, one currency</strong> — shared by both groups. Debit in the source chat, credit in the target chat.</p>
+  <div class="hl">Change the currency and <strong>both groups change at once</strong>. Convert AUD→SGD in the destination and the source group silently becomes SGD too.</div>
+</section>
+
+<section>
+  <h2>What that costs today</h2>
+  <p class="small">Conversion dodges the problem by skipping transfers entirely.</p>
+  <div class="grid2">
+    <div class="box"><h3>Transfer-only currency</h3>
+      Convert it → <strong>0 rows change</strong>. Success haptic fires anyway. Balance still sits there.</div>
+    <div class="box"><h3>Mixed currency</h3>
+      Expenses convert, the transfer doesn't. Group looks <strong>half-converted</strong>, no explanation.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Goal</h2>
+  <p>Each group holds its own denomination.</p>
+  <div class="hl">Converting a group rewrites <strong>that group's side and nothing else</strong>.</div>
+  <p class="small muted">Non-goals: rate history · undo · destination-currency choice at move time · snapshot rendering · n-way transfers</p>
+</section>
+
+<section>
+  <h2>Approaches</h2>
+  <div class="grid2">
+    <div class="box"><h3>A · Per-leg columns <span class="pill ok">chosen</span></h3>
+      Four columns on <code>DebtTransfer</code>. Sign logic already branches on <code>chatId</code> — the leg picker lands in the same place. Single-table reads.</div>
+    <div class="box"><h3>B · <code>TransferLeg</code> table <span class="pill bad">rejected</span></h3>
+      Join on every balance read; reshapes all six readers. Buys n-way transfers, which we don't want.</div>
+    <div class="box"><h3>C · Read-time overlay <span class="pill bad">rejected</span></h3>
+      No stored legs, convert for display. Balances would drift daily; conversion stops being durable.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Data model</h2>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Note</th></tr>
+    <tr><td><code>sourceAmount</code></td><td>Decimal(12,2)</td><td>leaves the source chat</td></tr>
+    <tr><td><code>sourceCurrency</code></td><td>String</td><td></td></tr>
+    <tr><td><code>targetAmount</code></td><td>Decimal(12,2)</td><td>arrives in the target chat</td></tr>
+    <tr><td><code>targetCurrency</code></td><td>String</td><td></td></tr>
+    <tr><td class="strike">amount</td><td colspan="2">dropped</td></tr>
+    <tr><td class="strike">currency</td><td colspan="2">dropped</td></tr>
+  </table>
+  <p class="small">Legs equal at creation. They diverge <strong>only</strong> via conversion.</p>
+</section>
+
+<section>
+  <h2>Why drop, not mirror</h2>
+  <div class="hl">Any reader still expecting a single amount <strong>fails to compile</strong> instead of silently picking a leg.</div>
+  <p class="small muted">The typechecker finds the stragglers, not production.</p>
+</section>
+
+<section>
+  <h2>Migration <span class="pill warn">downtime accepted</span></h2>
+  <p class="small">One migration, one PR.</p>
+  <pre><code>1. add 4 columns nullable
+2. backfill: amount → both legs, currency → both legs
+3. set NOT NULL
+4. drop amount, currency</code></pre>
+  <p class="small">Backfill is exact — no historical rate lookups. <code>deploy.yml</code> migrates before deploying, so old code errors briefly.</p>
+</section>
+
+<section>
+  <h2>Balance engine</h2>
+  <p class="small">Every entry point already takes a <code>chatId</code> to pick the sign. Now it picks the leg too.</p>
+  <pre><code class="language-ts">legFor(transfer, chatId) // → { amount, currency }
+// source leg when chatId === sourceChatId, target leg otherwise</code></pre>
+  <p class="small">Discovery · bucketing · pair queries all become leg-scoped. <code>deleteTransfer</code> unchanged.</p>
+</section>
+
+<section>
+  <h2>A latent bug, closed</h2>
+  <p class="small">Today's predicate matches one currency against a transfer touching the chat <em>either way</em>.</p>
+  <div class="hl">Once legs can differ, that question has <strong>no single answer</strong>. Leg-scoped predicates make it well-formed.</div>
+</section>
+
+<section>
+  <h2>Conversion</h2>
+  <pre><code>source legs: sourceChatId = chatId AND sourceCurrency = from
+             → sourceAmount × rate, sourceCurrency = to
+
+target legs: targetChatId = chatId AND targetCurrency = from
+             → targetAmount × rate, targetCurrency = to</code></pre>
+  <p class="small">The counterpart's leg <strong>never enters the predicate</strong>. Same rate, same transaction as expenses and settlements.</p>
+</section>
+
+<section>
+  <h2>UI fallout</h2>
+  <div class="grid2">
+    <div class="box"><h3>Counts</h3><code>convertedTransfers</code> added; Telegram notice reports it. Only the converting group is told.</div>
+    <div class="box"><h3>Copy</h3>Confirm text names transfers.</div>
+    <div class="box"><h3>Cleanup</h3><code>confirm()</code>/<code>alert()</code> → <code>popup.open</code> + <code>Snackbar</code>, matching the rest of the TMA.</div>
+    <div class="box"><h3>Honesty</h3>Success signal stops firing over a no-op.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Surfaces</h2>
+  <p class="small">Creation unchanged — one amount, one currency, both legs equal. <code>MoveDebtSheet</code> untouched.</p>
+  <table>
+    <tr><th>Surface</th><th>Change</th></tr>
+    <tr><td><code>getAllByChat</code></td><td>returns the requesting chat's leg; cells/modal keep field names</td></tr>
+    <tr><td>Cross-group views</td><td>already per-chat — free</td></tr>
+    <tr><td>Telegram notice</td><td>renders identically; legs equal at creation</td></tr>
+    <tr><td>CLI <code>list-transfers</code></td><td>leg for the listed chat + version bump, SKILL.md, CHANGELOG</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <div class="grid2">
+    <div class="box"><h3>Unit</h3><code>legFor</code> selection · diverged-leg balances · discovery reports own leg · conversion touches one side only</div>
+    <div class="box"><h3>UAT</h3>Move · convert source · convert target to a third currency · delete diverged · settle from each side</div>
+  </div>
+</section>
+
+<section>
+  <h2>Risks</h2>
+  <table>
+    <tr><td><span class="pill warn">accepted</span></td><td>Downtime while migrate runs ahead of deploy</td></tr>
+    <tr><td><span class="pill bad">watch</span></td><td>Rollback needs a down migration — a revert won't restore dropped columns</td></tr>
+    <tr><td><span class="pill note">by design</span></td><td>Two groups can legitimately disagree on the nominal figure</td></tr>
+  </table>
+</section>
+
+<section>
+  <h1>Next</h1>
+  <p class="small">Implementation plan → subagent-driven development</p>
+  <p class="small muted">docs/superpowers/specs/2026-09-07-per-leg-transfer-currency-design.md</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({ hash: true, width: 960, height: 720, margin: 0.06, plugins: [ RevealHighlight ] });
+</script>
+</body>
+</html>
