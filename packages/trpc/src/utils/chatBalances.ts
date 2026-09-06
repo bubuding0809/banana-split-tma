@@ -1,5 +1,6 @@
 import { Decimal } from "decimal.js";
 import { toNumber, sumAmounts } from "./financial.js";
+import { legFor } from "./transferLegs.js";
 
 export interface PairwiseDebt {
   debtorId: number;
@@ -28,7 +29,10 @@ export interface TransferRow {
   targetChatId: bigint;
   debtorId: bigint;
   creditorId: bigint;
-  amount: Decimal;
+  sourceAmount: Decimal;
+  sourceCurrency: string;
+  targetAmount: Decimal;
+  targetCurrency: string;
 }
 
 /**
@@ -85,30 +89,33 @@ export function buildUserBalanceMap(
   }
 
   for (const t of transfers) {
+    if (chatId === undefined) continue;
+    const leg = legFor(t, chatId);
+    if (!leg) continue;
+
     const debtor = Number(t.debtorId);
     const creditor = Number(t.creditorId);
     const isSource = Number(t.sourceChatId) === chatId;
-    const isTarget = Number(t.targetChatId) === chatId;
 
     if (isSource) {
       // Source: debt is cleared (settlement-like)
       balance.set(
         debtor,
-        (balance.get(debtor) ?? new Decimal(0)).plus(t.amount)
+        (balance.get(debtor) ?? new Decimal(0)).plus(leg.amount)
       );
       balance.set(
         creditor,
-        (balance.get(creditor) ?? new Decimal(0)).minus(t.amount)
+        (balance.get(creditor) ?? new Decimal(0)).minus(leg.amount)
       );
-    } else if (isTarget) {
+    } else {
       // Target: debt is added (expense-like)
       balance.set(
         debtor,
-        (balance.get(debtor) ?? new Decimal(0)).minus(t.amount)
+        (balance.get(debtor) ?? new Decimal(0)).minus(leg.amount)
       );
       balance.set(
         creditor,
-        (balance.get(creditor) ?? new Decimal(0)).plus(t.amount)
+        (balance.get(creditor) ?? new Decimal(0)).plus(leg.amount)
       );
     }
   }
