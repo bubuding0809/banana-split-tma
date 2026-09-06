@@ -3,6 +3,7 @@ import { Decimal } from "decimal.js";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { toNumber, sumAmounts } from "../../utils/financial.js";
+import { legFor } from "../../utils/transferLegs.js";
 
 const inputSchema = z.object({
   mainUserId: z.number(),
@@ -79,17 +80,22 @@ export const getNetShareHandler = async (
   // Source clears a debt (settlement-like); target adds one (expense-like).
   const transfers = await db.debtTransfer.findMany({
     where: {
-      currency: input.currency,
       debtorId: { in: [input.mainUserId, input.targetUserId] },
       creditorId: { in: [input.mainUserId, input.targetUserId] },
-      OR: [{ sourceChatId: input.chatId }, { targetChatId: input.chatId }],
+      OR: [
+        { sourceChatId: input.chatId, sourceCurrency: input.currency },
+        { targetChatId: input.chatId, targetCurrency: input.currency },
+      ],
     },
     select: {
       sourceChatId: true,
       targetChatId: true,
       debtorId: true,
       creditorId: true,
-      amount: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
     },
   });
 
@@ -97,20 +103,21 @@ export const getNetShareHandler = async (
   // convention in chatBalances so simplified debts stay consistent.
   let transferNet = new Decimal(0);
   for (const t of transfers) {
+    const leg = legFor(t, input.chatId);
+    if (!leg) continue;
+
     const debtor = Number(t.debtorId);
     const creditor = Number(t.creditorId);
-    const isSource = Number(t.sourceChatId) === input.chatId;
     const isTarget = Number(t.targetChatId) === input.chatId;
-    if (!isSource && !isTarget) continue;
 
     if (debtor === input.targetUserId && creditor === input.mainUserId) {
       transferNet = isTarget
-        ? transferNet.plus(t.amount)
-        : transferNet.minus(t.amount);
+        ? transferNet.plus(leg.amount)
+        : transferNet.minus(leg.amount);
     } else if (debtor === input.mainUserId && creditor === input.targetUserId) {
       transferNet = isTarget
-        ? transferNet.minus(t.amount)
-        : transferNet.plus(t.amount);
+        ? transferNet.minus(leg.amount)
+        : transferNet.plus(leg.amount);
     }
   }
 

@@ -102,17 +102,22 @@ const computePairwiseOwed = async (
 
   const transfers = await db.debtTransfer.findMany({
     where: {
-      currency,
       debtorId: { in: pair },
       creditorId: { in: pair },
-      OR: [{ sourceChatId: chatId }, { targetChatId: chatId }],
+      OR: [
+        { sourceChatId: chatId, sourceCurrency: currency },
+        { targetChatId: chatId, targetCurrency: currency },
+      ],
     },
     select: {
       sourceChatId: true,
       targetChatId: true,
       debtorId: true,
       creditorId: true,
-      amount: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
     },
   });
 
