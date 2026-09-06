@@ -26,6 +26,7 @@ export const inputSchema = z.object({
 export const outputSchema = z.object({
   convertedExpenses: z.number(),
   convertedSettlements: z.number(),
+  convertedTransfers: z.number(),
   totalExpensesAmount: z.number(),
   totalSettlementsAmount: z.number(),
 });
@@ -63,6 +64,7 @@ export const convertCurrencyBulkHandler = async (
       return {
         convertedExpenses: 0,
         convertedSettlements: 0,
+        convertedTransfers: 0,
         totalExpensesAmount: 0,
         totalSettlementsAmount: 0,
       };
@@ -103,6 +105,7 @@ export const convertCurrencyBulkHandler = async (
 
     let totalExpensesAmount = 0;
     let totalSettlementsAmount = 0;
+    let convertedTransfers = 0;
 
     // Perform conversion in a transaction
     await db.$transaction(
@@ -161,6 +164,28 @@ export const convertCurrencyBulkHandler = async (
             },
           });
         }
+
+        // Convert only this chat's own transfer legs. The counterpart
+        // group's leg is never in either predicate, so converting here
+        // cannot re-denominate a debt the other group is holding.
+        const convertedSourceLegs = await tx.debtTransfer.updateMany({
+          where: { sourceChatId: chatId, sourceCurrency: fromCurrency },
+          data: {
+            sourceAmount: { multiply: rate.toNumber() },
+            sourceCurrency: toCurrency,
+          },
+        });
+
+        const convertedTargetLegs = await tx.debtTransfer.updateMany({
+          where: { targetChatId: chatId, targetCurrency: fromCurrency },
+          data: {
+            targetAmount: { multiply: rate.toNumber() },
+            targetCurrency: toCurrency,
+          },
+        });
+
+        convertedTransfers =
+          convertedSourceLegs.count + convertedTargetLegs.count;
       },
       { timeout: 15000 }
     );
@@ -170,7 +195,9 @@ export const convertCurrencyBulkHandler = async (
     if (
       input.sendNotification &&
       input.actorName &&
-      (expensesToConvert.length > 0 || settlementsToConvert.length > 0)
+      (expensesToConvert.length > 0 ||
+        settlementsToConvert.length > 0 ||
+        convertedTransfers > 0)
     ) {
       try {
         await sendCurrencyConversionNotificationMessageHandler(
@@ -184,6 +211,7 @@ export const convertCurrencyBulkHandler = async (
             rate: toNumber(rate),
             convertedExpenses: expensesToConvert.length,
             convertedSettlements: settlementsToConvert.length,
+            convertedTransfers,
             threadId: input.threadId,
             force: false,
           },
@@ -204,6 +232,7 @@ export const convertCurrencyBulkHandler = async (
     return {
       convertedExpenses: expensesToConvert.length,
       convertedSettlements: settlementsToConvert.length,
+      convertedTransfers,
       totalExpensesAmount,
       totalSettlementsAmount,
     };
