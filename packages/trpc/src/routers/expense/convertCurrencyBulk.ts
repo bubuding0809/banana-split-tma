@@ -167,25 +167,51 @@ export const convertCurrencyBulkHandler = async (
 
         // Convert only this chat's own transfer legs. The counterpart
         // group's leg is never in either predicate, so converting here
-        // cannot re-denominate a debt the other group is holding.
-        const convertedSourceLegs = await tx.debtTransfer.updateMany({
+        // cannot re-denominate a debt the other group is holding. Read
+        // then multiply with Decimal (mirroring the settlement loop
+        // above) rather than Prisma's atomic `multiply`, so this leg's
+        // arithmetic uses the exact same rounding path as every other
+        // amount in this handler.
+        const sourceLegsToConvert = await tx.debtTransfer.findMany({
           where: { sourceChatId: chatId, sourceCurrency: fromCurrency },
-          data: {
-            sourceAmount: { multiply: rate.toNumber() },
-            sourceCurrency: toCurrency,
-          },
+          select: { id: true, sourceAmount: true },
         });
 
-        const convertedTargetLegs = await tx.debtTransfer.updateMany({
+        for (const leg of sourceLegsToConvert) {
+          const convertedSourceAmount = new Decimal(
+            leg.sourceAmount.toString()
+          ).mul(rate);
+
+          await tx.debtTransfer.update({
+            where: { id: leg.id },
+            data: {
+              sourceAmount: convertedSourceAmount,
+              sourceCurrency: toCurrency,
+            },
+          });
+        }
+
+        const targetLegsToConvert = await tx.debtTransfer.findMany({
           where: { targetChatId: chatId, targetCurrency: fromCurrency },
-          data: {
-            targetAmount: { multiply: rate.toNumber() },
-            targetCurrency: toCurrency,
-          },
+          select: { id: true, targetAmount: true },
         });
+
+        for (const leg of targetLegsToConvert) {
+          const convertedTargetAmount = new Decimal(
+            leg.targetAmount.toString()
+          ).mul(rate);
+
+          await tx.debtTransfer.update({
+            where: { id: leg.id },
+            data: {
+              targetAmount: convertedTargetAmount,
+              targetCurrency: toCurrency,
+            },
+          });
+        }
 
         convertedTransfers =
-          convertedSourceLegs.count + convertedTargetLegs.count;
+          sourceLegsToConvert.length + targetLegsToConvert.length;
       },
       { timeout: 15000 }
     );
