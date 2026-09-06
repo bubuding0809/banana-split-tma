@@ -112,8 +112,10 @@ describe("createTransferHandler", () => {
     expect(result.creatorId).toBe(1);
     expect(result.sourceChatId).toBe(100);
     expect(result.targetChatId).toBe(200);
-    expect(result.amount).toBe(50);
-    expect(result.currency).toBe("SGD");
+    expect(result.sourceAmount).toBe(50);
+    expect(result.sourceCurrency).toBe("SGD");
+    expect(result.targetAmount).toBe(50);
+    expect(result.targetCurrency).toBe("SGD");
   });
 
   it("rejects when the debtor does not owe enough in the source chat", async () => {
@@ -229,5 +231,41 @@ describe("createTransferHandler", () => {
     await createTransferHandler(baseInput({ amount: 50 }), db, silentLog);
 
     expect(calls).toEqual(["lock", "read", "create"]);
+  });
+
+  it("writes both legs with the requested amount and currency", async () => {
+    const members = [{ id: BigInt(100) }, { id: BigInt(200) }];
+    const db = makeDb({
+      membersByChat: { "1": members, "2": members },
+      // Debtor 200 owes creditor 100 AUD 50 in chat 1, so the solvency
+      // check passes for a 50 AUD transfer.
+      shares: [
+        {
+          userId: BigInt(200),
+          amount: new Decimal(50),
+          expense: { payerId: BigInt(100), currency: "AUD" },
+        },
+      ],
+    });
+
+    const out = await createTransferHandler(
+      {
+        creatorId: BigInt(100),
+        debtorId: BigInt(200),
+        creditorId: BigInt(100),
+        amount: 50,
+        currency: "AUD",
+        sourceChatId: BigInt(1),
+        targetChatId: BigInt(2),
+      } as CreateTransferInput,
+      db as never
+    );
+
+    expect(out.sourceAmount).toBe(50);
+    expect(out.targetAmount).toBe(50);
+    expect(out.sourceCurrency).toBe("AUD");
+    expect(out.targetCurrency).toBe("AUD");
+    expect(out).not.toHaveProperty("amount");
+    expect(out).not.toHaveProperty("currency");
   });
 });
