@@ -8,6 +8,7 @@ import {
 } from "../../utils/chatBalances.js";
 import { simplifyDebts } from "../../utils/debtSimplification.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
+import { legFor } from "../../utils/transferLegs.js";
 
 const outputSchema = z.object({
   balances: z.array(
@@ -91,8 +92,10 @@ export async function getMyBalancesAcrossChatsHandler(
       targetChatId: true,
       debtorId: true,
       creditorId: true,
-      amount: true,
-      currency: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
     },
   });
 
@@ -150,9 +153,11 @@ export async function getMyBalancesAcrossChatsHandler(
     }
     const transfersByCurrency = new Map<string, typeof chatTransfers>();
     for (const t of chatTransfers) {
-      if (!transfersByCurrency.has(t.currency))
-        transfersByCurrency.set(t.currency, []);
-      transfersByCurrency.get(t.currency)!.push(t);
+      const leg = legFor(t, chatIdNum);
+      if (!leg) continue;
+      if (!transfersByCurrency.has(leg.currency))
+        transfersByCurrency.set(leg.currency, []);
+      transfersByCurrency.get(leg.currency)!.push(t);
     }
 
     const allCurrencies = new Set([

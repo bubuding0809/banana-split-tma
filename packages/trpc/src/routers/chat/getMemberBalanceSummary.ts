@@ -3,6 +3,7 @@ import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { buildUserBalanceMap } from "../../utils/chatBalances.js";
 import { FINANCIAL_THRESHOLDS } from "../../utils/financial.js";
+import { legFor } from "../../utils/transferLegs.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -60,8 +61,10 @@ export const getMemberBalanceSummaryHandler = async (
         targetChatId: true,
         debtorId: true,
         creditorId: true,
-        amount: true,
-        currency: true,
+        sourceAmount: true,
+        sourceCurrency: true,
+        targetAmount: true,
+        targetCurrency: true,
       },
     }),
   ]);
@@ -80,9 +83,11 @@ export const getMemberBalanceSummaryHandler = async (
   }
   const transfersByCurrency = new Map<string, typeof transfers>();
   for (const t of transfers) {
-    if (!transfersByCurrency.has(t.currency))
-      transfersByCurrency.set(t.currency, []);
-    transfersByCurrency.get(t.currency)!.push(t);
+    const leg = legFor(t, input.chatId);
+    if (!leg) continue;
+    if (!transfersByCurrency.has(leg.currency))
+      transfersByCurrency.set(leg.currency, []);
+    transfersByCurrency.get(leg.currency)!.push(t);
   }
 
   const allCurrencies = new Set<string>([

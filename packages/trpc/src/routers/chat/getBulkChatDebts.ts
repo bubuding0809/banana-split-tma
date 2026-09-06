@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { computeChatPairwiseBalances } from "../../utils/chatBalances.js";
+import { legFor } from "../../utils/transferLegs.js";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -66,18 +67,30 @@ export const getBulkChatDebtsHandler = async (
   });
 
   // Native cross-group transfers touching this chat (as source or target).
+  // The currency filter applies to whichever leg belongs to THIS chat, not
+  // the counterpart's leg.
   const transfers = await db.debtTransfer.findMany({
     where: {
-      ...(currencyFilter && { currency: currencyFilter }),
-      OR: [{ sourceChatId: chatId }, { targetChatId: chatId }],
+      OR: [
+        {
+          sourceChatId: chatId,
+          ...(currencyFilter && { sourceCurrency: currencyFilter }),
+        },
+        {
+          targetChatId: chatId,
+          ...(currencyFilter && { targetCurrency: currencyFilter }),
+        },
+      ],
     },
     select: {
       sourceChatId: true,
       targetChatId: true,
       debtorId: true,
       creditorId: true,
-      amount: true,
-      currency: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
     },
   });
 
@@ -97,9 +110,11 @@ export const getBulkChatDebtsHandler = async (
 
   const transfersByCurrency = new Map<string, typeof transfers>();
   for (const t of transfers) {
-    if (!transfersByCurrency.has(t.currency))
-      transfersByCurrency.set(t.currency, []);
-    transfersByCurrency.get(t.currency)!.push(t);
+    const leg = legFor(t, chatId);
+    if (!leg) continue;
+    if (!transfersByCurrency.has(leg.currency))
+      transfersByCurrency.set(leg.currency, []);
+    transfersByCurrency.get(leg.currency)!.push(t);
   }
 
   const debts: BulkDebtResult[] = [];
