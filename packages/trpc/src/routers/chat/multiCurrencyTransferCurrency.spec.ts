@@ -15,8 +15,10 @@ type TransferRow = {
   targetChatId: number;
   debtorId: number;
   creditorId: number;
-  amount: number;
-  currency: string;
+  sourceAmount: number;
+  sourceCurrency: string;
+  targetAmount: number;
+  targetCurrency: string;
 };
 
 const mockDb = {
@@ -45,19 +47,86 @@ function setup(transfers: TransferRow[]) {
   (mockDb.settlement.findMany as any).mockResolvedValue([]);
   (mockDb.expenseShare.findMany as any).mockResolvedValue([]);
 
-  // Honour the currency filter so per-currency queries behave like Prisma.
+  // The handlers under test call `debtTransfer.findMany` in two distinct
+  // shapes now that transfers carry two legs:
+  //
+  //   1. Discovery: `where: { sourceChatId }` / `where: { targetChatId }`
+  //      with a `distinct` select on the matching leg's currency column.
+  //   2. Pair queries from `getNetShareHandler`: `where: { debtorId: { in },
+  //      creditorId: { in }, OR: [{ sourceChatId, sourceCurrency }, {
+  //      targetChatId, targetCurrency }] }`.
+  //
+  // Branch on the shape of `where` so each is answered faithfully instead of
+  // just echoing back every fixture regardless of filter.
   (mockDb.debtTransfer.findMany as any).mockImplementation(
     async (args: any) => {
-      const currency = args?.where?.currency;
+      const where = args?.where ?? {};
+
+      // Discovery: source-leg currencies for a given source chat.
+      if (where.sourceChatId !== undefined && where.OR === undefined) {
+        const sourceChatId = where.sourceChatId;
+        const currencies = [
+          ...new Set(
+            transfers
+              .filter((t) => t.sourceChatId === sourceChatId)
+              .map((t) => t.sourceCurrency)
+          ),
+        ];
+        return currencies.map((sourceCurrency) => ({ sourceCurrency }));
+      }
+
+      // Discovery: target-leg currencies for a given target chat.
+      if (where.targetChatId !== undefined && where.OR === undefined) {
+        const targetChatId = where.targetChatId;
+        const currencies = [
+          ...new Set(
+            transfers
+              .filter((t) => t.targetChatId === targetChatId)
+              .map((t) => t.targetCurrency)
+          ),
+        ];
+        return currencies.map((targetCurrency) => ({ targetCurrency }));
+      }
+
+      // Pair query from getNetShareHandler: debtor/creditor scoped, OR'd on
+      // source-leg vs target-leg chat+currency.
+      const debtorIds: number[] = where.debtorId?.in ?? [];
+      const creditorIds: number[] = where.creditorId?.in ?? [];
+      const or: any[] = where.OR ?? [];
+
       return transfers
-        .filter((t) => !currency || t.currency === currency)
+        .filter((t) => {
+          if (
+            !debtorIds.includes(t.debtorId) ||
+            !creditorIds.includes(t.creditorId)
+          ) {
+            return false;
+          }
+          return or.some((clause) => {
+            if (clause.sourceChatId !== undefined) {
+              return (
+                t.sourceChatId === clause.sourceChatId &&
+                t.sourceCurrency === clause.sourceCurrency
+              );
+            }
+            if (clause.targetChatId !== undefined) {
+              return (
+                t.targetChatId === clause.targetChatId &&
+                t.targetCurrency === clause.targetCurrency
+              );
+            }
+            return false;
+          });
+        })
         .map((t) => ({
           sourceChatId: BigInt(t.sourceChatId),
           targetChatId: BigInt(t.targetChatId),
           debtorId: BigInt(t.debtorId),
           creditorId: BigInt(t.creditorId),
-          amount: new Decimal(t.amount),
-          currency: t.currency,
+          sourceAmount: new Decimal(t.sourceAmount),
+          sourceCurrency: t.sourceCurrency,
+          targetAmount: new Decimal(t.targetAmount),
+          targetCurrency: t.targetCurrency,
         }));
     }
   );
@@ -75,8 +144,10 @@ describe("multi-currency balances with transfer-only currencies", () => {
         targetChatId: CHAT_ID,
         debtorId: OTHER,
         creditorId: ME,
-        amount: 50,
-        currency: "USD",
+        sourceAmount: 50,
+        sourceCurrency: "USD",
+        targetAmount: 50,
+        targetCurrency: "USD",
       },
     ]);
 
@@ -97,8 +168,10 @@ describe("multi-currency balances with transfer-only currencies", () => {
         targetChatId: CHAT_ID,
         debtorId: ME,
         creditorId: OTHER,
-        amount: 50,
-        currency: "USD",
+        sourceAmount: 50,
+        sourceCurrency: "USD",
+        targetAmount: 50,
+        targetCurrency: "USD",
       },
     ]);
 
@@ -122,5 +195,30 @@ describe("multi-currency balances with transfer-only currencies", () => {
     );
 
     expect(debtors).toEqual([]);
+  });
+
+  it("reports the chat's own leg currency, not the counterpart's", async () => {
+    // Chat 1 is the TARGET of a transfer whose source leg is AUD and whose
+    // target leg has already been converted to USD.
+    setup([
+      {
+        sourceChatId: 2,
+        targetChatId: CHAT_ID,
+        debtorId: OTHER,
+        creditorId: ME,
+        sourceAmount: 50,
+        sourceCurrency: "AUD",
+        targetAmount: 33,
+        targetCurrency: "USD",
+      },
+    ]);
+
+    const debtors = await getDebtorsMultiCurrencyHandler(
+      { userId: ME, chatId: CHAT_ID },
+      mockDb
+    );
+
+    expect(debtors).toHaveLength(1);
+    expect(debtors[0]!.balances).toEqual([{ currency: "USD", amount: 33 }]);
   });
 });

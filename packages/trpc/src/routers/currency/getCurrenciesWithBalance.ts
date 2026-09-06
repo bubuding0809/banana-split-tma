@@ -42,36 +42,41 @@ export const getCurrenciesWithBalanceHandler = async (
     // Get all unique currencies used in this chat from expenses, settlements
     // and native transfers (a currency may appear only via a cross-group
     // transfer touching this chat).
-    const [expenseCurrencies, settlementCurrencies, transferCurrencies] =
-      await Promise.all([
-        db.expense.findMany({
-          where: { chatId: input.chatId },
-          select: { currency: true },
-          distinct: ["currency"],
-        }),
-        db.settlement.findMany({
-          where: { chatId: input.chatId },
-          select: { currency: true },
-          distinct: ["currency"],
-        }),
-        db.debtTransfer.findMany({
-          where: {
-            OR: [
-              { sourceChatId: input.chatId },
-              { targetChatId: input.chatId },
-            ],
-          },
-          select: { currency: true },
-          distinct: ["currency"],
-        }),
-      ]);
+    const [
+      expenseCurrencies,
+      settlementCurrencies,
+      sourceLegCurrencies,
+      targetLegCurrencies,
+    ] = await Promise.all([
+      db.expense.findMany({
+        where: { chatId: input.chatId },
+        select: { currency: true },
+        distinct: ["currency"],
+      }),
+      db.settlement.findMany({
+        where: { chatId: input.chatId },
+        select: { currency: true },
+        distinct: ["currency"],
+      }),
+      db.debtTransfer.findMany({
+        where: { sourceChatId: input.chatId },
+        select: { sourceCurrency: true },
+        distinct: ["sourceCurrency"],
+      }),
+      db.debtTransfer.findMany({
+        where: { targetChatId: input.chatId },
+        select: { targetCurrency: true },
+        distinct: ["targetCurrency"],
+      }),
+    ]);
 
     // Combine and deduplicate currencies
     const allUsedCurrencies = [
       ...new Set([
         ...expenseCurrencies.map((e) => e.currency),
         ...settlementCurrencies.map((s) => s.currency),
-        ...transferCurrencies.map((t) => t.currency),
+        ...sourceLegCurrencies.map((t) => t.sourceCurrency),
+        ...targetLegCurrencies.map((t) => t.targetCurrency),
       ]),
     ];
 
@@ -134,10 +139,9 @@ export const getCurrenciesWithBalanceHandler = async (
           }),
           db.debtTransfer.findFirst({
             where: {
-              currency: currency.code,
               OR: [
-                { sourceChatId: input.chatId },
-                { targetChatId: input.chatId },
+                { sourceChatId: input.chatId, sourceCurrency: currency.code },
+                { targetChatId: input.chatId, targetCurrency: currency.code },
               ],
             },
             orderBy: { createdAt: "desc" },

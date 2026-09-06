@@ -41,32 +41,40 @@ export const getDebtorsMultiCurrencyHandler = async (
   // appear only via a native transfer touching this chat (getNetShare is
   // transfer-aware, but a transfer-only currency would never be discovered
   // and its balance would be silently omitted).
-  const [expenseCurrencies, settlementCurrencies, transferCurrencies] =
-    await Promise.all([
-      db.expense.findMany({
-        where: { chatId: input.chatId },
-        select: { currency: true },
-        distinct: ["currency"],
-      }),
-      db.settlement.findMany({
-        where: { chatId: input.chatId },
-        select: { currency: true },
-        distinct: ["currency"],
-      }),
-      db.debtTransfer.findMany({
-        where: {
-          OR: [{ sourceChatId: input.chatId }, { targetChatId: input.chatId }],
-        },
-        select: { currency: true },
-        distinct: ["currency"],
-      }),
-    ]);
+  const [
+    expenseCurrencies,
+    settlementCurrencies,
+    sourceLegCurrencies,
+    targetLegCurrencies,
+  ] = await Promise.all([
+    db.expense.findMany({
+      where: { chatId: input.chatId },
+      select: { currency: true },
+      distinct: ["currency"],
+    }),
+    db.settlement.findMany({
+      where: { chatId: input.chatId },
+      select: { currency: true },
+      distinct: ["currency"],
+    }),
+    db.debtTransfer.findMany({
+      where: { sourceChatId: input.chatId },
+      select: { sourceCurrency: true },
+      distinct: ["sourceCurrency"],
+    }),
+    db.debtTransfer.findMany({
+      where: { targetChatId: input.chatId },
+      select: { targetCurrency: true },
+      distinct: ["targetCurrency"],
+    }),
+  ]);
 
   const allUsedCurrencies = [
     ...new Set([
       ...expenseCurrencies.map((e) => e.currency),
       ...settlementCurrencies.map((s) => s.currency),
-      ...transferCurrencies.map((t) => t.currency),
+      ...sourceLegCurrencies.map((t) => t.sourceCurrency),
+      ...targetLegCurrencies.map((t) => t.targetCurrency),
     ]),
   ];
 
