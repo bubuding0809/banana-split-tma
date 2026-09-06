@@ -8,12 +8,14 @@ import {
   Info,
   Modal,
   Section,
+  Snackbar,
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
 import {
   hapticFeedback,
   initData,
+  popup,
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
@@ -42,6 +44,7 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
     null
   );
   const [targetCurrencyModalOpen, setTargetCurrencyModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<string | null>(null);
 
   // * Queries ==================================================================================
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -53,7 +56,7 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
 
   // * Mutations ================================================================================
   const convertCurrencyMutation = trpc.expense.convertCurrencyBulk.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       // Refetch currencies to update balances
       trpcUtils.currency.getCurrenciesWithBalance.invalidate({
         userId,
@@ -67,12 +70,28 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
       trpcUtils.chat.getDebtorsMultiCurrency.invalidate({ userId, chatId });
       trpcUtils.chat.getCreditorsMultiCurrency.invalidate({ userId, chatId });
       trpcUtils.chat.getSimplifiedDebtsMultiCurrency.invalidate({ chatId });
+      // Conversion now also rewrites this chat's own transfer legs — without
+      // this, a transfer row on the Transactions tab keeps showing the
+      // pre-conversion amount/currency until a manual refresh.
+      trpcUtils.debtTransfer.getAllByChat.invalidate();
       hapticFeedback.notificationOccurred("success");
+      const parts = [
+        result.convertedExpenses > 0 && `${result.convertedExpenses} expenses`,
+        result.convertedSettlements > 0 &&
+          `${result.convertedSettlements} settlements`,
+        result.convertedTransfers > 0 &&
+          `${result.convertedTransfers} transfers`,
+      ].filter(Boolean);
+      setSnackbar(
+        parts.length > 0
+          ? `Converted ${parts.join(", ")}`
+          : "Nothing to convert"
+      );
       setConvertFromCurrency(null);
     },
     onError: (error) => {
       hapticFeedback.notificationOccurred("error");
-      alert(`❌ Conversion failed: ${error.message}`);
+      setSnackbar(error.message || "Conversion failed");
       setConvertFromCurrency(null);
     },
   });
@@ -89,20 +108,28 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
       handleConvertCurrency(convertFromCurrency, targetCurrency);
     }
     // convertFromCurrency is cleared in mutation onSuccess/onError
-    // or in handleConvertCurrency if user cancels the confirm dialog
+    // or in handleConvertCurrency if user cancels the confirmation popup
   };
 
-  const handleConvertCurrency = (fromCurrency: string, toCurrency: string) => {
+  const handleConvertCurrency = async (
+    fromCurrency: string,
+    toCurrency: string
+  ) => {
     if (fromCurrency === toCurrency) {
       setConvertFromCurrency(null);
       return;
     }
 
-    const shouldConvert = confirm(
-      `⚠️ Convert all ${fromCurrency} transactions to ${toCurrency}?\n\nThis action cannot be undone. All expenses and settlements in ${fromCurrency} will be converted to ${toCurrency} using current exchange rates.`
-    );
+    const choice = await popup.open.ifAvailable({
+      title: "Convert currencies?",
+      message: `Converts every ${fromCurrency} expense, settlement and transfer in this group to ${toCurrency} at today's rate. Transfers in other groups are not affected. This cannot be undone.`,
+      buttons: [
+        { id: "convert", type: "default", text: "Convert" },
+        { type: "cancel" },
+      ],
+    });
 
-    if (shouldConvert) {
+    if (choice === "convert") {
       convertCurrencyMutation.mutate({
         chatId,
         fromCurrency,
@@ -259,6 +286,12 @@ export default function ConvertCurrenciesCell({ chatId }: Props) {
             : undefined
         }
       />
+
+      {snackbar && (
+        <Snackbar duration={3000} onClose={() => setSnackbar(null)}>
+          {snackbar}
+        </Snackbar>
+      )}
     </>
   );
 }

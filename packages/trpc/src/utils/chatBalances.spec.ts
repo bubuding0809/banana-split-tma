@@ -65,7 +65,10 @@ describe("buildUserBalanceMap with native transfers", () => {
         targetChatId: BigInt(targetChatId),
         debtorId: 2n,
         creditorId: 1n,
-        amount: d(10),
+        sourceAmount: d(10),
+        sourceCurrency: "SGD",
+        targetAmount: d(10),
+        targetCurrency: "SGD",
       },
     ];
 
@@ -89,7 +92,10 @@ describe("buildUserBalanceMap with native transfers", () => {
         targetChatId: BigInt(targetChatId),
         debtorId: 2n,
         creditorId: 1n,
-        amount: d(10),
+        sourceAmount: d(10),
+        sourceCurrency: "SGD",
+        targetAmount: d(10),
+        targetCurrency: "SGD",
       },
     ];
 
@@ -107,7 +113,10 @@ describe("buildUserBalanceMap with native transfers", () => {
         targetChatId: BigInt(targetChatId),
         debtorId: 2n,
         creditorId: 1n,
-        amount: d(10),
+        sourceAmount: d(10),
+        sourceCurrency: "SGD",
+        targetAmount: d(10),
+        targetCurrency: "SGD",
       },
     ];
 
@@ -124,7 +133,10 @@ describe("buildUserBalanceMap with native transfers", () => {
         targetChatId: BigInt(targetChatId),
         debtorId: 2n,
         creditorId: 1n,
-        amount: d(10),
+        sourceAmount: d(10),
+        sourceCurrency: "SGD",
+        targetAmount: d(10),
+        targetCurrency: "SGD",
       },
     ];
 
@@ -132,6 +144,34 @@ describe("buildUserBalanceMap with native transfers", () => {
 
     expect(map.get(1)).toBe(0);
     expect(map.get(2)).toBe(0);
+  });
+});
+
+describe("buildUserBalanceMap with diverged transfer legs", () => {
+  const diverged = {
+    sourceChatId: BigInt(1),
+    targetChatId: BigInt(2),
+    debtorId: BigInt(200),
+    creditorId: BigInt(100),
+    sourceAmount: new Decimal(50),
+    sourceCurrency: "AUD",
+    targetAmount: new Decimal(44),
+    targetCurrency: "SGD",
+  };
+
+  it("uses the source leg amount in the source chat", () => {
+    const map = buildUserBalanceMap([100, 200], [], [], [diverged], 1);
+    // Source chat: the debt is cleared, so the debtor's balance rises by
+    // the SOURCE amount and the creditor's falls by it.
+    expect(map.get(200)).toBe(50);
+    expect(map.get(100)).toBe(-50);
+  });
+
+  it("uses the target leg amount in the target chat", () => {
+    const map = buildUserBalanceMap([100, 200], [], [], [diverged], 2);
+    // Target chat: the debt is added, using the TARGET amount.
+    expect(map.get(200)).toBe(-44);
+    expect(map.get(100)).toBe(44);
   });
 });
 
@@ -177,7 +217,10 @@ describe("computeChatPairwiseBalances with native transfers", () => {
     targetChatId: BigInt(targetChatId),
     debtorId: 2n,
     creditorId: 1n,
-    amount: d(amount),
+    sourceAmount: d(amount),
+    sourceCurrency: "SGD",
+    targetAmount: d(amount),
+    targetCurrency: "SGD",
   });
 
   it("clears a pairwise debt in the source chat", () => {
@@ -239,5 +282,49 @@ describe("computeChatPairwiseBalances with native transfers", () => {
     );
 
     expect(pairs).toEqual([{ debtorId: 2, creditorId: 1, amount: 10 }]);
+  });
+});
+
+describe("computeChatPairwiseBalances with diverged transfer legs", () => {
+  const diverged = {
+    sourceChatId: BigInt(1),
+    targetChatId: BigInt(2),
+    debtorId: BigInt(200),
+    creditorId: BigInt(100),
+    sourceAmount: new Decimal(50),
+    sourceCurrency: "AUD",
+    targetAmount: new Decimal(44),
+    targetCurrency: "SGD",
+  };
+
+  it("uses the source leg amount in the source chat", () => {
+    const pairs = computeChatPairwiseBalances(
+      [100, 200],
+      [],
+      [],
+      [diverged],
+      1
+    );
+
+    // Source chat: the debt is cleared using the SOURCE amount. With no
+    // pre-existing debt, clearing flips the direction: the creditor (100)
+    // now owes the debtor (200), matching buildUserBalanceMap's source-chat
+    // case (map.get(200) === 50, map.get(100) === -50).
+    expect(pairs).toEqual([{ debtorId: 100, creditorId: 200, amount: 50 }]);
+  });
+
+  it("uses the target leg amount in the target chat", () => {
+    const pairs = computeChatPairwiseBalances(
+      [100, 200],
+      [],
+      [],
+      [diverged],
+      2
+    );
+
+    // Target chat: the debt is added using the TARGET amount, matching
+    // buildUserBalanceMap's target-chat case (map.get(200) === -44,
+    // map.get(100) === 44).
+    expect(pairs).toEqual([{ debtorId: 200, creditorId: 100, amount: 44 }]);
   });
 });

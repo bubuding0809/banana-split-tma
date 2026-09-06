@@ -112,8 +112,10 @@ describe("createTransferHandler", () => {
     expect(result.creatorId).toBe(1);
     expect(result.sourceChatId).toBe(100);
     expect(result.targetChatId).toBe(200);
-    expect(result.amount).toBe(50);
-    expect(result.currency).toBe("SGD");
+    expect(result.sourceAmount).toBe(50);
+    expect(result.sourceCurrency).toBe("SGD");
+    expect(result.targetAmount).toBe(50);
+    expect(result.targetCurrency).toBe("SGD");
   });
 
   it("rejects when the debtor does not owe enough in the source chat", async () => {
@@ -229,5 +231,152 @@ describe("createTransferHandler", () => {
     await createTransferHandler(baseInput({ amount: 50 }), db, silentLog);
 
     expect(calls).toEqual(["lock", "read", "create"]);
+  });
+
+  it("writes both legs with the requested amount and currency", async () => {
+    const members = [{ id: BigInt(100) }, { id: BigInt(200) }];
+    const db = makeDb({
+      membersByChat: { "1": members, "2": members },
+      // Debtor 200 owes creditor 100 AUD 50 in chat 1, so the solvency
+      // check passes for a 50 AUD transfer.
+      shares: [
+        {
+          userId: BigInt(200),
+          amount: new Decimal(50),
+          expense: { payerId: BigInt(100), currency: "AUD" },
+        },
+      ],
+    });
+
+    const out = await createTransferHandler(
+      {
+        creatorId: BigInt(100),
+        debtorId: BigInt(200),
+        creditorId: BigInt(100),
+        amount: 50,
+        currency: "AUD",
+        sourceChatId: BigInt(1),
+        targetChatId: BigInt(2),
+      } as CreateTransferInput,
+      db as never
+    );
+
+    expect(out.sourceAmount).toBe(50);
+    expect(out.targetAmount).toBe(50);
+    expect(out.sourceCurrency).toBe("AUD");
+    expect(out.targetCurrency).toBe("AUD");
+    expect(out).not.toHaveProperty("amount");
+    expect(out).not.toHaveProperty("currency");
+  });
+
+  it("scopes computePairwiseOwed's prior-transfer lookup to the leg matching this chat+currency, not any chat/currency pairing", async () => {
+    const members = [{ id: 1n }, { id: 2n }, { id: 3n }];
+    const membersByChat = { "100": members, "200": members };
+
+    // Debtor (2) originally owed creditor (3) $100 SGD in chat 100.
+    const shares = [
+      {
+        userId: 2n,
+        amount: new Decimal(100),
+        expense: { payerId: 3n, currency: "SGD" },
+      },
+    ];
+
+    // A prior transfer already moved $30 SGD of that debt OUT of chat 100
+    // (its source leg). Its target leg — arriving in chat 300 — has
+    // diverged to AUD because chat 300 separately converted its own
+    // currency. Only $70 SGD should be left owed in chat 100.
+    //
+    // If the leg predicate ever paired {sourceChatId} with the WRONG leg's
+    // currency (e.g. targetCurrency instead of sourceCurrency, or vice
+    // versa), this stub — which only matches a clause when its chat field
+    // and currency field belong to the *same* leg — would stop returning
+    // this prior transfer, and the debtor would appear to still owe the
+    // full $100 instead of $70.
+    const priorTransfers = [
+      {
+        sourceChatId: 100n,
+        targetChatId: 300n,
+        debtorId: 2n,
+        creditorId: 3n,
+        sourceAmount: new Decimal(30),
+        sourceCurrency: "SGD",
+        targetAmount: new Decimal(26.4),
+        targetCurrency: "AUD",
+      },
+    ];
+
+    const findManyTransfers = async (args: {
+      where: { OR: Array<Record<string, unknown>> };
+    }) => {
+      const or = args.where.OR;
+      return priorTransfers.filter((r) =>
+        or.some(
+          (c) =>
+            (c.sourceChatId !== undefined &&
+              Number(r.sourceChatId) === Number(c.sourceChatId) &&
+              c.sourceCurrency !== undefined &&
+              r.sourceCurrency === c.sourceCurrency) ||
+            (c.targetChatId !== undefined &&
+              Number(r.targetChatId) === Number(c.targetChatId) &&
+              c.targetCurrency !== undefined &&
+              r.targetCurrency === c.targetCurrency)
+        )
+      );
+    };
+
+    const create = async ({ data }: { data: Stub }) => ({
+      id: "transfer-leg-scoped",
+      date: new Date("2026-09-07T00:00:00Z"),
+      createdAt: new Date("2026-09-07T00:00:00Z"),
+      updatedAt: new Date("2026-09-07T00:00:00Z"),
+      ...data,
+    });
+
+    const db = {
+      chat: {
+        findUnique: async ({
+          where,
+          select,
+        }: {
+          where: { id: bigint };
+          select: { members: { where: { id: { in: bigint[] } } } };
+        }) => {
+          const rows = membersByChat[where.id.toString() as "100" | "200"];
+          if (!rows) return null;
+          const wanted = select.members.where.id.in.map(String);
+          return {
+            members: rows.filter((m) => wanted.includes(m.id.toString())),
+          };
+        },
+      },
+      $transaction: async (fn: (tx: Stub) => unknown) =>
+        fn({
+          $executeRaw: async () => 1,
+          expenseShare: { findMany: async () => shares },
+          settlement: { findMany: async () => [] },
+          debtTransfer: { findMany: findManyTransfers, create },
+        }),
+    } as never;
+
+    // Only $70 SGD is actually left owed in chat 100 (100 - 30 already
+    // moved out) — a transfer of $69 should succeed...
+    const ok = await createTransferHandler(
+      baseInput({ amount: 69, currency: "SGD" }),
+      db,
+      silentLog
+    );
+    expect(ok.id).toBe("transfer-leg-scoped");
+
+    // ...but $71 exceeds what's left and must be rejected.
+    await expect(
+      createTransferHandler(
+        baseInput({ amount: 71, currency: "SGD" }),
+        db,
+        silentLog
+      )
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    } satisfies Partial<TRPCError>);
   });
 });

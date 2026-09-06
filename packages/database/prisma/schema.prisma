@@ -180,8 +180,10 @@ model DebtTransfer {
   creditor   User   @relation("TransferCreditor", fields: [creditorId], references: [id], onDelete: Cascade)
   creditorId BigInt // The person who is owed the money (e.g., Ruoqian)
 
-  amount      Decimal @db.Decimal(12, 2)
-  currency    String  @default("SGD")
+  sourceAmount   Decimal @db.Decimal(12, 2)
+  sourceCurrency String  @default("SGD")
+  targetAmount   Decimal @db.Decimal(12, 2)
+  targetCurrency String  @default("SGD")
   description String?
 
   sourceChat   Chat   @relation("SourceTransfers", fields: [sourceChatId], references: [id], onDelete: Cascade)

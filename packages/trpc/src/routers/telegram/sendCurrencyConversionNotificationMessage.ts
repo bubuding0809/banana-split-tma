@@ -15,6 +15,7 @@ const inputSchema = z.object({
   rate: z.number().positive("Rate must be positive"),
   convertedExpenses: z.number().int().nonnegative(),
   convertedSettlements: z.number().int().nonnegative(),
+  convertedTransfers: z.number().default(0),
   threadId: z.number().optional(),
   // Skip the message entirely when nothing actually got converted (caller
   // can short-circuit, but the flag keeps the contract explicit).
@@ -39,7 +40,10 @@ export const sendCurrencyConversionNotificationMessageHandler = async (
     });
   }
 
-  const totalConverted = input.convertedExpenses + input.convertedSettlements;
+  const totalConverted =
+    input.convertedExpenses +
+    input.convertedSettlements +
+    input.convertedTransfers;
   if (totalConverted === 0 && !input.force) {
     return null;
   }
@@ -79,7 +83,24 @@ export const sendCurrencyConversionNotificationMessageHandler = async (
     input.convertedSettlements === 1
       ? `${input.convertedSettlements} settlement`
       : `${input.convertedSettlements} settlements`;
-  const breakdown = escapeMarkdown(`${expensesLine}, ${settlementsLine}`, 2);
+  const transfersLine =
+    input.convertedTransfers === 1
+      ? `${input.convertedTransfers} transfer`
+      : `${input.convertedTransfers} transfers`;
+  // Only mention segments that actually changed — mirrors the TMA snackbar
+  // (ConvertCurrenciesCell.tsx). Before per-leg transfers existed, expenses
+  // and settlements were always shown because the handler never fired
+  // unless one of them was non-zero; a transfers-only conversion now makes
+  // that zero-zero case reachable, so it must be filtered here too.
+  const breakdownParts = [
+    input.convertedExpenses > 0 && expensesLine,
+    input.convertedSettlements > 0 && settlementsLine,
+    input.convertedTransfers > 0 && transfersLine,
+  ].filter((part): part is string => Boolean(part));
+  const breakdown = escapeMarkdown(
+    breakdownParts.length > 0 ? breakdownParts.join(", ") : "nothing converted",
+    2
+  );
 
   const message =
     `💱 *Currency converted*\n\n` +

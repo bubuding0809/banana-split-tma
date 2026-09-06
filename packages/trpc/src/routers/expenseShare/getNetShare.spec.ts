@@ -33,6 +33,60 @@ const input = {
 };
 
 describe("getNetShareHandler with native transfers", () => {
+  it("counts a transfer under the leg currency of the chat being asked", async () => {
+    // Legs diverged: AUD 50 left chat 1, SGD 44 arrived in chat 2.
+    const rows = [
+      {
+        sourceChatId: BigInt(1),
+        targetChatId: BigInt(2),
+        debtorId: BigInt(200),
+        creditorId: BigInt(100),
+        sourceAmount: new Decimal(50),
+        sourceCurrency: "AUD",
+        targetAmount: new Decimal(44),
+        targetCurrency: "SGD",
+      },
+    ];
+
+    const mockDb = {
+      expenseShare: { findMany: async () => [] },
+      settlement: { findMany: async () => [] },
+      debtTransfer: {
+        findMany: async (args: any) => {
+          // Emulate the leg-scoped OR predicate.
+          const or = args.where.OR as Array<Record<string, unknown>>;
+          return rows.filter((r) =>
+            or.some(
+              (c) =>
+                (c.sourceChatId !== undefined &&
+                  Number(r.sourceChatId) === c.sourceChatId &&
+                  r.sourceCurrency === c.sourceCurrency) ||
+                (c.targetChatId !== undefined &&
+                  Number(r.targetChatId) === c.targetChatId &&
+                  r.targetCurrency === c.targetCurrency)
+            )
+          );
+        },
+      },
+    } as never;
+
+    // Chat 2 asked in SGD sees the target leg: 200 owes 100 SGD 44.
+    await expect(
+      getNetShareHandler(
+        { mainUserId: 100, targetUserId: 200, chatId: 2, currency: "SGD" },
+        mockDb
+      )
+    ).resolves.toBe(44);
+
+    // Chat 2 asked in AUD sees nothing — that currency belongs to the other leg.
+    await expect(
+      getNetShareHandler(
+        { mainUserId: 100, targetUserId: 200, chatId: 2, currency: "AUD" },
+        mockDb
+      )
+    ).resolves.toBe(0);
+  });
+
   it("returns the share-only net when there are no transfers", async () => {
     const net = await getNetShareHandler(input, makeDb({}));
     expect(net).toBe(100);
@@ -46,7 +100,10 @@ describe("getNetShareHandler with native transfers", () => {
           targetChatId: 200n,
           debtorId: 2n,
           creditorId: 1n,
-          amount: new Decimal(40),
+          sourceAmount: new Decimal(40),
+          sourceCurrency: "SGD",
+          targetAmount: new Decimal(40),
+          targetCurrency: "SGD",
         },
       ],
     });
@@ -62,7 +119,10 @@ describe("getNetShareHandler with native transfers", () => {
           targetChatId: 100n,
           debtorId: 2n,
           creditorId: 1n,
-          amount: new Decimal(25),
+          sourceAmount: new Decimal(25),
+          sourceCurrency: "SGD",
+          targetAmount: new Decimal(25),
+          targetCurrency: "SGD",
         },
       ],
     });
@@ -78,7 +138,10 @@ describe("getNetShareHandler with native transfers", () => {
           targetChatId: 400n,
           debtorId: 2n,
           creditorId: 1n,
-          amount: new Decimal(40),
+          sourceAmount: new Decimal(40),
+          sourceCurrency: "SGD",
+          targetAmount: new Decimal(40),
+          targetCurrency: "SGD",
         },
       ],
     });

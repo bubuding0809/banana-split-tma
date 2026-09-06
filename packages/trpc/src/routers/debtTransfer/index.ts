@@ -44,8 +44,10 @@ export const outputSchema = z.object({
   creatorId: z.preprocess((arg) => String(arg), z.string()),
   sourceChatId: z.preprocess((arg) => String(arg), z.string()),
   targetChatId: z.preprocess((arg) => String(arg), z.string()),
-  amount: z.number(),
-  currency: z.string(),
+  sourceAmount: z.number(),
+  sourceCurrency: z.string(),
+  targetAmount: z.number(),
+  targetCurrency: z.string(),
   description: z.string().nullable(),
   date: z.date(),
   createdAt: z.date(),
@@ -102,17 +104,22 @@ const computePairwiseOwed = async (
 
   const transfers = await db.debtTransfer.findMany({
     where: {
-      currency,
       debtorId: { in: pair },
       creditorId: { in: pair },
-      OR: [{ sourceChatId: chatId }, { targetChatId: chatId }],
+      OR: [
+        { sourceChatId: chatId, sourceCurrency: currency },
+        { targetChatId: chatId, targetCurrency: currency },
+      ],
     },
     select: {
       sourceChatId: true,
       targetChatId: true,
       debtorId: true,
       creditorId: true,
-      amount: true,
+      sourceAmount: true,
+      sourceCurrency: true,
+      targetAmount: true,
+      targetCurrency: true,
     },
   });
 
@@ -231,8 +238,12 @@ export const createTransferHandler = async (
           creatorId: input.creatorId,
           debtorId: input.debtorId,
           creditorId: input.creditorId,
-          amount: toNumber(amountDecimal),
-          currency,
+          // Both legs start identical; they diverge only when a group
+          // converts its own currency.
+          sourceAmount: toNumber(amountDecimal),
+          sourceCurrency: currency,
+          targetAmount: toNumber(amountDecimal),
+          targetCurrency: currency,
           description: input.description || null,
           sourceChatId: input.sourceChatId,
           targetChatId: input.targetChatId,
@@ -247,7 +258,8 @@ export const createTransferHandler = async (
       creatorId: Number(transfer.creatorId),
       sourceChatId: Number(transfer.sourceChatId),
       targetChatId: Number(transfer.targetChatId),
-      amount: Number(transfer.amount),
+      sourceAmount: Number(transfer.sourceAmount),
+      targetAmount: Number(transfer.targetAmount),
     };
   } catch (error) {
     if (error instanceof TRPCError) {
@@ -330,8 +342,8 @@ const createTransfer = protectedProcedure
             debtorName,
             creditorId: transfer.creditorId,
             creditorName,
-            amount: transfer.amount,
-            currency: transfer.currency,
+            amount: transfer.sourceAmount,
+            currency: transfer.sourceCurrency,
             counterpartChatTitle: targetChat?.title ?? "another group",
             threadId: sourceChat?.threadId
               ? Number(sourceChat.threadId)
@@ -350,8 +362,8 @@ const createTransfer = protectedProcedure
             debtorName,
             creditorId: transfer.creditorId,
             creditorName,
-            amount: transfer.amount,
-            currency: transfer.currency,
+            amount: transfer.targetAmount,
+            currency: transfer.targetCurrency,
             counterpartChatTitle: sourceChat?.title ?? "another group",
             threadId: targetChat?.threadId
               ? Number(targetChat.threadId)

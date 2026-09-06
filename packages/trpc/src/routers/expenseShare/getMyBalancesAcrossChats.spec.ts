@@ -256,4 +256,44 @@ describe("getMyBalancesAcrossChatsHandler", () => {
       { userId: 200, name: "Bob", currency: "SGD", net: 4 },
     ]);
   });
+
+  it("buckets each chat's transfer under its own leg currency", async () => {
+    setupChats([
+      {
+        id: 1,
+        title: "Trip",
+        debtSimplificationEnabled: false,
+        memberIds: [100, 200],
+      },
+      {
+        id: 2,
+        title: "Flat",
+        debtSimplificationEnabled: false,
+        memberIds: [100, 200],
+      },
+    ]);
+    setupShares([]);
+    setupSettlements([]);
+    setupUsers([{ id: 200, firstName: "Other" }]);
+
+    (mockDb.debtTransfer.findMany as any).mockResolvedValue([
+      {
+        sourceChatId: BigInt(1),
+        targetChatId: BigInt(2),
+        debtorId: BigInt(200),
+        creditorId: BigInt(100),
+        sourceAmount: d(50),
+        sourceCurrency: "AUD",
+        targetAmount: d(44),
+        targetCurrency: "SGD",
+      },
+    ]);
+
+    const result = await getMyBalancesAcrossChatsHandler(caller, mockDb);
+
+    const trip = result.balances.find((b) => b.chatId === 1)!;
+    const flat = result.balances.find((b) => b.chatId === 2)!;
+    expect(trip.currencies).toEqual([{ currency: "AUD", net: -50 }]);
+    expect(flat.currencies).toEqual([{ currency: "SGD", net: 44 }]);
+  });
 });

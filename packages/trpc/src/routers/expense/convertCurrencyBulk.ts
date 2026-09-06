@@ -26,6 +26,7 @@ export const inputSchema = z.object({
 export const outputSchema = z.object({
   convertedExpenses: z.number(),
   convertedSettlements: z.number(),
+  convertedTransfers: z.number(),
   totalExpensesAmount: z.number(),
   totalSettlementsAmount: z.number(),
 });
@@ -63,6 +64,7 @@ export const convertCurrencyBulkHandler = async (
       return {
         convertedExpenses: 0,
         convertedSettlements: 0,
+        convertedTransfers: 0,
         totalExpensesAmount: 0,
         totalSettlementsAmount: 0,
       };
@@ -103,6 +105,7 @@ export const convertCurrencyBulkHandler = async (
 
     let totalExpensesAmount = 0;
     let totalSettlementsAmount = 0;
+    let convertedTransfers = 0;
 
     // Perform conversion in a transaction
     await db.$transaction(
@@ -161,6 +164,54 @@ export const convertCurrencyBulkHandler = async (
             },
           });
         }
+
+        // Convert only this chat's own transfer legs. The counterpart
+        // group's leg is never in either predicate, so converting here
+        // cannot re-denominate a debt the other group is holding. Read
+        // then multiply with Decimal (mirroring the settlement loop
+        // above) rather than Prisma's atomic `multiply`, so this leg's
+        // arithmetic uses the exact same rounding path as every other
+        // amount in this handler.
+        const sourceLegsToConvert = await tx.debtTransfer.findMany({
+          where: { sourceChatId: chatId, sourceCurrency: fromCurrency },
+          select: { id: true, sourceAmount: true },
+        });
+
+        for (const leg of sourceLegsToConvert) {
+          const convertedSourceAmount = new Decimal(
+            leg.sourceAmount.toString()
+          ).mul(rate);
+
+          await tx.debtTransfer.update({
+            where: { id: leg.id },
+            data: {
+              sourceAmount: convertedSourceAmount,
+              sourceCurrency: toCurrency,
+            },
+          });
+        }
+
+        const targetLegsToConvert = await tx.debtTransfer.findMany({
+          where: { targetChatId: chatId, targetCurrency: fromCurrency },
+          select: { id: true, targetAmount: true },
+        });
+
+        for (const leg of targetLegsToConvert) {
+          const convertedTargetAmount = new Decimal(
+            leg.targetAmount.toString()
+          ).mul(rate);
+
+          await tx.debtTransfer.update({
+            where: { id: leg.id },
+            data: {
+              targetAmount: convertedTargetAmount,
+              targetCurrency: toCurrency,
+            },
+          });
+        }
+
+        convertedTransfers =
+          sourceLegsToConvert.length + targetLegsToConvert.length;
       },
       { timeout: 15000 }
     );
@@ -170,7 +221,9 @@ export const convertCurrencyBulkHandler = async (
     if (
       input.sendNotification &&
       input.actorName &&
-      (expensesToConvert.length > 0 || settlementsToConvert.length > 0)
+      (expensesToConvert.length > 0 ||
+        settlementsToConvert.length > 0 ||
+        convertedTransfers > 0)
     ) {
       try {
         await sendCurrencyConversionNotificationMessageHandler(
@@ -184,6 +237,7 @@ export const convertCurrencyBulkHandler = async (
             rate: toNumber(rate),
             convertedExpenses: expensesToConvert.length,
             convertedSettlements: settlementsToConvert.length,
+            convertedTransfers,
             threadId: input.threadId,
             force: false,
           },
@@ -204,6 +258,7 @@ export const convertCurrencyBulkHandler = async (
     return {
       convertedExpenses: expensesToConvert.length,
       convertedSettlements: settlementsToConvert.length,
+      convertedTransfers,
       totalExpensesAmount,
       totalSettlementsAmount,
     };
