@@ -2,9 +2,13 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "bananasplitz",
   "title": "BananaSplitz",
-  "description": "Browse your Banana Split groups, balances and transactions",
+  "description": "Track shared expenses across Banana Split groups: view balances, settle debts, nudge people, and use @bananasplitz AI commands to log expenses and settle up.",
   "icon": "extension-icon.png",
   "author": "bubu_ding",
+  "categories": [
+    "Finance",
+    "Productivity"
+  ],
   "platforms": [
     "macOS",
     "Windows"
@@ -335,7 +339,10 @@
     "check-parity": "tsx scripts/check-cli-parity.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "stage": "tsx scripts/stage-publish.ts",
+    "stage:verify": "tsx scripts/stage-publish.ts --install && cd .publish-stage && npx ray lint && npx ray build",
+    "dry-run": "tsx scripts/dry-run-publish.ts",
     "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
-    "publish": "npx @raycast/api@latest publish"
+    "publish": "tsx scripts/dry-run-publish.ts && cd .publish-stage && npx @raycast/api@latest publish"
   }
 }
