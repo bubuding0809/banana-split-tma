@@ -32,6 +32,11 @@ function makeTxMock(state: { oldChat: any; newChat: any }) {
       deleteMany: async () => ({ count: 0 }),
       updateMany: async () => ({ count: 0 }),
     },
+    debtTransfer: {
+      count: async () => 0,
+      deleteMany: async () => ({ count: 0 }),
+      updateMany: async () => ({ count: 0 }),
+    },
   };
 }
 
@@ -69,6 +74,7 @@ describe("migrateChatHandler", () => {
       expenses: 0,
       settlements: 0,
       snapshots: 0,
+      transfers: 0,
       schedules: 0,
     });
   });
@@ -161,5 +167,156 @@ describe("migrateChatHandler", () => {
     expect(ops.indexOf("ordering.deleteMany(chatId=2)")).toBeLessThan(
       ops.indexOf("ordering.updateMany(1->2)")
     );
+  });
+  it("race-branch repoints transfers on both legs to the new chat", async () => {
+    const ops: string[] = [];
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      debtTransfer: {
+        count: async () => 3,
+        deleteMany: async () => ({ count: 0 }),
+        updateMany: async ({ where, data }: any) => {
+          const leg = where.sourceChatId !== undefined ? "source" : "target";
+          const from = where.sourceChatId ?? where.targetChatId;
+          const to = data.sourceChatId ?? data.targetChatId;
+          ops.push(`transfer.${leg}(${from}->${to})`);
+          return { count: 0 };
+        },
+      },
+      chat: {
+        ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } })
+          .chat,
+        delete: async () => {
+          ops.push("chat.delete");
+          return { id: 1n };
+        },
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+
+    // Both legs move, and both move BEFORE the old chat row is deleted —
+    // otherwise ON DELETE CASCADE shreds the rows we were trying to save.
+    expect(ops).toContain("transfer.source(1->2)");
+    expect(ops).toContain("transfer.target(1->2)");
+    expect(ops.indexOf("transfer.source(1->2)")).toBeLessThan(
+      ops.indexOf("chat.delete")
+    );
+    expect(ops.indexOf("transfer.target(1->2)")).toBeLessThan(
+      ops.indexOf("chat.delete")
+    );
+  });
+
+  it("race-branch deletes transfers that would collapse onto one chat", async () => {
+    const ops: string[] = [];
+    let deleteWhere: any = null;
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      debtTransfer: {
+        count: async () => 1,
+        deleteMany: async ({ where }: any) => {
+          deleteWhere = where;
+          ops.push("transfer.deleteMany");
+          return { count: 1 };
+        },
+        updateMany: async () => {
+          ops.push("transfer.updateMany");
+          return { count: 0 };
+        },
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+
+    // Only rows whose two ends are exactly the two chats being merged.
+    expect(deleteWhere).toEqual({
+      OR: [
+        { sourceChatId: 1n, targetChatId: 2n },
+        { sourceChatId: 2n, targetChatId: 1n },
+      ],
+    });
+    // The collapse must be resolved before the repoint, or the repoint
+    // creates the self-referencing row we are trying to avoid.
+    expect(ops.indexOf("transfer.deleteMany")).toBeLessThan(
+      ops.indexOf("transfer.updateMany")
+    );
+  });
+
+  it("logs a warning naming the collapsed transfers", async () => {
+    const warnings: any[] = [];
+    const log = {
+      info: () => {},
+      error: () => {},
+      warn: (payload: any, msg: string) => warnings.push({ payload, msg }),
+    } as any;
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      debtTransfer: {
+        count: async () => 0,
+        deleteMany: async () => ({ count: 2 }),
+        updateMany: async () => ({ count: 0 }),
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db, log);
+
+    const collapsed = warnings.find((w) =>
+      w.msg.includes("transfer.collapsed")
+    );
+    expect(collapsed).toBeDefined();
+    expect(collapsed.payload.collapsed_count).toBe(2);
+  });
+
+  it("does not warn when nothing collapsed", async () => {
+    const warnings: any[] = [];
+    const log = {
+      info: () => {},
+      error: () => {},
+      warn: (payload: any, msg: string) => warnings.push({ payload, msg }),
+    } as any;
+    const db = makeDb({
+      oldChat: { id: 1n, members: [] },
+      newChat: { id: 2n },
+    });
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db, log);
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("reports how many transfers it moved", async () => {
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: { id: 2n } }),
+      debtTransfer: {
+        count: async () => 4,
+        deleteMany: async () => ({ count: 0 }),
+        updateMany: async () => ({ count: 0 }),
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    const result = await migrateChatHandler(
+      { oldChatId: 1n, newChatId: 2n },
+      db
+    );
+    expect(result.migratedRecords.transfers).toBe(4);
+  });
+
+  it("Branch B leaves transfers alone (ON UPDATE CASCADE carries them)", async () => {
+    let touched = false;
+    const tx = {
+      ...makeTxMock({ oldChat: { id: 1n, members: [] }, newChat: null }),
+      debtTransfer: {
+        count: async () => 2,
+        deleteMany: async () => {
+          touched = true;
+          return { count: 0 };
+        },
+        updateMany: async () => {
+          touched = true;
+          return { count: 0 };
+        },
+      },
+    };
+    const db = { $transaction: async (cb: any) => cb(tx) } as any;
+    await migrateChatHandler({ oldChatId: 1n, newChatId: 2n }, db);
+    expect(touched).toBe(false);
   });
 });

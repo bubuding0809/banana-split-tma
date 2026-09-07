@@ -24,6 +24,7 @@ export const outputSchema = z.object({
     expenses: z.number(),
     settlements: z.number(),
     snapshots: z.number(),
+    transfers: z.number(),
     schedules: z.number(),
   }),
 });
@@ -53,7 +54,14 @@ export const migrateChatHandler = async (
       if (!oldChat) {
         return {
           migrated: false as const,
-          counts: { expenses: 0, settlements: 0, snapshots: 0, schedules: 0 },
+          counts: {
+            expenses: 0,
+            settlements: 0,
+            snapshots: 0,
+            transfers: 0,
+            schedules: 0,
+          },
+          collapsedTransfers: 0,
         };
       }
 
@@ -109,6 +117,41 @@ export const migrateChatHandler = async (
           data: { chatId: newChatId },
         });
 
+        // Cross-group transfers reference a chat on BOTH legs, and both FKs
+        // are ON DELETE CASCADE. Reparent them before the delete below or
+        // Postgres shreds every transfer touching this chat — including the
+        // counterpart group's side, silently changing a second group's
+        // balances.
+        const transferCount = await tx.debtTransfer.count({
+          where: {
+            OR: [{ sourceChatId: oldChatId }, { targetChatId: oldChatId }],
+          },
+        });
+
+        // A transfer running between the two chats being merged cannot
+        // survive the merge: repointing it would leave source === target,
+        // and the balance engine applies only the debt-clearing half of
+        // such a row, so debt would silently vanish. Both ledgers are about
+        // to become one, which makes the move meaningless — drop it and let
+        // the underlying expense-derived debt stand on its own.
+        const collapsed = await tx.debtTransfer.deleteMany({
+          where: {
+            OR: [
+              { sourceChatId: oldChatId, targetChatId: newChatId },
+              { sourceChatId: newChatId, targetChatId: oldChatId },
+            ],
+          },
+        });
+
+        await tx.debtTransfer.updateMany({
+          where: { sourceChatId: oldChatId },
+          data: { sourceChatId: newChatId },
+        });
+        await tx.debtTransfer.updateMany({
+          where: { targetChatId: oldChatId },
+          data: { targetChatId: newChatId },
+        });
+
         // Connect old members to the new chat.
         if (oldChat.members.length > 0) {
           const userIds = oldChat.members.map((m) => ({ id: m.id }));
@@ -133,8 +176,10 @@ export const migrateChatHandler = async (
             expenses: expenseCount,
             settlements: settlementCount,
             snapshots: snapshotCount,
+            transfers: transferCount - collapsed.count,
             schedules: 0,
           },
+          collapsedTransfers: collapsed.count,
         };
       }
 
@@ -148,6 +193,13 @@ export const migrateChatHandler = async (
       });
       const snapshotCount = await tx.expenseSnapshot.count({
         where: { chatId: oldChatId },
+      });
+      // Both DebtTransfer FKs are ON UPDATE CASCADE, so renaming the primary
+      // key below carries them across on its own. Counted only to report.
+      const transferCount = await tx.debtTransfer.count({
+        where: {
+          OR: [{ sourceChatId: oldChatId }, { targetChatId: oldChatId }],
+        },
       });
 
       await tx.$executeRaw`UPDATE "Chat" SET id = ${newChatId} WHERE id = ${oldChatId}`;
@@ -164,10 +216,24 @@ export const migrateChatHandler = async (
           expenses: expenseCount,
           settlements: settlementCount,
           snapshots: snapshotCount,
+          transfers: transferCount,
           schedules: 0,
         },
+        collapsedTransfers: 0,
       };
     });
+
+    if (migrationResult.collapsedTransfers > 0) {
+      // The rows are gone; this line is the only record of what they were.
+      log.warn(
+        {
+          old_chat_id: oldChatId.toString(),
+          new_chat_id: newChatId.toString(),
+          collapsed_count: migrationResult.collapsedTransfers,
+        },
+        "chat.migrate.transfer.collapsed"
+      );
+    }
 
     if (!migrationResult.migrated) {
       return {
