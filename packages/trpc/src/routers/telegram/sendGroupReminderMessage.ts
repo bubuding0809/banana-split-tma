@@ -253,6 +253,11 @@ export const sendGroupReminderMessageHandler = async (
     );
   }
 
+  // This message is a snapshot; debts re-balance as members settle in-app.
+  messageLines.push(
+    "\n⚠️ *Please double check debts in app before settling\\.*"
+  );
+
   const messageContent = messageLines.join("\n");
 
   // Create deep link to mini app
