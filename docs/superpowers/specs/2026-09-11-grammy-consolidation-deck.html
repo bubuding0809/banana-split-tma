@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Consolidate on grammy — Design</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+  .reveal { font-size: 30px; }
+  .reveal h1 { font-size: 1.6em; }
+  .reveal h2 { font-size: 1.15em; }
+  .reveal pre code { font-size: 0.72em; line-height: 1.35; border-radius: 8px; }
+  .pill { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 0.6em; font-weight: 600; vertical-align: middle; }
+  .pill.ok { background: #1d3b28; color: #6fdc8c; }
+  .pill.bad { background: #4a1d1d; color: #ff8389; }
+  .pill.warn { background: #4a3a1d; color: #f1c21b; }
+  .pill.note { background: #1d2f4a; color: #78a9ff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: #1e1e24; border: 1px solid #333; border-radius: 10px; padding: 16px 20px; font-size: 0.7em; }
+  .box h3 { font-size: 1.1em; margin: 0 0 8px; color: #78a9ff; }
+  .hl { background: #26261a; border-left: 4px solid #f1c21b; border-radius: 6px; padding: 12px 18px; font-size: 0.75em; text-align: left; }
+  .reveal table { font-size: 0.62em; }
+  .reveal table th { background: #26262e; }
+  .reveal table tr:nth-child(even) { background: #1b1b21; }
+  .small { font-size: 0.7em; }
+  .muted { color: #999; }
+  .strike { text-decoration: line-through; color: #ff8389; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <h1>Consolidate Telegram<br/>clients on grammy</h1>
+  <p class="small muted">Design spec · 2026-09-11 · banana-split-tma</p>
+  <p><span class="pill ok">approved design</span> <span class="pill note">refactor, no behavior change</span> <span class="pill warn">unblocks rich messages</span></p>
+</section>
+
+<section>
+  <h2>Why now</h2>
+  <p class="small">Bot API 10.1 (June 2026) added <strong>rich messages</strong>. 10.3 (Aug 2026) added <strong>embedded buttons</strong> inside them.</p>
+  <div class="hl">telegraf 4.16.3 is the <strong>latest on npm</strong> and stops at Bot API 7.x. No <code>sendRichMessage</code>, no <code>&lt;tg-button&gt;</code>. grammy 1.46.0 has all of it typed.</div>
+</section>
+
+<section>
+  <h2>Two libraries today</h2>
+  <table>
+    <tr><th>Package</th><th>Library</th><th>Role</th></tr>
+    <tr><td><code>apps/bot</code></td><td>grammy 1.41.1</td><td>Framework: webhooks, commands, callbacks</td></tr>
+    <tr><td><code>packages/trpc</code></td><td>telegraf 4.16.3</td><td>Bare client. 26 files. <code>ctx.teleBot</code></td></tr>
+    <tr><td><code>apps/lambda</code></td><td>telegraf 4.16.3</td><td>Bare client. 4 files</td></tr>
+    <tr><td><code>packages/trpc</code></td><td>node-telegram-bot-api</td><td><span class="pill bad">zero imports</span></td></tr>
+  </table>
+  <p class="small muted">telegraf's framework half is unused. It is an HTTP client with types.</p>
+</section>
+
+<section>
+  <h2>Options</h2>
+  <div class="grid2">
+    <div class="box"><h3>A · grammy <code>Api</code> everywhere <span class="pill ok">chosen</span></h3>
+      Swap <code>ctx.teleBot</code> to grammy's standalone client. Retire telegraf + dead dep. Typed rich calls. One lib, one version.</div>
+    <div class="box"><h3>B · raw shim on telegraf <span class="pill bad">rejected</span></h3>
+      <code>callApi("sendRichMessage")</code> with hand-typed params. Smallest diff, but two libs stay and every future Bot API field is hand-maintained.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Goal and non-goals</h2>
+  <div class="hl">One Telegram library, at a version that exposes rich messages. <strong>Every message renders identically afterward.</strong></div>
+  <p class="small muted">Non-goals: sending any rich message · changing text or buttons · touching <code>apps/bot</code> feature code · retiring MarkdownV2 escaping</p>
+</section>
+
+<section>
+  <h2>Dependencies</h2>
+  <table>
+    <tr><th>Package</th><th>Change</th></tr>
+    <tr><td><code>packages/trpc</code></td><td>+ grammy ^1.46.0 · <span class="strike">telegraf</span> · <span class="strike">node-telegram-bot-api</span> · <span class="strike">@types/node-telegram-bot-api</span></td></tr>
+    <tr><td><code>apps/lambda</code></td><td>+ grammy ^1.46.0 · <span class="strike">telegraf</span></td></tr>
+    <tr><td><code>apps/bot</code></td><td>grammy ^1.41.1 → ^1.46.0</td></tr>
+  </table>
+  <p class="small muted">1.42 → 1.46: minor releases, no documented breaking changes. Engines allow Node 14+. We run Node 24.</p>
+</section>
+
+<section>
+  <h2>trpc context</h2>
+  <pre><code class="language-ts">// packages/trpc/src/trpc.ts:73
+teleBot: new Api(botToken),   // was new Telegram(botToken)
+
+// 26 files
+import type { Api } from "grammy";   // was { Telegram } from "telegraf"</code></pre>
+  <p class="small">Field keeps its name. Spec mocks pass <code>mockTeleBot as any</code>, shape-only, so they keep working.</p>
+</section>
+
+<section>
+  <h2>Signature deltas</h2>
+  <p class="small">Most calls identical. telegraf adds an <code>inline_message_id</code> slot on edits that grammy lacks.</p>
+  <table>
+    <tr><th>Call</th><th>telegraf</th><th>grammy</th><th>Sites</th></tr>
+    <tr><td><code>editMessageText</code></td><td><code>(chat, msg, undefined, text, extra)</code></td><td><code>(chat, msg, text, extra)</code></td><td>2</td></tr>
+    <tr><td><code>editMessageCaption</code></td><td><code>(chat, msg, undefined, cap, extra)</code></td><td><code>(chat, msg, {caption, ...extra})</code></td><td>1</td></tr>
+    <tr><td><code>editMessageMedia</code></td><td><code>(chat, msg, undefined, media, extra)</code></td><td><code>(chat, msg, media, extra)</code></td><td>1</td></tr>
+    <tr><td>media input</td><td><code>{ source, filename }</code></td><td><code>new InputFile(buf, name)</code></td><td>3</td></tr>
+    <tr><td><code>inlineKeyboard()</code></td><td><code>telegraf/markup</code></td><td>local helper, same shape</td><td>3</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Lambda</h2>
+  <p class="small"><code>getFileLink</code> has no grammy equivalent. Two sites (<code>avatar.ts</code>, <code>chat-photo.ts</code>).</p>
+  <pre><code class="language-ts">const file = await teleBot.getFile(fileId);
+if (!file.file_path) return res.status(404).end();
+const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+const upstream = await fetch(url);</code></pre>
+  <p class="small muted">Shared <code>_telegramFile.ts</code> helper. <code>_redact.ts</code> already scrubs the token on this path. Two tests re-point <code>vi.mock</code> from telegraf to grammy.</p>
+</section>
+
+<section>
+  <h2>Error handling</h2>
+  <div class="hl">grammy's <code>GrammyError.message</code> is <code>Call to 'sendMessage' failed! (400: Bad Request: chat not found)</code>.</div>
+  <p class="small">Existing <code>error.message.includes("chat not found")</code> checks keep matching. No catch-block changes.</p>
+</section>
+
+<section>
+  <h2>Regression guard: three layers</h2>
+  <table>
+    <tr><th>Layer</th><th>Catches</th><th>Misses</th></tr>
+    <tr><td><code>pnpm check-types</code></td><td>Positional-arg mismatches, media input type</td><td>Serialization drift</td></tr>
+    <tr><td>Existing specs (5 trpc + 2 lambda)</td><td>Handler logic, call counts</td><td>Wire bytes. Mocks are shape-only</td></tr>
+    <tr><td><strong>Wire-level golden fixtures</strong> <span class="pill ok">new</span></td><td>Any change in JSON Telegram receives</td><td>Client rendering quirks → staging</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Wire-level golden fixtures</h2>
+  <p class="small">Rendering = f(JSON the Bot API receives). Lock the JSON.</p>
+  <div class="grid2">
+    <div class="box"><h3>1 · Record on <code>main</code></h3>
+      Both libs accept <code>apiRoot</code>. Point telegraf at a local recorder. Run every <code>teleBot</code> handler with fixed DB mocks. Commit bodies to <code>__fixtures__/telegram-wire/*.json</code>.</div>
+    <div class="box"><h3>2 · Replay after swap</h3>
+      Same tests, same fixtures, grammy must match on <code>chat_id</code>, <code>text</code>, <code>parse_mode</code>, <code>reply_markup</code>, <code>message_thread_id</code>, <code>message_id</code>, <code>caption</code>. Multipart parsed and compared field by field.</div>
+  </div>
+  <p class="small muted">Any diff = regression before staging. Fixtures stay as a permanent guard.</p>
+</section>
+
+<section>
+  <h2>Staging UAT · <code>@BananaSplitzStgBot</code></h2>
+  <table>
+    <tr><th>Path</th><th>Action</th></tr>
+    <tr><td><code>sendMessage</code> + keyboard</td><td>/summary in a group with debts</td></tr>
+    <tr><td><code>editMessageText</code> / <code>deleteMessage</code></td><td>Add expense → edit amount → delete</td></tr>
+    <tr><td>callback</td><td>Snapshot share, toggle view</td></tr>
+    <tr><td><code>sendPhoto</code> + <code>InputFile</code></td><td>Admin broadcast with photo</td></tr>
+    <tr><td><code>editMessageCaption</code> / <code>editMessageMedia</code></td><td>Edit caption, swap media</td></tr>
+    <tr><td><code>getFile</code></td><td>TMA member avatars + group photo</td></tr>
+  </table>
+  <p class="small muted">Subagent for DB/backend assertions, user confirms rendering one step at a time.</p>
+</section>
+
+<section>
+  <h2>Rollout</h2>
+  <p>Single PR. No schema, no env. <code>deploy.yml</code> redeploys bot, lambda, web.</p>
+  <p><span class="pill ok">rollback = plain revert</span></p>
+</section>
+
+<section>
+  <h2>Next: <code>/summary</code> rich spike</h2>
+  <pre><code class="language-html">&lt;h3&gt;⏰ Outstanding debts&lt;/h3&gt;
+&lt;p&gt;🙇 &lt;a href="tg://user?id=…"&gt;RQ&lt;/a&gt;&lt;/p&gt;
+&lt;blockquote&gt;Debt simplification is enabled…&lt;/blockquote&gt;
+&lt;tg-button-row align="center"&gt;
+  &lt;tg-button type="url" style="primary" url="…"&gt;View Debts 💰&lt;/tg-button&gt;
+&lt;/tg-button-row&gt;</code></pre>
+  <p class="small muted">Rich HTML, escaping is only <code>&amp; &lt; &gt;</code>. Output = rendering verdict across clients. Throwaway until "keep".</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({ hash: true, width: 960, height: 720, margin: 0.06, plugins: [RevealHighlight] });
+</script>
+</body>
+</html>
