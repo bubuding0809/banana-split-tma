@@ -96,4 +96,152 @@ describe("diffRecordings", () => {
     expect(problems[1]).toContain("response differs");
     expect(problems[2]).toContain("missing in candidate");
   });
+
+  it("(a) ignores message_thread_id on the response side", () => {
+    const a = [
+      entry(
+        1,
+        "sendMessage",
+        { chat_id: 1, message_thread_id: 5, text: "hi" },
+        { ok: true, result: { message_thread_id: 1915, text: "hi" } }
+      ),
+    ];
+    const b = [
+      entry(
+        1,
+        "sendMessage",
+        { chat_id: 1, message_thread_id: 5, text: "hi" },
+        { ok: true, result: { message_thread_id: 1919, text: "hi" } }
+      ),
+    ];
+    expect(diffRecordings(a, b)).toEqual([]);
+  });
+
+  it("(b) still reports a request-side message_thread_id difference", () => {
+    const a = [
+      entry(
+        1,
+        "sendMessage",
+        { chat_id: 1, message_thread_id: 5, text: "hi" },
+        { ok: true, result: { text: "hi" } }
+      ),
+    ];
+    const b = [
+      entry(
+        1,
+        "sendMessage",
+        { chat_id: 1, message_thread_id: 9, text: "hi" },
+        { ok: true, result: { text: "hi" } }
+      ),
+    ];
+    const problems = diffRecordings(a, b);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("request differs");
+  });
+
+  it("(c) treats a swapped consecutive same-method run as no difference", () => {
+    const a = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 1 },
+        { ok: true, result: { user: { id: 1 } } }
+      ),
+      entry(
+        2,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: { user: { id: 2 } } }
+      ),
+    ];
+    const b = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: { user: { id: 2 } } }
+      ),
+      entry(
+        2,
+        "getChatMember",
+        { chat_id: -100, user_id: 1 },
+        { ok: true, result: { user: { id: 1 } } }
+      ),
+    ];
+    expect(diffRecordings(a, b)).toEqual([]);
+  });
+
+  it("(d) still catches a genuine change hidden inside a swapped run", () => {
+    const a = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 1 },
+        { ok: true, result: { user: { id: 1 } } }
+      ),
+      entry(
+        2,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: { user: { id: 2 } } }
+      ),
+    ];
+    const b = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: { user: { id: 2 } } }
+      ),
+      entry(
+        2,
+        "getChatMember",
+        { chat_id: -100, user_id: 9 },
+        { ok: true, result: { user: { id: 9 } } }
+      ),
+    ];
+    const problems = diffRecordings(a, b);
+    expect(problems.length).toBeGreaterThan(0);
+    expect(problems.some((p) => p.includes("request differs"))).toBe(true);
+  });
+
+  it("(e) does not reorder same-method entries across a different-method separator", () => {
+    const a = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 1 },
+        { ok: true, result: {} }
+      ),
+      entry(2, "getMe", {}, { ok: true, result: {} }),
+      entry(
+        3,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: {} }
+      ),
+    ];
+    const b = [
+      entry(
+        1,
+        "getChatMember",
+        { chat_id: -100, user_id: 2 },
+        { ok: true, result: {} }
+      ),
+      entry(2, "getMe", {}, { ok: true, result: {} }),
+      entry(
+        3,
+        "getChatMember",
+        { chat_id: -100, user_id: 1 },
+        { ok: true, result: {} }
+      ),
+    ];
+    // The two getChatMember runs are separated by getMe, so each is a
+    // run of length 1 and must NOT be reordered against each other —
+    // pairing stays positional and both slots report a request diff.
+    const problems = diffRecordings(a, b);
+    expect(problems.filter((p) => p.includes("request differs"))).toHaveLength(
+      2
+    );
+  });
 });
