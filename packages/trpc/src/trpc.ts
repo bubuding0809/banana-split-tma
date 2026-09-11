@@ -62,15 +62,19 @@ type SessionCtx = {
  */
 const createTRPCContext = ({
   botToken,
+  apiRoot,
   ...rest
 }: Record<string, unknown> & {
   botToken: string;
+  apiRoot?: string;
 }) => {
   const requestId = getRequestId();
   const log: Logger = trpcLogger.child({ request_id: requestId });
   return {
     db: prisma as typeof prisma,
-    teleBot: new Telegram(botToken),
+    // apiRoot is only ever set by the local UAT recording proxy. Production
+    // leaves it undefined and the client talks to api.telegram.org.
+    teleBot: new Telegram(botToken, apiRoot ? { apiRoot } : undefined),
     request: rest.req,
     response: rest.res,
     info: rest.info,
@@ -80,13 +84,14 @@ const createTRPCContext = ({
 
 export const withCreateTRPCContext = (
   env: Readonly<{
-    [key: string]: string;
+    [key: string]: string | undefined;
   }>
 ) => {
   return (expressContext: CreateExpressContextOptions) =>
     createTRPCContext({
       ...expressContext,
       botToken: env.TELEGRAM_BOT_TOKEN || "",
+      apiRoot: env.TELEGRAM_API_ROOT || undefined,
     });
 };
 

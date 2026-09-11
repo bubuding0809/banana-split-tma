@@ -1,5 +1,4 @@
 import { Router, type Request, type Response } from "express";
-import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
 import {
   validate as validateInitData,
@@ -8,9 +7,10 @@ import {
 import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
 import { redactBotToken } from "./_redact.js";
+import { createTelegramClient } from "./_telegram.js";
 
 const router = Router();
-const teleBot = new Telegram(env.TELEGRAM_BOT_TOKEN);
+const teleBot = createTelegramClient();
 const log = createLogger("lambda");
 
 router.get("/:chatId", async (req: Request, res: Response) => {

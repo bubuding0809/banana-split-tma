@@ -1,5 +1,4 @@
 import { Router, type Request, type Response } from "express";
-import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
 import {
   createExpenseHandler,
@@ -8,6 +7,7 @@ import {
 } from "@dko/trpc";
 import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
+import { createTelegramClient } from "./_telegram.js";
 
 const log = createLogger("lambda");
 
@@ -164,7 +164,7 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
         recurringTemplateId: tmpl.id,
       },
       prisma,
-      new Telegram(env.TELEGRAM_BOT_TOKEN)
+      createTelegramClient()
     );
     return res.status(200).json({ expenseId: created.id });
   } catch (err) {
