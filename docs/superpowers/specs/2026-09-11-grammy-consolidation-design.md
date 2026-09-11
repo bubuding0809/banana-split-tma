@@ -153,7 +153,7 @@ Exact procedure names and the auth each route expects are confirmed in the plan.
 
 Run the script once on `main` before the swap, once on the branch after. An empty diff is the pass. Both batches also sit adjacent in DEV-BOX-2, so the user's eyeball pass is one scroll rather than an eight-step walkthrough.
 
-**Permanent guard.** The baseline JSONL is committed as `packages/trpc/src/__fixtures__/telegram-wire/baseline.jsonl`. A vitest spec replays the request side against each handler with the DB mocked to the same fixture data, so future message-format changes fail CI unless the fixture is regenerated on purpose. This is the same file the UAT script produces, no second harness.
+**Permanent guard.** Staging recordings depend on live DB state, so they are not replayable in CI. The committed guard is a vitest wire-snapshot spec in `packages/trpc`: each handler that talks to Telegram runs with a mocked DB against a fake Bot API server (the same body parser the proxy uses), and the recorded `{ method, body }` calls are `toMatchSnapshot()`. Snapshots are recorded while telegraf is still the client, and the swap commit must leave them byte-identical. Future message-format changes fail CI unless the snapshot is regenerated on purpose. Staging JSONL files stay local under `apps/lambda/.uat/`, gitignored.
 
 **Cleanup.** The expense is deleted by step 4. Snapshot and broadcast rows are removed at the end. Sent messages stay in the group for the eyeball pass.
 

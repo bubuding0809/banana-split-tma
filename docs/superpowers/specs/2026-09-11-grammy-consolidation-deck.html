@@ -166,7 +166,7 @@ const upstream = await fetch(url);</code></pre>
       Telegram returns the full <code>Message</code>: <code>text</code>, <code>entities</code>, <code>reply_markup</code>, <code>caption_entities</code>, <code>photo[].file_unique_id</code>. Ignore ids and dates.</div>
   </div>
   <div class="hl">Run on <code>main</code>, run on branch, <code>diff-telegram-recordings.ts</code>. <strong>Empty diff = pass.</strong> Any 400 fails the run. Both batches adjacent in DEV-BOX-2: one scroll for the eyeball pass.</div>
-  <p class="small muted">Baseline JSONL committed as a fixture. A vitest spec replays the request side against handlers → permanent CI guard, same file, no second harness.</p>
+  <p class="small muted">Permanent CI guard: vitest wire-snapshot spec (mocked DB → fake Bot API server → <code>toMatchSnapshot</code>), recorded on telegraf, must stay byte-identical after the swap. Staging JSONL stays local, gitignored.</p>
 </section>
 
 <section>
