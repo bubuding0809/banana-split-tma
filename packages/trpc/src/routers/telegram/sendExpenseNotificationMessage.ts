@@ -3,15 +3,15 @@ import { TRPCError } from "@trpc/server";
 import { type Logger } from "@repo/logger";
 import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import {
   mentionMarkdown,
   escapeMarkdown,
   createDeepLinkedUrl,
+  inlineKeyboard,
 } from "../../utils/telegram.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { formatDateLabel } from "../../utils/formatDateLabel.js";
-import { inlineKeyboard } from "telegraf/markup";
 
 // Fields that can be marked with ✏️ on an edited notification. Kept in
 // lockstep with `CHANGED_FIELDS` in sendBatchExpenseSummary.ts so the
@@ -189,7 +189,7 @@ ${participantList}${recurringFooter}`;
 export const sendExpenseNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   // Validate business logic

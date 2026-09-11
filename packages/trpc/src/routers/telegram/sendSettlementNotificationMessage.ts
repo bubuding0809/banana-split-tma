@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { type Logger } from "@repo/logger";
 import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
 import { formatCurrencyWithCode } from "../../utils/financial.js";
 
@@ -26,7 +26,7 @@ const inputSchema = z.object({
 export const sendSettlementNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   // Validate business logic

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -10,7 +10,7 @@ const inputSchema = z.object({
 
 export const getChatMemberHandler = async (
   input: z.infer<typeof inputSchema>,
-  teleBot: Telegram
+  teleBot: Api
 ) => {
   return teleBot.getChatMember(input.chatId, input.userId);
 };

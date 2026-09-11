@@ -1,4 +1,4 @@
-import type { Telegram } from "telegraf";
+import { InputFile, type Api } from "grammy";
 import type { Logger } from "@repo/logger";
 import type { Db } from "../trpc.js";
 import telegramifyMarkdown from "telegramify-markdown";
@@ -16,7 +16,7 @@ export type DeliveryActionResult = {
 };
 
 export async function retractDelivery(
-  ctx: { db: Db; teleBot: Telegram },
+  ctx: { db: Db; teleBot: Api },
   deliveryId: string
 ): Promise<DeliveryActionResult> {
   const d = await ctx.db.broadcastDelivery.findUnique({
@@ -71,7 +71,7 @@ export type EditInput = {
 };
 
 export async function editDelivery(
-  ctx: { db: Db; teleBot: Telegram },
+  ctx: { db: Db; teleBot: Api },
   deliveryId: string,
   broadcastCurrentKind: CurrentKind,
   input: EditInput
@@ -124,37 +124,27 @@ export async function editDelivery(
   try {
     let editedMediaFileId: string | null = null;
     if (decision.method === "editMessageText") {
-      await ctx.teleBot.editMessageText(
-        chatId,
-        msgId,
-        undefined,
-        caption ?? "",
-        {
-          parse_mode: "MarkdownV2",
-        }
-      );
+      await ctx.teleBot.editMessageText(chatId, msgId, caption ?? "", {
+        parse_mode: "MarkdownV2",
+      });
     } else if (decision.method === "editMessageCaption") {
-      await ctx.teleBot.editMessageCaption(chatId, msgId, undefined, caption, {
+      await ctx.teleBot.editMessageCaption(chatId, msgId, {
+        caption,
         parse_mode: "MarkdownV2",
       });
     } else {
       const m = input.media!;
-      const sent = await ctx.teleBot.editMessageMedia(
-        chatId,
-        msgId,
-        undefined,
-        {
-          type: m.kind,
-          media: { source: m.buffer, filename: m.filename },
-          caption,
-          parse_mode: "MarkdownV2",
-        }
-      );
+      const sent = await ctx.teleBot.editMessageMedia(chatId, msgId, {
+        type: m.kind,
+        media: new InputFile(m.buffer, m.filename),
+        caption,
+        parse_mode: "MarkdownV2",
+      });
       if (typeof sent !== "boolean") {
-        if (m.kind === "photo" && "photo" in sent) {
+        if (m.kind === "photo" && sent.photo) {
           editedMediaFileId =
             sent.photo[sent.photo.length - 1]?.file_id ?? null;
-        } else if (m.kind === "video" && "video" in sent) {
+        } else if (m.kind === "video" && sent.video) {
           editedMediaFileId = sent.video.file_id;
         }
       }
@@ -181,7 +171,7 @@ export async function editDelivery(
 }
 
 export async function resumeSend(
-  ctx: { db: Db; teleBot: Telegram; log: Logger },
+  ctx: { db: Db; teleBot: Api; log: Logger },
   broadcastId: string
 ): Promise<{ successCount: number; failCount: number }> {
   const b = await ctx.db.broadcast.findUnique({

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { type Logger } from "@repo/logger";
 import { trpcLogger } from "../../trpc.js";
 import {
@@ -11,9 +11,9 @@ import {
   escapeMarkdown,
   mentionMarkdown,
   createDeepLinkedUrl,
+  inlineKeyboard,
 } from "../../utils/telegram.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
-import { inlineKeyboard } from "telegraf/markup";
 
 interface EditExpenseMessageInput {
   chatId: number;
@@ -69,7 +69,7 @@ interface SendExpenseUpdateStandaloneInput {
  */
 export const editExpenseMessageHandler = async (
   input: EditExpenseMessageInput,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ): Promise<boolean> => {
   try {
@@ -132,16 +132,10 @@ export const editExpenseMessageHandler = async (
     const keyboard = inlineKeyboard(buttons);
 
     // Edit the message
-    await teleBot.editMessageText(
-      input.chatId,
-      input.messageId,
-      undefined,
-      message,
-      {
-        parse_mode: "MarkdownV2",
-        ...keyboard,
-      }
-    );
+    await teleBot.editMessageText(input.chatId, input.messageId, message, {
+      parse_mode: "MarkdownV2",
+      ...keyboard,
+    });
 
     return true;
   } catch (error) {
@@ -164,7 +158,7 @@ export const editExpenseMessageHandler = async (
  */
 export const sendExpenseUpdateStandaloneHandler = async (
   input: SendExpenseUpdateStandaloneInput,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ): Promise<number> => {
   try {
@@ -231,7 +225,7 @@ export const sendExpenseUpdateStandaloneHandler = async (
  */
 export const sendExpenseUpdateBumpHandler = async (
   input: SendExpenseUpdateBumpInput,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ): Promise<number> => {
   try {

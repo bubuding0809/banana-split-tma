@@ -3,15 +3,15 @@ import { TRPCError } from "@trpc/server";
 import { type Logger } from "@repo/logger";
 import { protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import {
   escapeMarkdown,
   mentionMarkdown,
   createDeepLinkedUrl,
   toBase64Url,
+  inlineKeyboard,
 } from "../../utils/telegram.js";
 import { formatCurrencyWithCode } from "../../utils/financial.js";
-import { inlineKeyboard } from "telegraf/markup";
 import { getChatHandler } from "../chat/getChat.js";
 import { getSimplifiedDebtsHandler } from "../chat/getSimplifiedDebts.js";
 import { getBulkChatDebtsHandler } from "../chat/getBulkChatDebts.js";
@@ -37,7 +37,7 @@ const outputSchema = z.object({
 
 export const sendGroupReminderMessageHandler = async (
   input: z.infer<typeof inputSchema>,
-  teleBot: Telegram,
+  teleBot: Api,
   db: any,
   log: Logger = trpcLogger
 ) => {

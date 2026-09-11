@@ -9,7 +9,7 @@ import {
   createExpenseHandler,
   outputSchema as expenseOutputSchema,
 } from "./createExpense.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 const singleExpenseSchema = z.object({
   payerId: z.number().transform((val) => BigInt(val)),
@@ -91,7 +91,7 @@ export const outputSchema = z.object({
 export const createExpensesBulkHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram
+  teleBot: Api
 ) => {
   const allUserIds = new Set<bigint>();
   for (const expense of input.expenses) {

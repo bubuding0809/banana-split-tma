@@ -1,5 +1,5 @@
 import telegramifyMarkdown from "telegramify-markdown";
-import type { Telegram } from "telegraf";
+import { InputFile, type Api } from "grammy";
 import { type Logger } from "@repo/logger";
 import { type Db } from "../trpc.js";
 import { withRateLimit } from "./withRateLimit.js";
@@ -46,7 +46,7 @@ export type CreateBroadcastOptions = {
 
 export type BroadcastContext = {
   db: Db;
-  teleBot: Telegram;
+  teleBot: Api;
   log: Logger;
 };
 
@@ -96,10 +96,8 @@ export async function createBroadcast(
       let sentMessageId: number;
 
       if (opts.media) {
-        const source = cachedFileId ?? {
-          source: opts.media.buffer,
-          filename: opts.media.filename,
-        };
+        const source =
+          cachedFileId ?? new InputFile(opts.media.buffer, opts.media.filename);
         const extra = caption
           ? { caption, parse_mode: "MarkdownV2" as const }
           : undefined;

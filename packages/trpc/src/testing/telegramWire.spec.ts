@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import { Telegram } from "telegraf";
+import { Api } from "grammy";
 import type { PrismaClient } from "@dko/database";
 import type { Logger } from "@repo/logger";
 import type { Db } from "../trpc.js";
@@ -51,12 +51,12 @@ const expenseInput = {
 
 describe("telegram wire snapshots", () => {
   let server: FakeTelegramServer;
-  let teleBot: Telegram;
+  let teleBot: Api;
 
   beforeAll(async () => {
     server = await startFakeTelegramServer();
     // Task 5 changes only this line to `new Api("123:TEST", { apiRoot: server.url })`.
-    teleBot = new Telegram("123:TEST", { apiRoot: server.url });
+    teleBot = new Api("123:TEST", { apiRoot: server.url });
   });
 
   afterAll(async () => {

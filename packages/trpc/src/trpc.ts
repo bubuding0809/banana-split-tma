@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { prisma } from "@dko/database";
 import superjson from "superjson";
 import type { OpenApiMeta } from "trpc-to-openapi";
-import { Telegram } from "telegraf";
+import { Api } from "grammy";
 import {
   validate as validateInitData,
   parse as parseInitData,
@@ -21,8 +21,6 @@ const INIT_DATA_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import crypto from "node:crypto";
 import { createLogger, getRequestId, type Logger } from "@repo/logger";
-
-import "telegraf/types"; // Required to ensure types are portable
 
 export const trpcLogger = createLogger("lambda");
 
@@ -74,7 +72,7 @@ const createTRPCContext = ({
     db: prisma as typeof prisma,
     // apiRoot is only ever set by the local UAT recording proxy. Production
     // leaves it undefined and the client talks to api.telegram.org.
-    teleBot: new Telegram(botToken, apiRoot ? { apiRoot } : undefined),
+    teleBot: new Api(botToken, apiRoot ? { apiRoot } : undefined),
     request: rest.req,
     response: rest.res,
     info: rest.info,

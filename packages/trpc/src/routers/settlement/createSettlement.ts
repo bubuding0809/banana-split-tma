@@ -11,7 +11,7 @@ import {
 import { validateCurrency } from "../../utils/currencyApi.js";
 import { assertUsersInChat } from "../../utils/chatValidation.js";
 import { sendSettlementNotificationMessageHandler } from "../telegram/sendSettlementNotificationMessage.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 export const inputSchema = z.object({
   chatId: z.number().transform((val) => BigInt(val)),
@@ -46,7 +46,7 @@ export const outputSchema = z.object({
 export const createSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   try {

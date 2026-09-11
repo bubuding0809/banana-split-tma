@@ -157,3 +157,19 @@ export function createDeepLinkedUrl(
   }
   return `${baseUrl}?${key}=${payload}`;
 }
+
+export type InlineButton =
+  | { text: string; url: string }
+  | { text: string; callback_data: string };
+
+/**
+ * One-row inline keyboard, spread into a send/edit call's options:
+ *   teleBot.sendMessage(chatId, text, { parse_mode: "MarkdownV2", ...inlineKeyboard(buttons) })
+ * Same output shape as telegraf's `inlineKeyboard(buttons)` with a flat
+ * button array, which is what every call site used.
+ */
+export function inlineKeyboard(buttons: InlineButton[]): {
+  reply_markup: { inline_keyboard: InlineButton[][] };
+} {
+  return { reply_markup: { inline_keyboard: [buttons] } };
+}

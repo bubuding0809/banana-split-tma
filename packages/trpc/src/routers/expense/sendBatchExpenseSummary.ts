@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
 import { type Logger } from "@repo/logger";
@@ -154,7 +154,7 @@ export const formatBatchSummaryMessage = (
 export const sendBatchExpenseSummaryHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   const chat = await db.chat.findUnique({

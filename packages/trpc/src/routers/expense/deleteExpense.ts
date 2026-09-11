@@ -4,7 +4,7 @@ import { Prisma } from "@dko/database";
 import { type Logger } from "@repo/logger";
 import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { deleteExpenseMessagesHandler } from "../telegram/deleteExpenseNotificationMessage.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 
 export const inputSchema = z.object({
@@ -19,7 +19,7 @@ export const outputSchema = z.object({
 export const deleteExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   session: {
     authType:
       | "superadmin"

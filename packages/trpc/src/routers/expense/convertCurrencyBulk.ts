@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { type Logger } from "@repo/logger";
 import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
@@ -34,7 +34,7 @@ export const outputSchema = z.object({
 export const convertCurrencyBulkHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   try {

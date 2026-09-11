@@ -137,7 +137,7 @@ describe("editExpenseMessageHandler — recurring keyboard", () => {
     );
 
     expect(mockTeleBot.editMessageText).toHaveBeenCalledOnce();
-    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const [, , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
     const row = (
       extra as {
         reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
@@ -161,7 +161,7 @@ describe("editExpenseMessageHandler — recurring keyboard", () => {
     );
 
     expect(mockTeleBot.editMessageText).toHaveBeenCalledOnce();
-    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const [, , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
     const row = (
       extra as {
         reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
@@ -179,7 +179,7 @@ describe("editExpenseMessageHandler — recurring keyboard", () => {
       mockTeleBot as any
     );
 
-    const [, , , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
+    const [, , , extra] = mockTeleBot.editMessageText.mock.calls[0] ?? [];
     const row = (
       extra as {
         reply_markup?: { inline_keyboard: { text: string; url?: string }[][] };
