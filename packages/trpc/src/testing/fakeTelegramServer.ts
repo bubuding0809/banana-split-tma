@@ -166,6 +166,9 @@ export async function startFakeTelegramServer(
       req.headers["content-type"] ?? "",
       raw
     );
+    // telegraf echoes the method name inside multipart bodies; grammy does not.
+    // Telegram ignores it, so it is not part of the wire contract we snapshot.
+    if (body.method === method) delete body.method;
     calls.push({ method, body });
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ ok: true, result: responder(method, body) }));

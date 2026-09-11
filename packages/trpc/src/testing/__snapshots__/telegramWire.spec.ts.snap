@@ -37,7 +37,6 @@ exports[`telegram wire snapshots > editMessageText / editMessageCaption / editMe
         "type": "photo",
       },
       "message_id": 777,
-      "method": "editMessageMedia",
     },
     "method": "editMessageMedia",
   },
@@ -131,7 +130,6 @@ exports[`telegram wire snapshots > sendPhoto multipart upload (broadcast with ph
       "caption": "Hello _world_
 ",
       "chat_id": 259941064,
-      "method": "sendPhoto",
       "parse_mode": "MarkdownV2",
       "photo": {
         "bytes": 34,
