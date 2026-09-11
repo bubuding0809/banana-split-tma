@@ -217,8 +217,8 @@ importers:
         specifier: ^16.4.5
         version: 16.6.1
       grammy:
-        specifier: ^1.41.1
-        version: 1.41.1
+        specifier: ^1.46.0
+        version: 1.46.0
       marked:
         specifier: ^17.0.5
         version: 17.0.5
@@ -3046,12 +3046,6 @@ packages:
     resolution:
       {
         integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==,
-      }
-
-  "@grammyjs/types@3.25.0":
-    resolution:
-      {
-        integrity: sha512-iN9i5p+8ZOu9OMxWNcguojQfz4K/PDyMPOnL7PPCON+SoA/F8OKMH3uR7CVUkYfdNe0GCz8QOzAWrnqusQYFOg==,
       }
 
   "@grammyjs/types@5.0.0":
@@ -11429,13 +11423,6 @@ packages:
         integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==,
       }
 
-  grammy@1.41.1:
-    resolution:
-      {
-        integrity: sha512-wcHAQ1e7svL3fJMpDchcQVcWUmywhuepOOjHUHmMmWAwUJEIyK5ea5sbSjZd+Gy1aMpZeP8VYJa+4tP+j1YptQ==,
-      }
-    engines: { node: ^12.20.0 || >=14.13.1 }
-
   grammy@1.46.0:
     resolution:
       {
@@ -19272,8 +19259,6 @@ snapshots:
 
   "@floating-ui/utils@0.2.11": {}
 
-  "@grammyjs/types@3.25.0": {}
-
   "@grammyjs/types@5.0.0": {}
 
   "@hapi/bourne@3.0.0": {}
@@ -25747,16 +25732,6 @@ snapshots:
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
-
-  grammy@1.41.1:
-    dependencies:
-      "@grammyjs/types": 3.25.0
-      abort-controller: 3.0.0
-      debug: 4.4.3(supports-color@8.1.1)
-      node-fetch: 2.7.0
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
 
   grammy@1.46.0:
     dependencies:
