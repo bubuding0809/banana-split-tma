@@ -6,8 +6,8 @@ const TOKEN_RE = /bot\d+:[A-Za-z0-9_-]+/g;
  * include token-bearing URLs (`https://api.telegram.org/file/bot<TOKEN>/...`)
  * in error messages.
  *
- * Mirrors telegraf's internal redactToken pattern for the one HTTP call
- * (fetch of the file bytes) that doesn't pass through telegraf.
+ * Covers the one HTTP call (fetch of the file bytes) that goes through Node
+ * fetch rather than the grammy client.
  *
  * Note: this redacts the surface error string only (err.message for Error
  * instances, String(err) otherwise). It does not recursively walk err.cause —

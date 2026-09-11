@@ -1,4 +1,4 @@
-import { Telegram } from "telegraf";
+import { Api } from "grammy";
 import { env } from "./env.js";
 
 /**
@@ -6,8 +6,8 @@ import { env } from "./env.js";
  * TELEGRAM_API_ROOT so the local UAT recording proxy can sit in front of
  * api.telegram.org.
  */
-export function createTelegramClient(): Telegram {
-  return new Telegram(
+export function createTelegramClient(): Api {
+  return new Api(
     env.TELEGRAM_BOT_TOKEN,
     env.TELEGRAM_API_ROOT ? { apiRoot: env.TELEGRAM_API_ROOT } : undefined
   );

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const { validateMock, parseMock, getUserProfilePhotosMock, getFileLinkMock } =
+const { validateMock, parseMock, getUserProfilePhotosMock, getFileMock } =
   vi.hoisted(() => {
     process.env.TELEGRAM_BOT_TOKEN = "test-bot-token";
     process.env.API_KEY = "test-api-key";
@@ -11,13 +11,17 @@ const { validateMock, parseMock, getUserProfilePhotosMock, getFileLinkMock } =
     process.env.CRON_SECRET = "c".repeat(64);
     process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
       "arn:aws:lambda:ap-southeast-1:000000000000:function:GroupReminderLambda";
+    // Pin the download URL the file helper builds; "" reads back as undefined.
+    process.env.TELEGRAM_API_ROOT = "";
     return {
       validateMock: vi.fn(),
       parseMock: vi.fn(),
       getUserProfilePhotosMock: vi.fn(),
-      getFileLinkMock: vi.fn(),
+      getFileMock: vi.fn(),
     };
   });
+
+const FILE_URL = "https://api.telegram.org/file/bottest-bot-token/photos/x.jpg";
 
 vi.mock("@telegram-apps/init-data-node", () => ({
   validate: validateMock,
@@ -30,10 +34,10 @@ vi.mock("@dko/database", () => ({
   },
 }));
 
-vi.mock("telegraf", () => ({
-  Telegram: vi.fn(function (this: Record<string, unknown>) {
+vi.mock("grammy", () => ({
+  Api: vi.fn(function (this: Record<string, unknown>) {
     this.getUserProfilePhotos = getUserProfilePhotosMock;
-    this.getFileLink = getFileLinkMock;
+    this.getFile = getFileMock;
   }),
 }));
 
@@ -118,10 +122,12 @@ describe("GET /api/avatar/:userId — Telegram fetch", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     fetchMock.mockReset();
     getUserProfilePhotosMock.mockReset();
-    getFileLinkMock.mockReset();
-    getFileLinkMock.mockResolvedValue(
-      new URL("https://api.telegram.org/file/botX/path.jpg")
-    );
+    getFileMock.mockReset();
+    getFileMock.mockResolvedValue({
+      file_id: "f",
+      file_unique_id: "u",
+      file_path: "photos/x.jpg",
+    });
   });
 
   it("returns 404 with 1h cache when user has no photos", async () => {
@@ -159,6 +165,11 @@ describe("GET /api/avatar/:userId — Telegram fetch", () => {
       /stale-while-revalidate=604800/
     );
     expect(res.body.length).toBeGreaterThan(0);
+    expect(getUserProfilePhotosMock).toHaveBeenCalledWith(123, {
+      offset: 0,
+      limit: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(FILE_URL);
   });
 
   it("picks the largest size variant", async () => {
@@ -178,7 +189,7 @@ describe("GET /api/avatar/:userId — Telegram fetch", () => {
       arrayBuffer: () => Promise.resolve(new Uint8Array([0xff]).buffer),
     });
     await request(app).get("/api/avatar/123?auth=ok");
-    expect(getFileLinkMock).toHaveBeenCalledWith("big");
+    expect(getFileMock).toHaveBeenCalledWith("big");
   });
 });
 
@@ -188,10 +199,10 @@ describe("GET /api/avatar/:userId — error paths", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     fetchMock.mockReset();
     getUserProfilePhotosMock.mockReset();
-    getFileLinkMock.mockReset();
+    getFileMock.mockReset();
   });
 
-  it("returns 502 when telegraf throws", async () => {
+  it("returns 502 when the Telegram client throws", async () => {
     validateMock.mockImplementationOnce(() => {});
     parseMock.mockReturnValueOnce({ user: { id: 123 } });
     getUserProfilePhotosMock.mockRejectedValueOnce(new Error("flood wait"));
@@ -205,11 +216,28 @@ describe("GET /api/avatar/:userId — error paths", () => {
     getUserProfilePhotosMock.mockResolvedValueOnce({
       photos: [[{ file_id: "big", file_unique_id: "u-b" }]],
     });
-    getFileLinkMock.mockResolvedValueOnce(
-      new URL("https://api.telegram.org/file/botX/p.jpg")
-    );
+    getFileMock.mockResolvedValueOnce({
+      file_id: "big",
+      file_unique_id: "u-b",
+      file_path: "photos/x.jpg",
+    });
     fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
     const res = await request(app).get("/api/avatar/123?auth=ok");
     expect(res.status).toBe(502);
+  });
+
+  it("returns 502 when Telegram returns no file_path", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 123 } });
+    getUserProfilePhotosMock.mockResolvedValueOnce({
+      photos: [[{ file_id: "big", file_unique_id: "u-b" }]],
+    });
+    getFileMock.mockResolvedValueOnce({
+      file_id: "big",
+      file_unique_id: "u-b",
+    });
+    const res = await request(app).get("/api/avatar/123?auth=ok");
+    expect(res.status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

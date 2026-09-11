@@ -52,6 +52,76 @@ function resolveAttachRefs(
   return out;
 }
 
+type MultipartPart = { name: string; filename?: string; body: Buffer };
+
+/**
+ * Read the boundary out of a `multipart/form-data` content-type, tolerating
+ * both the quoted and the bare parameter form.
+ */
+function multipartBoundary(contentType: string): string | null {
+  const match = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType);
+  const value = match?.[1] ?? match?.[2];
+  return value ? value.trim() : null;
+}
+
+/**
+ * Split a multipart body into its parts.
+ *
+ * Deliberately hand-rolled rather than delegating to `Response.formData()`:
+ * undici's parser only accepts the canonical `content-disposition: form-data;
+ * name="x"; filename="y"` spelling, while grammy emits the equally legal
+ * `content-disposition:form-data;name="x";filename=y` (no spaces, bare
+ * filename token) that the real Bot API accepts. Telegram parses both, so the
+ * harness must too — otherwise the client library's whitespace choices, not
+ * the wire contract, decide whether a snapshot can be taken at all.
+ */
+function splitMultipart(raw: Buffer, boundary: string): MultipartPart[] {
+  const marker = Buffer.from(`--${boundary}`, "latin1");
+  const parts: MultipartPart[] = [];
+  let cursor = raw.indexOf(marker);
+  while (cursor !== -1) {
+    let start = cursor + marker.length;
+    // `--` right after the boundary marks the closing delimiter.
+    if (raw.subarray(start, start + 2).toString("latin1") === "--") break;
+    if (raw.subarray(start, start + 2).toString("latin1") === "\r\n")
+      start += 2;
+
+    const next = raw.indexOf(marker, start);
+    const end = next === -1 ? raw.length : next;
+    // Drop the CRLF that belongs to the following delimiter, not the body.
+    const segment = raw.subarray(
+      start,
+      raw.subarray(end - 2, end).toString("latin1") === "\r\n" ? end - 2 : end
+    );
+
+    const headerEnd = segment.indexOf("\r\n\r\n");
+    if (headerEnd !== -1) {
+      const headers = segment.subarray(0, headerEnd).toString("latin1");
+      const body = segment.subarray(headerEnd + 4);
+      const disposition = headers
+        .split("\r\n")
+        .find((line) => /^content-disposition\s*:/i.test(line));
+      const name = disposition
+        ? /;\s*name=(?:"([^"]*)"|([^;]+))/i.exec(disposition)
+        : null;
+      const filename = disposition
+        ? /;\s*filename=(?:"([^"]*)"|([^;]+))/i.exec(disposition)
+        : null;
+      const fieldName = (name?.[1] ?? name?.[2])?.trim();
+      if (fieldName !== undefined) {
+        const fileName = (filename?.[1] ?? filename?.[2])?.trim();
+        parts.push({
+          name: fieldName,
+          ...(fileName !== undefined ? { filename: fileName } : {}),
+          body,
+        });
+      }
+    }
+    cursor = next;
+  }
+  return parts;
+}
+
 /**
  * Parse a Bot API request body into a plain object. JSON bodies parse as-is.
  * Multipart bodies collapse file parts into { filename, bytes, sha256 }.
@@ -66,20 +136,18 @@ export async function parseTelegramBody(
       : {};
   }
   if (contentType.startsWith("multipart/form-data")) {
-    const form = await new Response(raw, {
-      headers: { "content-type": contentType },
-    }).formData();
+    const boundary = multipartBoundary(contentType);
+    if (!boundary) throw new Error("multipart body has no boundary");
     const fields: Record<string, unknown> = {};
     const files: Record<string, FileSummary> = {};
-    for (const [key, value] of form.entries()) {
-      if (typeof value === "string") {
-        fields[key] = parseScalar(value);
+    for (const part of splitMultipart(raw, boundary)) {
+      if (part.filename === undefined) {
+        fields[part.name] = parseScalar(part.body.toString("utf8"));
       } else {
-        const buf = Buffer.from(await value.arrayBuffer());
-        files[key] = {
-          filename: value.name,
-          bytes: buf.length,
-          sha256: createHash("sha256").update(buf).digest("hex"),
+        files[part.name] = {
+          filename: part.filename,
+          bytes: part.body.length,
+          sha256: createHash("sha256").update(part.body).digest("hex"),
         };
       }
     }
