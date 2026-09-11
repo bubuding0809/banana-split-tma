@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import { Api } from "grammy";
+import type { Api } from "grammy";
+import { createTelegramApi } from "../utils/telegramClient.js";
 import type { PrismaClient } from "@dko/database";
 import type { Logger } from "@repo/logger";
 import type { Db } from "../trpc.js";
@@ -11,6 +12,7 @@ import { sendExpenseNotificationMessageHandler } from "../routers/telegram/sendE
 import { editExpenseMessageHandler } from "../routers/telegram/editExpenseNotificationMessage.js";
 import { editDelivery } from "../services/broadcastActions.js";
 import { createBroadcast } from "../services/broadcast.js";
+import { shareSnapshotMessageHandler } from "../routers/snapshot/shareSnapshotMessage.js";
 
 // Wire-level regression guard. Each test drives a real client against a fake
 // Bot API server and snapshots the exact request bodies. The snapshot was
@@ -55,8 +57,9 @@ describe("telegram wire snapshots", () => {
 
   beforeAll(async () => {
     server = await startFakeTelegramServer();
-    // Task 5 changes only this line to `new Api("123:TEST", { apiRoot: server.url })`.
-    teleBot = new Api("123:TEST", { apiRoot: server.url });
+    // Same factory production uses, so the error-redacting transformer is
+    // proven not to touch request bodies.
+    teleBot = createTelegramApi("123:TEST", server.url);
   });
 
   afterAll(async () => {
@@ -124,6 +127,90 @@ describe("telegram wire snapshots", () => {
     });
 
     expect(server.calls).toMatchSnapshot();
+  });
+
+  it("sendRichMessage with rich HTML (snapshot share)", async () => {
+    // Recorded on grammy (telegraf never sent this method), so this guards
+    // future changes rather than the migration itself.
+    server.calls.length = 0;
+    const OTHER = 257256809n;
+    const db = {
+      expenseSnapshot: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93",
+          title: "Wire <trip> & co",
+          chatId: -1002371842523n,
+          currency: "SGD",
+          creatorId: RUNNER,
+          creator: { firstName: "Ruoqian", username: "bubuding0809" },
+          chat: {
+            type: "group",
+            threadId: 147n,
+            members: [{ userId: RUNNER }],
+            baseCurrency: "SGD",
+            chatCategories: [],
+          },
+          expenses: [
+            {
+              amount: "30.00",
+              currency: "SGD",
+              // Midday UTC so the rendered day is the same in any CI timezone.
+              date: new Date("2026-04-15T12:00:00Z"),
+              description: "Dinner",
+              categoryId: null,
+              payerId: RUNNER,
+              payer: { firstName: "Ruoqian", username: "bubuding0809" },
+              shares: [
+                {
+                  userId: RUNNER,
+                  amount: "15.00",
+                  user: { firstName: "Ruoqian", username: "bubuding0809" },
+                },
+                {
+                  userId: OTHER,
+                  amount: "15.00",
+                  user: { firstName: "Bob", username: null },
+                },
+              ],
+            },
+            {
+              amount: "12.50",
+              currency: "SGD",
+              date: new Date("2026-04-17T12:00:00Z"),
+              description: "Taxi",
+              categoryId: null,
+              payerId: OTHER,
+              payer: { firstName: "Bob", username: null },
+              shares: [
+                {
+                  userId: OTHER,
+                  amount: "12.50",
+                  user: { firstName: "Bob", username: null },
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    } as unknown as Db;
+
+    await shareSnapshotMessageHandler(
+      { snapshotId: "5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93" },
+      db,
+      teleBot,
+      RUNNER,
+      log
+    );
+
+    // Live member lookups run concurrently, so their arrival order varies.
+    const lookups = server.calls
+      .filter((c) => c.method === "getChatMember")
+      .map((c) => c.body.user_id)
+      .sort();
+    expect(lookups).toEqual([Number(OTHER), Number(RUNNER)]);
+    expect(
+      server.calls.filter((c) => c.method !== "getChatMember")
+    ).toMatchSnapshot();
   });
 
   it("sendPhoto multipart upload (broadcast with photo)", async () => {

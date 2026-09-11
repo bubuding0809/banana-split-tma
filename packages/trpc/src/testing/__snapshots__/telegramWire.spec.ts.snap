@@ -141,3 +141,49 @@ exports[`telegram wire snapshots > sendPhoto multipart upload (broadcast with ph
   },
 ]
 `;
+
+exports[`telegram wire snapshots > sendRichMessage with rich HTML (snapshot share) 1`] = `
+[
+  {
+    "body": {},
+    "method": "getMe",
+  },
+  {
+    "body": {
+      "chat_id": -1002371842523,
+      "message_thread_id": 147,
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "s:5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93:cat",
+              "text": "✓ 📋 Category",
+            },
+            {
+              "callback_data": "s:5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93:date",
+              "text": "📅 Date",
+            },
+          ],
+          [
+            {
+              "text": "View Snapshot 📊",
+              "url": "https://t.me/testbot?startapp=v1_g_-hE8i6aD_s_2TlRt4ussTBcGmFBFLMjpF",
+            },
+          ],
+        ],
+      },
+      "rich_message": {
+        "html": "<h3>📊 Snapshot</h3>
+<table><tr><td><b>Group</b></td><td>Wire &lt;trip&gt; &amp; co</td></tr><tr><td><b>Shared by</b></td><td>@bubuding0809</td></tr><tr><td><b>Dates</b></td><td>15–17 Apr 2026</td></tr><tr><td><b>Expenses</b></td><td>2</td></tr><tr><td><b>Total spent</b></td><td><b>SGD 42.50</b></td></tr></table>
+
+<b>🧾 Shares</b>
+<table bordered><tr><th>Member</th><th>Share (Spend)</th></tr><tr><td><a href="tg://user?id=257256809">Live 257256809</a></td><td>SGD 27.50</td></tr><tr><td>@bubuding0809</td><td>SGD 15.00</td></tr></table>
+
+<b>📋 Expenses by category</b>
+<details open><summary>❓ <b>Uncategorized</b> · SGD 42.50</summary><ul><li>Taxi · 12.50 · 17 Apr</li><li>Dinner · 30.00 · 15 Apr</li></ul></details>",
+      },
+    },
+    "method": "sendRichMessage",
+  },
+]
+`;

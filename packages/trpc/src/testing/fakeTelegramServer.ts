@@ -195,6 +195,15 @@ export const defaultResponder: Responder = (method, body) => {
       };
     case "deleteMessage":
       return true;
+    case "getChatMember":
+      return {
+        status: "member",
+        user: {
+          id: body.user_id,
+          is_bot: false,
+          first_name: `Live ${String(body.user_id)}`,
+        },
+      };
     case "sendPhoto":
       return { message_id: 1, date: 0, chat, photo };
     case "sendVideo":
