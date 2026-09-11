@@ -129,49 +129,49 @@ const upstream = await fetch(url);</code></pre>
     <tr><th>Layer</th><th>Catches</th><th>Misses</th></tr>
     <tr><td><code>pnpm check-types</code></td><td>Positional-arg mismatches, media input type</td><td>Serialization drift</td></tr>
     <tr><td>Existing specs (5 trpc + 2 lambda)</td><td>Handler logic, call counts</td><td>Wire bytes. Mocks are shape-only</td></tr>
-    <tr><td><strong>Wire-level golden fixtures</strong> <span class="pill ok">new</span></td><td>Any change in JSON Telegram receives</td><td>Client rendering quirks → staging</td></tr>
+    <tr><td><strong>Recorded Telegram traffic</strong> <span class="pill ok">new</span></td><td>Any change in request JSON or in what Telegram renders</td><td>Client-specific quirks of <em>new</em> features</td></tr>
   </table>
 </section>
 
 <section>
-  <h2>Wire-level golden fixtures</h2>
-  <p class="small">Rendering = f(JSON the Bot API receives). Lock the JSON.</p>
-  <div class="grid2">
-    <div class="box"><h3>1 · Record on <code>main</code></h3>
-      Both libs accept <code>apiRoot</code>. Point telegraf at a local recorder. Run every <code>teleBot</code> handler with fixed DB mocks. Commit bodies to <code>__fixtures__/telegram-wire/*.json</code>.</div>
-    <div class="box"><h3>2 · Replay after swap</h3>
-      Same tests, same fixtures, grammy must match on <code>chat_id</code>, <code>text</code>, <code>parse_mode</code>, <code>reply_markup</code>, <code>message_thread_id</code>, <code>message_id</code>, <code>caption</code>. Multipart parsed and compared field by field.</div>
-  </div>
-  <p class="small muted">Any diff = regression before staging. Fixtures stay as a permanent guard.</p>
+  <h2>Recording proxy</h2>
+  <p class="small">One optional env var, <code>TELEGRAM_API_ROOT</code>. Both libs accept <code>apiRoot</code>. Production never sets it.</p>
+  <pre><code class="language-text">dev server :8081 ──► recording proxy :8082 ──► api.telegram.org
+                       │
+                       └─► uat-&lt;sha&gt;.jsonl
+                           { seq, method, request, response }</code></pre>
+  <p class="small muted">Multipart parsed to fields, file parts → <code>{ filename, bytes, sha256 }</code>. Token stripped from the log.</p>
 </section>
 
 <section>
-  <h2>Automated staging UAT</h2>
-  <p class="small"><code>scripts/uat-telegram-clients.ts</code> · trpc <code>createCaller</code> with a <strong>recording-proxy</strong> <code>teleBot</code> · target DEV-BOX-2 · <code>@BananaSplitzStgBot</code></p>
+  <h2>Automated staging UAT over HTTP</h2>
+  <p class="small">Dev server is the production path: Express → auth → <code>withCreateTRPCContext</code> → input parsing → handler. <code>createCaller</code> in-process would skip the first three.</p>
   <table>
-    <tr><th>Procedure</th><th>Exercises</th></tr>
+    <tr><th>HTTP call</th><th>Exercises</th></tr>
     <tr><td><code>telegram.sendGroupReminderMessage</code></td><td><code>sendMessage</code> + keyboard</td></tr>
     <tr><td><code>expense.create → update → delete</code></td><td><code>sendMessage</code>, <code>editMessageText</code>, <code>deleteMessage</code></td></tr>
     <tr><td><code>snapshot.share</code> + <code>renderSnapshotView</code></td><td>callback keyboard + the handler a tap invokes</td></tr>
-    <tr><td><code>broadcast.send → editCaption → editMedia</code></td><td><code>sendPhoto</code>/<code>InputFile</code>, caption + media edits</td></tr>
-    <tr><td>lambda <code>avatar</code>, <code>chat-photo</code> handlers</td><td><code>getFile</code> URL builder + download</td></tr>
+    <tr><td><code>POST /api/admin/broadcast</code> → edit caption → edit media</td><td><code>sendPhoto</code>/<code>InputFile</code>, multer, caption + media edits</td></tr>
+    <tr><td><code>GET /api/avatar</code>, <code>GET /api/chat-photo</code></td><td><code>getFile</code> URL builder + download</td></tr>
   </table>
+  <p class="small muted"><code>@trpc/client</code> → <code>localhost:8081/api/trpc</code> with <code>x-api-key</code>, same as <code>apps/web</code>. Target DEV-BOX-2.</p>
 </section>
 
 <section>
   <h2>Baseline diff</h2>
   <div class="grid2">
-    <div class="box"><h3>Run on <code>main</code></h3>
-      Telegram's <code>sendMessage</code> response is the full <code>Message</code>: <code>text</code>, <code>entities</code>, <code>reply_markup</code>, <code>caption_entities</code>. Log it.</div>
-    <div class="box"><h3>Run on branch</h3>
-      Same script, same group. Deep-equal the returned Messages, ignoring <code>message_id</code>/<code>date</code>.</div>
+    <div class="box"><h3>Request side</h3>
+      <code>method</code>, <code>chat_id</code>, <code>text</code>, <code>parse_mode</code>, <code>reply_markup</code>, <code>message_thread_id</code>, <code>caption</code>, multipart fields + file <code>sha256</code>. Ignore <code>message_id</code>.</div>
+    <div class="box"><h3>Response side</h3>
+      Telegram returns the full <code>Message</code>: <code>text</code>, <code>entities</code>, <code>reply_markup</code>, <code>caption_entities</code>, <code>photo[].file_unique_id</code>. Ignore ids and dates.</div>
   </div>
-  <div class="hl"><strong>Equal entities = equal rendering.</strong> Any Telegram 400 (<code>can't parse entities</code>, <code>wrong file identifier</code>) fails the run. Both batches sit adjacent in DEV-BOX-2: one scroll replaces an eight-step walkthrough.</div>
+  <div class="hl">Run on <code>main</code>, run on branch, <code>diff-telegram-recordings.ts</code>. <strong>Empty diff = pass.</strong> Any 400 fails the run. Both batches adjacent in DEV-BOX-2: one scroll for the eyeball pass.</div>
+  <p class="small muted">Baseline JSONL committed as a fixture. A vitest spec replays the request side against handlers → permanent CI guard, same file, no second harness.</p>
 </section>
 
 <section>
   <h2>Rollout</h2>
-  <p>Single PR. No schema, no env. <code>deploy.yml</code> redeploys bot, lambda, web.</p>
+  <p>Single PR. No schema. One optional env var nobody deploys. <code>deploy.yml</code> redeploys bot, lambda, web.</p>
   <p><span class="pill ok">rollback = plain revert</span></p>
 </section>
 

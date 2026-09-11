@@ -86,6 +86,10 @@ Put the URL builder in a small `_telegramFile.ts` helper shared by both handlers
 
 grammy throws `GrammyError` for API-level failures with `description` and `error_code`, and `HttpError` for transport failures. Existing catch blocks match on `error.message.includes("chat not found")` and similar. `GrammyError.message` is `Call to 'sendMessage' failed! (400: Bad Request: chat not found)`, so the substring checks keep matching. No catch-block changes.
 
+### New env var
+
+`TELEGRAM_API_ROOT`, optional. Read in `packages/trpc` env schema and `apps/lambda/env`. When set, passed as `apiRoot` to the Telegram client. Exists only so the recording proxy in the Testing section can sit between the app and Telegram. Not set in any deployed environment.
+
 ### What does not change
 
 Message text, `parse_mode: "MarkdownV2"`, `escapeMarkdown`, `mentionMarkdown`, deep-link creation, thread ids, all handler logic, all trpc procedure contracts, OpenAPI metadata, `apps/bot` feature code beyond the version bump.
@@ -100,45 +104,64 @@ Three layers, weakest to strongest.
 
 **Existing unit specs.** `pnpm test`. Five telegram router specs and two lambda tests assert on `mockTeleBot.*` call args and stay green. Specs that assert on `editMessageText` positional args need the `undefined` slot removed from their expectations. Lambda tests re-point `vi.mock`. Mocks are shape-only, so this layer cannot tell whether grammy puts different bytes on the wire.
 
-**Wire-level golden fixtures.** Rendering in Telegram is a function of the JSON the Bot API receives. Lock that directly.
-
-- Both libraries accept a custom `apiRoot`. A vitest helper starts a local HTTP server that records `{ method, body }` per request and answers with a canned `{ ok: true, result: { message_id: 1, … } }`.
-- Step one, on `main` before the swap: run every handler that calls `teleBot` (all 14 `sendMessage` sites, both `editMessageText` sites, `editMessageCaption`, `editMessageMedia`, `sendPhoto`, `sendVideo`, `deleteMessage`) against that server with fixed DB mocks. Write recorded bodies to `packages/trpc/src/__fixtures__/telegram-wire/<handler>.json`. Commit.
-- Step two, after the swap: same tests read the same fixtures and assert deep equality on `chat_id`, `text`, `parse_mode`, `reply_markup`, `message_thread_id`, `message_id`, `caption`. Multipart bodies for `sendPhoto`, `sendVideo`, and `editMessageMedia` are parsed and compared field by field, file bytes included.
-- Any diff is a regression found before staging. The fixtures stay in the repo as a permanent guard for future message-format changes.
+**Recorded Telegram traffic, baseline vs branch.** Rendering in Telegram is a function of the JSON the Bot API receives, and Telegram's response to every send or edit is the full `Message` it will render, entities included. Record both on `main`, record both on the branch, diff.
 
 **New helper tests.** `inlineKeyboard` returns `{ reply_markup: { inline_keyboard: [buttons] } }`. The file-URL helper builds the expected URL and returns null when `file_path` is absent.
 
-### Automated staging UAT on `@BananaSplitzStgBot`
+### Recording proxy
 
-Golden fixtures prove the request is unchanged. Staging proves Telegram accepts it and returns the same rendered structure. Both run without a human clicking through the app.
+One env var, `TELEGRAM_API_ROOT`, optional, default `https://api.telegram.org`. `withCreateTRPCContext` passes it to the client constructor (`new Telegram(token, { apiRoot })` today, `new Api(token, { apiRoot })` after), and the four lambda handlers do the same. Both libraries support the option. Production never sets it.
 
-`scripts/uat-telegram-clients.ts`, modeled on `scripts/smoke-cross-group-dm.ts`. Loads `apps/bot/.env` (staging bot token) and `packages/database/.env` (local docker postgres). Builds a trpc caller the way `apps/bot/src/middleware/trpc.ts` does, via `withCreateTRPCContext` + `appRouter.createCaller`, but hands the context a `teleBot` wrapped in a recording proxy: every API call's method, args, and Telegram's response are appended to a JSON log.
+`scripts/telegram-recording-proxy.ts` starts a local HTTP server on `:8082` that forwards every request to `https://api.telegram.org`, streams the response back unchanged, and appends one line to a JSONL log:
 
-Target group: DEV-BOX-2 (`-1002371842523`). Steps, each a real trpc procedure:
+```json
+{ "seq": 1, "method": "sendMessage", "request": { …parsed body… }, "response": { …Telegram JSON… } }
+```
 
-| Step | Procedure | Exercises |
+Multipart requests (`sendPhoto`, `sendVideo`, `editMessageMedia`) are parsed into fields, with file parts replaced by `{ filename, bytes, sha256 }`. The bot token is stripped from the logged path.
+
+### Automated staging UAT over HTTP
+
+The dev server is the production code path: Express, auth middleware, `withCreateTRPCContext`, input parsing, then the handler. Calling it over HTTP exercises all of it. Calling `createCaller` in-process would skip the first three.
+
+`scripts/uat-telegram-clients.ts`:
+
+1. Starts the recording proxy.
+2. Starts `apps/lambda` dev server (`pnpm --filter lambda dev`, port 8081) with `TELEGRAM_API_ROOT=http://localhost:8082` plus the usual `apps/lambda` env: staging bot token, local docker postgres, `API_KEY`. Waits for `GET /` to answer.
+3. Calls procedures through `@trpc/client` against `http://localhost:8081/api/trpc` with the `x-api-key` header, the same way `apps/web` does. Admin broadcast goes through `POST /api/admin/broadcast` as multipart, avatar and chat photo through `GET /api/avatar` and `GET /api/chat-photo`.
+4. Stops both servers, writes `<out>/uat-<git-sha>.jsonl`.
+
+Target group: DEV-BOX-2 (`-1002371842523`). Steps:
+
+| Step | HTTP call | Exercises |
 |---|---|---|
 | 1 | `telegram.sendGroupReminderMessage` | `sendMessage` + `inlineKeyboard` |
 | 2 | `expense.create` with a fixed payload | `sendMessage` notification |
 | 3 | `expense.update` amount | `editMessageText` |
 | 4 | `expense.delete` | `deleteMessage` |
-| 5 | `snapshot.share` then `snapshot.renderSnapshotView` for each view | `sendMessage` with callback keyboard, the handler the button tap invokes |
-| 6 | `broadcast.send` to the runner's own user id with a fixture photo | `sendPhoto` + `InputFile` |
+| 5 | `snapshot.share` then `snapshot.renderSnapshotView` per view | `sendMessage` with callback keyboard, and the handler a button tap invokes |
+| 6 | `POST /api/admin/broadcast` to the runner's own user id with a fixture photo | `sendPhoto` + `InputFile`, multer path |
 | 7 | `broadcast.editCaption` then `broadcast.editMedia` | `editMessageCaption`, `editMessageMedia` |
-| 8 | lambda `avatar` and `chat-photo` handlers, invoked directly with a fake req/res as their tests do | `getUserProfilePhotos`, `getChat`, `getFile`, file download |
+| 8 | `GET /api/avatar`, `GET /api/chat-photo` | `getUserProfilePhotos`, `getChat`, `getFile`, file download, `_redact` path |
 
-Exact procedure names are confirmed in the plan. Any step where Telegram returns an error fails the run. That is the runtime shape of a serialization regression: `can't parse entities`, `wrong file identifier`, `reply markup is invalid`.
+Exact procedure names and the auth each route expects are confirmed in the plan. Any step where the dev server or Telegram returns an error fails the run. That is the runtime shape of a serialization regression: `can't parse entities`, `wrong file identifier`, `reply markup is invalid`.
 
-**Baseline diff.** Run the script once on `main` before the swap, once on the branch after. Compare the two JSON logs on Telegram's returned `Message` objects: `text`, `entities`, `reply_markup`, `caption`, `caption_entities`, `photo[].file_unique_id`. Ignore `message_id`, `date`, `edit_date`. Equal entities means equal rendering. The two batches also sit adjacent in DEV-BOX-2, so one scroll by the user replaces an eight-step walkthrough.
+**Diff.** `scripts/diff-telegram-recordings.ts <baseline.jsonl> <branch.jsonl>` pairs entries by `seq` and compares:
+
+- Request side: `method`, `chat_id`, `text`, `parse_mode`, `reply_markup`, `message_thread_id`, `caption`, multipart fields and file `sha256`. Ignores `message_id`, which differs per run.
+- Response side: `text`, `entities`, `reply_markup`, `caption`, `caption_entities`, `photo[].file_unique_id`. Ignores `message_id`, `date`, `edit_date`, `chat`, `from`.
+
+Run the script once on `main` before the swap, once on the branch after. An empty diff is the pass. Both batches also sit adjacent in DEV-BOX-2, so the user's eyeball pass is one scroll rather than an eight-step walkthrough.
+
+**Permanent guard.** The baseline JSONL is committed as `packages/trpc/src/__fixtures__/telegram-wire/baseline.jsonl`. A vitest spec replays the request side against each handler with the DB mocked to the same fixture data, so future message-format changes fail CI unless the fixture is regenerated on purpose. This is the same file the UAT script produces, no second harness.
 
 **Cleanup.** The expense is deleted by step 4. Snapshot and broadcast rows are removed at the end. Sent messages stay in the group for the eyeball pass.
 
-**Authorization.** Per the staging-test-groups note, an agent reading the bot token and calling `api.telegram.org` needs explicit in-chat authorization. The user gave it for this work on 2026-09-11. The token is read into the process from `.env`, never printed.
+**Authorization.** Per the staging-test-groups note, an agent reading the bot token and calling `api.telegram.org` needs explicit in-chat authorization. The user gave it for this work on 2026-09-11. The token is read into the process from `.env`, never printed, and stripped from the proxy log.
 
 ## Rollout
 
-Single PR. No schema change, no env change. `deploy.yml` redeploys bot, lambda, and web on merge. Rollback is a plain revert.
+Single PR. No schema change. One optional env var that no deployed environment sets. `deploy.yml` redeploys bot, lambda, and web on merge. Rollback is a plain revert.
 
 ## Follow-on: `/summary` rich-message spike
 
