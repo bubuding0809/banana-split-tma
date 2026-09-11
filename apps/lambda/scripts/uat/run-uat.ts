@@ -52,8 +52,8 @@ if (!token || !apiKey) {
   );
   process.exit(2);
 }
-// main() is a hoisted declaration, so the narrowing above does not reach into
-// it. Re-bind at module scope where it does.
+// TypeScript does not propagate const narrowing across a function boundary, so
+// the check above does not reach main(). Re-bind at module scope where it does.
 const botToken: string = token;
 const adminApiKey: string = apiKey;
 
@@ -311,16 +311,33 @@ async function main(): Promise<void> {
     }
   } finally {
     // Cleanup: rows we created. Sent messages stay in Telegram for the eyeball pass.
-    try {
-      if (snapshotId)
-        await prisma.expenseSnapshot.delete({ where: { id: snapshotId } });
-      if (expenseId) await prisma.expense.delete({ where: { id: expenseId } });
-      if (broadcastId) {
-        await prisma.broadcastDelivery.deleteMany({ where: { broadcastId } });
-        await prisma.broadcast.delete({ where: { id: broadcastId } });
+    // Each delete is independent so one failure (P2025 for an already-deleted
+    // row, a transient DB error) does not skip the rest.
+    const cleanup = async (what: string, fn: () => Promise<unknown>) => {
+      try {
+        await fn();
+      } catch (err) {
+        console.error(`cleanup failed: ${what}`, err);
       }
-    } catch (err) {
-      console.error("cleanup failed", err);
+    };
+    if (snapshotId) {
+      const id = snapshotId;
+      await cleanup("snapshot", () =>
+        prisma.expenseSnapshot.delete({ where: { id } })
+      );
+    }
+    if (expenseId) {
+      const id = expenseId;
+      await cleanup("expense", () => prisma.expense.delete({ where: { id } }));
+    }
+    if (broadcastId) {
+      const id = broadcastId;
+      await cleanup("broadcast deliveries", () =>
+        prisma.broadcastDelivery.deleteMany({ where: { broadcastId: id } })
+      );
+      await cleanup("broadcast", () =>
+        prisma.broadcast.delete({ where: { id } })
+      );
     }
     await prisma.$disconnect();
     if (dev.pid) {
