@@ -5,6 +5,7 @@ export {
   type CreateLoggerOptions,
   type Logger,
 } from "./createLogger.js";
+export { redactingErrSerializer, redactBotTokens } from "./redactErr.js";
 export {
   runWithRequestContext,
   getRequestContext,

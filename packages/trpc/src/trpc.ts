@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { prisma } from "@dko/database";
 import superjson from "superjson";
 import type { OpenApiMeta } from "trpc-to-openapi";
-import { Api } from "grammy";
+import { createTelegramApi } from "./utils/telegramClient.js";
 import {
   validate as validateInitData,
   parse as parseInitData,
@@ -72,7 +72,7 @@ const createTRPCContext = ({
     db: prisma as typeof prisma,
     // apiRoot is only ever set by the local UAT recording proxy. Production
     // leaves it undefined and the client talks to api.telegram.org.
-    teleBot: new Api(botToken, apiRoot ? { apiRoot } : undefined),
+    teleBot: createTelegramApi(botToken, apiRoot),
     request: rest.req,
     response: rest.res,
     info: rest.info,

@@ -37,6 +37,8 @@ vi.mock("grammy", () => ({
   Api: vi.fn(function (this: Record<string, unknown>) {
     this.getChat = getChatMock;
     this.getFile = getFileMock;
+    // createTelegramApi installs an error-redacting transformer.
+    this.config = { use: vi.fn() };
   }),
 }));
 

@@ -9,6 +9,7 @@ import {
   type LevelWithSilent,
   type StreamEntry,
 } from "pino";
+import { redactingErrSerializer } from "./redactErr.js";
 
 export type Service = "lambda" | "bot";
 
@@ -61,7 +62,9 @@ export function createLogger(
   const baseOptions: LoggerOptions = {
     level,
     base: { service },
-    serializers: stdSerializers,
+    // Same as pino's defaults, except `err` scrubs Telegram bot tokens that
+    // network errors carry in their request URLs.
+    serializers: { ...stdSerializers, err: redactingErrSerializer },
     formatters: {
       // Drop pino's default `pid` and `hostname` — they add noise on Vercel.
       bindings: (b) => ({ service: b.service }),
