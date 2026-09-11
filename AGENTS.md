@@ -515,6 +515,10 @@ If users open the bot and land on the wrong app, check (2). If the "Open App" bu
 - `pnpm --filter @dko/database exec prisma studio` — open a DB GUI in the browser
 - `pnpm --filter @dko/database exec prisma migrate dev --name <change>` — author a new migration from schema changes
 
+### Telegram wire UAT
+
+`pnpm --filter lambda uat:record --label <name>` starts a recording proxy on `:8082`, boots the lambda dev server with `TELEGRAM_API_ROOT` pointed at it, drives the real tRPC/REST endpoints against DEV-BOX-2 on the staging bot, and writes `apps/lambda/.uat/<name>.jsonl` (every Bot API request and response). `pnpm --filter lambda uat:diff a.jsonl b.jsonl` compares two recordings ignoring per-run ids. Use it whenever a change touches how bot messages are built or sent: record on `main`, record on the branch, diff. Requires a migrated local DB and port 8081 free.
+
 ### Post-deploy UAT workflow
 
 After a PR auto-merges and the prod deploy finishes, split UAT between a subagent and the user:
