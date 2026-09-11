@@ -109,22 +109,32 @@ Three layers, weakest to strongest.
 
 **New helper tests.** `inlineKeyboard` returns `{ reply_markup: { inline_keyboard: [buttons] } }`. The file-URL helper builds the expected URL and returns null when `file_path` is absent.
 
-### Staging UAT on `@BananaSplitzStgBot`
+### Automated staging UAT on `@BananaSplitzStgBot`
 
-Local dev against the staging bot per `AGENTS.md`. One pass per changed code path:
+Golden fixtures prove the request is unchanged. Staging proves Telegram accepts it and returns the same rendered structure. Both run without a human clicking through the app.
 
-| Path | Action | Expect |
+`scripts/uat-telegram-clients.ts`, modeled on `scripts/smoke-cross-group-dm.ts`. Loads `apps/bot/.env` (staging bot token) and `packages/database/.env` (local docker postgres). Builds a trpc caller the way `apps/bot/src/middleware/trpc.ts` does, via `withCreateTRPCContext` + `appRouter.createCaller`, but hands the context a `teleBot` wrapped in a recording proxy: every API call's method, args, and Telegram's response are appended to a JSON log.
+
+Target group: DEV-BOX-2 (`-1002371842523`). Steps, each a real trpc procedure:
+
+| Step | Procedure | Exercises |
 |---|---|---|
-| `sendMessage` + `inlineKeyboard` | `/summary` in a group with debts | Same text, same "View Debts 💰" button, deep link opens TMA |
-| `editMessageText` | Add an expense, then edit its amount in TMA | Notification message updates in place, buttons intact |
-| `deleteMessage` | Delete that expense | Notification removed |
-| Callback path | Snapshot share, toggle view button | View switches, no error toast |
-| `sendPhoto` + `InputFile` | Admin broadcast with photo attachment to self | Photo arrives, caption renders |
-| `editMessageCaption` / `editMessageMedia` | Edit that broadcast's caption, then swap media | Both edits land |
-| `getFile` | Load TMA member list | Avatars render via `/api/avatar` |
-| `getChat` + `getFile` | Load TMA group header | Group photo renders via `/api/chat-photo` |
+| 1 | `telegram.sendGroupReminderMessage` | `sendMessage` + `inlineKeyboard` |
+| 2 | `expense.create` with a fixed payload | `sendMessage` notification |
+| 3 | `expense.update` amount | `editMessageText` |
+| 4 | `expense.delete` | `deleteMessage` |
+| 5 | `snapshot.share` then `snapshot.renderSnapshotView` for each view | `sendMessage` with callback keyboard, the handler the button tap invokes |
+| 6 | `broadcast.send` to the runner's own user id with a fixture photo | `sendPhoto` + `InputFile` |
+| 7 | `broadcast.editCaption` then `broadcast.editMedia` | `editMessageCaption`, `editMessageMedia` |
+| 8 | lambda `avatar` and `chat-photo` handlers, invoked directly with a fake req/res as their tests do | `getUserProfilePhotos`, `getChat`, `getFile`, file download |
 
-Backend and DB assertions go to a general-purpose subagent. Message rendering is confirmed by the user one step at a time.
+Exact procedure names are confirmed in the plan. Any step where Telegram returns an error fails the run. That is the runtime shape of a serialization regression: `can't parse entities`, `wrong file identifier`, `reply markup is invalid`.
+
+**Baseline diff.** Run the script once on `main` before the swap, once on the branch after. Compare the two JSON logs on Telegram's returned `Message` objects: `text`, `entities`, `reply_markup`, `caption`, `caption_entities`, `photo[].file_unique_id`. Ignore `message_id`, `date`, `edit_date`. Equal entities means equal rendering. The two batches also sit adjacent in DEV-BOX-2, so one scroll by the user replaces an eight-step walkthrough.
+
+**Cleanup.** The expense is deleted by step 4. Snapshot and broadcast rows are removed at the end. Sent messages stay in the group for the eyeball pass.
+
+**Authorization.** Per the staging-test-groups note, an agent reading the bot token and calling `api.telegram.org` needs explicit in-chat authorization. The user gave it for this work on 2026-09-11. The token is read into the process from `.env`, never printed.
 
 ## Rollout
 

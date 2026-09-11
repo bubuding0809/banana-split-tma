@@ -146,17 +146,27 @@ const upstream = await fetch(url);</code></pre>
 </section>
 
 <section>
-  <h2>Staging UAT · <code>@BananaSplitzStgBot</code></h2>
+  <h2>Automated staging UAT</h2>
+  <p class="small"><code>scripts/uat-telegram-clients.ts</code> · trpc <code>createCaller</code> with a <strong>recording-proxy</strong> <code>teleBot</code> · target DEV-BOX-2 · <code>@BananaSplitzStgBot</code></p>
   <table>
-    <tr><th>Path</th><th>Action</th></tr>
-    <tr><td><code>sendMessage</code> + keyboard</td><td>/summary in a group with debts</td></tr>
-    <tr><td><code>editMessageText</code> / <code>deleteMessage</code></td><td>Add expense → edit amount → delete</td></tr>
-    <tr><td>callback</td><td>Snapshot share, toggle view</td></tr>
-    <tr><td><code>sendPhoto</code> + <code>InputFile</code></td><td>Admin broadcast with photo</td></tr>
-    <tr><td><code>editMessageCaption</code> / <code>editMessageMedia</code></td><td>Edit caption, swap media</td></tr>
-    <tr><td><code>getFile</code></td><td>TMA member avatars + group photo</td></tr>
+    <tr><th>Procedure</th><th>Exercises</th></tr>
+    <tr><td><code>telegram.sendGroupReminderMessage</code></td><td><code>sendMessage</code> + keyboard</td></tr>
+    <tr><td><code>expense.create → update → delete</code></td><td><code>sendMessage</code>, <code>editMessageText</code>, <code>deleteMessage</code></td></tr>
+    <tr><td><code>snapshot.share</code> + <code>renderSnapshotView</code></td><td>callback keyboard + the handler a tap invokes</td></tr>
+    <tr><td><code>broadcast.send → editCaption → editMedia</code></td><td><code>sendPhoto</code>/<code>InputFile</code>, caption + media edits</td></tr>
+    <tr><td>lambda <code>avatar</code>, <code>chat-photo</code> handlers</td><td><code>getFile</code> URL builder + download</td></tr>
   </table>
-  <p class="small muted">Subagent for DB/backend assertions, user confirms rendering one step at a time.</p>
+</section>
+
+<section>
+  <h2>Baseline diff</h2>
+  <div class="grid2">
+    <div class="box"><h3>Run on <code>main</code></h3>
+      Telegram's <code>sendMessage</code> response is the full <code>Message</code>: <code>text</code>, <code>entities</code>, <code>reply_markup</code>, <code>caption_entities</code>. Log it.</div>
+    <div class="box"><h3>Run on branch</h3>
+      Same script, same group. Deep-equal the returned Messages, ignoring <code>message_id</code>/<code>date</code>.</div>
+  </div>
+  <div class="hl"><strong>Equal entities = equal rendering.</strong> Any Telegram 400 (<code>can't parse entities</code>, <code>wrong file identifier</code>) fails the run. Both batches sit adjacent in DEV-BOX-2: one scroll replaces an eight-step walkthrough.</div>
 </section>
 
 <section>
