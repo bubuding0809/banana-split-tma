@@ -845,7 +845,7 @@ describe("makePng", () => {
     expect(a.subarray(12, 16).toString("ascii")).toBe("IHDR");
     expect(a.readUInt32BE(16)).toBe(128);
     expect(a.readUInt32BE(20)).toBe(64);
-    expect(a.subarray(a.length - 12, a.length - 8).toString("ascii")).toBe("IEND");
+    expect(a.subarray(a.length - 8, a.length - 4).toString("ascii")).toBe("IEND");
     expect(createHash("sha256").update(a).digest("hex")).toBe(
       createHash("sha256").update(b).digest("hex")
     );
