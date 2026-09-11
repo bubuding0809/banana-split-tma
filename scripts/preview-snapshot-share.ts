@@ -1,13 +1,13 @@
 // Dev-only preview: render all three snapshot views (category / date /
 // payer) for the latest (or a specified) snapshot against a real
-// Telegraf client so live getChatMember lookups actually hit Telegram,
+// grammy Api client so live getChatMember lookups actually hit Telegram,
 // then print each to stdout without sending.
 //
 // Run with:
 //   pnpm --filter lambda exec tsx ../../scripts/preview-snapshot-share.ts [snapshotId]
 
 import { PrismaClient } from "@dko/database";
-import { Telegraf } from "telegraf";
+import { Api } from "grammy";
 import { config as loadEnv } from "dotenv";
 import {
   loadSnapshotContext,
@@ -27,7 +27,7 @@ if (!token) {
 }
 
 const db = new PrismaClient();
-const telegraf = new Telegraf(token);
+const api = new Api(token);
 
 async function main() {
   const snapshotId = process.argv[2];
@@ -49,7 +49,7 @@ async function main() {
 
   const ctx = await loadSnapshotContext(
     db as any,
-    telegraf.telegram,
+    api,
     target.id,
     target.creatorId
   );
