@@ -22,6 +22,7 @@ import { PrismaClient, SplitMode } from "@dko/database";
 import type { AppRouter } from "@dko/trpc";
 import { startRecordingProxy } from "./recording-proxy.js";
 import { makePng } from "./png.js";
+import { redactBotToken } from "../../api/_redact.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const lambdaRoot = resolve(here, "../..");
@@ -39,6 +40,7 @@ const chatId = Number(arg("chat", "-1002371842523"));
 const runnerId = Number(arg("runner", "259941064"));
 const otherId = Number(arg("other", "257256809"));
 const proxyPort = Number(arg("proxy-port", "8082"));
+const expectedBot = arg("bot", "BananaSplitzStgBot");
 const outDir = resolve(lambdaRoot, ".uat");
 const logPath = resolve(outDir, `${label}.jsonl`);
 const summaryPath = resolve(outDir, `${label}.summary.json`);
@@ -102,7 +104,47 @@ async function waitForServer(timeoutMs: number): Promise<void> {
   throw new Error(`dev server did not answer on ${base} within ${timeoutMs}ms`);
 }
 
+/**
+ * The runner sends real messages and writes DB rows, so refuse to go near
+ * anything but the staging bot and a local database.
+ */
+async function assertSafeEnvironment(): Promise<void> {
+  const databaseUrl = process.env.DATABASE_URL;
+  let dbHost: string | undefined;
+  try {
+    dbHost = databaseUrl ? new URL(databaseUrl).hostname : undefined;
+  } catch {
+    dbHost = undefined;
+  }
+  if (dbHost !== "localhost" && dbHost !== "127.0.0.1") {
+    console.error(
+      `DATABASE_URL must point at localhost or 127.0.0.1 (host: ${dbHost ?? "unset or unparseable"}); refusing to run`
+    );
+    process.exit(2);
+  }
+
+  let username: string | undefined;
+  try {
+    // Never log this URL: it carries the token.
+    const res = await fetch(
+      "https://api.telegram.org/bot" + botToken + "/getMe"
+    );
+    const body = (await res.json()) as { result?: { username?: string } };
+    username = body.result?.username;
+  } catch (err) {
+    console.error(`getMe failed (${redactBotToken(err)}); refusing to run`);
+    process.exit(2);
+  }
+  if (username !== expectedBot) {
+    console.error(
+      `TELEGRAM_BOT_TOKEN belongs to @${username ?? "unknown"}, expected @${expectedBot} (--bot); refusing to run`
+    );
+    process.exit(2);
+  }
+}
+
 async function main(): Promise<void> {
+  await assertSafeEnvironment();
   mkdirSync(outDir, { recursive: true });
   try {
     await fetch(`${base}/`);

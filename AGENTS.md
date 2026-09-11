@@ -517,7 +517,7 @@ If users open the bot and land on the wrong app, check (2). If the "Open App" bu
 
 ### Telegram wire UAT
 
-`pnpm --filter lambda uat:record --label <name>` starts a recording proxy on `:8082`, boots the lambda dev server with `TELEGRAM_API_ROOT` pointed at it, drives the real tRPC/REST endpoints against DEV-BOX-2 on the staging bot, and writes `apps/lambda/.uat/<name>.jsonl` (every Bot API request and response). `pnpm --filter lambda uat:diff a.jsonl b.jsonl` compares two recordings ignoring per-run ids. Use it whenever a change touches how bot messages are built or sent: record on `main`, record on the branch, diff. Requires a migrated local DB and port 8081 free.
+`pnpm --filter lambda uat:record --label <name>` starts a recording proxy on `:8082`, boots the lambda dev server with `TELEGRAM_API_ROOT` pointed at it, drives the real tRPC/REST endpoints against DEV-BOX-2 on the staging bot, and writes `apps/lambda/.uat/<name>.jsonl` (every Bot API request and response). `pnpm --filter lambda uat:diff a.jsonl b.jsonl` compares two recordings ignoring per-run ids. Use it whenever a change touches how bot messages are built or sent: record on `main`, record on the branch, diff. The runner rebuilds `@dko/trpc` first (lambda imports its `dist`). It refuses to start unless `getMe` returns the staging bot (`--bot`, default `BananaSplitzStgBot`) and `DATABASE_URL` points at `localhost` or `127.0.0.1`. Requires a migrated local DB, ports 8081 and 8082 free, and the runner's Telegram user in the local DB as a member of the target chat. It also DMs the runner a broadcast photo.
 
 ### Post-deploy UAT workflow
 

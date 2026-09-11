@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { parseTelegramBody } from "./wire.js";
+import { redactBotToken } from "../../api/_redact.js";
 
 export type RecordedEntry = {
   seq: number;
@@ -39,46 +40,78 @@ export async function startRecordingProxy(opts: {
   let seq = 0;
 
   const server = createServer(async (req, res) => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(chunk as Buffer);
-    const raw = Buffer.concat(chunks);
     const url = req.url ?? "/";
     const isFile = url.startsWith("/file/");
     const method = isFile
       ? "file"
       : (url.split("?")[0]!.split("/").pop() ?? "");
-    const contentType = req.headers["content-type"] ?? "";
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      const raw = Buffer.concat(chunks);
+      const contentType = req.headers["content-type"] ?? "";
 
-    const upstreamRes = await fetch(upstream + url, {
-      method: req.method,
-      headers: contentType ? { "content-type": contentType } : undefined,
-      body: req.method === "GET" || req.method === "HEAD" ? undefined : raw,
-    });
-    const resBuf = Buffer.from(await upstreamRes.arrayBuffer());
+      const upstreamRes = await fetch(upstream + url, {
+        method: req.method,
+        headers: contentType ? { "content-type": contentType } : undefined,
+        body: req.method === "GET" || req.method === "HEAD" ? undefined : raw,
+      });
+      const resBuf = Buffer.from(await upstreamRes.arrayBuffer());
 
-    const request = isFile ? {} : await parseTelegramBody(contentType, raw);
-    // telegraf echoes the method name inside multipart bodies; grammy does not.
-    // Telegram ignores it, so it is not part of the wire contract we record.
-    if (request.method === method) delete request.method;
+      const request = isFile ? {} : await parseTelegramBody(contentType, raw);
+      // telegraf echoes the method name inside multipart bodies; grammy does not.
+      // Telegram ignores it, so it is not part of the wire contract we record.
+      if (request.method === method) delete request.method;
 
-    const entry: RecordedEntry = {
-      seq: ++seq,
-      method,
-      request,
-      response: isFile
-        ? {
-            status: upstreamRes.status,
-            bytes: resBuf.length,
-            sha256: createHash("sha256").update(resBuf).digest("hex"),
-          }
-        : safeJson(resBuf),
-    };
-    appendFileSync(opts.logPath, JSON.stringify(entry) + "\n");
+      const entry: RecordedEntry = {
+        seq: ++seq,
+        method,
+        request,
+        response: isFile
+          ? {
+              status: upstreamRes.status,
+              bytes: resBuf.length,
+              sha256: createHash("sha256").update(resBuf).digest("hex"),
+            }
+          : safeJson(resBuf),
+      };
+      appendFileSync(opts.logPath, JSON.stringify(entry) + "\n");
 
-    res.statusCode = upstreamRes.status;
-    const ct = upstreamRes.headers.get("content-type");
-    if (ct) res.setHeader("content-type", ct);
-    res.end(resBuf);
+      res.statusCode = upstreamRes.status;
+      const ct = upstreamRes.headers.get("content-type");
+      if (ct) res.setHeader("content-type", ct);
+      res.end(resBuf);
+    } catch (err) {
+      // Never rethrow: an unhandled rejection here kills the runner before its
+      // finally block stops the dev server and deletes the rows it created.
+      const cause =
+        err instanceof Error && err.cause instanceof Error
+          ? ` (${err.cause.message})`
+          : "";
+      const detail = err instanceof Error ? err.message : String(err);
+      const entry: RecordedEntry = {
+        seq: ++seq,
+        method,
+        request: {},
+        response: { proxyError: redactBotToken(detail + cause) },
+      };
+      try {
+        appendFileSync(opts.logPath, JSON.stringify(entry) + "\n");
+      } catch {
+        // Recording is best effort once something has already gone wrong.
+      }
+      if (!res.headersSent) {
+        res.statusCode = 502;
+        res.setHeader("content-type", "application/json");
+      }
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error_code: 502,
+          description: "recording proxy error",
+        })
+      );
+    }
   });
 
   await new Promise<void>((resolve) =>

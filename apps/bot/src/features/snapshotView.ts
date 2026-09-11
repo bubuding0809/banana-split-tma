@@ -14,9 +14,10 @@ type RichEditReplyMarkup = {
 /**
  * Edit the tapped message as a native rich message (Bot API 10.1
  * `editMessageText` with `rich_message`), matching the rich HTML used for
- * the initial share. `rich_message` isn't in this grammY version's typed
- * RawApi, so we call through a narrow cast. Throws if unsupported — callers
- * fall back to a classic MarkdownV2 edit.
+ * the initial share. grammY 1.46 types `rich_message`, but the raw call
+ * through a narrow cast is kept to avoid a behavior change in the
+ * telegraf-to-grammY migration. Throws if unsupported — callers fall back to
+ * a classic MarkdownV2 edit.
  */
 async function editRichSnapshotMessage(
   ctx: BotContext,
