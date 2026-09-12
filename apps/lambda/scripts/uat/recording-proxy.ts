@@ -21,6 +21,33 @@ function safeJson(buf: Buffer): unknown {
   }
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Forward one request upstream, retrying only when fetch itself rejects
+ * (DNS, ECONNRESET, TLS). api.telegram.org resets the occasional connection,
+ * and without this a blip fails a UAT step that has nothing wrong with it —
+ * a run once lost its first three calls that way. An HTTP error response is
+ * NOT retried: a real 400 from Telegram must still reach the caller and fail
+ * the step. The body is a Buffer, so replaying it is safe.
+ */
+async function fetchUpstream(
+  url: string,
+  init: RequestInit,
+  attempts = 3
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) await sleep(250 * (i + 1));
+    }
+  }
+  throw lastErr;
+}
+
 /**
  * Forwards every request to the real Bot API and appends one JSONL line per
  * call. File downloads (/file/bot<token>/...) are logged as method "file"
@@ -51,7 +78,7 @@ export async function startRecordingProxy(opts: {
       const raw = Buffer.concat(chunks);
       const contentType = req.headers["content-type"] ?? "";
 
-      const upstreamRes = await fetch(upstream + url, {
+      const upstreamRes = await fetchUpstream(upstream + url, {
         method: req.method,
         headers: contentType ? { "content-type": contentType } : undefined,
         body: req.method === "GET" || req.method === "HEAD" ? undefined : raw,

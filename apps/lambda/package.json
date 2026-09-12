@@ -11,6 +11,7 @@
     "test": "vitest run",
     "deploy": "vercel",
     "uat:record": "tsx scripts/uat/run-uat.ts",
+    "uat:extensive": "tsx scripts/uat/run-uat-extensive.ts",
     "uat:diff": "tsx scripts/uat/diff-recordings.ts"
   },
   "dependencies": {
