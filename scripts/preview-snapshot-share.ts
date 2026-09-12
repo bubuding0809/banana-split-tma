@@ -7,7 +7,7 @@
 //   pnpm --filter lambda exec tsx ../../scripts/preview-snapshot-share.ts [snapshotId]
 
 import { PrismaClient } from "@dko/database";
-import { Api } from "grammy";
+import { createTelegramApi } from "@dko/trpc/telegramClient";
 import { config as loadEnv } from "dotenv";
 import {
   loadSnapshotContext,
@@ -27,7 +27,10 @@ if (!token) {
 }
 
 const db = new PrismaClient();
-const api = new Api(token);
+// Shared factory: scrubs the bot token from network errors before they
+// reach this script's top-level catch, same guarantee as the tRPC context
+// and the lambda.
+const api = createTelegramApi(token);
 
 async function main() {
   const snapshotId = process.argv[2];
