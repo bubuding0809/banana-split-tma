@@ -1626,8 +1626,9 @@ async function main(): Promise<void> {
         assert(!audit.exists, "AWS schedule should be gone after cancel");
         return Promise.resolve(audit);
       });
-      // Cancel succeeded and was verified — no longer need the fallback delete.
-      createdTemplateIds.delete(created.templateId);
+      // Deliberately still tracked: cancel is a SOFT delete (status CANCELED),
+      // so the row survives and the chat would not return to its pre-run state.
+      // Cleanup hard-deletes it below.
     });
 
     // =====================================================================
@@ -1781,6 +1782,22 @@ async function main(): Promise<void> {
         if (audit.exists) {
           awsDeleteSchedule(scheduleName, RECURRING_SCHEDULE_GROUP);
         }
+        // The tick materialises occurrences the script never registered, and
+        // they hold the template's foreign key, so they go first.
+        const materialised = await prisma.expense.findMany({
+          where: { recurringTemplateId: templateId },
+          select: { id: true },
+        });
+        if (materialised.length > 0) {
+          const ids = materialised.map((e) => e.id);
+          await prisma.expenseShare.deleteMany({
+            where: { expenseId: { in: ids } },
+          });
+          await prisma.expense.deleteMany({ where: { id: { in: ids } } });
+        }
+        await prisma.recurringExpenseTemplate.deleteMany({
+          where: { id: templateId },
+        });
       });
     }
 
