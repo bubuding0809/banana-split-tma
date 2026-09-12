@@ -19,7 +19,7 @@ import {
   sendExpenseUpdateBumpHandler,
   sendExpenseUpdateStandaloneHandler,
 } from "../telegram/editExpenseNotificationMessage.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 // Diff pre- vs post-update state to decide which fields the edited
 // notification should mark with ✏️. Covers every user-visible Expense
@@ -372,7 +372,7 @@ const calculateSplits = (
 export const updateExpenseHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   try {

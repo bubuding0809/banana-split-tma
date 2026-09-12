@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { type Logger } from "@repo/logger";
 import { trpcLogger } from "../../trpc.js";
 
@@ -16,7 +16,7 @@ interface DeleteExpenseMessagesInput {
  */
 export const deleteExpenseMessagesHandler = async (
   input: DeleteExpenseMessagesInput,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ): Promise<{ deletedCount: number; failedCount: number }> => {
   let deletedCount = 0;

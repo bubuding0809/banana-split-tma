@@ -1,0 +1,189 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`telegram wire snapshots > editMessageText / editMessageCaption / editMessageMedia (broadcast edits) 1`] = `
+[
+  {
+    "body": {
+      "chat_id": 259941064,
+      "message_id": 777,
+      "parse_mode": "MarkdownV2",
+      "text": "Plain _edited_
+",
+    },
+    "method": "editMessageText",
+  },
+  {
+    "body": {
+      "caption": "Caption _edited_
+",
+      "chat_id": 259941064,
+      "message_id": 777,
+      "parse_mode": "MarkdownV2",
+    },
+    "method": "editMessageCaption",
+  },
+  {
+    "body": {
+      "chat_id": 259941064,
+      "media": {
+        "caption": "Media swapped
+",
+        "media": {
+          "bytes": 34,
+          "filename": "swap.png",
+          "sha256": "3a778e1bb316f943de0927f4721f703671326439d966ac9a4056f76afb1d630e",
+        },
+        "parse_mode": "MarkdownV2",
+        "type": "photo",
+      },
+      "message_id": 777,
+    },
+    "method": "editMessageMedia",
+  },
+]
+`;
+
+exports[`telegram wire snapshots > editMessageText with two url buttons (recurring expense edit) 1`] = `
+[
+  {
+    "body": {},
+    "method": "getMe",
+  },
+  {
+    "body": {
+      "chat_id": -1002371842523,
+      "message_id": 555,
+      "parse_mode": "MarkdownV2",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "text": "View Expense",
+              "url": "https://t.me/testbot?startapp=v1_g_-hE8i6aD_e_yqjPyWuWVBAloWtuR4THa",
+            },
+            {
+              "text": "View Schedule",
+              "url": "https://t.me/testbot?startapp=v1_g_-hE8i6aD_rt_4V7sy1hL7yzTwcgcLc5BOE",
+            },
+          ],
+        ],
+      },
+      "text": "🧾 Expense by [Alice](tg://user?id=1)
+
+> 📝 • Lunch \\(wire\\)
+> 📅 • Apr 24
+
+Total: SGD 20\\.00
+
+💸 Splits
+┣ [Alice](tg://user?id=1): SGD 10\\.00
+┗ [Bob](tg://user?id=2): SGD 10\\.00
+
+> 🔁 Auto\\-created from a recurring schedule",
+    },
+    "method": "editMessageText",
+  },
+]
+`;
+
+exports[`telegram wire snapshots > sendMessage with a url inline keyboard (expense notification) 1`] = `
+[
+  {
+    "body": {},
+    "method": "getMe",
+  },
+  {
+    "body": {
+      "chat_id": -1002371842523,
+      "message_thread_id": 147,
+      "parse_mode": "MarkdownV2",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "text": "View Expense",
+              "url": "https://t.me/testbot?startapp=v1_g_-hE8i6aD_e_yqjPyWuWVBAloWtuR4THa",
+            },
+          ],
+        ],
+      },
+      "text": "🧾 New Expense by [Alice](tg://user?id=1)
+
+> 📝 • Lunch \\(wire\\)
+> 📅 • Apr 24
+
+Total: SGD 20\\.00
+
+💸 Splits
+┣ [Alice](tg://user?id=1): SGD 10\\.00
+┗ [Bob](tg://user?id=2): SGD 10\\.00",
+    },
+    "method": "sendMessage",
+  },
+]
+`;
+
+exports[`telegram wire snapshots > sendPhoto multipart upload (broadcast with photo) 1`] = `
+[
+  {
+    "body": {
+      "caption": "Hello _world_
+",
+      "chat_id": 259941064,
+      "parse_mode": "MarkdownV2",
+      "photo": {
+        "bytes": 34,
+        "filename": "hello.png",
+        "sha256": "3a778e1bb316f943de0927f4721f703671326439d966ac9a4056f76afb1d630e",
+      },
+    },
+    "method": "sendPhoto",
+  },
+]
+`;
+
+exports[`telegram wire snapshots > sendRichMessage with rich HTML (snapshot share) 1`] = `
+[
+  {
+    "body": {},
+    "method": "getMe",
+  },
+  {
+    "body": {
+      "chat_id": -1002371842523,
+      "message_thread_id": 147,
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "s:5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93:cat",
+              "text": "✓ 📋 Category",
+            },
+            {
+              "callback_data": "s:5f0c3c1e-8d2a-4b6e-9a51-0c2d7e4f1a93:date",
+              "text": "📅 Date",
+            },
+          ],
+          [
+            {
+              "text": "View Snapshot 📊",
+              "url": "https://t.me/testbot?startapp=v1_g_-hE8i6aD_s_2TlRt4ussTBcGmFBFLMjpF",
+            },
+          ],
+        ],
+      },
+      "rich_message": {
+        "html": "<h3>📊 Snapshot</h3>
+<table><tr><td><b>Group</b></td><td>Wire &lt;trip&gt; &amp; co</td></tr><tr><td><b>Shared by</b></td><td>@bubuding0809</td></tr><tr><td><b>Dates</b></td><td>15–17 Apr 2026</td></tr><tr><td><b>Expenses</b></td><td>2</td></tr><tr><td><b>Total spent</b></td><td><b>SGD 42.50</b></td></tr></table>
+
+<b>🧾 Shares</b>
+<table bordered><tr><th>Member</th><th>Share (Spend)</th></tr><tr><td><a href="tg://user?id=257256809">Live 257256809</a></td><td>SGD 27.50</td></tr><tr><td>@bubuding0809</td><td>SGD 15.00</td></tr></table>
+
+<b>📋 Expenses by category</b>
+<details open><summary>❓ <b>Uncategorized</b> · SGD 42.50</summary><ul><li>Taxi · 12.50 · 17 Apr</li><li>Dinner · 30.00 · 15 Apr</li></ul></details>",
+      },
+    },
+    "method": "sendRichMessage",
+  },
+]
+`;

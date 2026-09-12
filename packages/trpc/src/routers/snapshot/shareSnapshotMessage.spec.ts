@@ -12,7 +12,7 @@ const mockDb = {
 const mockTeleBot = {
   sendMessage: vi.fn(),
   getMe: vi.fn(),
-  callApi: vi.fn(),
+  raw: { sendRichMessage: vi.fn() },
 };
 
 describe("shareSnapshotMessage procedure", () => {
@@ -22,7 +22,9 @@ describe("shareSnapshotMessage procedure", () => {
     // Default: pretend the rich-message endpoint is unsupported so the
     // handler falls back to the classic MarkdownV2 sendMessage path that
     // most assertions below inspect. Rich-path tests override this.
-    mockTeleBot.callApi.mockRejectedValue(new Error("sendRichMessage: 404"));
+    mockTeleBot.raw.sendRichMessage.mockRejectedValue(
+      new Error("sendRichMessage: 404")
+    );
   });
 
   it("should throw NOT_FOUND if snapshot does not exist", async () => {
@@ -305,7 +307,7 @@ describe("shareSnapshotMessage procedure", () => {
       ],
     });
 
-    mockTeleBot.callApi.mockResolvedValue({ message_id: 999 });
+    mockTeleBot.raw.sendRichMessage.mockResolvedValue({ message_id: 999 });
 
     await shareSnapshotMessageHandler(
       { snapshotId: "mock-id" },
@@ -315,8 +317,7 @@ describe("shareSnapshotMessage procedure", () => {
     );
 
     // Rich endpoint used; classic sendMessage NOT used.
-    expect(mockTeleBot.callApi).toHaveBeenCalledWith(
-      "sendRichMessage",
+    expect(mockTeleBot.raw.sendRichMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         chat_id: -1001234567890,
         message_thread_id: 555,
@@ -328,7 +329,8 @@ describe("shareSnapshotMessage procedure", () => {
     );
     expect(mockTeleBot.sendMessage).not.toHaveBeenCalled();
 
-    const html = mockTeleBot.callApi.mock.calls[0]![1].rich_message.html;
+    const html =
+      mockTeleBot.raw.sendRichMessage.mock.calls[0]![0].rich_message.html;
 
     // Structural rich-HTML elements present.
     expect(html).toContain("<table>");
@@ -383,7 +385,7 @@ describe("shareSnapshotMessage procedure", () => {
       ],
     });
 
-    mockTeleBot.callApi.mockResolvedValue({ message_id: 999 });
+    mockTeleBot.raw.sendRichMessage.mockResolvedValue({ message_id: 999 });
 
     await shareSnapshotMessageHandler(
       { snapshotId: "mock-id" },
@@ -392,7 +394,8 @@ describe("shareSnapshotMessage procedure", () => {
       123n
     );
 
-    const html = mockTeleBot.callApi.mock.calls[0]![1].rich_message.html;
+    const html =
+      mockTeleBot.raw.sendRichMessage.mock.calls[0]![0].rich_message.html;
     expect(html).toContain("&lt;x"); // escaped emoji
     expect(html).not.toContain("<x"); // no raw injection
   });
@@ -414,7 +417,7 @@ describe("shareSnapshotMessage procedure", () => {
       expenses: [],
     });
 
-    // callApi rejects (default in beforeEach); sendMessage succeeds.
+    // sendRichMessage rejects (default in beforeEach); sendMessage succeeds.
     mockTeleBot.sendMessage.mockResolvedValue({ message_id: 12345 });
 
     const result = await shareSnapshotMessageHandler(
@@ -425,8 +428,7 @@ describe("shareSnapshotMessage procedure", () => {
     );
 
     expect(result).toEqual({ success: true });
-    expect(mockTeleBot.callApi).toHaveBeenCalledWith(
-      "sendRichMessage",
+    expect(mockTeleBot.raw.sendRichMessage).toHaveBeenCalledWith(
       expect.anything()
     );
     expect(mockTeleBot.sendMessage).toHaveBeenCalled();

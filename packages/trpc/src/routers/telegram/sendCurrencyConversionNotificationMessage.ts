@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { type Logger } from "@repo/logger";
 import { Db, trpcLogger } from "../../trpc.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
 
 const inputSchema = z.object({
@@ -30,7 +30,7 @@ const inputSchema = z.object({
 export const sendCurrencyConversionNotificationMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   log: Logger = trpcLogger
 ) => {
   if (input.chatId === 0) {

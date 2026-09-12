@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { Router, type Request, type Response } from "express";
-import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
 import {
   validate as validateInitData,
@@ -9,9 +8,11 @@ import {
 import { createLogger, getRequestId } from "@repo/logger";
 import { env } from "./env.js";
 import { redactBotToken } from "./_redact.js";
+import { createTelegramClient } from "./_telegram.js";
+import { fetchTelegramFile } from "./_telegramFile.js";
 
 const router = Router();
-const teleBot = new Telegram(env.TELEGRAM_BOT_TOKEN);
+const teleBot = createTelegramClient();
 const log = createLogger("lambda");
 
 router.get("/:userId", async (req: Request, res: Response) => {
@@ -122,16 +123,18 @@ router.get("/:userId", async (req: Request, res: Response) => {
   let bytes: Buffer;
   try {
     // Telegram user IDs fit safely in Number for the foreseeable future
-    // (current max ~7e9 vs MAX_SAFE_INTEGER ~9e15). Telegraf's signature
+    // (current max ~7e9 vs MAX_SAFE_INTEGER ~9e15). grammy's signature
     // requires number, not bigint.
-    const photos = await teleBot.getUserProfilePhotos(Number(targetId), 0, 1);
+    const photos = await teleBot.getUserProfilePhotos(Number(targetId), {
+      offset: 0,
+      limit: 1,
+    });
     const biggest = photos.photos[0]?.at(-1);
     if (!biggest) {
       res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
       return res.status(404).end();
     }
-    const fileLink = await teleBot.getFileLink(biggest.file_id);
-    const upstream = await fetch(fileLink.toString());
+    const upstream = await fetchTelegramFile(teleBot, biggest.file_id);
     if (!upstream.ok) {
       return res.status(502).end();
     }

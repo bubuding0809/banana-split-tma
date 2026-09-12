@@ -8,8 +8,8 @@ import express, { Router, type Request, type Response } from "express";
 import cors from "cors";
 import multer from "multer";
 import crypto from "node:crypto";
-import { Telegram } from "telegraf";
 import { prisma } from "@dko/database";
+import { createTelegramClient } from "./_telegram.js";
 
 import {
   appRouter,
@@ -174,7 +174,7 @@ router.post(
       const result = await createBroadcast(
         {
           db: prisma,
-          teleBot: new Telegram(env.TELEGRAM_BOT_TOKEN || ""),
+          teleBot: createTelegramClient(),
           log: log.child({ request_id: getRequestId() }),
         },
         { message, targetUserIds, media, createdByTelegramId: null }

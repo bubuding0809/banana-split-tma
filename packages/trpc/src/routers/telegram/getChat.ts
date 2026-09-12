@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 const inputSchema = z.object({ chatId: z.number() });
 
 export const getChatHandler = async (
   input: z.infer<typeof inputSchema>,
-  teleBot: Telegram
+  teleBot: Api
 ) => {
   const chat = await teleBot.getChat(input.chatId);
   // chat.photo is intentionally not surfaced — clients use

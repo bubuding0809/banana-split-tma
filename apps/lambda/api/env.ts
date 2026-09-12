@@ -13,6 +13,9 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: z
       .string()
       .min(1, "TELEGRAM_BOT_TOKEN is required, grab this from BotFather"),
+    // Optional. Only the local UAT recording proxy sets this so Bot API
+    // traffic can be captured. Never set in a deployed environment.
+    TELEGRAM_API_ROOT: z.string().url().optional(),
     API_KEY: z
       .string()
       .min(1, "API_KEY is required for API key authentication"),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { SplitMode } from "@dko/database";
 import { BASE_CATEGORIES } from "@repo/categories";
 import { Db, protectedProcedure } from "../../trpc.js";
@@ -170,7 +170,7 @@ function computeChangedFields(
 export const updateExpensesBulkHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   actorName?: string
 ) => {
   // 1. Fetch all affected expenses in one round-trip. Each row needs

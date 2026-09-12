@@ -13,7 +13,7 @@ import {
   isSignificantBalance,
 } from "../../utils/financial.js";
 import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 import { Prisma } from "@dko/database";
 import { getMultipleRatesHandler } from "../currency/getMultipleRates.js";
 import { resolveCategory } from "@repo/categories";
@@ -127,7 +127,7 @@ function mentionFor(
  */
 export async function loadSnapshotContext(
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   snapshotId: string,
   userId: bigint,
   log: Logger = trpcLogger
@@ -786,7 +786,7 @@ export function buildSnapshotRichHtml(
   return sections.join("\n\n");
 }
 
-// ----- Telegraf raw API call for the rich-message endpoint -----
+// ----- Raw API call for the rich-message endpoint -----
 
 type RichMessagePayload = {
   chat_id: number;
@@ -802,26 +802,16 @@ type RichMessagePayload = {
 };
 
 /**
- * Invoke the Bot API `sendRichMessage` method via Telegraf's generic
- * `callApi`. The method isn't in Telegraf's typed method map, so we call it
- * through a narrow cast. Throws if the endpoint is unsupported — callers are
- * expected to catch and fall back to a classic `sendMessage`.
+ * Invoke the Bot API `sendRichMessage` method through grammy's typed raw
+ * method map, which takes the whole payload as a single args object. Throws if
+ * the endpoint is unsupported — callers are expected to catch and fall back to
+ * a classic `sendMessage`.
  */
 async function sendRichMessage(
-  teleBot: Telegram,
+  teleBot: Api,
   payload: RichMessagePayload
 ): Promise<void> {
-  const client = teleBot as unknown as {
-    callApi: (
-      method: string,
-      payload: Record<string, unknown>
-    ) => Promise<unknown>;
-  };
-  await client.callApi.call(
-    teleBot,
-    "sendRichMessage",
-    payload as unknown as Record<string, unknown>
-  );
+  await teleBot.raw.sendRichMessage(payload);
 }
 
 // ----- Mutation handler: initial share -----
@@ -829,7 +819,7 @@ async function sendRichMessage(
 export const shareSnapshotMessageHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
-  teleBot: Telegram,
+  teleBot: Api,
   userId: bigint,
   log: Logger = trpcLogger
 ) => {

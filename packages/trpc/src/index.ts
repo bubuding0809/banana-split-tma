@@ -61,6 +61,7 @@ export {
 } from "./routers/aws/utils/recurringExpenseScheduler.js";
 export { tzMidnightForInstant } from "./routers/aws/utils/tzDate.js";
 export { formatDateLabel } from "./utils/formatDateLabel.js";
+export { createTelegramApi } from "./utils/telegramClient.js";
 
 export * from "./utils/deepLinkProtocol.js";
 

@@ -63,3 +63,6 @@ opencode.json
 # Local worktrees
 .worktrees/
 .superpowers/
+
+# Local UAT recordings (Telegram traffic captured by apps/lambda/scripts/uat)
+apps/lambda/.uat/

@@ -2,23 +2,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const { validateMock, parseMock, getChatMock, getFileLinkMock } = vi.hoisted(
-  () => {
-    process.env.TELEGRAM_BOT_TOKEN = "test-bot-token";
-    process.env.API_KEY = "test-api-key";
-    process.env.INTERNAL_AGENT_KEY = "test-internal-agent-key";
-    process.env.RECURRING_EXPENSE_WEBHOOK_SECRET = "x".repeat(64);
-    process.env.CRON_SECRET = "c".repeat(64);
-    process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
-      "arn:aws:lambda:ap-southeast-1:000000000000:function:GroupReminderLambda";
-    return {
-      validateMock: vi.fn(),
-      parseMock: vi.fn(),
-      getChatMock: vi.fn(),
-      getFileLinkMock: vi.fn(),
-    };
-  }
-);
+const { validateMock, parseMock, getChatMock, getFileMock } = vi.hoisted(() => {
+  process.env.TELEGRAM_BOT_TOKEN = "test-bot-token";
+  process.env.API_KEY = "test-api-key";
+  process.env.INTERNAL_AGENT_KEY = "test-internal-agent-key";
+  process.env.RECURRING_EXPENSE_WEBHOOK_SECRET = "x".repeat(64);
+  process.env.CRON_SECRET = "c".repeat(64);
+  process.env.AWS_GROUP_REMINDER_LAMBDA_ARN =
+    "arn:aws:lambda:ap-southeast-1:000000000000:function:GroupReminderLambda";
+  // Pin the download URL the file helper builds; "" reads back as undefined.
+  process.env.TELEGRAM_API_ROOT = "";
+  return {
+    validateMock: vi.fn(),
+    parseMock: vi.fn(),
+    getChatMock: vi.fn(),
+    getFileMock: vi.fn(),
+  };
+});
+
+const FILE_URL = "https://api.telegram.org/file/bottest-bot-token/photos/x.jpg";
 
 vi.mock("@telegram-apps/init-data-node", () => ({
   validate: validateMock,
@@ -31,10 +33,12 @@ vi.mock("@dko/database", () => ({
   },
 }));
 
-vi.mock("telegraf", () => ({
-  Telegram: vi.fn(function (this: Record<string, unknown>) {
+vi.mock("grammy", () => ({
+  Api: vi.fn(function (this: Record<string, unknown>) {
     this.getChat = getChatMock;
-    this.getFileLink = getFileLinkMock;
+    this.getFile = getFileMock;
+    // createTelegramApi installs an error-redacting transformer.
+    this.config = { use: vi.fn() };
   }),
 }));
 
@@ -91,10 +95,12 @@ describe("GET /api/chat-photo/:chatId — Telegram fetch", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     fetchMock.mockReset();
     getChatMock.mockReset();
-    getFileLinkMock.mockReset();
-    getFileLinkMock.mockResolvedValue(
-      new URL("https://api.telegram.org/file/botX/path.jpg")
-    );
+    getFileMock.mockReset();
+    getFileMock.mockResolvedValue({
+      file_id: "f",
+      file_unique_id: "u",
+      file_path: "photos/x.jpg",
+    });
   });
 
   it("returns 404 with 1h cache when chat has no photo", async () => {
@@ -127,9 +133,11 @@ describe("GET /api/chat-photo/:chatId — Telegram fetch", () => {
     expect(res.header["content-type"]).toMatch(/image\/jpeg/);
     expect(res.header["cache-control"]).toMatch(/max-age=86400/);
     expect(res.header["cache-control"]).toMatch(/s-maxage=604800/);
+    expect(getFileMock).toHaveBeenCalledWith("big");
+    expect(fetchMock).toHaveBeenCalledWith(FILE_URL);
   });
 
-  it("returns 502 when telegraf throws", async () => {
+  it("returns 502 when the Telegram client throws", async () => {
     validateMock.mockImplementationOnce(() => {});
     parseMock.mockReturnValueOnce({ user: { id: 100 } });
     (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -138,5 +146,20 @@ describe("GET /api/chat-photo/:chatId — Telegram fetch", () => {
     getChatMock.mockRejectedValueOnce(new Error("flood wait"));
     const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
     expect(res.status).toBe(502);
+  });
+
+  it("returns 502 when Telegram returns no file_path", async () => {
+    validateMock.mockImplementationOnce(() => {});
+    parseMock.mockReturnValueOnce({ user: { id: 100 } });
+    (prisma.chat.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: -1001n,
+    });
+    getChatMock.mockResolvedValueOnce({
+      photo: { big_file_id: "big", small_file_id: "small" },
+    });
+    getFileMock.mockResolvedValueOnce({ file_id: "big", file_unique_id: "u" });
+    const res = await request(app).get("/api/chat-photo/-1001?auth=ok");
+    expect(res.status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -1,13 +1,13 @@
 // Dev-only preview: render all three snapshot views (category / date /
 // payer) for the latest (or a specified) snapshot against a real
-// Telegraf client so live getChatMember lookups actually hit Telegram,
+// grammy Api client so live getChatMember lookups actually hit Telegram,
 // then print each to stdout without sending.
 //
 // Run with:
 //   pnpm --filter lambda exec tsx ../../scripts/preview-snapshot-share.ts [snapshotId]
 
 import { PrismaClient } from "@dko/database";
-import { Telegraf } from "telegraf";
+import { createTelegramApi } from "@dko/trpc/telegramClient";
 import { config as loadEnv } from "dotenv";
 import {
   loadSnapshotContext,
@@ -27,7 +27,10 @@ if (!token) {
 }
 
 const db = new PrismaClient();
-const telegraf = new Telegraf(token);
+// Shared factory: scrubs the bot token from network errors before they
+// reach this script's top-level catch, same guarantee as the tRPC context
+// and the lambda.
+const api = createTelegramApi(token);
 
 async function main() {
   const snapshotId = process.argv[2];
@@ -49,7 +52,7 @@ async function main() {
 
   const ctx = await loadSnapshotContext(
     db as any,
-    telegraf.telegram,
+    api,
     target.id,
     target.creatorId
   );

@@ -3,7 +3,7 @@ import {
   formatBatchSummaryMessage,
   sendBatchExpenseSummaryHandler,
 } from "./sendBatchExpenseSummary.js";
-import { Telegram } from "telegraf";
+import type { Api } from "grammy";
 
 describe("formatBatchSummaryMessage", () => {
   it("formats a single created expense (singular noun)", () => {
@@ -229,7 +229,7 @@ describe("sendBatchExpenseSummaryHandler gating", () => {
 
   function makeTeleBot() {
     const sendMessage = vi.fn().mockResolvedValue({ message_id: 999 });
-    return { bot: { sendMessage } as unknown as Telegram, sendMessage };
+    return { bot: { sendMessage } as unknown as Api, sendMessage };
   }
 
   it("skips the send when kind=updated and notifyOnExpenseUpdate is false", async () => {
