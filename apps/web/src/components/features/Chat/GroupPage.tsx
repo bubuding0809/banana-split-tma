@@ -33,7 +33,7 @@ import ChatTransactionTab, {
 } from "./ChatTransactionTab";
 import CategoryAggregationTicker from "./CategoryAggregationTicker";
 import SnapshotsLink from "../Snapshot/SnapshotsLink";
-import AddExpenseButton from "../Expense/AddExpenseButton";
+import GroupActionButtons from "../Payment/GroupActionButtons";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/utils/cn";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -428,7 +428,7 @@ const GroupPage = ({ chatData }: GroupPageProps) => {
       <Divider />
 
       {/* Main action button */}
-      <AddExpenseButton chatId={chatId} selectedTab={selectedTab} />
+      <GroupActionButtons chatId={chatId} selectedTab={selectedTab} />
 
       <section
         className="flex h-screen flex-col bg-neutral-50 pt-1 dark:bg-neutral-900/20"

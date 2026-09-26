@@ -13,6 +13,7 @@ import {
 } from "@telegram-apps/telegram-ui";
 import { type inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { trpc } from "@utils/trpc";
 import { AppRouter } from "@dko/trpc";
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
@@ -50,7 +51,13 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
 
   // * State =======================================================================================
   const userId = tUserData?.id ?? 0;
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { selectedSettlement } = useSearch({ strict: false }) as {
+    selectedSettlement?: string;
+  };
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(
+    () => settlement.id === selectedSettlement
+  );
 
   const senderFullName = `${senderMember?.user.first_name}${
     senderMember?.user.last_name ? ` ${senderMember.user.last_name}` : ""
@@ -126,6 +133,16 @@ const ChatSettlementCell = ({ settlement }: ChatSettlementCellProps) => {
       setTimeout(() => {
         setHighlighted(false);
       }, 150);
+
+      if (selectedSettlement === settlement.id) {
+        navigate({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          search: ((prev: any) => ({
+            ...prev,
+            selectedSettlement: undefined,
+          })) as any,
+        });
+      }
     }
     setIsModalOpen(open);
   };

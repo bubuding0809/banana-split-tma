@@ -52,6 +52,7 @@ const ChatTransactionTab = forwardRef<
 >(({ chatId, onVisibleMonthChange }, ref) => {
   const {
     selectedExpense,
+    selectedSettlement,
     showPayments = true,
     relatedOnly = true,
     sortBy = "date" as SortByOption,
@@ -59,6 +60,7 @@ const ChatTransactionTab = forwardRef<
     categoryFilters = [],
   } = useSearch({ strict: false }) as {
     selectedExpense?: string;
+    selectedSettlement?: string;
     showPayments?: boolean;
     relatedOnly?: boolean;
     sortBy?: SortByOption;
@@ -109,17 +111,18 @@ const ChatTransactionTab = forwardRef<
     []
   );
 
-  // Auto-scroll to a deep-linked expense (e.g. tapped from a bot
-  // notification's "View Expense" button). The virtualized segment's
-  // `scrollToTransaction` only succeeds once the expenses query has
-  // resolved AND the target is present in the current filtered view.
-  // On a cold deep-link open the data isn't there yet, so the first
-  // call returns false. Poll on a short interval until it succeeds or
-  // we hit the cap — cheap, contained to this mount, and naturally
-  // gives up for deleted/filtered-out expenses without user-visible
-  // noise.
+  // Auto-scroll to a deep-linked expense or settlement (e.g. tapped from
+  // a bot notification's "View Expense" or "View payment" button). The
+  // virtualized segment's `scrollToTransaction` only succeeds once the
+  // underlying query has resolved AND the target is present in the
+  // current filtered view. On a cold deep-link open the data isn't
+  // there yet, so the first call returns false. Poll on a short
+  // interval until it succeeds or we hit the cap — cheap, contained to
+  // this mount, and naturally gives up for deleted/filtered-out
+  // transactions without user-visible noise.
   useEffect(() => {
-    if (!selectedExpense || firstLoadDoneRef.current) return;
+    const targetId = selectedExpense ?? selectedSettlement;
+    if (!targetId || firstLoadDoneRef.current) return;
 
     let cancelled = false;
     const MAX_ATTEMPTS = 25; // ~5s at 200ms
@@ -128,8 +131,7 @@ const ChatTransactionTab = forwardRef<
     const run = async () => {
       for (let i = 0; i < MAX_ATTEMPTS; i++) {
         if (cancelled) return;
-        const ok =
-          await virtualizedRef.current?.scrollToTransaction(selectedExpense);
+        const ok = await virtualizedRef.current?.scrollToTransaction(targetId);
         if (ok) {
           firstLoadDoneRef.current = true;
           return;
@@ -147,7 +149,7 @@ const ChatTransactionTab = forwardRef<
     return () => {
       cancelled = true;
     };
-  }, [selectedExpense]);
+  }, [selectedExpense, selectedSettlement]);
 
   // * Queries ==================================================================================
   const { data: categoriesData } = trpc.category.listByChat.useQuery({

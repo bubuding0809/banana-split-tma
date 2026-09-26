@@ -138,4 +138,22 @@ describe("Deep Link Protocol v1", () => {
       entity_id: "123e4567-e89b-12d3-a456-426614174000",
     });
   });
+
+  it("encodes and decodes 'st' (settlement) entity round-trip", () => {
+    const chatId = -1001234567890n;
+    const entityId = "123e4567-e89b-12d3-a456-426614174000";
+
+    const encoded = encodeV1DeepLink(chatId, "g", "st", entityId);
+
+    expect(encoded).toMatch(/^v1_g_/);
+    expect(encoded).toContain("_st_");
+    expect(encoded.length).toBeLessThan(64);
+
+    expect(decodeV1DeepLink(encoded)).toEqual({
+      chat_id: "-1001234567890",
+      chat_type: "g",
+      entity_type: "st",
+      entity_id: entityId,
+    });
+  });
 });
