@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Record Payment: Design</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+<style>
+  .reveal { font-size: 30px; }
+  .reveal h1 { font-size: 1.6em; }
+  .reveal h2 { font-size: 1.15em; }
+  .reveal pre code { font-size: 0.72em; line-height: 1.35; border-radius: 8px; }
+  .pill { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 0.6em; font-weight: 600; vertical-align: middle; }
+  .pill.ok { background: #1d3b28; color: #6fdc8c; }
+  .pill.bad { background: #4a1d1d; color: #ff8389; }
+  .pill.warn { background: #4a3a1d; color: #f1c21b; }
+  .pill.note { background: #1d2f4a; color: #78a9ff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: #1e1e24; border: 1px solid #333; border-radius: 10px; padding: 16px 20px; font-size: 0.7em; }
+  .box h3 { font-size: 1.1em; margin: 0 0 8px; color: #78a9ff; }
+  .hl { background: #26261a; border-left: 4px solid #f1c21b; border-radius: 6px; padding: 12px 18px; font-size: 0.75em; text-align: left; }
+  .reveal table { font-size: 0.6em; }
+  .reveal table th { background: #26262e; }
+  .reveal table tr:nth-child(even) { background: #1b1b21; }
+  .small { font-size: 0.7em; }
+  .muted { color: #999; }
+  /* phone mocks */
+  .phones { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+  .ph { width: 250px; background: #1c1c1e; border-radius: 24px; padding: 12px 10px; font: 13px -apple-system, system-ui, sans-serif; text-align: left; color: #fff; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
+  .ph .cap { text-align: center; color: #8e8e93; font-size: 11px; margin-bottom: 6px; }
+  .ph .prog { height: 3px; background: #3a3a3c; border-radius: 2px; margin-bottom: 4px; } .ph .prog div { height: 3px; background: #0a84ff; }
+  .ph .steps { display: flex; justify-content: space-around; font-size: 11px; margin-bottom: 8px; } .ph .off { color: #636366; }
+  .ph .sec { background: #2c2c2e; border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+  .ph .cell { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #3a3a3c; }
+  .ph .cell:last-child { border-bottom: none; } .ph .g { flex: 1; }
+  .ph .sh { color: #8e8e93; font-size: 10px; text-transform: uppercase; margin: 8px 6px 3px; }
+  .ph .bh { font-size: 15px; font-weight: 700; margin: 6px 4px; }
+  .ph .seg { display: flex; background: #2c2c2e; border-radius: 8px; padding: 2px; } .ph .seg div { flex: 1; text-align: center; padding: 5px; font-size: 11px; border-radius: 6px; } .ph .seg .on { background: #636366; font-weight: 600; }
+  .ph .av { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .ph .rd { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #636366; } .ph .rd.on { border: 5px solid #0a84ff; }
+  .ph .mb { background: #0a84ff; border-radius: 9px; text-align: center; padding: 9px; font-weight: 600; margin-top: 8px; }
+  .ph .red { color: #ff453a; font-size: 10px; } .ph .grn { color: #30d158; font-size: 10px; } .ph .mut { color: #8e8e93; font-size: 10px; }
+  .ph.light { background: #fff; color: #000; } .ph.light .sec { background: #f2f2f7; } .ph.light .cell { border-color: #e5e5ea; }
+  .new { outline: 2px dashed #f1c21b; outline-offset: 2px; border-radius: 10px; }
+  .tg { background: #17212b; border-radius: 12px; padding: 14px 18px; font: 20px -apple-system, system-ui, sans-serif; text-align: left; max-width: 620px; margin: 0 auto; }
+  .tg .btn { margin-top: 10px; background: #2b5278; border-radius: 8px; text-align: center; padding: 8px; font-size: 17px; }
+  .tg .at { color: #6ab3f3; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <h1>Record Payment</h1>
+  <p class="small">Pay any amount to (or from) another member</p>
+  <p class="small muted">Design spec · 2026-09-26 · banana-split-tma</p>
+  <p><span class="pill ok">approved design</span> <span class="pill note">UI-heavy</span> <span class="pill ok">no schema change</span></p>
+</section>
+
+<section>
+  <h2>Problem</h2>
+  <p class="small">You can only settle the <strong>exact debt</strong> the app computed. The one-tap "Settled ✅" sends <code>amount: absAmountOwed</code>.</p>
+  <div class="grid2">
+    <div class="box"><h3>Partial payment</h3>"I owe Alice $50, here's $20 for now." <span class="pill bad">impossible</span></div>
+    <div class="box"><h3>No debt</h3>"I paid Bob $30 upfront for tickets." <span class="pill bad">impossible</span></div>
+  </div>
+  <div class="hl" style="margin-top:20px"><code>createSettlement</code> already accepts <strong>any amount</strong>, any direction and any currency. The gap is <strong>UI only</strong>.</div>
+</section>
+
+<section>
+  <h2>Decisions</h2>
+  <table>
+    <tr><th>Question</th><th>Decision</th></tr>
+    <tr><td>Cases</td><td>Partial <strong>and</strong> no-debt</td></tr>
+    <tr><td>Who records</td><td>Payer or receiver, never a 3rd member</td></tr>
+    <tr><td>Form</td><td>2 steps like Add expense: Amount → Who</td></tr>
+    <tr><td>Step 2</td><td>I paid / I received toggle + member list</td></tr>
+    <tr><td>Group entry</td><td><code>[+ Add expense] [💸 Payment]</code></td></tr>
+    <tr><td>Popup entry</td><td>"Other options" section below the QR</td></tr>
+    <tr><td>Notification</td><td>New neutral msg + View payment button</td></tr>
+    <tr><td>Overpay warning</td><td>None</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>The form</h2>
+  <div class="phones">
+    <div class="ph">
+      <div class="cap">Step 1 · reused from Add expense</div>
+      <div class="prog"><div style="width:50%"></div></div>
+      <div class="steps"><b>Amount</b><span class="off">Who</span></div>
+      <div class="sec"><div class="cell">🇸🇬 <span class="g">Singapore Dollar</span>›</div><div class="cell"><span class="g" style="font-size:18px;font-weight:600">20.00</span><span class="mut">SGD</span></div></div>
+      <div class="sh">Details</div>
+      <div class="sec"><div class="cell"><span class="g mut">e.g. Concert tickets</span></div><div class="cell">📅 <span class="g">Transaction Date</span><span class="mut">Today ›</span></div></div>
+      <div class="mb">Next</div>
+    </div>
+    <div class="ph">
+      <div class="cap">Step 2 · new</div>
+      <div class="prog"><div style="width:100%"></div></div>
+      <div class="steps"><span class="off">Amount</span><b>Who</b></div>
+      <div class="seg"><div class="on">I paid</div><div>I received</div></div>
+      <div class="bh">Paid to?</div>
+      <div class="sec">
+        <div class="cell"><div class="av" style="background:#0a84ff">B</div><span class="g">Bob<br><span class="red">you owe $50.00</span></span><span class="rd on"></span></div>
+        <div class="cell"><div class="av" style="background:#30d158">C</div><span class="g">Carol<br><span class="grn">owes you $12.00</span></span><span class="rd"></span></div>
+        <div class="cell"><div class="av" style="background:#bf5af2">D</div><span class="g">Dan<br><span class="mut">settled up</span></span><span class="rd"></span></div>
+      </div>
+      <div class="mb">Record payment</div>
+    </div>
+  </div>
+  <p class="small muted">Balances shown in the step-1 currency. No summary line.</p>
+</section>
+
+<section>
+  <h2>Entry points</h2>
+  <div class="phones">
+    <div class="ph">
+      <div class="cap">GroupPage</div>
+      <div style="display:flex;gap:6px">
+        <div class="mb" style="flex:1;margin:0">+ Add expense</div>
+        <div class="mb new" style="flex:1;margin:0;background:#2c2c2e;color:#0a84ff">💸 Payment</div>
+      </div>
+      <div class="seg" style="margin-top:8px"><div class="on">Balance</div><div>Transactions</div></div>
+      <p class="mut" style="margin:8px 4px 0">UserPage (personal chat) keeps the single button.</p>
+    </div>
+    <div class="ph light">
+      <div class="cap">ToPayModal (ToReceive mirrors)</div>
+      <div style="text-align:center;font-weight:700">You owe ting <span style="color:#e53935">SGD 587.88</span></div>
+      <div style="width:80px;height:80px;margin:8px auto;background:repeating-linear-gradient(45deg,#000 0 3px,#fff 3px 6px)"></div>
+      <div class="new">
+        <div class="sh" style="color:#6d6d72">Other options</div>
+        <div class="sec"><div class="cell">✎ <span class="g">Pay a different amount</span>›</div><div class="cell">⇄ <span class="g">Move to another group</span>›</div></div>
+      </div>
+      <div style="height:22px;outline:1px dashed #f1c21b;margin-top:4px;font-size:9px;text-align:center;color:#b8a000">bottom padding</div>
+    </div>
+  </div>
+  <p class="small muted">"Different amount" opens the form prefilled (full debt, currency, member, direction) on step 1.</p>
+</section>
+
+<section>
+  <h2>Notifications</h2>
+  <div class="tg">💸 Alice paid <span class="at">@Bob</span> SGD 20.00 (Concert tickets)<div class="btn">View payment</div></div>
+  <p class="small">New neutral message for <code>notificationKind: "payment"</code>. It tags <strong>whoever didn't record it</strong> so they can object.</p>
+  <div class="tg" style="font-size:17px">✅ Great news <span class="at">@Bob</span>!<br>Alice has settled their debt of SGD 50.00!<div class="btn">View payment</div></div>
+  <p class="small muted">One-tap Settled ✅ keeps its message and gains the button.</p>
+</section>
+
+<section>
+  <h2>Backend</h2>
+  <pre><code class="language-ts">// createSettlement input: one new field
+notificationKind: z.enum(["settle_up", "payment"])
+  .default("settle_up"),</code></pre>
+  <ul class="small">
+    <li>The default keeps the one-tap buttons, <code>settleAllDebts</code>, CLI and API keys unchanged</li>
+    <li><code>payment</code> tags the non-caller, or the receiver when there is no user ctx (API key)</li>
+    <li>Still respects <code>notifyOnSettlement</code> and <code>threadId</code>, and stores <code>telegramMessageId</code></li>
+  </ul>
+  <p><span class="pill ok">no migration</span> <span class="pill note">CLI flag deferred</span></p>
+</section>
+
+<section>
+  <h2>Deep link: entity <code>st</code></h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>deepLinkProtocol.ts</code></td><td>add <code>"st"</code> to the entity union</td></tr>
+    <tr><td><code>useStartParams.ts</code></td><td>add <code>"st"</code> to the zod enum</td></tr>
+    <tr><td><code>chat.$chatId.tsx</code></td><td><code>st</code> → Transactions tab + <code>selectedSettlement</code></td></tr>
+    <tr><td><code>ChatTransactionTab</code></td><td>scroll to <code>selectedSettlement</code></td></tr>
+    <tr><td><code>ChatSettlementCell</code></td><td>auto-open <code>SettlementDetailsModal</code></td></tr>
+  </table>
+  <div class="hl"><code>s</code> = snapshot stays as-is. Existing link tests get locked <strong>before</strong> <code>st</code> is added.</div>
+</section>
+
+<section>
+  <h2>Testing</h2>
+  <div class="grid2">
+    <div class="box"><h3>Unit (TDD)</h3>
+      Deep-link round-trips (existing first, then <code>st</code>)<br>
+      Handler: both copies, tag rule, button payload, msg id, notify off<br>
+      Web: toggle → sender/receiver, prefill, button row</div>
+    <div class="box"><h3>Staging UAT</h3>
+      Real dev server over HTTP<br>
+      Both directions, partial, no-debt<br>
+      Rows, balances, message text, button<br>
+      Delete removes msg; old links still work</div>
+  </div>
+  <div class="hl" style="margin-top:16px">Manual UAT in Telegram: layout, native-bar clearance, message rendering, View payment tap.</div>
+</section>
+
+<section>
+  <h2>Risks</h2>
+  <table>
+    <tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td>Either side can change a balance by any amount</td><td>Message tags the other party; delete exists</td></tr>
+    <tr><td>Half-width Add expense on small phones</td><td>Short labels; check on the narrowest device</td></tr>
+    <tr><td>"settled up" shown when the debt is in another currency</td><td>Accurate for the chosen currency; OK for v1</td></tr>
+  </table>
+  <p class="small muted">Out of scope: 3rd-party recording · editing settlements · CLI · cross-group aggregate sheet</p>
+</section>
+
+<section>
+  <h2>Next</h2>
+  <p>Review the spec → <code>writing-plans</code> → implement on <code>feat/record-payment</code></p>
+  <p class="small muted">docs/superpowers/specs/2026-09-26-record-payment-design.md</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({ hash: true, width: 960, height: 720, margin: 0.04, plugins: [RevealHighlight] });
+</script>
+</body>
+</html>
