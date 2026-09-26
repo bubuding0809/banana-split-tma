@@ -102,20 +102,24 @@ export const sendSettlementNotificationMessageHandler = async (
 
   let keyboard = {};
   if (input.settlementId) {
-    const botInfo = await teleBot.getMe();
-    const chatTypeCode = input.chatId < 0 ? "g" : "p";
-    const payload = encodeV1DeepLink(
-      BigInt(input.chatId),
-      chatTypeCode,
-      "st",
-      input.settlementId
-    );
-    keyboard = inlineKeyboard([
-      {
-        text: "View payment",
-        url: createDeepLinkedUrl(botInfo.username, payload, "app"),
-      },
-    ]);
+    try {
+      const botInfo = await teleBot.getMe();
+      const chatTypeCode = input.chatId < 0 ? "g" : "p";
+      const payload = encodeV1DeepLink(
+        BigInt(input.chatId),
+        chatTypeCode,
+        "st",
+        input.settlementId
+      );
+      keyboard = inlineKeyboard([
+        {
+          text: "View payment",
+          url: createDeepLinkedUrl(botInfo.username, payload, "app"),
+        },
+      ]);
+    } catch (error) {
+      log.warn({ err: error }, "telegram.settlementNotification.button.failed");
+    }
   }
 
   try {

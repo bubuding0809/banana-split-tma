@@ -170,4 +170,18 @@ describe("sendSettlementNotificationMessage copy + button", () => {
     expect(sentOpts().reply_markup).toBeUndefined();
     expect(mockTeleBot.getMe).not.toHaveBeenCalled();
   });
+
+  it("still sends the message without a keyboard when getMe rejects", async () => {
+    mockTeleBot.getMe.mockRejectedValue(new Error("network down"));
+
+    const result = await sendSettlementNotificationMessageHandler(
+      { ...baseInput, chatId: -100, force: true, settlementId: SETTLEMENT_ID },
+      mockDb,
+      mockTeleBot as any
+    );
+
+    expect(result).toBe(77);
+    expect(mockTeleBot.sendMessage).toHaveBeenCalledOnce();
+    expect(sentOpts().reply_markup).toBeUndefined();
+  });
 });
