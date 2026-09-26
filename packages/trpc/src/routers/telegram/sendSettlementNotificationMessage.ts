@@ -4,7 +4,13 @@ import { type Logger } from "@repo/logger";
 import { Db, protectedProcedure, trpcLogger } from "../../trpc.js";
 import { assertNotChatScoped } from "../../middleware/chatScope.js";
 import type { Api } from "grammy";
-import { mentionMarkdown, escapeMarkdown } from "../../utils/telegram.js";
+import {
+  mentionMarkdown,
+  escapeMarkdown,
+  createDeepLinkedUrl,
+  inlineKeyboard,
+} from "../../utils/telegram.js";
+import { encodeV1DeepLink } from "../../utils/deepLinkProtocol.js";
 import { formatCurrencyWithCode } from "../../utils/financial.js";
 
 const inputSchema = z.object({
@@ -21,14 +27,22 @@ const inputSchema = z.object({
   description: z.string().optional(),
   threadId: z.number().optional(),
   force: z.boolean().default(false),
+  kind: z.enum(["settle_up", "payment"]).default("settle_up"),
+  debtorUserId: z.number().optional(),
+  mentionTarget: z.enum(["creditor", "debtor"]).default("creditor"),
+  settlementId: z.string().uuid().optional(),
 });
 
 export const sendSettlementNotificationMessageHandler = async (
-  input: z.infer<typeof inputSchema>,
+  input: z.input<typeof inputSchema>,
   db: Db,
   teleBot: Api,
   log: Logger = trpcLogger
 ) => {
+  const kind = input.kind ?? "settle_up";
+  const mentionTarget = input.mentionTarget ?? "creditor";
+  const currency = input.currency ?? "SGD";
+
   // Validate business logic
   if (input.chatId === 0) {
     throw new TRPCError({
@@ -50,36 +64,65 @@ export const sendSettlementNotificationMessageHandler = async (
 
   // Format the amount as currency with error handling
   const formattedAmount = escapeMarkdown(
-    formatCurrencyWithCode(input.amount, input.currency),
+    formatCurrencyWithCode(input.amount, currency),
     2
   );
 
-  // Escape names for MarkdownV2
-  const escapedDebtorName = escapeMarkdown(input.debtorName, 2);
+  const safeMention = (userId: number | undefined, name: string) => {
+    if (userId === undefined) return escapeMarkdown(name, 2);
+    try {
+      return mentionMarkdown(userId, name, 2);
+    } catch {
+      return escapeMarkdown(name, 2);
+    }
+  };
 
-  // Create user mention - prefer username if available, otherwise use name with user ID
-  let creditorMention: string;
-  try {
-    creditorMention = mentionMarkdown(
-      input.creditorUserId,
-      input.creditorName,
-      2
-    );
-  } catch (error) {
-    // Fallback to escaped plain name if mention creation fails
-    creditorMention = escapeMarkdown(input.creditorName, 2);
-  }
-
-  // Create the settlement notification message with pre-escaped components
   const descriptionPart = input.description
     ? ` \\(${escapeMarkdown(input.description, 2)}\\)`
     : "";
-  const message = `✅ Great news ${creditorMention}\\!\n${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\!`;
+
+  let message: string;
+  if (kind === "payment") {
+    const tagDebtor = mentionTarget === "debtor";
+    const payer = tagDebtor
+      ? safeMention(input.debtorUserId, input.debtorName)
+      : escapeMarkdown(input.debtorName, 2);
+    const receiver = tagDebtor
+      ? escapeMarkdown(input.creditorName, 2)
+      : safeMention(input.creditorUserId, input.creditorName);
+    message = `💸 ${payer} paid ${receiver} ${formattedAmount}${descriptionPart}`;
+  } else {
+    const creditorMention = safeMention(
+      input.creditorUserId,
+      input.creditorName
+    );
+    const escapedDebtorName = escapeMarkdown(input.debtorName, 2);
+    message = `✅ Great news ${creditorMention}\\!\n${escapedDebtorName} has settled their debt of ${formattedAmount}${descriptionPart}\\!`;
+  }
+
+  let keyboard = {};
+  if (input.settlementId) {
+    const botInfo = await teleBot.getMe();
+    const chatTypeCode = input.chatId < 0 ? "g" : "p";
+    const payload = encodeV1DeepLink(
+      BigInt(input.chatId),
+      chatTypeCode,
+      "st",
+      input.settlementId
+    );
+    keyboard = inlineKeyboard([
+      {
+        text: "View payment",
+        url: createDeepLinkedUrl(botInfo.username, payload, "app"),
+      },
+    ]);
+  }
 
   try {
     const sentMessage = await teleBot.sendMessage(input.chatId, message, {
       parse_mode: "MarkdownV2",
       message_thread_id: input.threadId,
+      ...keyboard,
     });
 
     return sentMessage.message_id;
