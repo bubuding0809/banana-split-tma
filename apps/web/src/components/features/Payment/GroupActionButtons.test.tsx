@@ -21,12 +21,18 @@ vi.mock("@telegram-apps/telegram-ui", () => ({
 }));
 
 describe("GroupActionButtons", () => {
-  it("renders Add expense and Payment links side by side", () => {
-    render(<GroupActionButtons chatId={-100} selectedTab="balance" />);
-    const add = screen.getByText("Add expense").closest("a")!;
-    const pay = screen.getByText("💸 Payment").closest("a")!;
+  it("renders Pay (left) and Expense (right, primary) links", () => {
+    const { container } = render(
+      <GroupActionButtons chatId={-100} selectedTab="balance" />
+    );
+    const pay = screen.getByText("Pay").closest("a")!;
+    const add = screen.getByText("Expense").closest("a")!;
     expect(add.getAttribute("data-to")).toBe("/chat/$chatId/add-expense");
     expect(pay.getAttribute("data-to")).toBe("/chat/$chatId/record-payment");
     expect(pay.getAttribute("data-title")).toBe("💸 Record payment");
+
+    // Primary action sits on the right, per Telegram's bottom-bar convention.
+    const links = Array.from(container.querySelectorAll("a"));
+    expect(links.map((l) => l.textContent)).toEqual(["Pay", "Expense"]);
   });
 });
