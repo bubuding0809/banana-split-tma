@@ -20,6 +20,8 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { assetUrls } from "@/assets/urls";
 import { MoveDebtEntry } from "./MoveDebtEntry";
+import { OtherOptionsSection } from "./OtherOptionsSection";
+import { DifferentAmountCell } from "./DifferentAmountCell";
 
 interface ToReceiveModalProps {
   modalOpen: boolean;
@@ -302,17 +304,27 @@ const ToReceiveModal = ({
           />
         </Placeholder>
 
-        <MoveDebtEntry
-          sourceChatId={chatId}
-          sourceChatTitle={dChatData?.title ?? ""}
-          currency={currency}
-          amount={absAmountLent}
-          counterpartyUserId={member.id}
-          counterpartyName={member.firstName}
-          callerOwes={false}
-          onOpenChange={setMoveOpen}
-          onMoved={() => onOpenChange(false)}
-        />
+        <OtherOptionsSection>
+          <DifferentAmountCell
+            chatId={chatId}
+            direction="received"
+            counterpartyId={member.id}
+            amount={absAmountLent}
+            currency={currency}
+          />
+          <MoveDebtEntry
+            bare
+            sourceChatId={chatId}
+            sourceChatTitle={dChatData?.title ?? ""}
+            currency={currency}
+            amount={absAmountLent}
+            counterpartyUserId={member.id}
+            counterpartyName={member.firstName}
+            callerOwes={false}
+            onOpenChange={setMoveOpen}
+            onMoved={() => onOpenChange(false)}
+          />
+        </OtherOptionsSection>
       </div>
     </Modal>
   );

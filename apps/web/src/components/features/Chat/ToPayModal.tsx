@@ -21,6 +21,8 @@ import { useCallback, useEffect, useState } from "react";
 import { assetUrls } from "@/assets/urls";
 import PayNowQR from "./PayNowQR";
 import { MoveDebtEntry } from "./MoveDebtEntry";
+import { OtherOptionsSection } from "./OtherOptionsSection";
+import { DifferentAmountCell } from "./DifferentAmountCell";
 
 interface ToPayModalProps {
   modalOpen: boolean;
@@ -286,17 +288,27 @@ const ToPayModal = ({
           />
         )}
 
-        <MoveDebtEntry
-          sourceChatId={chatId}
-          sourceChatTitle={dChatData?.title ?? ""}
-          currency={currency}
-          amount={absAmountOwed}
-          counterpartyUserId={member.id}
-          counterpartyName={member.firstName}
-          callerOwes={true}
-          onOpenChange={setMoveOpen}
-          onMoved={() => onOpenChange(false)}
-        />
+        <OtherOptionsSection>
+          <DifferentAmountCell
+            chatId={chatId}
+            direction="paid"
+            counterpartyId={member.id}
+            amount={absAmountOwed}
+            currency={currency}
+          />
+          <MoveDebtEntry
+            bare
+            sourceChatId={chatId}
+            sourceChatTitle={dChatData?.title ?? ""}
+            currency={currency}
+            amount={absAmountOwed}
+            counterpartyUserId={member.id}
+            counterpartyName={member.firstName}
+            callerOwes={true}
+            onOpenChange={setMoveOpen}
+            onMoved={() => onOpenChange(false)}
+          />
+        </OtherOptionsSection>
       </div>
     </Modal>
   );

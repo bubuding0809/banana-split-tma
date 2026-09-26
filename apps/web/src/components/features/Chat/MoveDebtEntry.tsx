@@ -21,6 +21,8 @@ interface MoveDebtEntryProps {
   onOpenChange?: (open: boolean) => void;
   /** Called after a successful move so the host can close itself. */
   onMoved?: () => void;
+  /** Render without its own Section wrapper, for nesting inside another Section. */
+  bare?: boolean;
 }
 
 const DISPLAY_THRESHOLD = 0.01;
@@ -40,6 +42,7 @@ export function MoveDebtEntry({
   callerOwes,
   onOpenChange,
   onMoved,
+  bare = false,
 }: MoveDebtEntryProps) {
   const tUser = useSignal(initData.user);
   const callerId = Number(tUser?.id ?? 0);
@@ -81,8 +84,8 @@ export function MoveDebtEntry({
     onMoved?.();
   };
 
-  return (
-    <Section className="px-3">
+  const content = (
+    <>
       <Cell
         before={<ArrowRightLeft size={20} className="text-zinc-400" />}
         after={<Navigation />}
@@ -101,8 +104,10 @@ export function MoveDebtEntry({
         onOpenChange={(o) => setBoth(o)}
         onAfterMutate={handleAfterMutate}
       />
-    </Section>
+    </>
   );
+
+  return bare ? content : <Section className="px-3">{content}</Section>;
 }
 
 export default MoveDebtEntry;
