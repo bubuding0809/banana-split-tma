@@ -57,7 +57,7 @@ Search params:
 | `amount` | `number` | prefill (optional) |
 | `currency` | `string` | prefill (optional) |
 
-**Step 1: Amount.** Reuses the AmountFormStep pieces: currency cell (opens `CurrencySelectionModal`, featuring the chat's base currency), amount input, then a Details section with description (placeholder "e.g. Concert tickets") and Transaction Date (max today). It leaves out Repeat, End date, category and the "Apply SGD" conversion cell. The Main button reads **Next** and is enabled when the amount is > 0.
+**Step 1: Amount.** Reuses the AmountFormStep pieces: currency cell (opens `CurrencySelectionModal`, featuring the chat's base currency), amount input, then a Details section with a required description (placeholder "e.g. Concert tickets"; blank or whitespace-only blocks Next and marks the field red) and Transaction Date (max today). It leaves out Repeat, End date, category and the "Apply SGD" conversion cell. The Main button reads **Next** and moves on only when the amount is ≥ 0.01 and a description is filled in. The backend keeps `description` optional so other callers (MCP, agent, CLI) are unaffected.
 
 **Step 2: Who.** A segmented control `I paid | I received`, then a large section header that follows the toggle ("Paid to?" or "Received from?"), then a radio list of every chat member except the current user. Rows match the Add expense payer list: `ChatMemberAvatar`, `@username` (or "No username") as the title, and the full name as the subtitle. Balances are not shown.
 

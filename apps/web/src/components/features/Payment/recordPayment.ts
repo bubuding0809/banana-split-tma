@@ -22,6 +22,10 @@ export const isValidAmount = (amount: string): boolean => {
   return Number(amount) >= 0.01;
 };
 
+/** Recorded payments need a note so they're recognisable later. */
+export const isValidDescription = (description: string): boolean =>
+  description.trim().length > 0;
+
 export const toParties = (
   direction: PaymentDirection,
   userId: number,

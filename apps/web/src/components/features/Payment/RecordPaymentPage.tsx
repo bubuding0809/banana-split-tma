@@ -22,6 +22,7 @@ import PaymentWhoStep from "./PaymentWhoStep";
 import { paymentFormOpts } from "./RecordPaymentForm";
 import {
   isValidAmount,
+  isValidDescription,
   resolveInitialValues,
   toNotificationNames,
   toParties,
@@ -40,6 +41,7 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
   const { prevTab, currentFormStep } = search;
   const userId = tUserData?.id ?? 0;
   const [showAmountError, setShowAmountError] = useState(false);
+  const [showDescriptionError, setShowDescriptionError] = useState(false);
   const [showPickMember, setShowPickMember] = useState(false);
 
   const trpcUtils = trpc.useUtils();
@@ -203,11 +205,15 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
   useEffect(() => {
     const off = mainButton.onClick.ifAvailable(() => {
       if (currentFormStep === 0) {
-        if (!isValidAmount(form.getFieldValue("amount"))) {
-          setShowAmountError(true);
+        const amountOk = isValidAmount(form.getFieldValue("amount"));
+        const descriptionOk = isValidDescription(
+          form.getFieldValue("description")
+        );
+        setShowAmountError(!amountOk);
+        setShowDescriptionError(!descriptionOk);
+        if (!amountOk || !descriptionOk) {
           return hapticFeedback.notificationOccurred("warning");
         }
-        setShowAmountError(false);
         hapticFeedback.notificationOccurred("success");
         return navigate({
           search: (prev) => ({ ...prev, currentFormStep: 1 }),
@@ -293,6 +299,7 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
             form={form}
             chatId={chatId}
             showAmountError={showAmountError}
+            showDescriptionError={showDescriptionError}
           />
         ) : (
           <PaymentWhoStep form={form} chatId={chatId} />

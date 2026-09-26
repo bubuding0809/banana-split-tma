@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   isValidAmount,
+  isValidDescription,
   toParties,
   toNotificationNames,
   resolveInitialValues,
@@ -122,5 +123,16 @@ describe("soleCounterpartyId", () => {
   });
   it("compares bigint-ish ids by value", () => {
     expect(soleCounterpartyId([{ id: 1n }, { id: 2n }], 1)).toBe("2");
+  });
+});
+
+describe("isValidDescription", () => {
+  it.each([
+    ["", false],
+    ["   ", false],
+    ["Concert tickets", true],
+    ["  Taxi  ", true],
+  ])("%j → %s", (input, expected) => {
+    expect(isValidDescription(input)).toBe(expected);
   });
 });
