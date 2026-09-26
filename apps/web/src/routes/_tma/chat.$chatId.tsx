@@ -12,6 +12,7 @@ import { Caption, Spinner } from "@telegram-apps/telegram-ui";
 const searchSchema = z.object({
   selectedTab: z.enum(["balance", "transaction"]).catch("balance"),
   selectedExpense: z.string().optional(),
+  selectedSettlement: z.string().optional(),
   showPayments: z.boolean().catch(true),
   relatedOnly: z.boolean().catch(true),
   sortBy: z.enum(["date", "createdAt"]).catch("date"),
@@ -94,6 +95,27 @@ function ChatIdRoute() {
         to: "/chat/$chatId/recurring-expenses",
         params: { chatId: chatId.toString() },
         search: { selectedTemplate: startParams.entity_id },
+        replace: true,
+      });
+    }
+
+    // Settlement deep link — "View payment" CTA on settlement
+    // notifications. Mirrors the expense path: transaction tab, scroll,
+    // ChatSettlementCell auto-opens its details modal.
+    if (
+      startParams?.entity_type === "st" &&
+      startParams?.entity_id &&
+      !sessionStorage.getItem(deepLinkConsumedKey)
+    ) {
+      sessionStorage.setItem(deepLinkConsumedKey, "true");
+
+      navigate({
+        to: "/chat/$chatId",
+        params: { chatId: chatId.toString() },
+        search: {
+          selectedTab: "transaction",
+          selectedSettlement: startParams.entity_id,
+        },
         replace: true,
       });
     }

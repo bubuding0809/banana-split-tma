@@ -175,4 +175,44 @@ describe("chat.$chatId Deep Link Routing", () => {
     expect(mockSetItem).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it("should navigate to the transaction tab with selectedSettlement when entity_type is 'st' and flag is false", () => {
+    mockGetItem.mockReturnValue(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "st",
+      entity_id: "settle-uuid-1",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockSetItem).toHaveBeenCalledWith(
+      "deep_link_consumed_settle-uuid-1",
+      "true"
+    );
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: "/chat/$chatId",
+      params: { chatId: "1234" },
+      search: {
+        selectedTab: "transaction",
+        selectedSettlement: "settle-uuid-1",
+      },
+      replace: true,
+    });
+  });
+
+  it("should not navigate for entity_type 'st' when already consumed", () => {
+    mockGetItem.mockReturnValue("true");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStartParams as any).mockReturnValue({
+      chat_id: "1234",
+      entity_type: "st",
+      entity_id: "settle-uuid-1",
+    });
+
+    render(<ChatIdRoute />);
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
