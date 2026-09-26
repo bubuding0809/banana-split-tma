@@ -79,6 +79,10 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
         (m) => String(m.id) === value.counterpartyId
       );
       if (!counterparty || !tUserData?.firstName) return;
+      secondaryButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+      });
       mainButton.setParams.ifAvailable({
         isLoaderVisible: true,
         isEnabled: false,
@@ -139,6 +143,11 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
             error instanceof Error
               ? error.message
               : "Failed to record payment.",
+        });
+        // Submit only happens on step 1, where « Back is shown — restore it.
+        secondaryButton.setParams.ifAvailable({
+          isVisible: true,
+          isEnabled: true,
         });
       } finally {
         mainButton.setParams.ifAvailable({
