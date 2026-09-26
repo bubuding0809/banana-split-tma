@@ -84,3 +84,16 @@ export const resolveInitialValues = ({
     counterpartyId: "",
   };
 };
+
+/**
+ * In a two-person group the counterparty is unambiguous, so it can be
+ * pre-selected. With more members the user must pick, to avoid recording
+ * money against the wrong person.
+ */
+export const soleCounterpartyId = (
+  members: { id: number | bigint }[] | undefined,
+  userId: number
+): string | null => {
+  const others = (members ?? []).filter((m) => Number(m.id) !== userId);
+  return others.length === 1 ? String(others[0]!.id) : null;
+};

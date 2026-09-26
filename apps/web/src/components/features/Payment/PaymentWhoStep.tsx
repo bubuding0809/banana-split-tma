@@ -6,11 +6,13 @@ import {
   SegmentedControl,
 } from "@telegram-apps/telegram-ui";
 import { useStore } from "@tanstack/react-form";
+import { useEffect } from "react";
 
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { withForm } from "@/hooks";
 import { trpc } from "@/utils/trpc";
 import { paymentFormOpts } from "./RecordPaymentForm";
+import { soleCounterpartyId } from "./recordPayment";
 
 const PaymentWhoStep = withForm({
   ...paymentFormOpts,
@@ -22,6 +24,13 @@ const PaymentWhoStep = withForm({
 
     const { data: members } = trpc.chat.getMembers.useQuery({ chatId });
     const others = (members ?? []).filter((m) => Number(m.id) !== userId);
+
+    // Pre-select the only other member; leave larger groups blank.
+    useEffect(() => {
+      if (form.getFieldValue("counterpartyId")) return;
+      const sole = soleCounterpartyId(members, userId);
+      if (sole) form.setFieldValue("counterpartyId", sole);
+    }, [form, members, userId]);
 
     return (
       <div className="flex flex-col gap-3">

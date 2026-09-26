@@ -9,7 +9,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Steps, Subheadline } from "@telegram-apps/telegram-ui";
+import { Snackbar, Steps, Subheadline } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@utils/cn";
@@ -40,6 +40,7 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
   const { prevTab, currentFormStep } = search;
   const userId = tUserData?.id ?? 0;
   const [showAmountError, setShowAmountError] = useState(false);
+  const [showPickMember, setShowPickMember] = useState(false);
 
   const trpcUtils = trpc.useUtils();
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -213,6 +214,7 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
         });
       }
       if (!form.getFieldValue("counterpartyId")) {
+        setShowPickMember(true);
         return hapticFeedback.notificationOccurred("warning");
       }
       form.handleSubmit();
@@ -296,6 +298,14 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
           <PaymentWhoStep form={form} chatId={chatId} />
         )}
       </section>
+      {showPickMember ? (
+        <Snackbar
+          onClose={() => setShowPickMember(false)}
+          description="Choose who you paid or who paid you."
+        >
+          Pick a member first
+        </Snackbar>
+      ) : null}
     </div>
   );
 };

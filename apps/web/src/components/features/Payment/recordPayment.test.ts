@@ -4,6 +4,7 @@ import {
   toParties,
   toNotificationNames,
   resolveInitialValues,
+  soleCounterpartyId,
   type RecordPaymentValues,
 } from "./recordPayment";
 
@@ -104,5 +105,22 @@ describe("resolveInitialValues", () => {
       direction: "paid",
       counterpartyId: "2",
     });
+  });
+});
+
+describe("soleCounterpartyId", () => {
+  const m = (id: number) => ({ id });
+  it("picks the only other member in a two-person group", () => {
+    expect(soleCounterpartyId([m(1), m(2)], 1)).toBe("2");
+  });
+  it("returns null when there are several other members", () => {
+    expect(soleCounterpartyId([m(1), m(2), m(3)], 1)).toBeNull();
+  });
+  it("returns null when nobody else is in the group", () => {
+    expect(soleCounterpartyId([m(1)], 1)).toBeNull();
+    expect(soleCounterpartyId(undefined, 1)).toBeNull();
+  });
+  it("compares bigint-ish ids by value", () => {
+    expect(soleCounterpartyId([{ id: 1n }, { id: 2n }], 1)).toBe("2");
   });
 });
