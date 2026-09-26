@@ -234,6 +234,9 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
     return () => off?.();
   }, [currentFormStep, navigate]);
 
+  // Reset main-button styling on unmount. Keyed on tButtonColor so the
+  // reset uses the current theme; a theme change re-runs this cleanup, but
+  // the per-step effect above re-shows the button in the same flush.
   useEffect(
     () => () => {
       mainButton.setParams.ifAvailable({
@@ -242,12 +245,20 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
         backgroundColor: tButtonColor,
         hasShineEffect: false,
       });
+    },
+    [tButtonColor]
+  );
+
+  // Unmount only: nothing re-shows « Back after a theme change, so this
+  // must not depend on tButtonColor.
+  useEffect(
+    () => () => {
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
     },
-    [tButtonColor]
+    []
   );
 
   return (
