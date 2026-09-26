@@ -28,6 +28,8 @@ export const inputSchema = z.object({
   creditorUsername: z.string().optional(),
   debtorName: z.string().optional(),
   threadId: z.number().optional(),
+  notificationKind: z.enum(["settle_up", "payment"]).default("settle_up"),
+  date: z.coerce.date().optional(),
 });
 
 export const outputSchema = z.object({
@@ -47,7 +49,8 @@ export const createSettlementHandler = async (
   input: z.infer<typeof inputSchema>,
   db: Db,
   teleBot: Api,
-  log: Logger = trpcLogger
+  log: Logger = trpcLogger,
+  callerUserId?: number
 ) => {
   try {
     // Determine the currency to use
@@ -103,6 +106,7 @@ export const createSettlementHandler = async (
         amount: toNumber(amountDecimal),
         currency: currency,
         description: input.description || null,
+        ...(input.date ? { date: input.date } : {}),
       },
     });
 
@@ -116,10 +120,21 @@ export const createSettlementHandler = async (
             creditorName: input.creditorName,
             creditorUsername: input.creditorUsername,
             debtorName: input.debtorName,
+            debtorUserId: Number(input.senderId),
             amount: input.amount,
             currency: currency,
+            description: input.description,
             threadId: input.threadId,
             force: false,
+            kind: input.notificationKind,
+            // Tag whoever did NOT record it. Receiver recorded → tag payer.
+            // Payer recorded, or no caller (API key) → tag receiver.
+            mentionTarget:
+              callerUserId !== undefined &&
+              BigInt(callerUserId) === input.receiverId
+                ? "debtor"
+                : "creditor",
+            settlementId: settlement.id,
           },
           db,
           teleBot
@@ -178,5 +193,15 @@ export default protectedProcedure
   .output(outputSchema)
   .mutation(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
-    return createSettlementHandler(input, ctx.db, ctx.teleBot, ctx.log);
+    const callerId =
+      "user" in ctx.session && ctx.session.user?.id !== undefined
+        ? Number(ctx.session.user.id)
+        : undefined;
+    return createSettlementHandler(
+      input,
+      ctx.db,
+      ctx.teleBot,
+      ctx.log,
+      callerId
+    );
   });

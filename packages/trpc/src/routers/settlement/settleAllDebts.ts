@@ -123,7 +123,7 @@ export const settleAllDebtsHandler = async (
         // each message ID onto its corresponding settlement so
         // deleteSettlement can later clean up the notification.
         const results = await Promise.allSettled(
-          validBalances.map((balance) =>
+          validBalances.map((balance, i) =>
             sendSettlementNotificationMessageHandler(
               {
                 chatId: Number(input.chatId),
@@ -135,6 +135,7 @@ export const settleAllDebtsHandler = async (
                 currency: balance.currency,
                 threadId: input.threadId,
                 force: false,
+                settlementId: settlements[i]?.id,
               },
               db,
               teleBot
