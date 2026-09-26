@@ -18,6 +18,7 @@ import { Route as TmaChatChatIdRouteImport } from './routes/_tma/chat.$chatId'
 import { Route as TmaChatChatIdSnapshotsRouteImport } from './routes/_tma/chat.$chatId_.snapshots'
 import { Route as TmaChatChatIdSettingsRouteImport } from './routes/_tma/chat.$chatId_.settings'
 import { Route as TmaChatChatIdRecurringExpensesRouteImport } from './routes/_tma/chat.$chatId_.recurring-expenses'
+import { Route as TmaChatChatIdRecordPaymentRouteImport } from './routes/_tma/chat.$chatId_.record-payment'
 import { Route as TmaChatChatIdCreateSnapshotRouteImport } from './routes/_tma/chat.$chatId_.create-snapshot'
 import { Route as TmaChatChatIdAddExpenseRouteImport } from './routes/_tma/chat.$chatId_.add-expense'
 import { Route as TmaChatChatIdSettingsIndexRouteImport } from './routes/_tma/chat.$chatId_.settings.index'
@@ -81,6 +82,12 @@ const TmaChatChatIdRecurringExpensesRoute =
   TmaChatChatIdRecurringExpensesRouteImport.update({
     id: '/$chatId_/recurring-expenses',
     path: '/$chatId/recurring-expenses',
+    getParentRoute: () => TmaChatRoute,
+  } as any)
+const TmaChatChatIdRecordPaymentRoute =
+  TmaChatChatIdRecordPaymentRouteImport.update({
+    id: '/$chatId_/record-payment',
+    path: '/$chatId/record-payment',
     getParentRoute: () => TmaChatRoute,
   } as any)
 const TmaChatChatIdCreateSnapshotRoute =
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
+  '/chat/$chatId/record-payment': typeof TmaChatChatIdRecordPaymentRoute
   '/chat/$chatId/recurring-expenses': typeof TmaChatChatIdRecurringExpensesRoute
   '/chat/$chatId/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
@@ -233,6 +241,7 @@ export interface FileRoutesByTo {
   '/chat': typeof TmaChatIndexRoute
   '/chat/$chatId/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/chat/$chatId/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
+  '/chat/$chatId/record-payment': typeof TmaChatChatIdRecordPaymentRoute
   '/chat/$chatId/recurring-expenses': typeof TmaChatChatIdRecurringExpensesRoute
   '/chat/$chatId/snapshots': typeof TmaChatChatIdSnapshotsRoute
   '/chat/$chatId/edit-expense/$expenseId': typeof TmaChatChatIdEditExpenseExpenseIdRoute
@@ -262,6 +271,7 @@ export interface FileRoutesById {
   '/_tma/chat/': typeof TmaChatIndexRoute
   '/_tma/chat/$chatId_/add-expense': typeof TmaChatChatIdAddExpenseRoute
   '/_tma/chat/$chatId_/create-snapshot': typeof TmaChatChatIdCreateSnapshotRoute
+  '/_tma/chat/$chatId_/record-payment': typeof TmaChatChatIdRecordPaymentRoute
   '/_tma/chat/$chatId_/recurring-expenses': typeof TmaChatChatIdRecurringExpensesRoute
   '/_tma/chat/$chatId_/settings': typeof TmaChatChatIdSettingsRouteWithChildren
   '/_tma/chat/$chatId_/snapshots': typeof TmaChatChatIdSnapshotsRoute
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/create-snapshot'
+    | '/chat/$chatId/record-payment'
     | '/chat/$chatId/recurring-expenses'
     | '/chat/$chatId/settings'
     | '/chat/$chatId/snapshots'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/chat/$chatId/add-expense'
     | '/chat/$chatId/create-snapshot'
+    | '/chat/$chatId/record-payment'
     | '/chat/$chatId/recurring-expenses'
     | '/chat/$chatId/snapshots'
     | '/chat/$chatId/edit-expense/$expenseId'
@@ -349,6 +361,7 @@ export interface FileRouteTypes {
     | '/_tma/chat/'
     | '/_tma/chat/$chatId_/add-expense'
     | '/_tma/chat/$chatId_/create-snapshot'
+    | '/_tma/chat/$chatId_/record-payment'
     | '/_tma/chat/$chatId_/recurring-expenses'
     | '/_tma/chat/$chatId_/settings'
     | '/_tma/chat/$chatId_/snapshots'
@@ -439,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/$chatId/recurring-expenses'
       fullPath: '/chat/$chatId/recurring-expenses'
       preLoaderRoute: typeof TmaChatChatIdRecurringExpensesRouteImport
+      parentRoute: typeof TmaChatRoute
+    }
+    '/_tma/chat/$chatId_/record-payment': {
+      id: '/_tma/chat/$chatId_/record-payment'
+      path: '/$chatId/record-payment'
+      fullPath: '/chat/$chatId/record-payment'
+      preLoaderRoute: typeof TmaChatChatIdRecordPaymentRouteImport
       parentRoute: typeof TmaChatRoute
     }
     '/_tma/chat/$chatId_/create-snapshot': {
@@ -637,6 +657,7 @@ interface TmaChatRouteChildren {
   TmaChatIndexRoute: typeof TmaChatIndexRoute
   TmaChatChatIdAddExpenseRoute: typeof TmaChatChatIdAddExpenseRoute
   TmaChatChatIdCreateSnapshotRoute: typeof TmaChatChatIdCreateSnapshotRoute
+  TmaChatChatIdRecordPaymentRoute: typeof TmaChatChatIdRecordPaymentRoute
   TmaChatChatIdRecurringExpensesRoute: typeof TmaChatChatIdRecurringExpensesRoute
   TmaChatChatIdSettingsRoute: typeof TmaChatChatIdSettingsRouteWithChildren
   TmaChatChatIdSnapshotsRoute: typeof TmaChatChatIdSnapshotsRoute
@@ -651,6 +672,7 @@ const TmaChatRouteChildren: TmaChatRouteChildren = {
   TmaChatIndexRoute: TmaChatIndexRoute,
   TmaChatChatIdAddExpenseRoute: TmaChatChatIdAddExpenseRoute,
   TmaChatChatIdCreateSnapshotRoute: TmaChatChatIdCreateSnapshotRoute,
+  TmaChatChatIdRecordPaymentRoute: TmaChatChatIdRecordPaymentRoute,
   TmaChatChatIdRecurringExpensesRoute: TmaChatChatIdRecurringExpensesRoute,
   TmaChatChatIdSettingsRoute: TmaChatChatIdSettingsRouteWithChildren,
   TmaChatChatIdSnapshotsRoute: TmaChatChatIdSnapshotsRoute,
