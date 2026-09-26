@@ -29,8 +29,13 @@ const flagUrl = (countryCode: string) =>
 
 const PaymentAmountStep = withForm({
   ...paymentFormOpts,
-  props: { chatId: 0, showAmountError: false },
-  render: function Render({ form, chatId, showAmountError }) {
+  props: { chatId: 0, showAmountError: false, showDescriptionError: false },
+  render: function Render({
+    form,
+    chatId,
+    showAmountError,
+    showDescriptionError,
+  }) {
     const tSubtitleTextColor = useSignal(themeParams.subtitleTextColor);
     const tUserData = useSignal(initData.user);
     const currency = useStore(form.store, (s) => s.values.currency);
@@ -121,6 +126,7 @@ const PaymentAmountStep = withForm({
                   <Section>
                     <Textarea
                       className="text-wrap"
+                      status={showDescriptionError ? "error" : "default"}
                       placeholder="e.g. Concert tickets"
                       value={descriptionField.state.value}
                       onBlur={descriptionField.handleBlur}

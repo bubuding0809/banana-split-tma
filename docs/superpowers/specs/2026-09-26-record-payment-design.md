@@ -57,13 +57,9 @@ Search params:
 | `amount` | `number` | prefill (optional) |
 | `currency` | `string` | prefill (optional) |
 
-**Step 1: Amount.** Reuses the AmountFormStep pieces: currency cell (opens `CurrencySelectionModal`, featuring the chat's base currency), amount input, then a Details section with description (placeholder "e.g. Concert tickets") and Transaction Date (max today). It leaves out Repeat, End date, category and the "Apply SGD" conversion cell. The Main button reads **Next** and is enabled when the amount is > 0.
+**Step 1: Amount.** Reuses the AmountFormStep pieces: currency cell (opens `CurrencySelectionModal`, featuring the chat's base currency), amount input, then a Details section with a required description (placeholder "e.g. Concert tickets"; blank or whitespace-only blocks Next and marks the field red) and Transaction Date (max today). It leaves out Repeat, End date, category and the "Apply SGD" conversion cell. The Main button reads **Next** and moves on only when the amount is ≥ 0.01 and a description is filled in. The backend keeps `description` optional so other callers (MCP, agent, CLI) are unaffected.
 
-**Step 2: Who.** A segmented control `I paid | I received`, then a large section header that follows the toggle ("Paid to?" or "Received from?"), then a radio list of every chat member except the current user. Each row shows `ChatMemberAvatar`, the name, and the member's balance with the current user *in the currency picked on step 1*:
-
-- red "you owe {amount}" when the user owes them,
-- green "owes you {amount}" when they owe the user,
-- grey "settled up" otherwise.
+**Step 2: Who.** A segmented control `I paid | I received`, then a large section header that follows the toggle ("Paid to?" or "Received from?"), then a radio list of every chat member except the current user. Rows match the Add expense payer list: `ChatMemberAvatar`, `@username` (or "No username") as the title, and the full name as the subtitle. Balances are not shown.
 
 No summary line under the list. The Main button reads **Record payment** and is enabled once a member is selected.
 
@@ -180,4 +176,3 @@ One step at a time through AskUserQuestion, in Telegram:
 
 - **Mis-recorded payments.** Either side can now change a balance by any amount. Mitigation: the message tags the other party, and settlements can be deleted.
 - **Two-button row width.** "Add expense" loses half its width on small phones. The label stays short; check it in manual UAT on the narrowest device available.
-- **Balance subtitles in a currency with no activity** show "settled up". That is accurate, but it may look odd for a member who has a debt in another currency. Acceptable for v1.

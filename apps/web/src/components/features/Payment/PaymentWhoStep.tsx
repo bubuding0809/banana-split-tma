@@ -6,13 +6,13 @@ import {
   SegmentedControl,
 } from "@telegram-apps/telegram-ui";
 import { useStore } from "@tanstack/react-form";
+import { useEffect } from "react";
 
 import ChatMemberAvatar from "@/components/ui/ChatMemberAvatar";
 import { withForm } from "@/hooks";
 import { trpc } from "@/utils/trpc";
-import { formatCurrencyWithCode } from "@/utils/financial";
 import { paymentFormOpts } from "./RecordPaymentForm";
-import { balanceWith } from "./recordPayment";
+import { soleCounterpartyId } from "./recordPayment";
 
 const PaymentWhoStep = withForm({
   ...paymentFormOpts,
@@ -21,36 +21,16 @@ const PaymentWhoStep = withForm({
     const tUserData = useSignal(initData.user);
     const userId = tUserData?.id ?? 0;
     const direction = useStore(form.store, (s) => s.values.direction);
-    const currency = useStore(form.store, (s) => s.values.currency);
 
     const { data: members } = trpc.chat.getMembers.useQuery({ chatId });
-    const { data: debtors } = trpc.chat.getDebtorsMultiCurrency.useQuery({
-      chatId,
-      userId,
-    });
-    const { data: creditors } = trpc.chat.getCreditorsMultiCurrency.useQuery({
-      chatId,
-      userId,
-    });
-
     const others = (members ?? []).filter((m) => Number(m.id) !== userId);
 
-    const subtitle = (memberId: number) => {
-      const b = balanceWith(memberId, currency, debtors, creditors);
-      if (b.kind === "you_owe")
-        return (
-          <span className="text-red-500">
-            you owe {formatCurrencyWithCode(b.amount, currency)}
-          </span>
-        );
-      if (b.kind === "owes_you")
-        return (
-          <span className="text-green-500">
-            owes you {formatCurrencyWithCode(b.amount, currency)}
-          </span>
-        );
-      return <span className="text-gray-500">settled up</span>;
-    };
+    // Pre-select the only other member; leave larger groups blank.
+    useEffect(() => {
+      if (form.getFieldValue("counterpartyId")) return;
+      const sole = soleCounterpartyId(members, userId);
+      if (sole) form.setFieldValue("counterpartyId", sole);
+    }, [form, members, userId]);
 
     return (
       <div className="flex flex-col gap-3">
@@ -93,7 +73,7 @@ const PaymentWhoStep = withForm({
                   Component="label"
                   key={String(m.id)}
                   before={<ChatMemberAvatar userId={Number(m.id)} size={48} />}
-                  subtitle={subtitle(Number(m.id))}
+                  subtitle={`${m.firstName} ${m.lastName ?? ""}`.trim()}
                   after={
                     <Radio
                       name="counterparty"
@@ -103,7 +83,7 @@ const PaymentWhoStep = withForm({
                     />
                   }
                 >
-                  {`${m.firstName} ${m.lastName ?? ""}`.trim()}
+                  {m.username ? `@${m.username}` : "No username"}
                 </Cell>
               ))}
             </Section>

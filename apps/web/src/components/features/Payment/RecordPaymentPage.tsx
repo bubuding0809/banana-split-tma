@@ -9,7 +9,7 @@ import {
   themeParams,
   useSignal,
 } from "@telegram-apps/sdk-react";
-import { Steps, Subheadline } from "@telegram-apps/telegram-ui";
+import { Snackbar, Steps, Subheadline } from "@telegram-apps/telegram-ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@utils/cn";
@@ -22,6 +22,7 @@ import PaymentWhoStep from "./PaymentWhoStep";
 import { paymentFormOpts } from "./RecordPaymentForm";
 import {
   isValidAmount,
+  isValidDescription,
   resolveInitialValues,
   toNotificationNames,
   toParties,
@@ -40,6 +41,8 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
   const { prevTab, currentFormStep } = search;
   const userId = tUserData?.id ?? 0;
   const [showAmountError, setShowAmountError] = useState(false);
+  const [showDescriptionError, setShowDescriptionError] = useState(false);
+  const [showPickMember, setShowPickMember] = useState(false);
 
   const trpcUtils = trpc.useUtils();
   const { data: dChatData } = trpc.chat.getChat.useQuery({ chatId });
@@ -202,17 +205,22 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
   useEffect(() => {
     const off = mainButton.onClick.ifAvailable(() => {
       if (currentFormStep === 0) {
-        if (!isValidAmount(form.getFieldValue("amount"))) {
-          setShowAmountError(true);
+        const amountOk = isValidAmount(form.getFieldValue("amount"));
+        const descriptionOk = isValidDescription(
+          form.getFieldValue("description")
+        );
+        setShowAmountError(!amountOk);
+        setShowDescriptionError(!descriptionOk);
+        if (!amountOk || !descriptionOk) {
           return hapticFeedback.notificationOccurred("warning");
         }
-        setShowAmountError(false);
         hapticFeedback.notificationOccurred("success");
         return navigate({
           search: (prev) => ({ ...prev, currentFormStep: 1 }),
         });
       }
       if (!form.getFieldValue("counterpartyId")) {
+        setShowPickMember(true);
         return hapticFeedback.notificationOccurred("warning");
       }
       form.handleSubmit();
@@ -291,11 +299,20 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
             form={form}
             chatId={chatId}
             showAmountError={showAmountError}
+            showDescriptionError={showDescriptionError}
           />
         ) : (
           <PaymentWhoStep form={form} chatId={chatId} />
         )}
       </section>
+      {showPickMember ? (
+        <Snackbar
+          onClose={() => setShowPickMember(false)}
+          description="Choose who you paid or who paid you."
+        >
+          Pick a member first
+        </Snackbar>
+      ) : null}
     </div>
   );
 };

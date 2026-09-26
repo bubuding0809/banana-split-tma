@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   isValidAmount,
+  isValidDescription,
   toParties,
   toNotificationNames,
-  balanceWith,
   resolveInitialValues,
+  soleCounterpartyId,
   type RecordPaymentValues,
 } from "./recordPayment";
 
@@ -49,35 +50,6 @@ describe("toNotificationNames", () => {
       creditorUsername: undefined,
       debtorName: "Bob",
     });
-  });
-});
-
-describe("balanceWith", () => {
-  const debtors = [{ id: 3, balances: [{ currency: "SGD", amount: 12 }] }];
-  const creditors = [
-    { id: 2, balances: [{ currency: "SGD", amount: -50 }] },
-    { id: 4, balances: [{ currency: "JPY", amount: -1000 }] },
-  ];
-  it("member I owe", () => {
-    expect(balanceWith(2, "SGD", debtors, creditors)).toEqual({
-      kind: "you_owe",
-      amount: 50,
-    });
-  });
-  it("member who owes me", () => {
-    expect(balanceWith(3, "SGD", debtors, creditors)).toEqual({
-      kind: "owes_you",
-      amount: 12,
-    });
-  });
-  it("debt only in another currency reads settled", () => {
-    expect(balanceWith(4, "SGD", debtors, creditors)).toEqual({
-      kind: "settled",
-      amount: 0,
-    });
-  });
-  it("undefined lists read settled", () => {
-    expect(balanceWith(2, "SGD", undefined, undefined).kind).toBe("settled");
   });
 });
 
@@ -134,5 +106,33 @@ describe("resolveInitialValues", () => {
       direction: "paid",
       counterpartyId: "2",
     });
+  });
+});
+
+describe("soleCounterpartyId", () => {
+  const m = (id: number) => ({ id });
+  it("picks the only other member in a two-person group", () => {
+    expect(soleCounterpartyId([m(1), m(2)], 1)).toBe("2");
+  });
+  it("returns null when there are several other members", () => {
+    expect(soleCounterpartyId([m(1), m(2), m(3)], 1)).toBeNull();
+  });
+  it("returns null when nobody else is in the group", () => {
+    expect(soleCounterpartyId([m(1)], 1)).toBeNull();
+    expect(soleCounterpartyId(undefined, 1)).toBeNull();
+  });
+  it("compares bigint-ish ids by value", () => {
+    expect(soleCounterpartyId([{ id: 1n }, { id: 2n }], 1)).toBe("2");
+  });
+});
+
+describe("isValidDescription", () => {
+  it.each([
+    ["", false],
+    ["   ", false],
+    ["Concert tickets", true],
+    ["  Taxi  ", true],
+  ])("%j → %s", (input, expected) => {
+    expect(isValidDescription(input)).toBe(expected);
   });
 });

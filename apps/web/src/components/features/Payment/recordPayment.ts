@@ -16,21 +16,15 @@ export type RecordPaymentPrefill = {
   currency?: string;
 };
 
-type BalanceRow = {
-  id: number;
-  balances: { currency: string; amount: number }[];
-};
-
-export type BalanceWith = {
-  kind: "you_owe" | "owes_you" | "settled";
-  amount: number;
-};
-
 /** Mirrors the backend minimum (FINANCIAL_THRESHOLDS.DISPLAY = 0.01). */
 export const isValidAmount = (amount: string): boolean => {
   if (!/^\d+(\.\d{1,2})?$/.test(amount)) return false;
   return Number(amount) >= 0.01;
 };
+
+/** Recorded payments need a note so they're recognisable later. */
+export const isValidDescription = (description: string): boolean =>
+  description.trim().length > 0;
 
 export const toParties = (
   direction: PaymentDirection,
@@ -57,32 +51,6 @@ export const toNotificationNames = (
         creditorUsername: undefined,
         debtorName: counterparty.firstName,
       };
-
-const amountIn = (
-  rows: BalanceRow[] | undefined,
-  memberId: number,
-  currency: string
-) =>
-  rows
-    ?.find((r) => r.id === memberId)
-    ?.balances.find((b) => b.currency === currency)?.amount;
-
-export const balanceWith = (
-  memberId: number,
-  currency: string,
-  debtors: BalanceRow[] | undefined,
-  creditors: BalanceRow[] | undefined
-): BalanceWith => {
-  const owesMe = amountIn(debtors, memberId, currency);
-  if (owesMe !== undefined && owesMe !== 0) {
-    return { kind: "owes_you", amount: Math.abs(owesMe) };
-  }
-  const iOwe = amountIn(creditors, memberId, currency);
-  if (iOwe !== undefined && iOwe !== 0) {
-    return { kind: "you_owe", amount: Math.abs(iOwe) };
-  }
-  return { kind: "settled", amount: 0 };
-};
 
 export const resolveInitialValues = ({
   prefill,
@@ -119,4 +87,17 @@ export const resolveInitialValues = ({
     direction: "paid",
     counterpartyId: "",
   };
+};
+
+/**
+ * In a two-person group the counterparty is unambiguous, so it can be
+ * pre-selected. With more members the user must pick, to avoid recording
+ * money against the wrong person.
+ */
+export const soleCounterpartyId = (
+  members: { id: number | bigint }[] | undefined,
+  userId: number
+): string | null => {
+  const others = (members ?? []).filter((m) => Number(m.id) !== userId);
+  return others.length === 1 ? String(others[0]!.id) : null;
 };
