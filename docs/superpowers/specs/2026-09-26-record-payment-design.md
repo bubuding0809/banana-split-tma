@@ -72,7 +72,7 @@ No summary line under the list. The Main button reads **Record payment** and is 
 - `I paid` means sender = current user, receiver = selected member.
 - `I received` means sender = selected member, receiver = current user.
 
-It calls `settlement.createSettlement` with `notificationKind: "payment"`, `sendNotification: true`, and the existing name fields and `threadId`. On success: success haptic, clear the draft, invalidate `getDebtorsMultiCurrency`, `getCreditorsMultiCurrency`, `getSimplifiedDebtsMultiCurrency` and the transactions query, then navigate back to `/chat/$chatId` on `prevTab`. On error: error haptic and a `popup.open` message; the form keeps its values.
+It calls `settlement.createSettlement` with `notificationKind: "payment"`, `sendNotification: true`, and the existing name fields and `threadId`. On success: success haptic, clear the draft, invalidate `getDebtorsMultiCurrency`, `getCreditorsMultiCurrency`, `getSimplifiedDebtsMultiCurrency` and the transactions query, then navigate back to `/chat/$chatId` on the Transactions tab so the new payment is visible (matching Add expense). On error: error haptic and a `popup.open` message; the form keeps its values.
 
 **Draft.** Stored in sessionStorage under `record-payment:{chatId}`, following the `add-expense:{chatId}` pattern. A prefilled entry from a popup replaces any existing draft.
 

@@ -115,6 +115,7 @@ function ChatIdRoute() {
         search: {
           selectedTab: "transaction",
           selectedSettlement: startParams.entity_id,
+          relatedOnly: false,
         },
         replace: true,
       });

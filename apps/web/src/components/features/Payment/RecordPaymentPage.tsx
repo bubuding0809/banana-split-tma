@@ -78,7 +78,13 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
       const counterparty = members?.find(
         (m) => String(m.id) === value.counterpartyId
       );
-      if (!counterparty || !tUserData?.firstName) return;
+      if (!counterparty || !tUserData?.firstName) {
+        hapticFeedback.notificationOccurred("error");
+        popup.open.ifAvailable({
+          message: "Couldn't find that member. Please pick someone again.",
+        });
+        return;
+      }
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
@@ -160,9 +166,16 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
 
   useFormDraftCache(draftKey, form);
 
-  // Back button: step 0 → chat, step 1 → step 0
+  // Show back button on mount
   useEffect(() => {
     backButton.show.ifAvailable();
+    return () => {
+      backButton.hide();
+    };
+  }, []);
+
+  // Back button click: step 0 → chat, step 1 → step 0
+  useEffect(() => {
     const off = backButton.onClick(() => {
       hapticFeedback.notificationOccurred("success");
       if (currentFormStep === 0) return backToChat(prevTab);
@@ -170,7 +183,6 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
     });
     return () => {
       off();
-      backButton.hide();
     };
   }, [currentFormStep, prevTab, navigate, backToChat]);
 
@@ -224,13 +236,18 @@ const RecordPaymentPage = ({ chatId }: { chatId: number }) => {
 
   useEffect(
     () => () => {
-      mainButton.setParams.ifAvailable({ isVisible: false, isEnabled: false });
+      mainButton.setParams.ifAvailable({
+        isVisible: false,
+        isEnabled: false,
+        backgroundColor: tButtonColor,
+        hasShineEffect: false,
+      });
       secondaryButton.setParams.ifAvailable({
         isVisible: false,
         isEnabled: false,
       });
     },
-    []
+    [tButtonColor]
   );
 
   return (

@@ -197,6 +197,7 @@ describe("chat.$chatId Deep Link Routing", () => {
       search: {
         selectedTab: "transaction",
         selectedSettlement: "settle-uuid-1",
+        relatedOnly: false,
       },
       replace: true,
     });
