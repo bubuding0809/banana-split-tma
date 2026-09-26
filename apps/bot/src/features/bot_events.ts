@@ -56,6 +56,11 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
       // or: it was just created by migrateChat (migratedFromChatId is set).
       // In both cases skip the welcome — the user has been greeted before,
       // or the migrate handler will deliver its own dedicated message.
+      // The group may have been renamed while the bot was away, so heal
+      // the stored title.
+      if (chat.title && chat.title !== existingChat.title) {
+        await ctx.trpc.chat.updateChat({ chatId: chat.id, title: chat.title });
+      }
       ctx.log.info(
         {
           duration_ms: Date.now() - runStart,
@@ -90,6 +95,30 @@ botEventsFeature.on("my_chat_member", async (ctx, next) => {
       "bot_events.chat.add.failed"
     );
     await ctx.reply("❌ Failed to initialize chat");
+  }
+});
+
+// Telegram sends a service message when a group is renamed; keep the stored
+// title in sync. Silent in the group — a failure here only means the title
+// stays stale, so log and move on.
+botEventsFeature.on("message:new_chat_title", async (ctx) => {
+  const runStart = Date.now();
+  ctx.log.info({}, "bot_events.chat.rename.start");
+
+  try {
+    await ctx.trpc.chat.updateChat({
+      chatId: ctx.chat.id,
+      title: ctx.message.new_chat_title,
+    });
+    ctx.log.info(
+      { duration_ms: Date.now() - runStart, outcome: "ok" },
+      "bot_events.chat.rename.end"
+    );
+  } catch (err) {
+    ctx.log.warn(
+      { err, duration_ms: Date.now() - runStart },
+      "bot_events.chat.rename.failed"
+    );
   }
 });
 

@@ -18,6 +18,7 @@
     "dev": "tsc --watch --preserveWatchOutput",
     "backfill:personal-chats": "tsx scripts/backfill-personal-chats.ts",
     "cleanup:orphan-reminder-schedules": "tsx scripts/cleanup-orphan-reminder-schedules.ts",
+    "backfill:chat-titles": "tsx scripts/backfill-chat-titles.ts",
     "build": "prisma generate && tsc"
   },
   "keywords": [],
