@@ -120,4 +120,35 @@ describe("createSettlementHandler notifications", () => {
     await createSettlementHandler(parse({ date }), mockDb, {} as any);
     expect(mockDb.settlement.create.mock.calls[0]![0].data.date).toEqual(date);
   });
+
+  it("omits date from settlement.create data when not provided", async () => {
+    await createSettlementHandler(parse(), mockDb, {} as any);
+    expect(mockDb.settlement.create.mock.calls[0]![0].data).not.toHaveProperty(
+      "date"
+    );
+  });
+
+  it("does not forward description on settle_up (existing callers unchanged)", async () => {
+    await createSettlementHandler(
+      parse({ description: "dinner split" }),
+      mockDb,
+      {} as any
+    );
+    expect(notify.mock.calls[0]![0]).toMatchObject({
+      kind: "settle_up",
+      description: undefined,
+    });
+  });
+
+  it("forwards description on payment", async () => {
+    await createSettlementHandler(
+      parse({ notificationKind: "payment", description: "coffee" }),
+      mockDb,
+      {} as any
+    );
+    expect(notify.mock.calls[0]![0]).toMatchObject({
+      kind: "payment",
+      description: "coffee",
+    });
+  });
 });

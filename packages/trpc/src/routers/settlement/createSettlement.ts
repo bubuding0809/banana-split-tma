@@ -123,7 +123,10 @@ export const createSettlementHandler = async (
             debtorUserId: Number(input.senderId),
             amount: input.amount,
             currency: currency,
-            description: input.description,
+            description:
+              input.notificationKind === "payment"
+                ? input.description
+                : undefined,
             threadId: input.threadId,
             force: false,
             kind: input.notificationKind,
