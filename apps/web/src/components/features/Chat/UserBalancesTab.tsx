@@ -18,6 +18,7 @@ import {
   getBalanceColorClass,
 } from "@/utils/financial";
 import { CounterpartyBalanceSheet } from "./CounterpartyBalanceSheet";
+import BalanceSplitBar from "./BalanceSplitBar";
 
 interface Props {
   initialBaseCurrency: string;
@@ -126,6 +127,14 @@ export default function UserBalancesTab({
   return (
     <section className="pb-24">
       <div className="mt-4 flex flex-col gap-2 px-4">
+        {!q.isError && (
+          <BalanceSplitBar
+            nets={counterparties.map((c) => c.totalBaseNet)}
+            currency={q.data?.baseCurrency ?? initialBaseCurrency}
+            isLoading={q.isLoading}
+          />
+        )}
+
         <Section
           header={
             <Title weight="2" className="px-1 py-2" level="3">
