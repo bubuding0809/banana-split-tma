@@ -25,6 +25,11 @@ const trpcCtx = createContext({
 
 const caller = appRouter.createCaller(trpcCtx);
 
+// Warm the Prisma engine + DB connection while the rest of the module graph
+// is still loading, so the first query of a cold start doesn't pay for it.
+// Failures surface on the first real query anyway; don't crash import here.
+void trpcCtx.db.$connect().catch(() => {});
+
 export const trpcMiddleware: Middleware<BotContext> = async (ctx, next) => {
   // Per-request wrap so each call inherits the request_id / chat_id /
   // user_id baked into ctx.log by loggerMiddleware. The Proxy is lazy —

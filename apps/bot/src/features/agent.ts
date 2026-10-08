@@ -1,6 +1,4 @@
 import { BotContext } from "../types.js";
-import { bananaAgent } from "@repo/agent";
-import { RequestContext } from "@mastra/core/request-context";
 import { Composer } from "grammy";
 import { renderTelegramHtml } from "../utils/telegramMarkdown.js";
 import { splitTelegramHtmlChunks } from "../utils/chunkHtml.js";
@@ -103,6 +101,14 @@ export const handleAgentMessage = async (ctx: BotContext, text?: string) => {
         }
       }
     }
+
+    // Lazy: @repo/agent pulls in mastra + a Postgres memory store. Loading it
+    // on every update cost ~0.7s of cold start for messages that never reach
+    // the agent.
+    const [{ bananaAgent }, { RequestContext }] = await Promise.all([
+      import("@repo/agent"),
+      import("@mastra/core/request-context"),
+    ]);
 
     const requestContext = new RequestContext<{
       telegramUserId: number;

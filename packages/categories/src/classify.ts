@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { generateObject } from "ai";
 import type { LanguageModel } from "ai";
 import { BASE_CATEGORIES } from "./base.js";
 import { buildClassifierPrompt } from "./prompt.js";
@@ -63,6 +62,9 @@ export async function classifyCategory(args: {
     args.signal?.addEventListener("abort", onAbort);
 
     try {
+      // Lazy: the "ai" package costs ~0.6s to import and is only needed here,
+      // so keep it out of the bot/lambda cold-start module graph.
+      const { generateObject } = await import("ai");
       const { object } = await generateObject({
         model: args.model,
         schema,

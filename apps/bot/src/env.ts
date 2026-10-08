@@ -7,6 +7,9 @@ dotenv.config();
 export const env = createEnv({
   server: {
     TELEGRAM_BOT_TOKEN: z.string().min(1),
+    // Optional. When set, the bot skips the getMe round trip on every cold
+    // start and builds botInfo locally (id comes from the token prefix).
+    TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),

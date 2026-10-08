@@ -1,4 +1,6 @@
-import { format } from "date-fns";
+// Subpath import: the "date-fns" barrel loads ~250 modules and was the single
+// largest contributor to the bot/lambda cold start.
+import { format } from "date-fns/format";
 
 type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 type Weekday = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";

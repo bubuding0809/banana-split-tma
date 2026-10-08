@@ -114,6 +114,10 @@ describe("classifyCategory", () => {
       signal: outer.signal,
     });
 
+    // generateObject is reached only after the lazy `import("ai")` resolves,
+    // so wait for the mock to be invoked before aborting mid-call.
+    await vi.waitFor(() => expect(generateObjectMock).toHaveBeenCalled());
+
     // Simulate: external signal aborts while generateObject is still pending.
     outer.abort();
     rejectHold(Object.assign(new Error("abort"), { name: "AbortError" }));

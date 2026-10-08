@@ -2,7 +2,6 @@ import { z } from "zod";
 import { Db, protectedProcedure } from "../../trpc.js";
 import { assertChatAccess } from "../../middleware/chatScope.js";
 import { classifyCategory, DEFAULT_AGENT_MODEL } from "@repo/categories";
-import { google } from "@ai-sdk/google";
 import { takeToken } from "../../utils/rateLimit.js";
 import type { LanguageModel } from "ai";
 
@@ -24,7 +23,9 @@ const outputSchema = z.object({
 // @repo/agent already depends on @dko/trpc. The default model name is hoisted
 // to @repo/categories (a no-cycle leaf) so this stays in sync with
 // @repo/agent's getAgentModel() default automatically.
-function getModel(): LanguageModel {
+// Lazy: @ai-sdk/google is only needed on this procedure, not at module load.
+async function getModel(): Promise<LanguageModel> {
+  const { google } = await import("@ai-sdk/google");
   const modelName = process.env.AGENT_MODEL || DEFAULT_AGENT_MODEL;
   return google(modelName) as unknown as LanguageModel;
 }
@@ -41,7 +42,7 @@ export const suggestCategoryHandler = async (
   const result = await classifyCategory({
     description: input.description,
     chatCategories: rows,
-    model: getModel(),
+    model: await getModel(),
     logger,
   });
   if (result.kind === "match") {
