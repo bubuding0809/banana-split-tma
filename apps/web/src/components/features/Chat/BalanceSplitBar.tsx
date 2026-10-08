@@ -25,8 +25,12 @@ const amountFormatter = new Intl.NumberFormat("en", {
   maximumFractionDigits: 2,
 });
 const formatAmount = (n: number) => amountFormatter.format(Math.abs(n));
-const formatSigned = (n: number) =>
-  `${n > 0 ? "+" : n < 0 ? "−" : ""}${formatAmount(n)}`;
+const formatSigned = (n: number) => {
+  const abs = formatAmount(n);
+  // Sub-cent dust rounds to 0.00; don't sign it.
+  if (abs === formatAmount(0)) return abs;
+  return `${n > 0 ? "+" : "−"}${abs}`;
+};
 
 interface BalanceSplitBarProps {
   nets: number[];
@@ -45,6 +49,11 @@ const BalanceSplitBar = ({
 
   const { owe, owed, net } = computeBalanceTotals(nets);
   const settled = owe === 0 && owed === 0;
+  // Percentages, not raw amounts: flex-grow factors summing below 1 leave
+  // the track partly empty (e.g. owe 0.30 + owed 0.20).
+  const total = owe + owed;
+  const owePct = settled ? 0 : (owe / total) * 100;
+  const owedPct = settled ? 0 : (owed / total) * 100;
 
   return (
     <div
@@ -90,13 +99,15 @@ const BalanceSplitBar = ({
                 // Floor keeps a tiny debt visible next to a large collectable.
                 <div
                   className="min-w-1.5 rounded-full bg-red-500"
-                  style={{ flex: `${owe} 1 0` }}
+                  style={{ flex: `${owePct} 1 0` }}
+                  data-testid="balance-owe-slice"
                 />
               )}
               {owed > 0 && (
                 <div
                   className="min-w-1.5 rounded-full bg-green-500"
-                  style={{ flex: `${owed} 1 0` }}
+                  style={{ flex: `${owedPct} 1 0` }}
+                  data-testid="balance-owed-slice"
                 />
               )}
             </>

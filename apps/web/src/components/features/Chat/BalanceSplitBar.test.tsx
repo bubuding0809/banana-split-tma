@@ -41,6 +41,17 @@ describe("BalanceSplitBar", () => {
     expect(screen.getByTestId("balance-owed").textContent).toBe("0.00");
   });
 
+  it("normalises slice flex-grow so sub-1 totals still fill the track", () => {
+    render(<BalanceSplitBar nets={[-0.3, 0.2]} currency="SGD" />);
+    expect(screen.getByTestId("balance-owe-slice").style.flexGrow).toBe("60");
+    expect(screen.getByTestId("balance-owed-slice").style.flexGrow).toBe("40");
+  });
+
+  it("does not sign a net that rounds to 0.00", () => {
+    render(<BalanceSplitBar nets={[-1, 1.004]} currency="SGD" />);
+    expect(screen.getByTestId("balance-net").textContent).toBe("0.00");
+  });
+
   it("shows zero net when settled", () => {
     render(<BalanceSplitBar nets={[]} currency="SGD" />);
     expect(screen.getByTestId("balance-net").textContent).toBe("0.00");
