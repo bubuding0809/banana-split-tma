@@ -6,7 +6,6 @@ import { ChatUtils } from "../utils/chat.js";
 import { env } from "../env.js";
 import { Decimal } from "decimal.js";
 import { classifyCategory, resolveCategory } from "@repo/categories";
-import { getAgentModel } from "@repo/agent";
 import { encodeV1DeepLink, formatDateLabel } from "@dko/trpc";
 import type { LanguageModel } from "ai";
 
@@ -553,6 +552,8 @@ expensesFeature.on("message:text", async (ctx, next) => {
           title: c.title,
           chatId: BigInt(ctx.from.id),
         }));
+      // Lazy: keeps mastra out of the cold-start module graph.
+      const { getAgentModel } = await import("@repo/agent");
       const suggestion = await classifyCategory({
         description: parsed.description,
         chatCategories: chatRows,

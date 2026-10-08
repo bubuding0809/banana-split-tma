@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { generateObject } from "ai";
 import type { LanguageModel } from "ai";
 import { BASE_CATEGORIES } from "./base.js";
 import { buildClassifierPrompt } from "./prompt.js";
@@ -57,6 +56,12 @@ export async function classifyCategory(args: {
   });
 
   try {
+    // Lazy: the "ai" package costs ~0.6s to import and is only needed here,
+    // so keep it out of the bot/lambda cold-start module graph. Imported
+    // before the timeout starts so a cold-start import doesn't eat into the
+    // LLM budget.
+    const { generateObject } = await import("ai");
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CLASSIFY_TIMEOUT_MS);
     const onAbort = () => controller.abort();
