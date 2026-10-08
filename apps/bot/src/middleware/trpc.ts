@@ -3,6 +3,7 @@ import { AppCaller, BotContext } from "../types.js";
 import { appRouter, withCreateTRPCContext } from "@dko/trpc";
 import { env } from "../env.js";
 import { wrapCallerWithLogging } from "./trpcLogger.js";
+import { createLogger } from "@repo/logger";
 
 const createContext = withCreateTRPCContext({
   TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN,
@@ -27,8 +28,11 @@ const caller = appRouter.createCaller(trpcCtx);
 
 // Warm the Prisma engine + DB connection while the rest of the module graph
 // is still loading, so the first query of a cold start doesn't pay for it.
-// Failures surface on the first real query anyway; don't crash import here.
-void trpcCtx.db.$connect().catch(() => {});
+// Failures surface on the first real query anyway; don't crash import here,
+// but log so a systematically failing warm-up shows up in Axiom.
+void trpcCtx.db
+  .$connect()
+  .catch((err) => createLogger("bot").warn({ err }, "db.warmup.failed"));
 
 export const trpcMiddleware: Middleware<BotContext> = async (ctx, next) => {
   // Per-request wrap so each call inherits the request_id / chat_id /
