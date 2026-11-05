@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { prisma } from "@dko/database";
 import {
   createExpenseHandler,
+  markEndedTemplates,
   tzMidnightForInstant,
   verifyRecurringExpenseSignature,
 } from "@dko/trpc";
@@ -108,10 +109,7 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
 
   // 4. End-date guard.
   if (tmpl.endDate && new Date(occurrenceMs) > tmpl.endDate) {
-    await prisma.recurringExpenseTemplate.update({
-      where: { id: tmpl.id },
-      data: { status: "ENDED" },
-    });
+    await markEndedTemplates(prisma, { id: tmpl.id });
     return res.status(410).json({ error: "past template endDate" });
   }
 

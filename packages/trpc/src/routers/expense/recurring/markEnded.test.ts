@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { markEndedTemplates } from "./markEnded.js";
+import { markEndedTemplates, statusAfterEndDateEdit } from "./markEnded.js";
 import type { Db } from "../../../trpc.js";
 
 const fakeDb = () => {
@@ -29,5 +29,28 @@ describe("markEndedTemplates", () => {
       id: "t1",
       status: "ACTIVE",
     });
+  });
+});
+
+describe("statusAfterEndDateEdit", () => {
+  const now = new Date("2026-11-15T00:00:00Z");
+  it("revives ENDED when the new end date is in the future", () => {
+    expect(
+      statusAfterEndDateEdit("ENDED", new Date("2026-12-31T00:00:00Z"), now)
+    ).toBe("ACTIVE");
+  });
+  it("revives ENDED when the end date is cleared", () => {
+    expect(statusAfterEndDateEdit("ENDED", null, now)).toBe("ACTIVE");
+  });
+  it("keeps ENDED when the new end date is still past", () => {
+    expect(
+      statusAfterEndDateEdit("ENDED", new Date("2026-11-01T00:00:00Z"), now)
+    ).toBe("ENDED");
+  });
+  it("never revives CANCELED", () => {
+    expect(statusAfterEndDateEdit("CANCELED", null, now)).toBe("CANCELED");
+  });
+  it("leaves ACTIVE alone", () => {
+    expect(statusAfterEndDateEdit("ACTIVE", null, now)).toBe("ACTIVE");
   });
 });

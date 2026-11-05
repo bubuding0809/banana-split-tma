@@ -16,3 +16,19 @@ export async function markEndedTemplates(
     data: { status: "ENDED" },
   });
 }
+
+type RecurringStatus = "ACTIVE" | "CANCELED" | "ENDED";
+
+/**
+ * Status to store after an end-date edit. Extending (or clearing) the end
+ * date of an ENDED template revives it, so the AWS schedule the update
+ * pushes actually fires. CANCELED is never revived.
+ */
+export function statusAfterEndDateEdit(
+  status: RecurringStatus,
+  newEndDate: Date | null,
+  now: Date = new Date()
+): RecurringStatus {
+  if (status !== "ENDED") return status;
+  return newEndDate === null || newEndDate >= now ? "ACTIVE" : "ENDED";
+}

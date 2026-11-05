@@ -254,3 +254,26 @@ describe("nextUpcomingOccurrence", () => {
     );
   });
 });
+
+describe("nextUpcomingOccurrence month-end", () => {
+  // AWS cron `cron(0 9 31 * ? *)` skips months without a 31st, so the
+  // walk must neither drift to the 28th nor clamp to the 30th.
+  it("monthly on the 31st skips short months without drifting", () => {
+    const a = new Date(2026, 0, 31, 9, 0);
+    const tmpl = { frequency: "MONTHLY" as const, interval: 1, weekdays: [] };
+    expect(day(nextUpcomingOccurrence(a, tmpl, new Date(2026, 3, 10)))).toBe(
+      "2026-05-31"
+    );
+    expect(day(nextUpcomingOccurrence(a, tmpl, new Date(2026, 1, 1)))).toBe(
+      "2026-03-31"
+    );
+  });
+
+  it("yearly on 29 Feb only lands on leap years", () => {
+    const a = new Date(2024, 1, 29, 9, 0);
+    const tmpl = { frequency: "YEARLY" as const, interval: 1, weekdays: [] };
+    expect(day(nextUpcomingOccurrence(a, tmpl, new Date(2024, 5, 1)))).toBe(
+      "2028-02-29"
+    );
+  });
+});

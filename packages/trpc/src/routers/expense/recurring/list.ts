@@ -12,6 +12,7 @@ export default protectedProcedure
   .output(z.any())
   .query(async ({ input, ctx }) => {
     await assertChatAccess(ctx.session, ctx.db, input.chatId);
+    // Note: this query writes — lazily flips expired templates to ENDED.
     await markEndedTemplates(ctx.db, { chatId: input.chatId });
     return ctx.db.recurringExpenseTemplate.findMany({
       where: { chatId: input.chatId, status: "ACTIVE" },

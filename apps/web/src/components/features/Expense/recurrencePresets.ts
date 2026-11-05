@@ -142,6 +142,13 @@ export function nextOccurrenceAfter(
 /**
  * First occurrence strictly after `now`, walking forward from `anchor`
  * (the first fire). Returns `anchor` if it hasn't happened yet.
+ *
+ * MONTHLY/YEARLY step from the anchor (k * interval) instead of chaining,
+ * because date-fns clamps day-of-month and the clamp would carry forward
+ * (Jan 31 -> Feb 28 -> Mar 28...). Candidates whose day got clamped are
+ * skipped, matching AWS cron, which doesn't fire on the 31st in a
+ * 30-day month or on 29 Feb in a non-leap year.
+ *
  * Bounded so a corrupt template can't spin forever.
  */
 export function nextUpcomingOccurrence(
@@ -149,6 +156,20 @@ export function nextUpcomingOccurrence(
   template: CanonicalTemplate,
   now: Date = new Date()
 ): Date {
+  if (anchor > now) return anchor;
+  const { frequency, interval } = template;
+
+  if (frequency === "MONTHLY" || frequency === "YEARLY") {
+    const step = frequency === "MONTHLY" ? interval : interval * 12;
+    let candidate = anchor;
+    for (let k = 1; k < 10_000; k++) {
+      candidate = addMonths(anchor, k * step);
+      if (candidate.getDate() !== anchor.getDate()) continue;
+      if (candidate > now) return candidate;
+    }
+    return candidate;
+  }
+
   let cur = anchor;
   for (let i = 0; i < 10_000 && cur <= now; i++) {
     cur = nextOccurrenceAfter(cur, template);
