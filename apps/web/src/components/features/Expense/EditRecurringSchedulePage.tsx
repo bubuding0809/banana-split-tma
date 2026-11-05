@@ -436,7 +436,7 @@ export default function EditRecurringSchedulePage({
                 level="1"
                 style={{ color: isPayerYou ? tButtonColor : undefined }}
               >
-                {isPayerYou ? "You" : `User ${payerIdNum}`} spends
+                {isPayerYou ? "You spend" : `User ${payerIdNum} spends`}
               </Caption>
             }
             description={

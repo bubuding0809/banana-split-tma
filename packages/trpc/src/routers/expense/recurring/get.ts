@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../../trpc.js";
 import { assertChatAccess } from "../../../middleware/chatScope.js";
+import { markEndedTemplates } from "./markEnded.js";
 
 export const inputSchema = z.object({
   templateId: z.string().uuid(),
@@ -22,6 +23,7 @@ export default protectedProcedure
       throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
     }
     await assertChatAccess(ctx.session, ctx.db, tmplMeta.chatId);
+    await markEndedTemplates(ctx.db, { id: input.templateId });
 
     // Now fetch the full template (with related expenses) for the response.
     const tmpl = await ctx.db.recurringExpenseTemplate.findUnique({

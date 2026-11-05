@@ -60,6 +60,7 @@ export {
   RECURRING_EXPENSE_SCHEDULE_GROUP,
 } from "./routers/aws/utils/recurringExpenseScheduler.js";
 export { tzMidnightForInstant } from "./routers/aws/utils/tzDate.js";
+export { markEndedTemplates } from "./routers/expense/recurring/markEnded.js";
 export { formatDateLabel } from "./utils/formatDateLabel.js";
 export { createTelegramApi } from "./utils/telegramClient.js";
 

@@ -7,6 +7,7 @@ import { getSchedulerClient } from "../../aws/utils/schedulerClient.js";
 import { RECURRING_EXPENSE_SCHEDULE_GROUP } from "../../aws/utils/recurringExpenseScheduler.js";
 import { buildExpenseCron } from "../../aws/utils/buildExpenseCron.js";
 import { computeAwsScheduleStartDate } from "../../aws/utils/computeAwsScheduleStartDate.js";
+import { statusAfterEndDateEdit } from "./markEnded.js";
 
 const FREQUENCY = z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
 const WEEKDAY = z.enum(["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]);
@@ -66,6 +67,7 @@ export default protectedProcedure
       interval: tmpl.interval,
       weekdays: tmpl.weekdays,
       endDate: tmpl.endDate,
+      status: tmpl.status,
       description: tmpl.description,
       amount: tmpl.amount,
     };
@@ -78,6 +80,9 @@ export default protectedProcedure
         interval: input.interval ?? tmpl.interval,
         weekdays: input.weekdays ?? tmpl.weekdays,
         endDate: input.endDate === undefined ? tmpl.endDate : input.endDate,
+        ...(input.endDate !== undefined
+          ? { status: statusAfterEndDateEdit(tmpl.status, input.endDate) }
+          : {}),
         description: input.description ?? tmpl.description,
         ...(input.amount !== undefined
           ? { amount: input.amount.toString() }

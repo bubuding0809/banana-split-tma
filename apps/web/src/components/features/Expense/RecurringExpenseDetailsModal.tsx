@@ -223,7 +223,7 @@ export default function RecurringExpenseDetailsModal({
                 weight="2"
                 style={{ color: isPayerYou ? tButtonColor : "inherit" }}
               >
-                {memberFullName} spends
+                {isPayerYou ? "You spend" : `${memberFullName} spends`}
               </Text>
             </Skeleton>
           </Cell>
