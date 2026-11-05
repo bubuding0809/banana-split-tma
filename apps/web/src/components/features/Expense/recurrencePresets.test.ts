@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { format } from "date-fns";
-import { nextOccurrenceAfter, presetToTemplate } from "./recurrencePresets";
+import {
+  nextOccurrenceAfter,
+  nextUpcomingOccurrence,
+  presetToTemplate,
+} from "./recurrencePresets";
 
 // Local-day formatter — using toISOString() would shift by the host TZ
 // offset (we run CI in UTC and dev in SGT) and break otherwise-correct
@@ -194,5 +198,59 @@ describe("nextOccurrenceAfter", () => {
       weekdays: [],
     });
     expect(day(r)).toBe("2027-04-25");
+  });
+});
+
+describe("nextUpcomingOccurrence", () => {
+  const every4WeeksThu = {
+    frequency: "WEEKLY" as const,
+    interval: 4,
+    weekdays: ["THU" as const],
+  };
+  // Thu 13 Aug 2026, 09:00 local
+  const anchor = new Date(2026, 7, 13, 9, 0);
+
+  it("returns the anchor itself when it is still in the future", () => {
+    const now = new Date(2026, 7, 1);
+    expect(day(nextUpcomingOccurrence(anchor, every4WeeksThu, now))).toBe(
+      "2026-08-13"
+    );
+  });
+
+  it("walks forward past now instead of stopping one step after anchor", () => {
+    // 6 Nov 2026 — fires were 13 Aug, 10 Sep, 8 Oct, 5 Nov
+    const now = new Date(2026, 10, 6);
+    expect(day(nextUpcomingOccurrence(anchor, every4WeeksThu, now))).toBe(
+      "2026-12-03"
+    );
+  });
+
+  it("counts an occurrence later today as upcoming", () => {
+    const now = new Date(2026, 10, 5, 8, 0); // 5 Nov 08:00, fire at 09:00
+    expect(day(nextUpcomingOccurrence(anchor, every4WeeksThu, now))).toBe(
+      "2026-11-05"
+    );
+  });
+
+  it("handles multi-weekday weekly with interval > 1", () => {
+    // Mon 2 Nov 2026 anchor, every 2 weeks on Mon + Thu
+    const a = new Date(2026, 10, 2, 9, 0);
+    const tmpl = {
+      frequency: "WEEKLY" as const,
+      interval: 2,
+      weekdays: ["MON" as const, "THU" as const],
+    };
+    // After Mon 2 Nov -> Thu 5 Nov -> Mon 16 Nov (skip week of 9 Nov)
+    expect(day(nextUpcomingOccurrence(a, tmpl, new Date(2026, 10, 6)))).toBe(
+      "2026-11-16"
+    );
+  });
+
+  it("monthly", () => {
+    const a = new Date(2026, 0, 15, 9, 0);
+    const tmpl = { frequency: "MONTHLY" as const, interval: 1, weekdays: [] };
+    expect(day(nextUpcomingOccurrence(a, tmpl, new Date(2026, 10, 20)))).toBe(
+      "2026-12-15"
+    );
   });
 });

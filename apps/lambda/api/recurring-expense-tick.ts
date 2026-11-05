@@ -108,6 +108,10 @@ router.post("/recurring-expense-tick", async (req: Request, res: Response) => {
 
   // 4. End-date guard.
   if (tmpl.endDate && new Date(occurrenceMs) > tmpl.endDate) {
+    await prisma.recurringExpenseTemplate.update({
+      where: { id: tmpl.id },
+      data: { status: "ENDED" },
+    });
     return res.status(410).json({ error: "past template endDate" });
   }
 

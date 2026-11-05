@@ -11,7 +11,7 @@ import { formatCurrencyWithCode } from "@/utils/financial";
 import { formatExpenseDateShort } from "@utils/date";
 import RecurringExpenseBadge from "./RecurringExpenseBadge";
 import {
-  nextOccurrenceAfter,
+  nextUpcomingOccurrence,
   PRESET_LABEL,
   UNIT_SINGULAR,
   type CanonicalFrequency,
@@ -71,18 +71,25 @@ export default function RecurringExpenseCell({
         member?.user.last_name ? ` ${member.user.last_name}` : ""
       }`;
 
-  // Compute the next fire date using the same helper the form uses.
-  // When interval > 1 and frequency=WEEKLY, this matches the Lambda's
-  // skip filter — what users see on the cell is what AWS will fire.
+  // Next fire = first occurrence after now, walking forward from the
+  // anchor with the same helper the form uses. When interval > 1 and
+  // frequency=WEEKLY, this matches the Lambda's skip filter.
   const anchorDate =
     template.anchorDate instanceof Date
       ? template.anchorDate
       : new Date(template.anchorDate);
-  const nextFire = nextOccurrenceAfter(anchorDate, {
+  const endDate = template.endDate ? new Date(template.endDate) : null;
+  const nextFire = nextUpcomingOccurrence(anchorDate, {
     frequency: template.frequency,
     interval: template.interval,
     weekdays: template.weekdays,
   });
+  // Past the end date, no more fires: say when it ends instead of
+  // promising a date that will never come.
+  const scheduleLabel =
+    endDate && nextFire > endDate
+      ? `Ends ${formatExpenseDateShort(endDate)}`
+      : `Next ${formatExpenseDateShort(nextFire)}`;
 
   // Frequency badge text — "Daily", "Weekly", etc., except for non-1
   // intervals which read more naturally as "Every N <unit>".
@@ -115,7 +122,7 @@ export default function RecurringExpenseCell({
             level="1"
             style={{ color: isPayerYou ? tButtonColor : undefined }}
           >
-            {isPayerYou ? "You" : memberFullName} spends
+            {isPayerYou ? "You spend" : `${memberFullName} spends`}
           </Caption>
         </Skeleton>
       }
@@ -142,7 +149,7 @@ export default function RecurringExpenseCell({
                   </Caption>
                 </div>
                 <Caption className="w-max" weight="1" level="1">
-                  Next {formatExpenseDateShort(nextFire)}
+                  {scheduleLabel}
                 </Caption>
               </div>
             </Info>

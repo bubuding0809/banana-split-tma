@@ -139,6 +139,23 @@ export function nextOccurrenceAfter(
   }
 }
 
+/**
+ * First occurrence strictly after `now`, walking forward from `anchor`
+ * (the first fire). Returns `anchor` if it hasn't happened yet.
+ * Bounded so a corrupt template can't spin forever.
+ */
+export function nextUpcomingOccurrence(
+  anchor: Date,
+  template: CanonicalTemplate,
+  now: Date = new Date()
+): Date {
+  let cur = anchor;
+  for (let i = 0; i < 10_000 && cur <= now; i++) {
+    cur = nextOccurrenceAfter(cur, template);
+  }
+  return cur;
+}
+
 export interface RecurrenceSummaryInput {
   frequency: CanonicalFrequency;
   interval: number;
