@@ -147,6 +147,7 @@ export default function SettingsHubPage({ chatId }: SettingsHubPageProps) {
     chat?.notifyOnExpense,
     chat?.notifyOnExpenseUpdate,
     chat?.notifyOnSettlement,
+    chat?.notifyOnTransfer,
   ].filter(Boolean).length;
 
   const reminderPreview = schedule?.enabled
