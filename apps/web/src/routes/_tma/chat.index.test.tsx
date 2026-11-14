@@ -1,7 +1,7 @@
 // apps/web/src/routes/_tma/chat.index.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
-import { Route } from "./chat.index";
+import { Route, searchSchema } from "./chat.index";
 import { useStartParams } from "@/hooks";
 
 const mockNavigate = vi.fn();
@@ -134,5 +134,29 @@ describe("chat.index Deep Link Routing", () => {
 
     expect(mockSetItem).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe("chat.index search schema", () => {
+  it("defaults to the balances (groups) tab when no tab is given", () => {
+    expect(searchSchema.parse({}).selectedTab).toBe("groups");
+  });
+
+  it("maps group-route tab names from shared back-navigation", () => {
+    expect(searchSchema.parse({ selectedTab: "transaction" }).selectedTab).toBe(
+      "personal"
+    );
+    expect(searchSchema.parse({ selectedTab: "balance" }).selectedTab).toBe(
+      "groups"
+    );
+  });
+
+  it("keeps explicit tabs and falls back to groups on junk", () => {
+    expect(searchSchema.parse({ selectedTab: "personal" }).selectedTab).toBe(
+      "personal"
+    );
+    expect(searchSchema.parse({ selectedTab: "nope" }).selectedTab).toBe(
+      "groups"
+    );
   });
 });
