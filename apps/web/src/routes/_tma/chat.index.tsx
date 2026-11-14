@@ -8,8 +8,16 @@ import { uuidToNumericId } from "@dko/trpc/src/utils/counterpartyDeepLink";
 import { UserPage } from "@/components/features";
 import { useStartParams } from "@/hooks";
 
-const searchSchema = z.object({
-  selectedTab: z.enum(["groups", "personal"]).catch("personal"),
+export const searchSchema = z.object({
+  // Lands on balances ("groups") by default. Shared expense/snapshot pages
+  // navigate back with the group-route tab names, so map those across.
+  selectedTab: z
+    .preprocess(
+      (v) =>
+        v === "transaction" ? "personal" : v === "balance" ? "groups" : v,
+      z.enum(["groups", "personal"])
+    )
+    .catch("groups"),
   selectedExpense: z.string().optional(),
   // Set by the cross-group deep link consumer below. UserBalancesTab
   // reads this to auto-open the CounterpartyBalanceSheet on land.
